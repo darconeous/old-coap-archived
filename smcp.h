@@ -15,8 +15,9 @@
 #include <stdbool.h>
 
 #define SMCP_DEFAULT_PORT           (29280)
-#define SMCP_MAX_PACKET_LENGTH  (1500)
-
+#define SMCP_MAX_PACKET_LENGTH      (1500)
+#define SMCP_MAX_HEADERS            (20)
+#define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
 
 __BEGIN_DECLS
 
@@ -131,7 +132,15 @@ enum {
 	SMCP_STATUS_UNSUPPORTED_URI     = -4,
 	SMCP_STATUS_ERRNO               = -5,
 	SMCP_STATUS_MALLOC_FAILURE      = -6,
+	SMCP_STATUS_HANDLER_INVALIDATED = -7,
+	SMCP_STATUS_TIMEOUT             = -8,
 };
+
+
+enum {
+	SMCP_RESPONSE_HANDLER_ALWAYS_TIMEOUT = (1 << 0),
+};
+
 
 typedef int smcp_status_t;
 
@@ -264,6 +273,37 @@ extern smcp_status_t smcp_node_pair_with_sockaddr(
 
 extern smcp_status_t smcp_daemon_refresh_variable(
 	smcp_daemon_t daemon, smcp_variable_node_t node);
+
+
+extern smcp_status_t smcp_daemon_add_response_handler(
+	smcp_daemon_t				self,
+	const char*					idValue,
+	int							cmsExpiration,
+	int							flags,
+	smcp_response_handler_func	callback,
+	void*						context);
+extern smcp_status_t smcp_invalidate_response_handler(
+	smcp_daemon_t self, const char* idValue);
+
+extern smcp_status_t smcp_daemon_send_request(
+	smcp_daemon_t		self,
+	const char*			method,
+	const char*			path,
+	const char*			version,
+	const char*			headers[],
+	const char*			content,
+	size_t				content_length,
+	struct sockaddr*	saddr,
+	socklen_t			socklen);
+extern smcp_status_t smcp_daemon_send_request_to_url(
+	smcp_daemon_t	self,
+	const char*		method,
+	const char*		url,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length);
+
 
 __END_DECLS
 

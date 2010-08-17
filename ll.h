@@ -1,3 +1,9 @@
+/*	Linked List Utilities
+**
+**	Written by Robert Quattlebaum <darco@deepdarc.com>.
+**	PUBLIC DOMAIN.
+*/
+
 #ifndef __LL_HEADER__
 #define __LL_HEADER__ 1
 

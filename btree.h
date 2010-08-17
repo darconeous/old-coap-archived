@@ -1,3 +1,9 @@
+/*	Binary Tree Utilities
+**
+**	Written by Robert Quattlebaum <darco@deepdarc.com>.
+**	PUBLIC DOMAIN.
+*/
+
 #ifndef __BTREE_HEADER__
 #define __BTREE_HEADER__ 1
 

@@ -1,7 +1,11 @@
+/*	Binary Tree Utilities
+**
+**	Written by Robert Quattlebaum <darco@deepdarc.com>.
+**	PUBLIC DOMAIN.
+*/
+
 #include "btree.h"
 #include <stdlib.h>
-
-// TODO: add some sort of balancing algorithm
 
 void
 bt_insert(
@@ -13,6 +17,9 @@ bt_insert(
 ) {
 	bt_item_t const location_ = *bt;
 	bt_item_t const item_ = item;
+
+	// TODO: Add some sort of tree-balancing algorithm.
+	// TODO: Make this function not recursive.
 
 	if(location_) {
 		bt_compare_result_t result =
@@ -103,6 +110,8 @@ bt_remove(
 						context);
 				}
 			}
+		} else if(*bt == item_) {
+			*bt = NULL;
 		}
 		item_->lhs = NULL;
 		item_->rhs = NULL;
@@ -116,8 +125,9 @@ void*
 bt_first(void* item) {
 	bt_item_t item_ = item;
 
-	while(item_->lhs)
-		item_ = item_->lhs;
+	if(item_)
+		while(item_->lhs)
+			item_ = item_->lhs;
 
 	return (void*)item_;
 }
@@ -126,18 +136,17 @@ void*
 bt_next(void* item) {
 	bt_item_t item_ = item;
 
-	if(item_->parent && item_->parent->rhs) {
-		item_ = bt_first(item_->parent->rhs);
-	} else {
-		// TODO: This looks broken!
-		while(true) {
-			if(!item_->parent || (item_->parent->lhs == item_)) {
+	if(item) {
+		if(item_->rhs) {
+			item_ = bt_first(item_->rhs);
+		} else {
+			while(item_->parent && (item_->parent->rhs == item_)) {
 				item_ = item_->parent;
-				break;
 			}
 			item_ = item_->parent;
 		}
 	}
+bail:
 
 	return (void*)item_;
 }

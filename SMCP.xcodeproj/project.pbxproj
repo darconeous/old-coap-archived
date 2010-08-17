@@ -10,10 +10,7 @@
 		8DD76FAC0486AB0100D96B5E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* main.c */; settings = {ATTRIBUTES = (); }; };
 		8DD76FB00486AB0100D96B5E /* SMCP.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6A0FF2C0290799A04C91782 /* SMCP.1 */; };
 		A60E57F2116DBA7000F90E64 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E57F1116DBA7000F90E64 /* smcp.c */; };
-		A6257C221172AFBA00C6177E /* dict.c in Sources */ = {isa = PBXBuildFile; fileRef = A6257C211172AFBA00C6177E /* dict.c */; };
 		A660F1841175049C005178EC /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A660F1831175049C005178EC /* btree.c */; };
-		A6AFEB571213726400DC172A /* smcplite.c in Sources */ = {isa = PBXBuildFile; fileRef = A6AFEB561213726400DC172A /* smcplite.c */; };
-		A6AFEB8212148C3700DC172A /* ll.c in Sources */ = {isa = PBXBuildFile; fileRef = A6AFEB8112148C3700DC172A /* ll.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -31,17 +28,12 @@
 
 /* Begin PBXFileReference section */
 		08FB7796FE84155DC02AAC07 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		8DD76FB20486AB0100D96B5E /* SHAP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SHAP; sourceTree = BUILT_PRODUCTS_DIR; };
+		8DD76FB20486AB0100D96B5E /* SMCP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SMCP; sourceTree = BUILT_PRODUCTS_DIR; };
 		A60E57F0116DBA7000F90E64 /* smcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp.h; sourceTree = "<group>"; };
 		A60E57F1116DBA7000F90E64 /* smcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp.c; sourceTree = "<group>"; };
-		A6257C201172AFBA00C6177E /* dict.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dict.h; sourceTree = "<group>"; };
-		A6257C211172AFBA00C6177E /* dict.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dict.c; sourceTree = "<group>"; };
 		A6257CAB1173ADE100C6177E /* btree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = btree.h; sourceTree = "<group>"; };
 		A660F1831175049C005178EC /* btree.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = btree.c; sourceTree = "<group>"; };
-		A6AFEB551213726400DC172A /* smcplite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcplite.h; sourceTree = "<group>"; };
-		A6AFEB561213726400DC172A /* smcplite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcplite.c; sourceTree = "<group>"; };
 		A6AFEB8012148C3700DC172A /* ll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ll.h; sourceTree = "<group>"; };
-		A6AFEB8112148C3700DC172A /* ll.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ll.c; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* SMCP.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = SMCP.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -70,16 +62,11 @@
 			isa = PBXGroup;
 			children = (
 				08FB7796FE84155DC02AAC07 /* main.c */,
-				A6257CAB1173ADE100C6177E /* btree.h */,
-				A660F1831175049C005178EC /* btree.c */,
 				A60E57F0116DBA7000F90E64 /* smcp.h */,
 				A60E57F1116DBA7000F90E64 /* smcp.c */,
-				A6AFEB551213726400DC172A /* smcplite.h */,
-				A6AFEB561213726400DC172A /* smcplite.c */,
-				A6257C201172AFBA00C6177E /* dict.h */,
-				A6257C211172AFBA00C6177E /* dict.c */,
+				A6257CAB1173ADE100C6177E /* btree.h */,
+				A660F1831175049C005178EC /* btree.c */,
 				A6AFEB8012148C3700DC172A /* ll.h */,
-				A6AFEB8112148C3700DC172A /* ll.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -87,7 +74,7 @@
 		1AB674ADFE9D54B511CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8DD76FB20486AB0100D96B5E /* SHAP */,
+				8DD76FB20486AB0100D96B5E /* SMCP */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -103,9 +90,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		8DD76FA90486AB0100D96B5E /* SHAP */ = {
+		8DD76FA90486AB0100D96B5E /* SMCP */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "SHAP" */;
+			buildConfigurationList = 1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "SMCP" */;
 			buildPhases = (
 				8DD76FAB0486AB0100D96B5E /* Sources */,
 				8DD76FAD0486AB0100D96B5E /* Frameworks */,
@@ -115,10 +102,10 @@
 			);
 			dependencies = (
 			);
-			name = SHAP;
+			name = SMCP;
 			productInstallPath = "$(HOME)/bin";
 			productName = SHAP;
-			productReference = 8DD76FB20486AB0100D96B5E /* SHAP */;
+			productReference = 8DD76FB20486AB0100D96B5E /* SMCP */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -143,7 +130,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8DD76FA90486AB0100D96B5E /* SHAP */,
+				8DD76FA90486AB0100D96B5E /* SMCP */,
 			);
 		};
 /* End PBXProject section */
@@ -155,10 +142,7 @@
 			files = (
 				8DD76FAC0486AB0100D96B5E /* main.c in Sources */,
 				A60E57F2116DBA7000F90E64 /* smcp.c in Sources */,
-				A6257C221172AFBA00C6177E /* dict.c in Sources */,
 				A660F1841175049C005178EC /* btree.c in Sources */,
-				A6AFEB571213726400DC172A /* smcplite.c in Sources */,
-				A6AFEB8212148C3700DC172A /* ll.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -175,7 +159,7 @@
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INSTALL_PATH = /usr/local/bin;
-				PRODUCT_NAME = SHAP;
+				PRODUCT_NAME = SMCP;
 			};
 			name = Debug;
 		};
@@ -186,7 +170,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = /usr/local/bin;
-				PRODUCT_NAME = SHAP;
+				PRODUCT_NAME = SMCP;
 			};
 			name = Release;
 		};
@@ -219,7 +203,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "SHAP" */ = {
+		1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "SMCP" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1DEB928608733DD80010E9CD /* Debug */,
