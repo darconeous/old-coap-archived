@@ -61,12 +61,10 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				08FB7796FE84155DC02AAC07 /* main.c */,
+				A6C6C40E121AF50900CAB3A3 /* Utils */,
 				A60E57F0116DBA7000F90E64 /* smcp.h */,
 				A60E57F1116DBA7000F90E64 /* smcp.c */,
-				A6257CAB1173ADE100C6177E /* btree.h */,
-				A660F1831175049C005178EC /* btree.c */,
-				A6AFEB8012148C3700DC172A /* ll.h */,
+				08FB7796FE84155DC02AAC07 /* main.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -77,6 +75,16 @@
 				8DD76FB20486AB0100D96B5E /* SMCP */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A6C6C40E121AF50900CAB3A3 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				A6257CAB1173ADE100C6177E /* btree.h */,
+				A660F1831175049C005178EC /* btree.c */,
+				A6AFEB8012148C3700DC172A /* ll.h */,
+			);
+			name = Utils;
 			sourceTree = "<group>";
 		};
 		C6A0FF2B0290797F04C91782 /* Documentation */ = {

@@ -189,8 +189,8 @@ main(
 	}
 
 	for(i = 0; i < 300; i++) {
-//		if(i%50==0)
-//			smcp_daemon_refresh_variable(smcp_daemon, var_node);
+		if(i % 50 == 0)
+			smcp_daemon_refresh_variable(smcp_daemon, var_node);
 		smcp_daemon_process(smcp_daemon, 50);
 		smcp_daemon_process(smcp_daemon2, 50);
 	}
