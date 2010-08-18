@@ -1026,9 +1026,11 @@ smcp_internal_delete_handler_(
 	smcp_response_handler_t handler,
 	smcp_daemon_t			self
 ) {
-	// TODO: Remove the timer associated with this handler.
+	// Remove the timer associated with this handler.
 	if(handler->timer)
 		smcp_daemon_invalidate_timer(self, handler->timer);
+
+	// Fire the callback to signal that this handler is now invalidated.
 	if(handler->callback) {
 		    (*handler->callback)(
 			self,
@@ -1042,10 +1044,10 @@ smcp_internal_delete_handler_(
 			handler->context
 		);
 	}
-	if(handler->idValue) {
+
+	if(handler->idValue)
 		free((void*)handler->idValue);
-		handler->idValue = NULL;
-	}
+
 	free(handler);
 }
 

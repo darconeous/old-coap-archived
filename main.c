@@ -5,198 +5,189 @@
 #include "smcp.h"
 #include <string.h>
 #include <sys/errno.h>
+#include "help.h"
 
 
-smcp_status_t
-action_func(
-	smcp_action_node_t	node,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	const char*			content_type,
-	struct sockaddr*	saddr,
-	socklen_t			socklen,
-	void*				context
+#include "cmd_list.h"
+#include "cmd_test.h"
+
+
+#define ERRORCODE_HELP          (1)
+#define ERRORCODE_BADARG        (2)
+#define ERRORCODE_NOCOMMAND     (3)
+#define ERRORCODE_UNKNOWN       (4)
+#define ERRORCODE_BADCOMMAND    (5)
+
+static arg_list_item_t option_list[] = {
+	{ 'h', "help",	NULL, "Print Help"			  },
+	{ 'd', "debug", NULL, "Enable debugging mode" },
+	{ 'p', "port",	NULL, "Port number"			  },
+	{ 0 }
+};
+
+int
+tool_cmd_get(
+	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
-	fprintf(stderr,
-		"Received Action! content_length = %d\n",
-		    (int)content_length);
-	if(content_length) fprintf(stderr, "content = \"%s\"\n", content);
 	return 0;
 }
 
-smcp_status_t
-loadavg_get_func(
-	smcp_variable_node_t	node,
-	const char*				headers[],
-	char*					content,
-	size_t*					content_length,
-	const char**			content_type,
-	struct sockaddr*		saddr,
-	socklen_t				socklen,
-	void*					context
+int
+tool_cmd_post(
+	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
-	int ret = 0;
-	double loadavg[3] = { };
-
-	require_action(node, bail, ret = -1);
-	require_action(content, bail, ret = -1);
-	require_action(content_length, bail, ret = -1);
-
-	getloadavg(loadavg, sizeof(loadavg) / sizeof(*loadavg));
-
-	snprintf(content, *content_length, "v=%0.2f", loadavg[0]);
-	*content_length = strlen(content);
-	*content_type = SMCP_CONTENT_TYPE_FORM;
-
-bail:
-	return ret;
-}
-
-smcp_variable_node_t create_load_average_variable_node(
-	smcp_device_node_t parent, const char* name
-) {
-	smcp_variable_node_t ret = NULL;
-	smcp_event_node_t changed_event = NULL;
-
-	ret = smcp_node_add_variable((void*)parent, name);
-
-	changed_event = smcp_node_add_event((void*)ret, "changed");
-	ret->get_func = loadavg_get_func;
-
-	return ret;
+	return 0;
 }
 
 
-void list_response_handler(
-	smcp_daemon_t		self,
-	const char*			version,
-	int					statuscode,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen,
-	void*				context
-) {
-	printf("*** GOT LIST RESPONSE!!! ***\n");
-	printf("*** STATUS  CODE = %d\n", statuscode);
+struct {
+	const char* name;
+	const char* desc;
+	int			(*entrypoint)(
+		smcp_daemon_t smcp, int argc, char* argv[]);
+	int			isHidden;
+} commandList[] = {
+	{
+		"get",
+		"Fetches the value of a variable.",
+		&tool_cmd_get
+	},
+	{
+		"post",
+		"Triggers an event.",
+		&tool_cmd_post
+	},
+	{
+		"list",
+		"Fetches the contents of a node.",
+		&tool_cmd_list
+	},
+	{
+		"test",
+		"TEST.",
+		&tool_cmd_test
+	},
+	{ NULL }
+};
 
-	if(content) {
-		char contentBuffer[500] = "";
-		memcpy(contentBuffer, content, content_length);
+static void
+print_commands() {
+	int i;
 
-		printf("*** CONTENT = \"%s\"\n", contentBuffer);
+	printf("Commands:\n");
+	for(i = 0; commandList[i].name; ++i) {
+		if(commandList[i].isHidden)
+			continue;
+		printf(
+			"   %s %s%s\n",
+			commandList[i].name,
+			"                     " + strlen(commandList[i].name),
+			commandList[i].desc
+		);
 	}
-}
-
-
-static bool
-util_add_header(
-	const char* headerList[],
-	int			maxHeaders,
-	const char* name,
-	const char* value
-) {
-	for(; maxHeaders && headerList[0]; maxHeaders--, headerList += 2) ;
-	if(maxHeaders) {
-		headerList[0] = name;
-		headerList[1] = value;
-		headerList[2] = NULL;
-		return true;
-	}
-	return false;
 }
 
 
 int
 main(
-	int argc, const char * argv[]
+	int argc, char * argv[]
 ) {
-	int i;
-	smcp_daemon_t smcp_daemon;
-	smcp_daemon_t smcp_daemon2;
+	int i, debug_mode = 0;
+	int port = 0;
 
-	smcp_device_node_t device_node;
-	smcp_action_node_t action_node;
-	smcp_variable_node_t var_node;
-
-//	smcp_event_node_t event_node;
-//	char tmp_string[255] = "???";
-
-	smcp_daemon = smcp_daemon_create(0);
-	smcp_daemon2 = smcp_daemon_create(54321);
-
-	smcp_node_add_subdevice(smcp_daemon_get_root_node(
-			smcp_daemon), "device2");
-
-	device_node =
-	    smcp_node_add_subdevice(smcp_daemon_get_root_node(
-			smcp_daemon), "device");
-//	event_node = smcp_node_add_event((smcp_node_t)device_node, "event");
-
-	smcp_node_add_event((smcp_node_t)device_node, "event");
-	smcp_node_add_subdevice(smcp_daemon_get_root_node(
-			smcp_daemon), "device3");
-	smcp_node_add_subdevice(smcp_daemon_get_root_node(
-			smcp_daemon), "device4");
-
-	var_node = create_load_average_variable_node(device_node, "loadavg");
-
-	action_node =
-	    smcp_node_add_action(smcp_daemon_get_root_node(
-			smcp_daemon2), "action");
-	action_node->post_func = action_func;
-
-
-	smcp_node_pair_with_uri((smcp_node_t)smcp_node_find_with_path((
-			    smcp_node_t)var_node,
-			"!changed"), "smcp://127.0.0.1:54321/?action", 0);
-	smcp_node_pair_with_uri((smcp_node_t)action_node,
-		"smcp://127.0.0.1/device/loadavg!changed",
-		0);
-
-	{
-		const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
-		char idValue[30];
-		snprintf(idValue, sizeof(idValue), "%08x", arc4random());
-
-		util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_ID, idValue);
-		//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_NEXT,"device2/");
-
-		smcp_daemon_add_response_handler(
-			smcp_daemon2,
-			idValue,
-			5000,
-			0, // Flags
-			&list_response_handler,
-			NULL
-		);
-
-		smcp_daemon_send_request_to_url(
-			smcp_daemon2,
-			SMCP_METHOD_LIST,
-#if 0
-			"smcp://["SMCP_IPV 6_MULTICAST_ADDRESS "]/device/",
-#else
-			"smcp://[::1]/device/",
-#endif
-			"SMCP/0.1",
-			headers,
-			NULL,
-			0
-		);
+	if(argc <= 1) {
+		print_arg_list_help(option_list,
+			"smcp [options] <sub-command> [args]");
+		print_commands();
+		return ERRORCODE_HELP;
+	}
+	for(i = 1; i < argc; i++) {
+		if(argv[i][0] == '-' && argv[i][1] == '-') {
+			if(strcmp(argv[i] + 2, "help") == 0) {
+				print_arg_list_help(option_list,
+					"smcp [options] <sub-command> [args]");
+				print_commands();
+				return ERRORCODE_HELP;
+			} else if(strcmp(argv[i] + 2, "port") == 0) {
+				port = atoi(argv[++i]);
+			} else if(strcmp(argv[i] + 2, "debug") == 0) {
+				debug_mode++;
+			} else {
+				fprintf(stderr,
+					"%s: error: Unknown command line argument \"%s\".\n",
+					argv[0],
+					argv[i]);
+				return ERRORCODE_BADARG;
+				break;
+			}
+		} else if(argv[i][0] == '-') {
+			int j;
+			int ii = i;
+			for(j = 1; j && argv[ii][j]; j++) {
+				switch(argv[ii][j]) {
+				case 'p':
+					port = atoi(argv[++i]);
+					break;
+				case '?':
+				case 'h':
+					print_arg_list_help(option_list,
+						"smcp [options] <sub-command> [args]");
+					print_commands();
+					return ERRORCODE_HELP;
+					break;
+				case 'd':
+					debug_mode++;
+					break;
+				default:
+					fprintf(
+						stderr,
+						"%s: error: Unknown command line argument \"-%c\".\n",
+						argv[0],
+						argv[ii][j]);
+					return ERRORCODE_BADARG;
+					break;
+				}
+			}
+		} else {
+			break;
+		}
 	}
 
-	for(i = 0; i < 300; i++) {
-		if(i % 50 == 0)
-			smcp_daemon_refresh_variable(smcp_daemon, var_node);
-		smcp_daemon_process(smcp_daemon, 50);
-		smcp_daemon_process(smcp_daemon2, 50);
+	if(i >= argc) {
+		fprintf(stderr, "%s: error: Missing command.\n", argv[0]);
+		return ERRORCODE_NOCOMMAND;
 	}
 
-	smcp_daemon_release(smcp_daemon);
-	smcp_daemon_release(smcp_daemon2);
+	// The 'help' command is a special case.
+	if(strcmp(argv[i], "help") == 0) {
+		print_arg_list_help(option_list,
+			"smcp [options] <sub-command> [args]");
+		print_commands();
+		return ERRORCODE_HELP;
+	}
 
-	return 0;
+
+	int j;
+	for(j = 0; commandList[j].name; ++j) {
+		if(strcmp(argv[i], commandList[j].name) == 0) {
+			if(commandList[j].entrypoint) {
+				int ret;
+				smcp_daemon_t smcp_daemon = smcp_daemon_create(port);
+				ret = commandList[j].entrypoint(smcp_daemon,
+					argc - i,
+					argv + i);
+				smcp_daemon_release(smcp_daemon);
+				return ret;
+			} else {
+				fprintf(stderr,
+					"The command \"%s\" is not yet implemented.\n",
+					commandList[j].name);
+				return ERRORCODE_NOCOMMAND;
+			}
+		}
+	}
+
+	fprintf(stderr, "The command \"%s\" is not recognised.\n", argv[i]);
+
+	return ERRORCODE_BADCOMMAND;
 }

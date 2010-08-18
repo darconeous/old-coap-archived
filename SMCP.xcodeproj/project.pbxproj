@@ -11,6 +11,9 @@
 		8DD76FB00486AB0100D96B5E /* SMCP.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6A0FF2C0290799A04C91782 /* SMCP.1 */; };
 		A60E57F2116DBA7000F90E64 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E57F1116DBA7000F90E64 /* smcp.c */; };
 		A660F1841175049C005178EC /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A660F1831175049C005178EC /* btree.c */; };
+		A6C6C47A121B2CF500CAB3A3 /* help.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C479121B2CF500CAB3A3 /* help.c */; };
+		A6C6C4E9121B52C200CAB3A3 /* cmd_test.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C4E8121B52C200CAB3A3 /* cmd_test.c */; };
+		A6C6C4EC121B536F00CAB3A3 /* cmd_list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C4EB121B536F00CAB3A3 /* cmd_list.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -34,6 +37,12 @@
 		A6257CAB1173ADE100C6177E /* btree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = btree.h; sourceTree = "<group>"; };
 		A660F1831175049C005178EC /* btree.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = btree.c; sourceTree = "<group>"; };
 		A6AFEB8012148C3700DC172A /* ll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ll.h; sourceTree = "<group>"; };
+		A6C6C478121B2CF500CAB3A3 /* help.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = help.h; sourceTree = "<group>"; };
+		A6C6C479121B2CF500CAB3A3 /* help.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = help.c; sourceTree = "<group>"; };
+		A6C6C4E7121B52C200CAB3A3 /* cmd_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_test.h; sourceTree = "<group>"; };
+		A6C6C4E8121B52C200CAB3A3 /* cmd_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_test.c; sourceTree = "<group>"; };
+		A6C6C4EA121B536F00CAB3A3 /* cmd_list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_list.h; sourceTree = "<group>"; };
+		A6C6C4EB121B536F00CAB3A3 /* cmd_list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_list.c; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* SMCP.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = SMCP.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -51,6 +60,7 @@
 		08FB7794FE84155DC02AAC07 /* SHAP */ = {
 			isa = PBXGroup;
 			children = (
+				A6C6C483121B2EE200CAB3A3 /* Tool Source */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				C6A0FF2B0290797F04C91782 /* Documentation */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
@@ -64,7 +74,6 @@
 				A6C6C40E121AF50900CAB3A3 /* Utils */,
 				A60E57F0116DBA7000F90E64 /* smcp.h */,
 				A60E57F1116DBA7000F90E64 /* smcp.c */,
-				08FB7796FE84155DC02AAC07 /* main.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -85,6 +94,20 @@
 				A6AFEB8012148C3700DC172A /* ll.h */,
 			);
 			name = Utils;
+			sourceTree = "<group>";
+		};
+		A6C6C483121B2EE200CAB3A3 /* Tool Source */ = {
+			isa = PBXGroup;
+			children = (
+				08FB7796FE84155DC02AAC07 /* main.c */,
+				A6C6C478121B2CF500CAB3A3 /* help.h */,
+				A6C6C479121B2CF500CAB3A3 /* help.c */,
+				A6C6C4E7121B52C200CAB3A3 /* cmd_test.h */,
+				A6C6C4E8121B52C200CAB3A3 /* cmd_test.c */,
+				A6C6C4EA121B536F00CAB3A3 /* cmd_list.h */,
+				A6C6C4EB121B536F00CAB3A3 /* cmd_list.c */,
+			);
+			name = "Tool Source";
 			sourceTree = "<group>";
 		};
 		C6A0FF2B0290797F04C91782 /* Documentation */ = {
@@ -151,6 +174,9 @@
 				8DD76FAC0486AB0100D96B5E /* main.c in Sources */,
 				A60E57F2116DBA7000F90E64 /* smcp.c in Sources */,
 				A660F1841175049C005178EC /* btree.c in Sources */,
+				A6C6C47A121B2CF500CAB3A3 /* help.c in Sources */,
+				A6C6C4E9121B52C200CAB3A3 /* cmd_test.c in Sources */,
+				A6C6C4EC121B536F00CAB3A3 /* cmd_list.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
