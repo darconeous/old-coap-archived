@@ -7,7 +7,7 @@
  *
  */
 
-#include <AssertMacros.h>
+#include "assert_macros.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -17,10 +17,12 @@
 #include "help.h"
 #include "cmd_list.h"
 
-static arg_list_item_t option_list[] = {
-	{ 'h', "help", NULL, "Print Help" },
-	{ 0 }
-};
+/*
+   static arg_list_item_t option_list[] = {
+    { 'h', "help",NULL,"Print Help" },
+    { 0 }
+   };
+ */
 
 static bool listIsDone;
 
@@ -36,6 +38,8 @@ list_response_handler(
 	socklen_t			socklen,
 	void*				context
 ) {
+	int i;
+
 	if(statuscode != SMCP_RESULT_CODE_OK)
 		printf("*** RESULT CODE = %d\n", statuscode);
 	if(content) {
@@ -80,7 +84,7 @@ tool_cmd_list(
 	listIsDone = false;
 	const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
 	char idValue[30];
-	snprintf(idValue, sizeof(idValue), "%08x", arc4random());
+	snprintf(idValue, sizeof(idValue), "%08x", SMCP_FUNC_RANDOM_UINT32());
 
 	util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_ID, idValue);
 	//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_NEXT,"device2/");

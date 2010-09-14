@@ -9,70 +9,86 @@
 #define VERBOSE_DEBUG 1
 #endif
 
-#if HAS_ASSERTMACROS_H
- #include <AssertMacros.h>
-#else
-#if DEBUG
- #define check_string(c, s)   do { } while(0)
- #define require_action_string(c, l, a, s) \
-    do { if(!(c)) { \
-			 a; goto l; \
-		 } \
-	} while(0)
-#else
- #define check_string(c, s) \
-    do { if(!(c)) fprintf(stderr, \
-				__FILE__ ":%d: Check Failed (%s)\n", \
-				__LINE__, \
-				s); } while(0)
- #define require_action_string(c, l, a, s) \
-    do { if(!(c)) { \
-			 fprintf(stderr, \
-				__FILE__ ":%d: Assert Failed (%s)\n", \
-				__LINE__, \
-				s); a; goto l; \
-		 } \
-	} while(0)
-#endif
- #define check(c)   check_string(c, "")
- #define require_quiet(c, l)   do { if(!(c)) goto l; } while(0)
- #define require(c, l)   require_quiet(c, l)
- #define require_action(c, l, a)   require_action_string(c, l, a, "")
- #define require_string(c, l, s) \
-    require_action_string(c, l, \
-	    do {} while(0), s)
+#ifdef __CONTIKI__
+#include "contiki.h"
+#include "net/uip-udp-packet.h"
+#include "net/uiplib.h"
+#include "net/tcpip.h"
 #endif
 
+
+#include "smcp.h"
+
+#include "assert_macros.h"
 #include <stdio.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "smcp.h"
-#include <poll.h>
-#include <sys/sysctl.h>
-#include <sys/errno.h>
 #include <string.h>
 #include <ctype.h>
-#include <netdb.h>
 #include <sys/types.h>
+#include <sys/time.h>
+#include "ll.h"
+
+#include "smcp_node.h"
+#include "smcp_pairing.h"
+#include "smcp_logging.h"
+
+#if SMCP_USE_BSD_SOCKETS
+#include <poll.h>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#include "ll.h"
+#include <sys/sysctl.h>
+#include <sys/errno.h>
+#endif
+
+#include "smcp_helpers.h"
+
+#pragma mark -
+#pragma mark Macros
 
 
 #pragma mark -
 #pragma mark Time Calculation Utils
+
+#define USEC_PER_SEC    (1000000)
+#define USEC_PER_MSEC   (1000)
+#define MSEC_PER_SEC    (1000)
+
+#if defined(__CONTIKI__)
+#define gettimeofday gettimeofday_
+static int
+gettimeofday(
+	struct timeval *tv, void *tzp
+) {
+	if(tv) {
+		tv->tv_sec = clock_seconds();
+		tv->tv_usec =
+		    (clock_time() % CLOCK_SECOND) * USEC_PER_SEC / CLOCK_SECOND;
+		return 0;
+	}
+	return -1;
+}
+#endif
 
 static void
 convert_cms_to_timeval(
 	struct timeval* tv, int cms
 ) {
 	gettimeofday(tv, NULL);
-	tv->tv_sec += cms / 1000;
-	cms -= ((cms / 1000) * 1000);
 
-	tv->tv_usec += ((cms % 1000) * 1000);
-	tv->tv_sec += tv->tv_usec / 1000000;
-	tv->tv_usec %= 1000000;
+	// Add all whole seconds to tv_sec
+	tv->tv_sec += cms / MSEC_PER_SEC;
+
+	// Remove all whole seconds from cms
+	cms -= ((cms / MSEC_PER_SEC) * MSEC_PER_SEC);
+
+	tv->tv_usec += ((cms % MSEC_PER_SEC) * MSEC_PER_SEC);
+
+	tv->tv_sec += tv->tv_usec / USEC_PER_SEC;
+
+	tv->tv_usec %= USEC_PER_SEC;
 }
 
 static int
@@ -83,8 +99,8 @@ convert_timeval_to_cms(const struct timeval* tv) {
 	gettimeofday(&current_time, NULL);
 
 	if(current_time.tv_sec <= tv->tv_sec) {
-		ret = (tv->tv_sec - current_time.tv_sec) * 1000;
-		ret += (tv->tv_usec - current_time.tv_usec) / 1000;
+		ret = (tv->tv_sec - current_time.tv_sec) * MSEC_PER_SEC;
+		ret += (tv->tv_usec - current_time.tv_usec) / USEC_PER_MSEC;
 
 		if(ret < 0)
 			ret = 0;
@@ -95,16 +111,6 @@ convert_timeval_to_cms(const struct timeval* tv) {
 
 #pragma mark -
 #pragma mark Private Functions
-
-smcp_node_t
-smcp_node_alloc() {
-	return (smcp_node_t)calloc(sizeof(struct smcp_node_s), 1);
-}
-
-void
-smcp_node_dealloc(smcp_node_t x) {
-	free(x);
-}
 
 #pragma mark -
 #pragma mark Other
@@ -186,71 +192,79 @@ smcp_response_handler_compare_str(
 	return strcmp(lhs->idValue, rhs);
 }
 
+// Consider members of this struct to be private!
 struct smcp_daemon_s {
+#if SMCP_USE_BSD_SOCKETS
 	int						fd;
 	int						mcfd;
+#elif __CONTIKI__
+	struct uip_udp_conn*	udp_conn;
+#endif
+
 	smcp_pairing_t			admin_pairings;
 	smcp_node_t				root_node;
-
 	smcp_timer_t			timers;
-
 	smcp_response_handler_t handlers;
 };
+
+#if defined(__CONTIKI__)
+struct smcp_daemon_s smcp_daemon_global_instance;
+#endif
 
 #pragma mark -
 #pragma mark Declarations
 
 
 smcp_status_t smcp_daemon_handle_post(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen);
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_options(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen);
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_get(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen);
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_list(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen);
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_pair(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen);
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS);
 
 
 smcp_status_t smcp_invalidate_response_handler(
@@ -258,30 +272,28 @@ smcp_status_t smcp_invalidate_response_handler(
 smcp_status_t smcp_daemon_add_response_handler(
 	smcp_daemon_t				self,
 	const char*					idValue,
-	int							cmsExpiration,
+	cms_t						cmsExpiration,
 	int							flags,
 	smcp_response_handler_func	callback,
 	void*						context);
 
 smcp_status_t smcp_daemon_handle_request(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen);
+	smcp_daemon_t	self,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_response(
-	smcp_daemon_t		self,
-	const char*			version,
-	int					statuscode,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen);
+	smcp_daemon_t	self,
+	const char*		version,
+	int				statuscode,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS);
 
 
 #pragma mark -
@@ -348,13 +360,12 @@ smcp_daemon_invalidate_timer(
 	free(timer);
 }
 
-int
+cms_t
 smcp_daemon_get_timeout(smcp_daemon_t self) {
-	int ret = 60 * 1000;
+	cms_t ret = 60000;
 
 	if(self->timers)
-		ret =
-		    MIN(60 * 1000, convert_timeval_to_cms(&self->timers->fire_date));
+		ret = MIN(ret, convert_timeval_to_cms(&self->timers->fire_date));
 
 	ret = MAX(ret, 0);
 
@@ -375,7 +386,7 @@ smcp_daemon_handle_timers(smcp_daemon_t self) {
 #pragma mark SMCP Implementation
 
 smcp_daemon_t
-smcp_daemon_create(unsigned short port) {
+smcp_daemon_create(uint16_t port) {
 	smcp_daemon_t ret = NULL;
 
 	ret = (smcp_daemon_t)calloc(1, sizeof(struct smcp_daemon_s));
@@ -390,11 +401,12 @@ bail:
 
 smcp_daemon_t
 smcp_daemon_init(
-	smcp_daemon_t ret, unsigned short port
+	smcp_daemon_t ret, uint16_t port
 ) {
 	if(port == 0)
 		port = SMCP_DEFAULT_PORT;
 
+#if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
 #if SOCKADDR_HAS_LENGTH_FIELD
 		.sin6_len		= sizeof(struct sockaddr_in6),
@@ -402,9 +414,11 @@ smcp_daemon_init(
 		.sin6_family	= AF_INET6,
 		.sin6_port		= htons(port),
 	};
+#endif
 
 	require(ret != NULL, bail);
 
+#if SMCP_USE_BSD_SOCKETS
 	ret->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
 	require_action_string(ret->fd > 0, bail, { smcp_daemon_release(
@@ -413,9 +427,16 @@ smcp_daemon_init(
 	require_action_string(bind(ret->fd, (struct sockaddr*)&saddr,
 			sizeof(saddr)) == 0, bail, { smcp_daemon_release(
 				ret); ret = NULL; }, "Failed to bind socket");
+#elif __CONTIKI__
+
+	ret->udp_conn = udp_new(NULL, 0, NULL);
+	uip_udp_bind(ret->udp_conn, HTONS(port));
+	ret->udp_conn->rport = 0;
+#endif
 
 	ret->root_node = (smcp_node_t)smcp_node_add_subdevice(NULL, NULL);
 
+#if SMCP_USE_BSD_SOCKETS
 	{   // Join the multicast group for SMCP_IPV6_MULTICAST_ADDRESS
 		struct ipv6_mreq imreq = {
 			.ipv6mr_interface	= 0
@@ -446,7 +467,7 @@ smcp_daemon_init(
 			setsockopt(ret->mcfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &imreq,
 				sizeof(imreq)), bail);
 	}
-
+#endif
 
 bail:
 	return ret;
@@ -469,15 +490,28 @@ smcp_daemon_release(smcp_daemon_t self) {
 	// Delete all nodes
 	smcp_node_delete(self->root_node);
 
+#if SMCP_USE_BSD_SOCKETS
 	close(self->fd);
 	close(self->mcfd);
+#elif __CONTIKI__
+	uip_udp_remove(self->udp_conn);
+#endif
+
+	// TODO: Make sure we were actually alloc'd!
 	free(self);
 }
 
+#if SMCP_USE_BSD_SOCKETS
 int
 smcp_daemon_get_fd(smcp_daemon_t self) {
 	return self->fd;
 }
+#elif defined(__CONTIKI__)
+struct uip_udp_conn*
+smcp_daemon_get_udp_conn(smcp_daemon_t self) {
+	return self->udp_conn;
+}
+#endif
 
 const char* smcp_get_status_description(smcp_status_t statuscode) {
 	switch(statuscode) {
@@ -504,36 +538,36 @@ const char* smcp_get_status_description(smcp_status_t statuscode) {
 
 smcp_status_t
 smcp_daemon_send_response(
-	smcp_daemon_t		self,
-	const char*			version,
-	int					statuscode,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	const char*		version,
+	int				statuscode,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	char packet[SMCP_MAX_PACKET_LENGTH];
 	const char** header_iter;
-	size_t packet_length;
+	size_t packet_length = 0;
 
-	snprintf(packet,
+	packet_length += snprintf(packet,
 		SMCP_MAX_PACKET_LENGTH,
 		"%s %d\r\n",
 		version,
 		statuscode);
 
 	for(header_iter = headers; header_iter[0]; header_iter += 2) {
-		snprintf(packet,
-			SMCP_MAX_PACKET_LENGTH,
-			"%s%s: %s\r\n",
-			packet,
+		packet_length += snprintf(packet + packet_length,
+			SMCP_MAX_PACKET_LENGTH - packet_length,
+			"%s: %s\r\n",
 			header_iter[0],
 			header_iter[1]);
 	}
 
-	snprintf(packet, SMCP_MAX_PACKET_LENGTH, "%s\r\n", packet);
+	packet_length += snprintf(packet + packet_length,
+		SMCP_MAX_PACKET_LENGTH - packet_length,
+		"\r\n");
 
 	packet_length = strlen(packet);
 
@@ -543,6 +577,7 @@ smcp_daemon_send_response(
 	packet_length = MIN(SMCP_MAX_PACKET_LENGTH,
 		packet_length + content_length);
 
+#if SMCP_USE_BSD_SOCKETS
 	require_action(0 <
 		sendto(self->fd,
 			packet,
@@ -551,9 +586,18 @@ smcp_daemon_send_response(
 			saddr,
 			socklen), bail, {
 		    ret = -1;
-		    fprintf(stderr, "Unable to send: errno = %d (%s)\n", errno,
+		    DEBUG_PRINTF(CSTR("Unable to send: errno = %d (%s)"), errno,
 				strerror(errno));
 		});
+#elif __CONTIKI__
+	uip_udp_packet_sendto(
+		self->udp_conn,
+		packet,
+		packet_length,
+		toaddr,
+		toport
+	);
+#endif
 
 bail:
 	return ret;
@@ -562,22 +606,21 @@ bail:
 
 smcp_status_t
 smcp_daemon_send_request(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	char packet[SMCP_MAX_PACKET_LENGTH + 1] = "";
 	const char** header_iter;
-	size_t packet_length;
+	size_t packet_length = 0;
 
-	snprintf(packet,
+	packet_length += snprintf(packet,
 		SMCP_MAX_PACKET_LENGTH,
 		"%s %s %s\r\n",
 		method,
@@ -585,15 +628,16 @@ smcp_daemon_send_request(
 		version ? version : "SMCP/0.1");
 
 	for(header_iter = headers; header_iter[0]; header_iter += 2) {
-		snprintf(packet,
-			SMCP_MAX_PACKET_LENGTH,
-			"%s%s: %s\r\n",
-			packet,
+		packet_length += snprintf(packet + packet_length,
+			SMCP_MAX_PACKET_LENGTH - packet_length,
+			"%s: %s\r\n",
 			header_iter[0],
 			header_iter[1]);
 	}
 
-	snprintf(packet, SMCP_MAX_PACKET_LENGTH, "%s\r\n", packet);
+	packet_length += snprintf(packet + packet_length,
+		SMCP_MAX_PACKET_LENGTH - packet_length,
+		"\r\n");
 
 	packet_length = strlen(packet);
 
@@ -604,6 +648,7 @@ smcp_daemon_send_request(
 	packet_length = MIN(SMCP_MAX_PACKET_LENGTH,
 		packet_length + content_length);
 
+#if SMCP_USE_BSD_SOCKETS
 	require_action(0 <
 		sendto(self->fd,
 			packet,
@@ -611,11 +656,18 @@ smcp_daemon_send_request(
 			0,
 			saddr,
 			socklen), bail, ret = SMCP_STATUS_ERRNO);
-
-	fprintf(stderr,
-		"SENT PACKET: \"%s\" %d bytes\n",
+#elif __CONTIKI__
+	uip_udp_packet_sendto(
+		self->udp_conn,
 		packet,
-		    (int)packet_length);
+		packet_length,
+		toaddr,
+		toport
+	);
+#endif
+
+	DEBUG_PRINTF(CSTR(
+			"SENT PACKET: \"%s\" %d bytes"), packet, (int)packet_length);
 bail:
 	return ret;
 }
@@ -636,13 +688,20 @@ smcp_daemon_send_request_to_url(
 	const char* addr_end;
 	size_t addr_str_len;
 	char addr_cstr[256] = "";
+	bool is_ipv6 = false;
 
+#if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
 		.sin6_family	= AF_INET6,
+#if SOCKADDR_HAS_LENGTH_FIELD
 		.sin6_len		= sizeof(struct sockaddr_in6),
+#endif
 		.sin6_port		= htons(SMCP_DEFAULT_PORT),
 	};
-	bool is_ipv6 = false;
+#elif __CONTIKI__
+	uip_ipaddr_t toaddr;
+	uint16_t toport = SMCP_DEFAULT_PORT;
+#endif
 
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(strncmp(uri,
@@ -672,7 +731,13 @@ smcp_daemon_send_request_to_url(
 			break;
 		}
 		if((*addr_end == ':')) {
+#if SMCP_USE_BSD_SOCKETS
 			saddr.sin6_port = htons(strtol(addr_end + 1, NULL, 10));
+#elif __CONTIKI__
+			toport = strtol(addr_end + 1, NULL, 10);
+#else
+#error TODO: Implement me!
+#endif
 
 			for(addr_str = addr_end;
 			        (addr_str > (uri + 7)) && (addr_str[-1] != '@');
@@ -694,23 +759,42 @@ smcp_daemon_send_request_to_url(
 	if(is_ipv6) {
 		memcpy(addr_cstr, addr_str, MIN(addr_str_len, sizeof(addr_cstr)));
 	} else {
-		memcpy(addr_cstr, "::FFFF:", 7);
-		memcpy(addr_cstr + 7, addr_str,
-			MIN(addr_str_len, sizeof(addr_cstr) - 7));
+		memcpy(addr_cstr, IPv4_COMPATIBLE_IPv6_PREFIX,
+			sizeof(IPv4_COMPATIBLE_IPv6_PREFIX) - 1);
+		memcpy(addr_cstr + sizeof(IPv4_COMPATIBLE_IPv6_PREFIX) - 1,
+			addr_str,
+			MIN(addr_str_len, sizeof(addr_cstr) +
+				sizeof(IPv4_COMPATIBLE_IPv6_PREFIX) - 1));
 	}
 
-	fprintf(stderr,
-		"URI Parse: ADDR: %s   PORT: %d   PATH: %s\n",
+	DEBUG_PRINTF(
+		CSTR("URI Parse: ADDR: %s   PORT: %d   PATH: %s"),
 		addr_cstr,
+#if SMCP_USE_BSD_SOCKETS
 		ntohs(saddr.sin6_port),
-		path_str);
+#elif __CONTIKI__
+		toport,
+#else
+#error TODO: Implement me!
+#endif
+		path_str
+	);
 
+#if SMCP_USE_BSD_SOCKETS
 	{
+		// TODO: Implement this in a non-blocking manner, perhaps using MDNS
 		struct hostent *tmp = gethostbyname2(addr_cstr, AF_INET6);
 		require_action(!h_errno && tmp, bail, ret = -1);
 		require_action(tmp->h_length > 1, bail, ret = -1);
 		memcpy(&saddr.sin6_addr.s6_addr, tmp->h_addr_list[0], 16);
 	}
+#elif __CONTIKI__
+	// TODO: We should be doing domain name resolution here too!
+	require_action(uiplib_ipaddrconv(addr_cstr,
+			&toaddr) != 0, bail, ret = -1);
+#else
+#error TODO: Implement me!
+#endif
 
 
 	// Send the request
@@ -722,8 +806,15 @@ smcp_daemon_send_request_to_url(
 		headers,
 		content,
 		content_length,
+#if SMCP_USE_BSD_SOCKETS
 		    (struct sockaddr*)&saddr,
 		sizeof(saddr)
+#elif __CONTIKI__
+		&toaddr,
+		toport
+#else
+#error TODO: Implement me!
+#endif
 	    );
 
 bail:
@@ -733,11 +824,10 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_inbound_packet(
-	smcp_daemon_t		self,
-	char*				packet,
-	size_t				packet_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	char*			packet,
+	size_t			packet_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	char* packet_cursor = packet;
@@ -839,8 +929,15 @@ smcp_daemon_handle_inbound_packet(
 			headers,
 			packet_cursor,
 			packet_length_remaining,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
 			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
 		);
 	} else {
 		// This is a request.
@@ -854,7 +951,9 @@ smcp_daemon_handle_inbound_packet(
 
 		// Move to the end of the method name
 		do {
-			require(packet_length_remaining >= 2, bail);
+			require_string(packet_length_remaining >= 2,
+				bail,
+				"Ran out of space attempting to parse method name");
 			packet_cursor++;
 			packet_length_remaining--;
 		} while(!isspace(packet_cursor[0]));
@@ -961,8 +1060,15 @@ smcp_daemon_handle_inbound_packet(
 			headers,
 			packet_cursor,
 			packet_length_remaining,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
 			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
 		);
 	}
 
@@ -972,9 +1078,12 @@ bail:
 
 smcp_status_t
 smcp_daemon_process(
-	smcp_daemon_t self, int cms
+	smcp_daemon_t self, cms_t cms
 ) {
-	smcp_status_t ret = 0, tmp;
+	smcp_status_t ret = 0;
+
+#if SMCP_USE_BSD_SOCKETS
+	int tmp;
 	struct pollfd pollee = { self->fd, POLLIN | POLLHUP, 0 };
 
 	cms = MIN(cms, smcp_daemon_get_timeout(self));
@@ -1011,6 +1120,7 @@ smcp_daemon_process(
 			packet_saddr_len
 		    );
 	}
+#endif
 
 	smcp_daemon_handle_timers(self);
 
@@ -1080,7 +1190,7 @@ smcp_status_t
 smcp_daemon_add_response_handler(
 	smcp_daemon_t				self,
 	const char*					idValue,
-	int							cmsExpiration,
+	cms_t						cmsExpiration,
 	int							flags,
 	smcp_response_handler_func	callback,
 	void*						context
@@ -1149,14 +1259,13 @@ smcp_invalidate_response_handler(
 
 smcp_status_t
 smcp_daemon_handle_response(
-	smcp_daemon_t		self,
-	const char*			version,
-	int					statuscode,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	const char*		version,
+	int				statuscode,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	const char* idValue = NULL;
@@ -1166,12 +1275,10 @@ smcp_daemon_handle_response(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		const char** header_iter;
-		fprintf(stderr, "RESULT: %s %d\n", version, statuscode);
+		DEBUG_PRINTF(CSTR("RESULT: %s %d"), version, statuscode);
 		for(header_iter = headers; header_iter[0]; header_iter += 2) {
-			fprintf(stderr,
-				"\tHEADER: %s: %s\n",
-				header_iter[0],
-				header_iter[1]);
+			DEBUG_PRINTF(CSTR(
+					"\tHEADER: %s: %s"), header_iter[0], header_iter[1]);
 		}
 	}
 #endif
@@ -1203,8 +1310,15 @@ smcp_daemon_handle_response(
 				headers,
 				content,
 				content_length,
+#if SMCP_USE_BSD_SOCKETS
 				saddr,
 				socklen,
+#elif __CONTIKI__
+				toaddr,
+				toport,
+#else
+#error TODO: Implement me!
+#endif
 				handler->context
 			);
 		} else {
@@ -1217,8 +1331,15 @@ smcp_daemon_handle_response(
 			    headers,
 			    content,
 			    content_length,
+#if SMCP_USE_BSD_SOCKETS
 			    saddr,
 			    socklen,
+#elif __CONTIKI__
+			    toaddr,
+			    toport,
+#else
+#error TODO: Implement me!
+#endif
 			    handler->context
 			);
 			smcp_invalidate_response_handler(self, idValue);
@@ -1230,108 +1351,265 @@ bail:
 }
 
 
+int smcp_convert_status_to_result_code(smcp_status_t status) {
+	int ret = SMCP_RESULT_CODE_INTERNAL_SERVER_ERROR;
+
+	switch(status) {
+	case SMCP_STATUS_OK:
+		ret = SMCP_RESULT_CODE_OK;
+		break;
+	case SMCP_STATUS_NOT_FOUND:
+		ret = SMCP_RESULT_CODE_NOT_FOUND;
+		break;
+	case SMCP_STATUS_NOT_IMPLEMENTED:
+		ret = SMCP_RESULT_CODE_NOT_IMPLEMENTED;
+		break;
+	}
+
+	return 0;
+}
+
 #pragma mark -
 #pragma mark SMCP Request Handlers
 
 smcp_status_t
 smcp_daemon_handle_request(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		const char** header_iter;
-		fprintf(stderr, "REQUEST: %s %s %s\n", version, method, path);
+		DEBUG_PRINTF(CSTR("REQUEST: %s %s %s"), version, method, path);
 		for(header_iter = headers; header_iter[0]; header_iter += 2) {
-			fprintf(stderr,
-				"\tHEADER: %s: %s\n",
-				header_iter[0],
-				header_iter[1]);
+			DEBUG_PRINTF(CSTR(
+					"\tHEADER: %s: %s"), header_iter[0], header_iter[1]);
 		}
 	}
 #endif
 
 	// TODO: Add authentication!
 
+	smcp_node_t node =
+	    smcp_node_find_with_path(smcp_daemon_get_root_node(self), path);
+	if(!node &&
+	        ((strcmp(path,
+					"*") != 0) &&
+	            (strcmp(method, SMCP_METHOD_OPTIONS) != 0))) {
+		// Try to find the closest node and call the unhandled_request handler.
+		path +=
+		    smcp_node_find_closest_with_path(smcp_daemon_get_root_node(
+				self), path, (smcp_node_t*)&node);
+		if(node &&
+		        ((node->type == SMCP_NODE_DEVICE) ||
+		            (node->type == SMCP_NODE_VARIABLE))) {
+			if(((smcp_device_node_t)node)->unhandled_request) {
+				ret = (*((smcp_device_node_t)node)->unhandled_request)(
+					self,
+					method,
+					path,
+					version,
+					headers,
+					content,
+					content_length,
+#if SMCP_USE_BSD_SOCKETS
+					saddr,
+					socklen,
+#elif __CONTIKI__
+					toaddr,
+					toport,
+#else
+#error TODO: Implement me!
+#endif
+					node->context
+				    );
+				if((ret == SMCP_STATUS_OK) &&
+				        (strcmp(method, SMCP_METHOD_PAIR) != 0))
+					goto bail;
+			}
+		}
+
+		// The PAIR method we can handle without a node, as long as
+		// the unhandled_request function doesn't indicate that the path doesn't exist.
+		if((strcmp(method,
+					SMCP_METHOD_PAIR) != 0) ||
+		        (ret == SMCP_STATUS_NOT_FOUND)) {
+			const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+			int i;
+			for(i = 0; headers[i]; i += 2) {
+				if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
+					util_add_header(replyHeaders,
+						SMCP_MAX_HEADERS,
+						SMCP_HEADER_CSEQ,
+						headers[i + 1]);
+				}
+				if(0 == strcmp(headers[i], SMCP_HEADER_ID)) {
+					util_add_header(replyHeaders,
+						SMCP_MAX_HEADERS,
+						SMCP_HEADER_ID,
+						headers[i + 1]);
+				}
+			}
+			if(!ret)
+				ret = SMCP_STATUS_NOT_FOUND;
+			smcp_daemon_send_response(self,
+				version,
+				smcp_convert_status_to_result_code(ret),
+				replyHeaders,
+				NULL,
+				0,
+#if SMCP_USE_BSD_SOCKETS
+				saddr,
+				socklen
+#elif __CONTIKI__
+				toaddr,
+				toport
+#else
+#error TODO: Implement me!
+#endif
+			);
+			goto bail;
+		}
+	}
+
 	if(strcmp(method, SMCP_METHOD_POST) == 0) {
 		ret = smcp_daemon_handle_post(self,
+			node,
 			method,
 			path,
 			version,
 			headers,
 			content,
 			content_length,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		    );
 	} else if(strcmp(method, SMCP_METHOD_OPTIONS) == 0) {
 		ret = smcp_daemon_handle_options(self,
+			node,
 			method,
 			path,
 			version,
 			headers,
 			content,
 			content_length,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		    );
 	} else if(strcmp(method, SMCP_METHOD_GET) == 0) {
 		ret = smcp_daemon_handle_get(self,
+			node,
 			method,
 			path,
 			version,
 			headers,
 			content,
 			content_length,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		    );
 	} else if(strcmp(method, SMCP_METHOD_LIST) == 0) {
 		ret = smcp_daemon_handle_list(self,
+			node,
 			method,
 			path,
 			version,
 			headers,
 			content,
 			content_length,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		    );
 	} else if(strcmp(method, SMCP_METHOD_PAIR) == 0) {
 		ret = smcp_daemon_handle_pair(self,
+			node,
 			method,
 			path,
 			version,
 			headers,
 			content,
 			content_length,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		    );
 	} else {
 		// Unknown or unsupported method.
-		const char* replyHeaders[] = {
-			SMCP_HEADER_CSEQ, "",
-			NULL
-		};
+		const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
 		int i;
 		for(i = 0; headers[i]; i += 2) {
-			if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ))
-				replyHeaders[1] = headers[i + 1];
+			if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
+				util_add_header(replyHeaders,
+					SMCP_MAX_HEADERS,
+					SMCP_HEADER_CSEQ,
+					headers[i + 1]);
+			}
+			if(0 == strcmp(headers[i], SMCP_HEADER_ID)) {
+				util_add_header(replyHeaders,
+					SMCP_MAX_HEADERS,
+					SMCP_HEADER_ID,
+					headers[i + 1]);
+			}
 		}
-		fprintf(stderr, "Unknown method in request: %s\n", method);
+		DEBUG_PRINTF(CSTR("Unknown method in request: %s"), method);
 		smcp_daemon_send_response(self,
 			version,
 			SMCP_RESULT_CODE_NOT_IMPLEMENTED,
 			replyHeaders,
 			NULL,
 			0,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		);
 	}
 
 bail:
@@ -1340,22 +1618,19 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_post(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
 	const char* content_type = NULL;
-	smcp_action_node_t node = (smcp_action_node_t)smcp_node_find_with_path(
-		smcp_daemon_get_root_node(self),
-		path);
 	int i;
 
 	for(i = 0; headers[i]; i += 2) {
@@ -1375,18 +1650,8 @@ smcp_daemon_handle_post(
 			content_type = headers[i + 1];
 	}
 
-	if(!node) {
-		// Node not found.
-		smcp_daemon_send_response(self,
-			version,
-			SMCP_RESULT_CODE_NOT_FOUND,
-			replyHeaders,
-			NULL,
-			0,
-			saddr,
-			socklen);
-		goto bail;
-	}
+	// Node should always be set by the time we get here.
+	require(node, bail);
 
 	if(node->type != SMCP_NODE_ACTION) {
 		// Method not allowed.
@@ -1396,20 +1661,35 @@ smcp_daemon_handle_post(
 			replyHeaders,
 			NULL,
 			0,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		);
 		goto bail;
 	}
 
-	if(node->post_func) {
-		    (*node->post_func)(
-			node,
+	if(((smcp_action_node_t)node)->post_func) {
+		    (*((smcp_action_node_t)node)->post_func)(
+			    ((smcp_action_node_t)node),
 			headers,
 			content,
 			content_length,
 			content_type,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
 			socklen,
+#elif __CONTIKI__
+			toaddr,
+			toport,
+#else
+#error TODO: Implement me!
+#endif
 			node->context
 		);
 	}
@@ -1420,8 +1700,16 @@ smcp_daemon_handle_post(
 		replyHeaders,
 		NULL,
 		0,
+#if SMCP_USE_BSD_SOCKETS
 		saddr,
-		socklen);
+		socklen
+#elif __CONTIKI__
+		toaddr,
+		toport
+#else
+#error TODO: Implement me!
+#endif
+	);
 
 bail:
 	return ret;
@@ -1429,15 +1717,15 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_options(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
@@ -1469,23 +1757,20 @@ smcp_daemon_handle_options(
 			replyHeaders,
 			NULL,
 			0,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		);
 	} else {
-		smcp_node_t node = smcp_node_find_with_path(
-			smcp_daemon_get_root_node(self),
-			path);
-		if(!node) {
-			smcp_daemon_send_response(self,
-				version,
-				SMCP_RESULT_CODE_NOT_FOUND,
-				replyHeaders,
-				NULL,
-				0,
-				saddr,
-				socklen);
-			goto bail;
-		}
+		// Node should always be set by the time we get here.
+		require(node, bail);
+
 		switch(node->type) {
 		case SMCP_NODE_ACTION:
 			util_add_header(replyHeaders,
@@ -1518,8 +1803,16 @@ smcp_daemon_handle_options(
 			replyHeaders,
 			NULL,
 			0,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		);
 	}
 bail:
 	return ret;
@@ -1527,15 +1820,15 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_get(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	char replyContent[50];
@@ -1543,8 +1836,6 @@ smcp_daemon_handle_get(
 	const char* replyContentType = NULL;
 	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
 	int i;
-	smcp_node_t node =
-	    smcp_node_find_with_path(smcp_daemon_get_root_node(self), path);
 
 	for(i = 0; headers[i]; i += 2) {
 		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
@@ -1561,17 +1852,8 @@ smcp_daemon_handle_get(
 		}
 	}
 
-	if(!node) {
-		smcp_daemon_send_response(self,
-			version,
-			SMCP_RESULT_CODE_NOT_FOUND,
-			replyHeaders,
-			NULL,
-			0,
-			saddr,
-			socklen);
-		goto bail;
-	}
+	// Node should always be set by the time we get here.
+	require(node, bail);
 
 	if(node->type == SMCP_NODE_VARIABLE) {
 		ret = (*((smcp_variable_node_t)node)->get_func)(
@@ -1580,8 +1862,15 @@ smcp_daemon_handle_get(
 			replyContent,
 			&replyContentLength,
 			&replyContentType,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
 			socklen,
+#elif __CONTIKI__
+			toaddr,
+			toport,
+#else
+#error TODO: Implement me!
+#endif
 			    ((smcp_variable_node_t)node)->context
 		    );
 	} else {
@@ -1591,8 +1880,16 @@ smcp_daemon_handle_get(
 			replyHeaders,
 			NULL,
 			0,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		);
 		goto bail;
 	}
 
@@ -1603,8 +1900,16 @@ smcp_daemon_handle_get(
 			replyHeaders,
 			NULL,
 			0,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		);
 		goto bail;
 	}
 
@@ -1619,31 +1924,37 @@ smcp_daemon_handle_get(
 		replyHeaders,
 		replyContent,
 		replyContentLength,
+#if SMCP_USE_BSD_SOCKETS
 		saddr,
-		socklen);
+		socklen
+#elif __CONTIKI__
+		toaddr,
+		toport
+#else
+#error TODO: Implement me!
+#endif
+	);
 bail:
 	return ret;
 }
 
 smcp_status_t
 smcp_daemon_handle_list(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	const char* next_node = NULL;
 	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
 	int i;
 	char replyContent[128] = "";
-	smcp_node_t node =
-	    smcp_node_find_with_path(smcp_daemon_get_root_node(self), path);
 
 	for(i = 0; headers[i]; i += 2) {
 		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
@@ -1662,17 +1973,8 @@ smcp_daemon_handle_list(
 			next_node = headers[i + 1];
 	}
 
-	if(!node) {
-		smcp_daemon_send_response(self,
-			version,
-			SMCP_RESULT_CODE_NOT_FOUND,
-			replyHeaders,
-			NULL,
-			0,
-			saddr,
-			socklen);
-		goto bail;
-	}
+	// Node should always be set by the time we get here.
+	require(node, bail);
 
 	if((node->type == SMCP_NODE_EVENT) ||
 	        (node->type == SMCP_NODE_ACTION)) {
@@ -1684,8 +1986,16 @@ smcp_daemon_handle_list(
 			replyHeaders,
 			NULL,
 			0,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		);
 		goto bail;
 	}
 
@@ -1834,29 +2144,35 @@ smcp_daemon_handle_list(
 		replyHeaders,
 		replyContent,
 		strlen(replyContent),
+#if SMCP_USE_BSD_SOCKETS
 		saddr,
-		socklen);
+		socklen
+#elif __CONTIKI__
+		toaddr,
+		toport
+#else
+#error TODO: Implement me!
+#endif
+	);
 bail:
 	return ret;
 }
 
 smcp_status_t
 smcp_daemon_handle_pair(
-	smcp_daemon_t		self,
-	const char*			method,
-	const char*			path,
-	const char*			version,
-	const char*			headers[],
-	const char*			content,
-	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	const char*		method,
+	const char*		path,
+	const char*		version,
+	const char*		headers[],
+	const char*		content,
+	size_t			content_length,
+	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
 	int i;
-	smcp_node_t node =
-	    smcp_node_find_with_path(smcp_daemon_get_root_node(self), path);
 
 	for(i = 0; headers[i]; i += 2) {
 		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
@@ -1880,8 +2196,16 @@ smcp_daemon_handle_pair(
 			replyHeaders,
 			NULL,
 			0,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		);
 		goto bail;
 	}
 
@@ -1893,8 +2217,16 @@ smcp_daemon_handle_pair(
 			replyHeaders,
 			NULL,
 			0,
+#if SMCP_USE_BSD_SOCKETS
 			saddr,
-			socklen);
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		);
 		goto bail;
 	}
 
@@ -1905,8 +2237,16 @@ smcp_daemon_handle_pair(
 		replyHeaders,
 		NULL,
 		0,
+#if SMCP_USE_BSD_SOCKETS
 		saddr,
-		socklen);
+		socklen
+#elif __CONTIKI__
+		toaddr,
+		toport
+#else
+#error TODO: Implement me!
+#endif
+	);
 bail:
 	return ret;
 }
@@ -1919,344 +2259,19 @@ smcp_daemon_get_root_node(smcp_daemon_t self) {
 	return self->root_node;
 }
 
-static bt_compare_result_t
-smcp_node_compare(
-	smcp_node_t lhs, smcp_node_t rhs
-) {
-	if(lhs->name == rhs->name)
-		return 0;
-	if(!lhs->name)
-		return 1;
-	if(!rhs->name)
-		return -1;
-	return strcmp(lhs->name, rhs->name);
-}
-
-static bt_compare_result_t
-smcp_node_compare_cstr(
-	smcp_node_t lhs, const char* rhs
-) {
-	if(lhs->name == rhs)
-		return 0;
-	if(!lhs->name)
-		return 1;
-	if(!rhs)
-		return -1;
-	return strcmp(lhs->name, rhs);
-}
-
-static bt_compare_result_t
-smcp_node_ncompare_cstr(
-	smcp_node_t lhs, const char* rhs, int*len
-) {
-	if(lhs->name == rhs)
-		return 0;
-	if(!lhs->name)
-		return 1;
-	if(!rhs)
-		return -1;
-	if(strlen(lhs->name) > *len)
-		return -1;
-	return strncmp(lhs->name, rhs, *len);
-}
-
-smcp_device_node_t
-smcp_node_add_subdevice(
-	smcp_node_t node, const char* name
-) {
-	smcp_device_node_t ret = NULL;
-
-	require(!node || (node->type == SMCP_NODE_DEVICE), bail);
-
-	ret = (smcp_device_node_t)smcp_node_alloc();
-
-	require(ret, bail);
-
-	if(node) {
-		require(name, bail);
-		bt_insert(
-			    (void**)&((smcp_device_node_t)node)->subdevices,
-			ret,
-			    (bt_compare_func_t)smcp_node_compare,
-			    (bt_delete_func_t)smcp_node_delete,
-			NULL
-		);
-		ret->parent = node;
-	} else {
-		if(!name)
-			name = "";
-	}
-	ret->type = SMCP_NODE_DEVICE;
-	ret->name = name;
-
-bail:
-	return ret;
-}
-
-smcp_action_node_t
-smcp_node_add_action(
-	smcp_node_t node, const char* name
-) {
-	smcp_action_node_t ret = NULL;
-
-	require(node, bail);
-	require((node->type == SMCP_NODE_DEVICE) ||
-		    (node->type == SMCP_NODE_VARIABLE), bail);
-
-	ret = (smcp_action_node_t)smcp_node_alloc();
-
-	require(ret, bail);
-
-	if(node) {
-		bt_insert(
-			    (void**)&((smcp_device_node_t)node)->actions,
-			ret,
-			    (bt_compare_func_t)smcp_node_compare,
-			    (bt_delete_func_t)smcp_node_delete,
-			NULL
-		);
-		ret->parent = node;
-	}
-
-	ret->type = SMCP_NODE_ACTION;
-	ret->name = name;
-
-bail:
-	return ret;
-}
-
-smcp_variable_node_t
-smcp_node_add_variable(
-	smcp_node_t node, const char* name
-) {
-	smcp_variable_node_t ret = NULL;
-
-	require(node, bail);
-	require((node->type == SMCP_NODE_DEVICE), bail);
-
-	ret = (smcp_variable_node_t)smcp_node_alloc();
-
-	require(ret, bail);
-
-	if(node) {
-		bt_insert(
-			    (void**)&((smcp_device_node_t)node)->variables,
-			ret,
-			    (bt_compare_func_t)smcp_node_compare,
-			    (bt_delete_func_t)smcp_node_delete,
-			NULL
-		);
-		ret->parent = node;
-	}
-
-	ret->type = SMCP_NODE_VARIABLE;
-	ret->name = name;
-
-bail:
-	return ret;
-}
-
-smcp_event_node_t
-smcp_node_add_event(
-	smcp_node_t node, const char* name
-) {
-	smcp_event_node_t ret = NULL;
-
-	require(node, bail);
-	require((node->type == SMCP_NODE_DEVICE) ||
-		    (node->type == SMCP_NODE_VARIABLE), bail);
-
-	ret = (smcp_event_node_t)smcp_node_alloc();
-
-	require(ret, bail);
-
-	if(node) {
-		bt_insert(
-			    (void**)&((smcp_device_node_t)node)->events,
-			ret,
-			    (bt_compare_func_t)smcp_node_compare,
-			    (bt_delete_func_t)smcp_node_delete,
-			NULL
-		);
-		ret->parent = node;
-	}
-
-	ret->type = SMCP_NODE_EVENT;
-	ret->name = name;
-
-bail:
-	return ret;
-}
-
-void
-smcp_node_delete(smcp_node_t node) {
-	void** owner = NULL;
-
-	switch(node->type) {
-	case SMCP_NODE_DEVICE:
-		while(((smcp_device_node_t)node)->actions)
-			smcp_node_delete(((smcp_device_node_t)node)->actions);
-		while(((smcp_device_node_t)node)->events)
-			smcp_node_delete(((smcp_device_node_t)node)->events);
-		while(((smcp_device_node_t)node)->subdevices)
-			smcp_node_delete(((smcp_device_node_t)node)->subdevices);
-		while(((smcp_device_node_t)node)->variables)
-			smcp_node_delete(((smcp_device_node_t)node)->variables);
-		if(node->parent)
-			owner =
-			    (void**)&((smcp_device_node_t)node->parent)->subdevices;
-		break;
-	case SMCP_NODE_VARIABLE:
-		while(((smcp_device_node_t)node)->actions)
-			smcp_node_delete(((smcp_device_node_t)node)->actions);
-		while(((smcp_device_node_t)node)->events)
-			smcp_node_delete(((smcp_device_node_t)node)->events);
-		if(node->parent)
-			owner = (void**)&((smcp_device_node_t)node->parent)->variables;
-		break;
-	case SMCP_NODE_EVENT:
-		if(node->parent)
-			owner = (void**)&((smcp_device_node_t)node->parent)->events;
-		break;
-	case SMCP_NODE_ACTION:
-		if(node->parent)
-			owner = (void**)&((smcp_device_node_t)node->parent)->actions;
-		break;
-	}
-
-	if(owner)
-		bt_remove(owner, node, (bt_compare_func_t)smcp_node_compare,
-			    (bt_delete_func_t)smcp_node_dealloc, NULL);
-	else
-		smcp_node_dealloc(node);
-bail:
-	return;
-}
-
-smcp_status_t
-smcp_node_get_path(
-	smcp_node_t node, char* path, size_t max_path_len
-) {
-	smcp_status_t ret = 0;
-
-	require(node, bail);
-	require(path, bail);
-
-	if(node->parent) {
-		// using recursion here just makes this code so much prettier,
-		// but it would be ideal to avoid using recursion at all
-		// to be nice to the stack. Just a topic of future investigation...
-		ret = smcp_node_get_path(node->parent, path, max_path_len);
-	} else {
-		path[0] = 0;
-	}
-
-	if(node->type == SMCP_NODE_ACTION)
-		strlcat(path, "?", max_path_len);
-	else if(node->type == SMCP_NODE_EVENT)
-		strlcat(path, "!", max_path_len);
-
-	if(node->name)
-		strlcat(path, node->name, max_path_len);
-
-	if(node->type == SMCP_NODE_DEVICE)
-		strlcat(path, "/", max_path_len);
-
-bail:
-	return ret;
-}
-
-smcp_node_t
-smcp_node_find_with_path(
-	smcp_node_t node, const char* path
-) {
-	smcp_node_t ret = NULL;
-
-again:
-	require(node, bail);
-	require(path, bail);
-
-	// Move past any preceding slashes.
-	while(path[0] == '/')
-		path++;
-
-	if(path[0] == 0) {
-		// Self.
-		ret = node;
-	} else if(path[0] == '?') {
-		// Action.
-		require((node->type == SMCP_NODE_DEVICE) ||
-			    (node->type == SMCP_NODE_VARIABLE), bail);
-		path++; // Move past question mark
-		ret =
-		    bt_find((void**)&((smcp_device_node_t)node)->actions,
-			path,
-			    (bt_compare_func_t)smcp_node_compare_cstr,
-			NULL);
-	} else if(path[0] == '!') {
-		// Event.
-		require((node->type == SMCP_NODE_DEVICE) ||
-			    (node->type == SMCP_NODE_VARIABLE), bail);
-
-		path++; // Move past exclamation point
-		ret = bt_find(
-			    (void**)&((smcp_device_node_t)node)->events,
-			path,
-			    (bt_compare_func_t)smcp_node_compare_cstr,
-			NULL
-		    );
-	} else {
-		// Device or Variable.
-		int namelen;
-		for(namelen = 0; path[namelen]; namelen++) {
-			if((path[namelen] == '/') || (path[namelen] == '?') ||
-			        (path[namelen] == '!'))
-				break;
-		}
-
-		require((node->type == SMCP_NODE_DEVICE), bail);
-		ret = bt_find(
-			    (void**)&((smcp_device_node_t)node)->subdevices,
-			path,
-			    (bt_compare_func_t)smcp_node_ncompare_cstr,
-			&namelen
-		    );
-
-
-		if(!ret) {
-			ret = bt_find(
-				    (void**)&((smcp_device_node_t)node)->variables,
-				path,
-				    (bt_compare_func_t)smcp_node_ncompare_cstr,
-				&namelen
-			    );
-		}
-
-		if(ret && (path[namelen] != 0)) {
-			// Avoid recursion to be nice to the stack.
-			node = ret;
-			ret = NULL;
-			path += namelen;
-			goto again;
-		}
-	}
-
-bail:
-	return ret;
-}
 
 smcp_status_t
 smcp_daemon_trigger_event(
-	smcp_daemon_t		self,
-	smcp_event_node_t	node,
-	const char*			content,
-	size_t				content_length,
-	const char*			content_type
+	smcp_daemon_t	self,
+	const char*		path,
+	const char*		content,
+	size_t			content_length,
+	const char*		content_type
 ) {
 	smcp_status_t ret = 0;
 	smcp_pairing_t iter;
 	char cseq[24] = {};
-	char url[256] = "smcp:";
+	char url[SMCP_MAX_PATH_LENGTH + 128 + 1];
 
 	const char* headers[] = {
 		SMCP_HEADER_CSEQ,		  cseq,
@@ -2265,18 +2280,20 @@ smcp_daemon_trigger_event(
 		NULL
 	};
 
-	require_action(node, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(SMCP_NODE_EVENT == node->type,
-		bail,
-		ret = SMCP_STATUS_BAD_NODE_TYPE);
+	require_action(path, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
 	// TODO: Get IP address, and add it to the URL!
-	smcp_node_get_path((smcp_node_t)node, url + 5, sizeof(url) - 1 - 5);
+	snprintf(url, sizeof(url) - 1, "smcp://%s/%s", "undefined", path);
 
-	for(iter = node->pairings; iter; iter = iter->next) {
+	for(iter = smcp_daemon_get_first_pairing_for_path(self, path);
+	    iter;
+	    iter = iter->next) {
 		iter->seq++;
-		fprintf(stderr, "sending stuff...\n");
-		snprintf(cseq, sizeof(cseq) - 1, "%X POST", iter->seq);
+		DEBUG_PRINTF(CSTR("sending stuff..."));
+		snprintf(cseq,
+			sizeof(cseq) - 1,
+			"%lX POST",
+			    (long unsigned int)iter->seq);
 		smcp_daemon_send_request(
 			self,
 			"POST",
@@ -2285,8 +2302,15 @@ smcp_daemon_trigger_event(
 			headers,
 			content,
 			content_length,
+#if SMCP_USE_BSD_SOCKETS
 			    (struct sockaddr*)&iter->saddr,
 			sizeof(iter->saddr)
+#elif __CONTIKI__
+			&iter->addr,
+			iter->port
+#else
+#error TODO: Implement me!
+#endif
 		);
 
 		// TODO: Handle retransmits for reliable pairings!
@@ -2296,143 +2320,33 @@ bail:
 	return ret;
 }
 
-#pragma mark -
-#pragma mark Paring
-
 smcp_status_t
-smcp_node_pair_with_uri(
-	smcp_node_t node, const char* uri, int flags
+smcp_daemon_trigger_event_for_node(
+	smcp_daemon_t		self,
+	smcp_event_node_t	node,
+	const char*			content,
+	size_t				content_length,
+	const char*			content_type
 ) {
 	smcp_status_t ret = 0;
-	const char* path_str = NULL;
-	const char* addr_str = NULL;
-	const char* addr_end;
-	size_t addr_str_len;
-	char addr_cstr[256] = "";
+	char path[SMCP_MAX_PATH_LENGTH + 1];
 
-	struct sockaddr_in6 saddr = {
-		.sin6_family	= AF_INET6,
-		.sin6_len		= sizeof(struct sockaddr_in6),
-		.sin6_port		= htons(SMCP_DEFAULT_PORT),
-	};
-	bool is_ipv6 = false;
-
-	require_action(node, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(strncmp(uri,
-			"smcp://",
-			7) == 0, bail, ret = SMCP_STATUS_UNSUPPORTED_URI);
-
-	// Parse the URI.
-
-	// Find the start of the path
-	for(path_str = uri + 7; *path_str && (*path_str != '/'); path_str++) {
-	}
-
-	// Find the end of the address part.
-	for(addr_end = path_str;; addr_end--) {
-		if((addr_end < uri + 7) || (*addr_end == '@')) {
-			// There was no port, just an address.
-			addr_str = addr_end + 1;
-			addr_end = path_str;
-			break;
-		}
-		if((*addr_end == ']')) {
-			for(addr_str = addr_end;
-			        (addr_str > (uri + 7)) && (addr_str[-1] != '[');
-			    addr_str--) {
-			}
-			is_ipv6 = true;
-			break;
-		}
-		if((*addr_end == ':')) {
-			saddr.sin6_port = htons(strtol(addr_end + 1, NULL, 10));
-
-			for(addr_str = addr_end;
-			        (addr_str > (uri + 7)) && (addr_str[-1] != '@');
-			    addr_str--) {
-			}
-
-			break;
-		}
-	}
-
-	if(addr_end[-1] == ']') {
-		addr_end--;
-		addr_str++;
-		is_ipv6 = true;
-	}
-
-	addr_str_len = addr_end - addr_str;
-
-	if(is_ipv6) {
-		memcpy(addr_cstr, addr_str, MIN(addr_str_len, sizeof(addr_cstr)));
-	} else {
-		memcpy(addr_cstr, "::FFFF:", 7);
-		memcpy(addr_cstr + 7, addr_str,
-			MIN(addr_str_len, sizeof(addr_cstr) - 7));
-	}
-
-	fprintf(stderr,
-		"URI Parse: ADDR: %s   PORT: %d   PATH: %s\n",
-		addr_cstr,
-		ntohs(saddr.sin6_port),
-		path_str);
-
-	{
-		struct hostent *tmp = gethostbyname2(addr_cstr, AF_INET6);
-		require_action(!h_errno && tmp, bail, ret = -1);
-		require_action(tmp->h_length > 1, bail, ret = -1);
-		memcpy(&saddr.sin6_addr.s6_addr, tmp->h_addr_list[0], 16);
-	}
-
-	// Pair with sockaddr.
-	ret = smcp_node_pair_with_sockaddr(node,
-		    (struct sockaddr*)&saddr,
-		sizeof(saddr),
-		path_str,
-		flags);
-bail:
-	return ret;
-}
-
-smcp_status_t
-smcp_node_pair_with_sockaddr(
-	smcp_node_t			node,
-	struct sockaddr*	saddr,
-	socklen_t			saddr_len,
-	const char*			path,
-	int					flags
-) {
-	smcp_status_t ret = 0;
-	smcp_pairing_t pairing = NULL;
-
-	require_action(node, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action((node->type == SMCP_NODE_EVENT) ||
-		    (node->type == SMCP_NODE_ACTION),
+	require_action(SMCP_NODE_EVENT == node->type,
 		bail,
 		ret = SMCP_STATUS_BAD_NODE_TYPE);
-	require_action(saddr, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(saddr_len > 0, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(path, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
-	pairing = calloc(1, sizeof(*pairing));
+	smcp_node_get_path((smcp_node_t)node, path, sizeof(path) - 1);
 
-	require(pairing, bail);
-
-	memcpy(&pairing->saddr, saddr, saddr_len);
-
-	if(node->type == SMCP_NODE_EVENT)
-		pairing->seq = pairing->ack = arc4random();
-
-	pairing->path = strdup(path);
-	pairing->flags = flags;
-
-	ll_prepend((void**)&((smcp_event_node_t)node)->pairings, pairing);
+	ret = smcp_daemon_trigger_event(self,
+		path,
+		content,
+		content_length,
+		content_type);
 
 bail:
 	return ret;
 }
+
 
 smcp_status_t
 smcp_daemon_refresh_variable(
@@ -2453,7 +2367,11 @@ smcp_daemon_refresh_variable(
 		    (smcp_node_t)node,
 		"!changed");
 
-	require_action(event_node != NULL, bail, ret = SMCP_STATUS_FAILURE);
+	require_action_string(
+		event_node != NULL,
+		bail,
+		ret = SMCP_STATUS_FAILURE,
+		"smcp_daemon_refresh_variable: Variable doesn't have a \"!changed\" node");
 
 	if(node->get_func) {
 		ret =
@@ -2463,7 +2381,7 @@ smcp_daemon_refresh_variable(
 		require(ret == 0, bail);
 	}
 
-	ret = smcp_daemon_trigger_event(
+	ret = smcp_daemon_trigger_event_for_node(
 		daemon,
 		event_node,
 		content,

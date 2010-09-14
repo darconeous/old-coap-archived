@@ -7,14 +7,17 @@
  *
  */
 
-#include <AssertMacros.h>
+#include "assert_macros.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "smcp.h"
 #include <string.h>
 #include <sys/errno.h>
 #include "help.h"
+
+#include "smcp.h"
+#include "smcp_node.h"
+
 #include "cmd_test.h"
 
 smcp_status_t
@@ -167,7 +170,7 @@ tool_cmd_test(
 	{
 		const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
 		char idValue[30];
-		snprintf(idValue, sizeof(idValue), "%08x", arc4random());
+		snprintf(idValue, sizeof(idValue), "%08x", SMCP_FUNC_RANDOM_UINT32());
 
 		util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_ID, idValue);
 		//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_NEXT,"device2/");

@@ -1,12 +1,12 @@
-#include <AssertMacros.h>
+#include "assert_macros.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "smcp.h"
 #include <string.h>
 #include <sys/errno.h>
 #include "help.h"
 
+#include "smcp.h"
 
 #include "cmd_list.h"
 #include "cmd_test.h"
