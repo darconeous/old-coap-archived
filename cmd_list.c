@@ -46,15 +46,15 @@ list_response_handler(
 		char contentBuffer[500];
 
 		content_length =
-		    (content_length > sizeof(contentBuffer) -
-		    1 ? sizeof(contentBuffer) - 1 : content_length);
+		    ((content_length > sizeof(contentBuffer) -
+		        1) ? sizeof(contentBuffer) - 1 : content_length);
 		memcpy(contentBuffer, content, content_length);
 		contentBuffer[content_length] = 0;
 
 		printf("%s", contentBuffer);
 
-		if(contentBuffer[content_length - 1] != '\n') ;
-		printf("\n");
+		if(contentBuffer[content_length - 1] != '\n')
+			printf("\n");
 
 		for(i = 0; headers[i]; i += 2) {
 			if(0 == strcmp(headers[i], SMCP_HEADER_MORE)) {

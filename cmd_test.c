@@ -143,10 +143,6 @@ tool_cmd_test(
 	    smcp_node_add_subdevice(smcp_daemon_get_root_node(
 			smcp_daemon), "device");
 
-//	smcp_node_add_event((smcp_node_t)device_node, "event");
-//	smcp_node_add_subdevice(smcp_daemon_get_root_node(smcp_daemon), "device3");
-//	smcp_node_add_subdevice(smcp_daemon_get_root_node(smcp_daemon), "device4");
-
 	var_node = create_load_average_variable_node(device_node, "loadavg");
 
 	action_node =
@@ -173,6 +169,13 @@ tool_cmd_test(
 		smcp_node_pair_with_uri((smcp_node_t)action_node, url, 0);
 		printf("ACTION_NODE PAIRED WITH %s\n", url);
 	}
+
+	// Just adding some random nodes so we can browse thru them with another process...
+	smcp_node_add_event((smcp_node_t)device_node, "event");
+	smcp_node_add_subdevice(smcp_daemon_get_root_node(
+			smcp_daemon), "device3");
+	smcp_node_add_subdevice(smcp_daemon_get_root_node(
+			smcp_daemon), "device4");
 
 	{
 		const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
