@@ -111,7 +111,23 @@ bt_remove(
 				}
 			}
 		} else if(*bt == item_) {
-			*bt = NULL;
+			if(item_->lhs) {
+				item_->lhs->parent = NULL;
+				*bt = item_->lhs;
+				if(item_->rhs) {
+					item_->rhs->parent = NULL;
+					bt_insert(bt,
+						item_->rhs,
+						compare_func,
+						delete_func,
+						context);
+				}
+			} else if(item_->rhs) {
+				item_->rhs->parent = NULL;
+				*bt = item_->rhs;
+			} else {
+				*bt = NULL;
+			}
 		}
 		item_->lhs = NULL;
 		item_->rhs = NULL;

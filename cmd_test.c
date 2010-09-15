@@ -172,10 +172,17 @@ tool_cmd_test(
 
 	// Just adding some random nodes so we can browse thru them with another process...
 	smcp_node_add_event((smcp_node_t)device_node, "event");
-	smcp_node_add_subdevice(smcp_daemon_get_root_node(
-			smcp_daemon), "device3");
-	smcp_node_add_subdevice(smcp_daemon_get_root_node(
-			smcp_daemon), "device4");
+	{
+		smcp_device_node_t subdevice = smcp_node_add_subdevice(
+			smcp_daemon_get_root_node(smcp_daemon),
+			"lots_of_devices");
+		int i;
+		for(i = 120; i--; ) {
+			char *name = NULL;
+			asprintf(&name, "subdevice_%d", i); // Will leak, but we don't care.
+			smcp_node_add_subdevice((smcp_node_t)subdevice, name);
+		}
+	}
 
 	{
 		const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
@@ -220,7 +227,7 @@ tool_cmd_test(
 
 	int i;
 	for(i = 0; i < 30000; i++) {
-		if(i % 50 == 0) {
+		if(i % 500 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
 			smcp_daemon_refresh_variable(smcp_daemon, var_node);
 		}

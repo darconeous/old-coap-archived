@@ -451,12 +451,11 @@ smcp_daemon_init(
 
 #if SMCP_USE_BSD_SOCKETS
 	{   // Join the multicast group for SMCP_IPV6_MULTICAST_ADDRESS
-		struct ipv6_mreq imreq = {
-			.ipv6mr_interface	= 0
-		};
+		struct ipv6_mreq imreq;
 		int btrue = 1;
 		struct hostent *tmp = gethostbyname2(SMCP_IPV6_MULTICAST_ADDRESS,
 			AF_INET6);
+		memset(&imreq, 0, sizeof(imreq));
 		ret->mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
 
 		require(!h_errno && tmp, bail);
@@ -924,27 +923,35 @@ smcp_daemon_handle_inbound_packet(
 				require(packet_length_remaining >= 2, bail);
 				packet_cursor++;
 				packet_length_remaining--;
-			} while(!packet_cursor[0] || isspace(packet_cursor[0]));
+			} while((!packet_cursor[0] ||
+			        isspace(packet_cursor[0])) &&
+			        (packet_cursor[0] != '\r') &&
+			        (packet_cursor[0] != '\n'));
 
 			// Grab the start of the header value
 			if(SMCP_MAX_HEADERS * 2 > hindex)
 				headers[hindex++] = packet_cursor;
 
 			// Move to the end of the line
-			do {
+			while((packet_cursor[0] != '\n') &&
+			        (packet_cursor[0] != '\r')) {
 				require(packet_length_remaining >= 2, bail);
 				packet_cursor++;
 				packet_length_remaining--;
-			} while(packet_cursor[0] != '\n' && packet_cursor[0] != '\r');
+			}
 
 			// Mark the end of the header value.
 			packet_cursor[0] = 0;
 
-			do {
+			DEBUG_PRINTF("Parsed header \"%s\" = \"%s\"",
+				headers[hindex - 2], headers[hindex - 1]);
+
+
+			while(packet_cursor[-1] != '\n') {
 				require(packet_length_remaining >= 2, bail);
 				packet_cursor++;
 				packet_length_remaining--;
-			} while(packet_cursor[-1] != '\n');
+			}
 		}
 
 		// Zero-terminate the header list
@@ -1479,8 +1486,11 @@ smcp_daemon_handle_request(
 		if((strcmp(method,
 					SMCP_METHOD_PAIR) != 0) ||
 		        (ret == SMCP_STATUS_NOT_FOUND)) {
-			const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+			const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 			int i;
+
+			replyHeaders[0] = NULL;
+
 			for(i = 0; headers[i]; i += 2) {
 				if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
 					util_add_header(replyHeaders,
@@ -1614,8 +1624,9 @@ smcp_daemon_handle_request(
 		    );
 	} else {
 		// Unknown or unsupported method.
-		const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+		const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 		int i;
+		replyHeaders[0] = NULL;
 		for(i = 0; headers[i]; i += 2) {
 			if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
 				util_add_header(replyHeaders,
@@ -1666,10 +1677,11 @@ smcp_daemon_handle_post(
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 	const char* content_type = NULL;
 	int i;
 
+	replyHeaders[0] = NULL;
 	for(i = 0; headers[i]; i += 2) {
 		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
 			util_add_header(replyHeaders,
@@ -1765,9 +1777,10 @@ smcp_daemon_handle_options(
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 	int i;
 
+	replyHeaders[0] = NULL;
 	for(i = 0; headers[i]; i += 2) {
 		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
 			util_add_header(replyHeaders,
@@ -1871,8 +1884,10 @@ smcp_daemon_handle_get(
 	char replyContent[50];
 	size_t replyContentLength = 0;
 	const char* replyContentType = NULL;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 	int i;
+
+	replyHeaders[0] = NULL;
 
 	for(i = 0; headers[i]; i += 2) {
 		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
@@ -1989,9 +2004,11 @@ smcp_daemon_handle_list(
 ) {
 	smcp_status_t ret = 0;
 	const char* next_node = NULL;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 	int i;
 	char replyContent[128];
+
+	replyHeaders[0] = NULL;
 
 	memset(replyContent, 0, sizeof(replyContent));
 	for(i = 0; headers[i]; i += 2) {
@@ -2040,6 +2057,7 @@ smcp_daemon_handle_list(
 	if(next_node) {
 		smcp_node_t next;
 		node = smcp_node_find_with_path(node, next_node);
+		check_string(node, "Unable to find next node!");
 		next = bt_next(node);
 		if(node && !next && node->parent) {
 			if(node->parent->type == SMCP_NODE_DEVICE) {
@@ -2173,7 +2191,7 @@ smcp_daemon_handle_list(
 		util_add_header(replyHeaders,
 			SMCP_MAX_HEADERS,
 			SMCP_HEADER_MORE,
-			"1");
+			"");
 	}
 
 	smcp_daemon_send_response(self,
@@ -2209,8 +2227,10 @@ smcp_daemon_handle_pair(
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 	int i;
+
+	replyHeaders[0] = NULL;
 
 	for(i = 0; headers[i]; i += 2) {
 		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
@@ -2308,8 +2328,10 @@ smcp_daemon_trigger_event(
 ) {
 	smcp_status_t ret = 0;
 	smcp_pairing_t iter;
-	char cseq[24] = {};
+	char cseq[24];
 	char url[SMCP_MAX_PATH_LENGTH + 128 + 1];
+
+	memset(cseq, 0, sizeof(cseq));
 
 	const char* headers[] = {
 		SMCP_HEADER_CSEQ,		  cseq,

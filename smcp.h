@@ -56,6 +56,7 @@
 
 #define SMCP_DEFAULT_PORT           (29280)
 #define SMCP_MAX_PACKET_LENGTH      (1500)
+//#define	SMCP_MAX_PACKET_LENGTH		(300)
 #define SMCP_MAX_HEADERS            (20)
 #define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
 #define SMCP_MAX_PATH_LENGTH        (256)

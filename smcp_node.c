@@ -88,9 +88,18 @@ smcp_node_ncompare_cstr(
 		return 1;
 	if(!rhs)
 		return -1;
-	if(strlen(lhs->name) > *len)
-		return -1;
-	return strncmp(lhs->name, rhs, *len);
+
+	bt_compare_result_t ret = strncmp(lhs->name, rhs, *len);
+
+	if(ret == 0) {
+		int lhs_len = strlen(lhs->name);
+		if(lhs_len > *len)
+			ret = 1;
+		else if(lhs_len < *len)
+			ret = -1;
+	}
+
+	return ret;
 }
 
 smcp_device_node_t
@@ -107,6 +116,7 @@ smcp_node_add_subdevice(
 
 	if(node) {
 		require(name, bail);
+		ret->name = name;
 		bt_insert(
 			    (void**)&((smcp_device_node_t)node)->subdevices,
 			ret,
@@ -120,7 +130,6 @@ smcp_node_add_subdevice(
 			name = "";
 	}
 	ret->type = SMCP_NODE_DEVICE;
-	ret->name = name;
 
 bail:
 	return ret;

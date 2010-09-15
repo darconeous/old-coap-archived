@@ -26,6 +26,9 @@
 
 static bool listIsDone;
 
+bool send_list_request(
+	smcp_daemon_t smcp, const char* url, const char* next);
+
 static void
 list_response_handler(
 	smcp_daemon_t		self,
@@ -47,18 +50,28 @@ list_response_handler(
 
 		content_length =
 		    ((content_length > sizeof(contentBuffer) -
-		        1) ? sizeof(contentBuffer) - 1 : content_length);
+		        2) ? sizeof(contentBuffer) - 2 : content_length);
 		memcpy(contentBuffer, content, content_length);
 		contentBuffer[content_length] = 0;
 
-		printf("%s", contentBuffer);
+		if(content_length && (contentBuffer[content_length - 1] == '\n'))
+			contentBuffer[--content_length] = 0;
 
-		if(contentBuffer[content_length - 1] != '\n')
-			printf("\n");
+		printf("%s\n", contentBuffer);
 
 		for(i = 0; headers[i]; i += 2) {
 			if(0 == strcmp(headers[i], SMCP_HEADER_MORE)) {
-				// TODO: More to fetch!
+				const char* next = headers[i + 1];
+				if(next[0] == 0) {
+					// In this case we need to use
+					// the last item in the list.
+					next = contentBuffer + content_length - 1;
+					while((next != contentBuffer) && next[-1] != '\n') {
+						next--;
+					}
+				}
+				if(send_list_request(self, (const char*)context, next))
+					return;
 			}
 		}
 	}
@@ -83,19 +96,22 @@ util_add_header(
 	return false;
 }
 
-int
-tool_cmd_list(
-	smcp_daemon_t smcp, int argc, char* argv[]
+bool
+send_list_request(
+	smcp_daemon_t smcp, const char* url, const char* next
 ) {
-	int ret = -1;
+	bool ret = false;
+	const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	static char idValue[30];
 
 	listIsDone = false;
-	const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
-	char idValue[30];
+
 	snprintf(idValue, sizeof(idValue), "%08x", SMCP_FUNC_RANDOM_UINT32());
 
 	util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_ID, idValue);
-	//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_NEXT,"device2/");
+
+	if(next)
+		util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_NEXT, next);
 
 	require_noerr(smcp_daemon_add_response_handler(
 			smcp,
@@ -103,18 +119,32 @@ tool_cmd_list(
 			5000,
 			0, // Flags
 			&list_response_handler,
-			NULL
+			    (void*)url
 		), bail);
 
 	require_noerr(smcp_daemon_send_request_to_url(
 			smcp,
 			SMCP_METHOD_LIST,
-			argv[1],
+			url,
 			"SMCP/0.1",
 			headers,
 			NULL,
 			0
 		), bail);
+
+	ret = true;
+
+bail:
+	return ret;
+}
+
+int
+tool_cmd_list(
+	smcp_daemon_t smcp, int argc, char* argv[]
+) {
+	int ret = -1;
+
+	require(send_list_request(smcp, argv[1], NULL), bail);
 
 	while(!listIsDone)
 		smcp_daemon_process(smcp, 50);
