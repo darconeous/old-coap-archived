@@ -58,7 +58,7 @@ list_response_handler(
 
 		for(i = 0; headers[i]; i += 2) {
 			if(0 == strcmp(headers[i], SMCP_HEADER_MORE)) {
-				// More to fetch!
+				// TODO: More to fetch!
 			}
 		}
 	}
