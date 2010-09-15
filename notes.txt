@@ -1,0 +1,325 @@
+Various thoughts and notes about the SMCP protocol. Given here largely for
+historical and educational purposes. This document may not reflect the current
+state of the protocol. - Robert Quattlebaum <darco@deepdarc.com>
+
+- Thoughts
+    - Each device has a hierarchy of nodes which can be a directory/subdevice,
+      variable, action, or event
+    - Events can be paired with Actions so that when an event fires an
+      action is induced.
+    - Variables can fire events when they change.
+    - Variables have actions which allow their value to be changed remotely.
+    - Variables can be polled using GET.
+    - Devices can be polled for the variables, events, and actions
+      associated with it.
+    - When a device sends an event to another device (a "change"), the
+      circumstances what triggered it is important. Each change message
+      contains the address and variable that originated the cascade. When
+      the change is processed by a device which may create other change
+      messages as a result of an incoming change message, this origin is
+      preserved in the resultant messages and the "hop count"  is
+      decremented. This way erroneous circular relationships do not flood
+      the network with traffic indefinitely.
+- Device Types
+    - OneWire Bridge
+        - Temperature Sensor
+            - Variables
+                - temperature
+                - alarm-min
+                - alarm-max
+            - Events
+                - !alarm
+                - temperature!changed
+            - Actions
+                - alarm-min?set
+                - alarm-max?set
+        - Switch
+            - Variables
+                - state
+            - Actions
+                - state?set=1
+                - state?set=0
+                - state?set
+        - A/D Converter
+            - Variables
+                - voltage
+                - alarm-min
+                - alarm-max
+            - Events
+                - !alarm
+                - voltage!changed
+            - actions
+                - alarm-min?set
+                - alarm-max?set
+    - Motion Detector
+        - Events
+            - !motion
+    - Lamp Module
+        - Variables
+            - state
+            - amount
+        - Actions
+            - state?set=0
+            - state?set=1
+            - state?set
+            - amount?dec
+            - amount?inc
+            - amount?set
+        - events
+            - state?changed
+            - state?changed=1
+            - state?changed=0
+            - amount?changed
+    - Switch/Appliance Module
+        - Variables
+            - state
+        - Events
+            - state!change=1
+            - state!change=0
+            - state!change
+        - Actions
+            - state?set=1
+            - state?set=0
+            - ?toggle
+            - state?set
+    - X10 Bridge
+        - [house] (A-P)
+            - [key] (1-16)
+                - Variables
+                    - state
+                    - amount
+                - Actions
+                    - state?set=1
+                    - state?set=0
+                    - state?set
+                    - amount?dec
+                    - amount?inc
+                    - amount?set
+                - Events
+                    - state!change=1
+                    - state!change=0
+                    - state!change
+                    - amount!inc
+                    - amount!dec
+                    - amount!change
+            - Actions
+                - ?all-units-off
+                - ?all-lights-on
+                - ?all-lights-off
+            - Events
+                - !all-units-off
+                - !all-lights-on
+                - !all-lights-off
+- "Pseudo Devices"
+    - These are devices that are not real physical devices but are used
+      as logic "glue" for setting up complex relationships.
+    - List of possible pseudo devices
+        - Toggle
+            - Varibles
+                - state
+            - Actions
+                - state?set=1
+                - state?set=0
+                - state?set
+            - Events
+                - state!changed
+                - state!changed=1
+                - state!changed=0
+        - Two-operand operations (==, <, >, <=, >=, !=, +, -, XOR, AND, OR, NOR, etc)
+            - Variables
+                - lhs
+                - rhs
+                - output
+            - actions
+                - lhs?set
+                - rhs?set
+            - events
+                - output!changed
+        - 1-Operand Arithmetic (-,√,sin,cos,tan,etc,not)
+            - Variables
+                - input
+                - output
+            - actions
+                - input?set
+            - events
+                - output!changed
+        - Schmidt Trigger
+            - Variables
+                - input
+                - threshold-on
+                - threshold-off
+                - output
+            - Actions
+                - input?set
+                - output?set=0
+                      Only works if input is between threshold-on and threshold-off
+                - output?set=1
+                      Only works if input is between threshold-on and threshold-off
+                - threshold-on?set
+                - threshold-off?set
+            - Events
+                - output!changed=1
+                - output!changed=0
+                - output!changed
+        - Timer
+            - Variables
+                - period
+                - remaining
+                - auto-reset
+            - Actions
+                - ?reset
+                - ?restart
+                - ?start
+                - ?stop
+                - period?set
+                - auto-reset?set
+                - remaining?set
+            - Events
+                - !fire
+        - Event Filter
+            - Variables
+                - pass-thru
+            - Actions
+                - ?input
+                - pass-thru?set
+                - pass-thru?set=0
+                - pass-thru?set=1
+            - Event
+                - !output
+        - Calendar
+            - Variables
+                - year
+                - month
+                - day-of-year
+                - day-of-month
+                - day-of-week
+                - hour-of-day
+                - minute-of-hour
+                - unix-timestamp
+                - time-zone-offset
+                - is-daylight
+- Pairing
+    - Lets say you wanted to pair a motion sensor to a light.
+        - You would have two devices and one pseudo-device:
+            - Appliance Module
+            - Motion Sensor
+            - Timer
+        * The motion sensor's motion even would be connected to the
+          following:
+        * The timer's "fire" event would be connected to the following:
+        - Now, whenever the motion sensor is triggered, the light is
+          turned on and the timer is reset... When the timer expires
+          the timer will fire and the light will turn off.
+    - Lets say that there was also a switch. We want to be able to use
+      the switch to turn the light on and off, but we don't want the
+      timer to time it out. We only want the timer to be enabled
+      whenever the motion sensor turns on the light when it wasn't on
+      already:
+        - We would have three devices and two pseudo-devices: 
+            - Appliance Module
+            - Switch Module
+            - Motion Sensor
+            - Timer
+            - Event Filter
+        - Motion Sensor Motion Event connected to...
+            - Event Filter Input
+        - Event Filter Output is connected to...
+            - Appliance Module "Turn On"
+            - Timer "Reset"
+        - Switch "Turn On" event connected to...
+            - Appliance Module "Turn On"
+            - Timer "Stop"
+        - Switch "Turn Off" event connected to...
+            - Appliance Module "Turn Off"
+            - Timer "Stop"
+        - Switch "State" variable connected to...
+            - Event Filter "Pass-Thru-Disable".
+- Message Contents
+    - From URL (if originated from an action)
+    - To path
+    - Event ID
+    - Cascade Origin URL (optional for first action in a cascade)
+    - Cascade generation lifetime (optional for first action in a cascade)
+    - Cascade ID (optional for first action in a cascade)
+    - Payload Dictionary (All values optional)
+        - New Value
+        - Old Value?
+        - Other Stuff?
+- Endpoint State
+    - Administrative Pairings
+        - Pair ID
+        - DIGEST-MD5-HA1
+        - nonceCount
+        - nonce
+    - Event Pairings
+        - Source Event Name
+        - Destination Action URL
+        - DIGEST-MD5-HA1
+        - nonceCount
+        - nonce
+    - Action Pairings
+        - Source Event URL
+        - Destination Action Name
+        - DIGEST-MD5-HA1
+        - nonceCount
+        - nonce
+- Types of messages
+    - Methods
+        - GET - Variable Query
+        - POST - Event Notification
+        - OPTIONS - Returns the methods supported for the given URL.
+        - PAIR,UNPAIR - Admin Pair/Unpair
+        - ??? - Admin Query/Walk Pairings
+        - LIST - Admin Query/Walk Hierarchy
+    - Responses
+        - Success 2xx
+            - 200 OK
+            - 201 Created
+                - Location
+            - 204 Acknowledge
+        - Client Error 4xx
+            - 400 Bad Request
+            - 401 Unauthorized
+            - 403 Forbidden
+            - 404 Not Found
+            - 405 Method Not Allowed
+            - 409 Conflict
+            - 410 Gone
+        - Server Error 5xx
+            - 500 Internal Server Error
+            - 501 Not Implemented
+            - 503 Service Unavailable
+            - 504 Gateway Timeout
+            - 505 Protocol Version Not Supported
+- Packet Format
+    - All packets are MIME-formatted.
+- URL Format
+    - smcp://[physicaldeviceaddress]/[path]
+        - ex: smcp://device.local/subdevice/loadavg!changed
+        - ex: smcp://lcd-display.local/message?set
+- Headers
+    - Request Headers
+        - Authorization
+        - Content-Length
+        - Content-Type
+        - Date
+        - Host
+        - Max-Cascade
+        - Cascade-Origin
+        - Referer
+        - User-Agent
+        - Pragma
+        - CSeq
+        - Id
+    - Response Headers
+        - WWW-Authenticate
+        - Authentication-Info
+        - Age
+        - Allow
+        - Content-Length
+        - Content-Type
+        - ETag
+        - Expires
+        - Last-Modified
+        - Pragma
+        - Server
