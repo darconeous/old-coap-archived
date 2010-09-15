@@ -8,7 +8,7 @@
  */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
 #endif
 
 #include "assert_macros.h"
@@ -405,7 +405,7 @@ again:
 		const char* nextPath = path;
 		nextPath += smcp_node_find_next_with_path(node, path, &ret);
 		node = ret;
-		DEBUG_PRINTF(CSTR("%s: %x (nextPath = %s)"), path, node, nextPath);
+		DEBUG_PRINTF(CSTR("%s: %p (nextPath = %s)"), path, node, nextPath);
 		path = nextPath;
 	} while(ret && path[0]);
 

@@ -6,7 +6,7 @@
 */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
 #endif
 
 #ifdef __CONTIKI__
@@ -205,6 +205,8 @@ struct smcp_daemon_s {
 	smcp_node_t				root_node;
 	smcp_timer_t			timers;
 	smcp_response_handler_t handlers;
+
+	uint16_t				port;
 };
 
 #if defined(__CONTIKI__)
@@ -424,15 +426,26 @@ smcp_daemon_init(
 	require_action_string(ret->fd > 0, bail, { smcp_daemon_release(
 				ret); ret = NULL; }, "Failed to create socket");
 
-	require_action_string(bind(ret->fd, (struct sockaddr*)&saddr,
-			sizeof(saddr)) == 0, bail, { smcp_daemon_release(
-				ret); ret = NULL; }, "Failed to bind socket");
+	if(bind(ret->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
+		require_action_string(errno == EADDRINUSE, bail,
+			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_daemon_release(
+				    ret); ret = NULL; }, "Failed to bind socket");
+
+		saddr.sin6_port = 0;
+		require_action_string(bind(ret->fd, (struct sockaddr*)&saddr,
+				sizeof(saddr)) == 0, bail, { DEBUG_PRINTF(CSTR(
+						"errno=%d"), errno); smcp_daemon_release(
+					ret); ret = NULL;
+			}, "Failed to bind socket to port zero");
+	}
 #elif __CONTIKI__
 
 	ret->udp_conn = udp_new(NULL, 0, NULL);
 	uip_udp_bind(ret->udp_conn, HTONS(port));
 	ret->udp_conn->rport = 0;
 #endif
+
+	ret->port = port;
 
 	ret->root_node = (smcp_node_t)smcp_node_add_subdevice(NULL, NULL);
 
@@ -475,6 +488,8 @@ bail:
 
 void
 smcp_daemon_release(smcp_daemon_t self) {
+	require(self, bail);
+
 	// Delete all timers
 	while(self->timers) {
 		smcp_timer_t timer = self->timers;
@@ -488,17 +503,26 @@ smcp_daemon_release(smcp_daemon_t self) {
 	}
 
 	// Delete all nodes
-	smcp_node_delete(self->root_node);
+	if(self->root_node)
+		smcp_node_delete(self->root_node);
 
 #if SMCP_USE_BSD_SOCKETS
 	close(self->fd);
 	close(self->mcfd);
 #elif __CONTIKI__
-	uip_udp_remove(self->udp_conn);
+	if(self->udp_conn)
+		uip_udp_remove(self->udp_conn);
 #endif
 
 	// TODO: Make sure we were actually alloc'd!
 	free(self);
+bail:
+	return;
+}
+
+uint16_t
+smcp_daemon_get_port(smcp_daemon_t self) {
+	return self->port;
 }
 
 #if SMCP_USE_BSD_SOCKETS
@@ -600,7 +624,7 @@ smcp_daemon_send_response(
 #endif
 
 	DEBUG_PRINTF(CSTR(
-			"smcp_daemon(%x):SENT RESPONSE PACKET: \"%s\" %d bytes"), self,
+			"smcp_daemon(%p):SENT RESPONSE PACKET: \"%s\" %d bytes"), self,
 		packet,
 		    (int)packet_length);
 
@@ -672,7 +696,7 @@ smcp_daemon_send_request(
 #endif
 
 	DEBUG_PRINTF(CSTR(
-			"smcp_daemon(%x):SENT REQUEST PACKET: \"%s\" %d bytes"), self,
+			"smcp_daemon(%p):SENT REQUEST PACKET: \"%s\" %d bytes"), self,
 		packet,
 		    (int)packet_length);
 bail:
@@ -694,8 +718,10 @@ smcp_daemon_send_request_to_url(
 	const char* addr_str = NULL;
 	const char* addr_end;
 	size_t addr_str_len;
-	char addr_cstr[256] = "";
-	bool is_ipv6 = false;
+	char addr_cstr[256];
+	bool is_ipv6_or_hostname = false;
+
+	memset(addr_cstr, 0, sizeof(addr_cstr));
 
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
@@ -734,7 +760,7 @@ smcp_daemon_send_request_to_url(
 			        (addr_str > (uri + 7)) && (addr_str[-1] != '[');
 			    addr_str--) {
 			}
-			is_ipv6 = true;
+			is_ipv6_or_hostname = true;
 			break;
 		}
 		if((*addr_end == ':')) {
@@ -758,12 +784,14 @@ smcp_daemon_send_request_to_url(
 	if(addr_end[-1] == ']') {
 		addr_end--;
 		addr_str++;
-		is_ipv6 = true;
+		is_ipv6_or_hostname = true;
+	} else if(!isnumber(addr_str[0])) {
+		is_ipv6_or_hostname = true;
 	}
 
 	addr_str_len = addr_end - addr_str;
 
-	if(is_ipv6) {
+	if(is_ipv6_or_hostname) {
 		memcpy(addr_cstr, addr_str, MIN(addr_str_len, sizeof(addr_cstr)));
 	} else {
 		memcpy(addr_cstr, IPv4_COMPATIBLE_IPv6_PREFIX,
@@ -1282,7 +1310,7 @@ smcp_daemon_handle_response(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		const char** header_iter;
-		DEBUG_PRINTF(CSTR("smcp_daemon(%x): Incoming response!"), self);
+		DEBUG_PRINTF(CSTR("smcp_daemon(%p): Incoming response!"), self);
 		DEBUG_PRINTF(CSTR("RESULT: %s %d"), version, statuscode);
 		for(header_iter = headers; header_iter[0]; header_iter += 2) {
 			DEBUG_PRINTF(CSTR(
@@ -1298,7 +1326,7 @@ smcp_daemon_handle_response(
 			idValue = headers[i + 1];
 	}
 
-	require_string(idValue, bail, "Response has no ID header");
+	require_quiet(idValue, bail);
 
 	handler = (smcp_response_handler_t)bt_find(
 		    (void**)&self->handlers,
@@ -1396,7 +1424,7 @@ smcp_daemon_handle_request(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		const char** header_iter;
-		DEBUG_PRINTF(CSTR("smcp_daemon(%x): Incoming request!"), self);
+		DEBUG_PRINTF(CSTR("smcp_daemon(%p): Incoming request!"), self);
 		DEBUG_PRINTF(CSTR("REQUEST: %s %s %s"), version, method, path);
 		for(header_iter = headers; header_iter[0]; header_iter += 2) {
 			DEBUG_PRINTF(CSTR(
@@ -1963,8 +1991,9 @@ smcp_daemon_handle_list(
 	const char* next_node = NULL;
 	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
 	int i;
-	char replyContent[128] = "";
+	char replyContent[128];
 
+	memset(replyContent, 0, sizeof(replyContent));
 	for(i = 0; headers[i]; i += 2) {
 		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
 			util_add_header(replyHeaders,

@@ -8,7 +8,7 @@
  */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
 #endif
 
 #include "assert_macros.h"
@@ -68,7 +68,7 @@ smcp_node_pair_with_uri(
 	uip_ipaddr_t toaddr;
 	uint16_t toport = SMCP_DEFAULT_PORT;
 #endif
-	bool is_ipv6 = false;
+	bool is_ipv6_or_hostname = false;
 
 	require_action_string(node,
 		bail,
@@ -101,7 +101,7 @@ smcp_node_pair_with_uri(
 			        (addr_str > (uri + 7)) && (addr_str[-1] != '[');
 			    addr_str--) {
 			}
-			is_ipv6 = true;
+			is_ipv6_or_hostname = true;
 			break;
 		}
 		if((*addr_end == ':')) {
@@ -125,12 +125,14 @@ smcp_node_pair_with_uri(
 	if(addr_end[-1] == ']') {
 		addr_end--;
 		addr_str++;
-		is_ipv6 = true;
+		is_ipv6_or_hostname = true;
+	} else if(!isnumber(addr_str[0])) {
+		is_ipv6_or_hostname = true;
 	}
 
 	addr_str_len = addr_end - addr_str;
 
-	if(is_ipv6) {
+	if(is_ipv6_or_hostname) {
 		memcpy(addr_cstr, addr_str, MIN(addr_str_len, sizeof(addr_cstr)));
 	} else {
 		memcpy(addr_cstr, IPv4_COMPATIBLE_IPv6_PREFIX, 7);

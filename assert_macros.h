@@ -38,10 +38,10 @@
 
  #define check(c)   check_string(c, "")
  #define require_quiet(c, l)   do { if(!(c)) goto l; } while(0)
- #define require(c, l)   require_action_string(c, l, {}, "")
+ #define require(c, l)   require_action_string(c, l, {}, # c)
 
  #define require_noerr(c, l)   require((c) == 0, l)
- #define require_action(c, l, a)   require_action_string(c, l, a, "")
+ #define require_action(c, l, a)   require_action_string(c, l, a, # c)
  #define require_string(c, l, s) \
     require_action_string(c, l, \
 	    do {} while(0), s)

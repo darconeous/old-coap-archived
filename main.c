@@ -93,7 +93,7 @@ main(
 	int argc, char * argv[]
 ) {
 	int i, debug_mode = 0;
-	int port = 0;
+	int port = SMCP_DEFAULT_PORT + 1;
 
 	if(argc <= 1) {
 		print_arg_list_help(option_list,

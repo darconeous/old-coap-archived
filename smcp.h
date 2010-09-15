@@ -211,6 +211,8 @@ extern smcp_daemon_t smcp_daemon_init(
 	smcp_daemon_t self, uint16_t port);
 extern void smcp_daemon_release(smcp_daemon_t self);
 
+extern uint16_t smcp_daemon_get_port(smcp_daemon_t self);
+
 extern smcp_status_t smcp_daemon_process(
 	smcp_daemon_t self, cms_t cms);                                     // Returns nonzero on error
 extern cms_t smcp_daemon_get_timeout(smcp_daemon_t self);
