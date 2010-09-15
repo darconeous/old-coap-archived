@@ -32,9 +32,10 @@ action_func(
 	void*				context
 ) {
 	fprintf(stderr,
-		"Received Action! content_length = %d\n",
+		" *************** Received Action! content_length = %d ",
 		    (int)content_length);
-	if(content_length) fprintf(stderr, "content = \"%s\"\n", content);
+	fprintf(stderr, "content = \"%s\"\n", content);
+
 	return 0;
 }
 
@@ -132,19 +133,12 @@ tool_cmd_test(
 	smcp_action_node_t action_node;
 	smcp_variable_node_t var_node;
 
-//	smcp_event_node_t event_node;
-//	char tmp_string[255] = "???";
-
-	smcp_daemon = smcp_daemon_create(0);
-	smcp_daemon2 = smcp;
-
-	smcp_node_add_subdevice(smcp_daemon_get_root_node(
-			smcp_daemon), "device2");
+	smcp_daemon = smcp;
+	smcp_daemon2 = smcp_daemon_create(54321);
 
 	device_node =
 	    smcp_node_add_subdevice(smcp_daemon_get_root_node(
 			smcp_daemon), "device");
-//	event_node = smcp_node_add_event((smcp_node_t)device_node, "event");
 
 	smcp_node_add_event((smcp_node_t)device_node, "event");
 	smcp_node_add_subdevice(smcp_daemon_get_root_node(
@@ -173,7 +167,6 @@ tool_cmd_test(
 		snprintf(idValue, sizeof(idValue), "%08x", SMCP_FUNC_RANDOM_UINT32());
 
 		util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_ID, idValue);
-		//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_NEXT,"device2/");
 
 		smcp_daemon_add_response_handler(
 			smcp_daemon2,
@@ -188,9 +181,9 @@ tool_cmd_test(
 			smcp_daemon2,
 			SMCP_METHOD_LIST,
 #if 0
-			"smcp://["SMCP_IPV 6_MULTICAST_ADDRESS "]/device/",
+			"smcp://["SMCP_IPV 6_MULTICAST_ADDRESS "]:54321/device/",
 #else
-			"smcp://[::1]/device/",
+			"smcp://[::1]:54321/device/",
 #endif
 			"SMCP/0.1",
 			headers,

@@ -599,6 +599,11 @@ smcp_daemon_send_response(
 	);
 #endif
 
+	DEBUG_PRINTF(CSTR(
+			"smcp_daemon(%x):SENT RESPONSE PACKET: \"%s\" %d bytes"), self,
+		packet,
+		    (int)packet_length);
+
 bail:
 	return ret;
 }
@@ -667,7 +672,9 @@ smcp_daemon_send_request(
 #endif
 
 	DEBUG_PRINTF(CSTR(
-			"SENT PACKET: \"%s\" %d bytes"), packet, (int)packet_length);
+			"smcp_daemon(%x):SENT REQUEST PACKET: \"%s\" %d bytes"), self,
+		packet,
+		    (int)packet_length);
 bail:
 	return ret;
 }
@@ -1275,6 +1282,7 @@ smcp_daemon_handle_response(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		const char** header_iter;
+		DEBUG_PRINTF(CSTR("smcp_daemon(%x): Incoming response!"), self);
 		DEBUG_PRINTF(CSTR("RESULT: %s %d"), version, statuscode);
 		for(header_iter = headers; header_iter[0]; header_iter += 2) {
 			DEBUG_PRINTF(CSTR(
@@ -1290,7 +1298,7 @@ smcp_daemon_handle_response(
 			idValue = headers[i + 1];
 	}
 
-	require(idValue, bail);
+	require_string(idValue, bail, "Response has no ID header");
 
 	handler = (smcp_response_handler_t)bt_find(
 		    (void**)&self->handlers,
@@ -1366,7 +1374,7 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 		break;
 	}
 
-	return 0;
+	return ret;
 }
 
 #pragma mark -
@@ -1388,6 +1396,7 @@ smcp_daemon_handle_request(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		const char** header_iter;
+		DEBUG_PRINTF(CSTR("smcp_daemon(%x): Incoming request!"), self);
 		DEBUG_PRINTF(CSTR("REQUEST: %s %s %s"), version, method, path);
 		for(header_iter = headers; header_iter[0]; header_iter += 2) {
 			DEBUG_PRINTF(CSTR(
