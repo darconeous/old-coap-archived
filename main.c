@@ -10,6 +10,8 @@
 
 #include "cmd_list.h"
 #include "cmd_test.h"
+#include "cmd_get.h"
+#include "cmd_post.h"
 
 
 #define ERRORCODE_HELP          (1)
@@ -24,20 +26,6 @@ static arg_list_item_t option_list[] = {
 	{ 'p', "port",	NULL, "Port number"			  },
 	{ 0 }
 };
-
-int
-tool_cmd_get(
-	smcp_daemon_t smcp, int argc, char* argv[]
-) {
-	return 0;
-}
-
-int
-tool_cmd_post(
-	smcp_daemon_t smcp, int argc, char* argv[]
-) {
-	return 0;
-}
 
 
 struct {
@@ -61,7 +49,7 @@ struct {
 		"list",
 		"Fetches the contents of a node.",
 		&tool_cmd_list
-	},
+	},{ "ls",	 NULL, &tool_cmd_list, 1 },
 	{
 		"test",
 		"TEST.",

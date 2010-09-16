@@ -489,16 +489,17 @@ void
 smcp_daemon_release(smcp_daemon_t self) {
 	require(self, bail);
 
-	// Delete all timers
-	while(self->timers) {
-		smcp_timer_t timer = self->timers;
-		timer->cancel(self, timer->context);
-		smcp_daemon_invalidate_timer(self, timer);
-	}
-
 	// Delete all response handlers
 	while(self->handlers) {
 		smcp_invalidate_response_handler(self, self->handlers->idValue);
+	}
+
+	// Delete all timers
+	while(self->timers) {
+		smcp_timer_t timer = self->timers;
+		if(timer->cancel)
+			timer->cancel(self, timer->context);
+		smcp_daemon_invalidate_timer(self, timer);
 	}
 
 	// Delete all nodes
@@ -818,7 +819,10 @@ smcp_daemon_send_request_to_url(
 	{
 		// TODO: Implement this in a non-blocking manner, perhaps using MDNS
 		struct hostent *tmp = gethostbyname2(addr_cstr, AF_INET6);
-		require_action(!h_errno && tmp, bail, ret = -1);
+		require_action_string(!h_errno && tmp,
+			bail,
+			ret = -1,
+			"gethostbyname2() failed");
 		require_action(tmp->h_length > 1, bail, ret = -1);
 		memcpy(&saddr.sin6_addr.s6_addr, tmp->h_addr_list[0], 16);
 	}
@@ -1881,7 +1885,7 @@ smcp_daemon_handle_get(
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	char replyContent[50];
+	char replyContent[128];
 	size_t replyContentLength = 0;
 	const char* replyContentType = NULL;
 	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
@@ -1908,6 +1912,7 @@ smcp_daemon_handle_get(
 	require(node, bail);
 
 	if(node->type == SMCP_NODE_VARIABLE) {
+		replyContentLength = sizeof(replyContent);
 		ret = (*((smcp_variable_node_t)node)->get_func)(
 			    (smcp_variable_node_t)node,
 			headers,

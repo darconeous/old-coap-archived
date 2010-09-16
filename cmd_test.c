@@ -63,6 +63,8 @@ loadavg_get_func(
 	*content_length = strlen(content);
 	*content_type = SMCP_CONTENT_TYPE_FORM;
 
+	fprintf(stderr, " *** Queried for load average (%s)\n", content);
+
 bail:
 	return ret;
 }

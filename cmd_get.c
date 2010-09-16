@@ -1,5 +1,5 @@
 /*
- *  cmd_list.c
+ *  cmd_get.c
  *  SMCP
  *
  *  Created by Robert Quattlebaum on 8/17/10.
@@ -15,7 +15,7 @@
 #include <string.h>
 #include <sys/errno.h>
 #include "help.h"
-#include "cmd_list.h"
+#include "cmd_get.h"
 
 /*
    static arg_list_item_t option_list[] = {
@@ -24,13 +24,13 @@
    };
  */
 
-static bool listIsDone;
+static bool getIsDone;
 
-bool send_list_request(
-	smcp_daemon_t smcp, const char* url, const char* next);
+bool send_get_request(
+	smcp_daemon_t smcp, const char* url);
 
 static void
-list_response_handler(
+get_response_handler(
 	smcp_daemon_t		self,
 	const char*			version,
 	int					statuscode,
@@ -41,8 +41,6 @@ list_response_handler(
 	socklen_t			socklen,
 	void*				context
 ) {
-	int i;
-
 	if(statuscode != SMCP_RESULT_CODE_OK)
 		printf("*** RESULT CODE = %d\n", statuscode);
 	if(content && content_length) {
@@ -58,25 +56,9 @@ list_response_handler(
 			contentBuffer[--content_length] = 0;
 
 		printf("%s\n", contentBuffer);
-
-		for(i = 0; headers[i]; i += 2) {
-			if(0 == strcmp(headers[i], SMCP_HEADER_MORE)) {
-				const char* next = headers[i + 1];
-				if(next[0] == 0) {
-					// In this case we need to use
-					// the last item in the list.
-					next = contentBuffer + content_length - 1;
-					while((next != contentBuffer) && next[-1] != '\n') {
-						next--;
-					}
-				}
-				if(send_list_request(self, (const char*)context, next))
-					return;
-			}
-		}
 	}
 
-	listIsDone = true;
+	getIsDone = true;
 }
 
 static bool
@@ -97,34 +79,31 @@ util_add_header(
 }
 
 bool
-send_list_request(
-	smcp_daemon_t smcp, const char* url, const char* next
+send_get_request(
+	smcp_daemon_t smcp, const char* url
 ) {
 	bool ret = false;
 	const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
 	static char idValue[30];
 
-	listIsDone = false;
+	getIsDone = false;
 
 	snprintf(idValue, sizeof(idValue), "%08x", SMCP_FUNC_RANDOM_UINT32());
 
 	util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_ID, idValue);
-
-	if(next)
-		util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_NEXT, next);
 
 	require_noerr(smcp_daemon_add_response_handler(
 			smcp,
 			idValue,
 			5000,
 			0, // Flags
-			&list_response_handler,
+			&get_response_handler,
 			    (void*)url
 		), bail);
 
 	require_noerr(smcp_daemon_send_request_to_url(
 			smcp,
-			SMCP_METHOD_LIST,
+			SMCP_METHOD_GET,
 			url,
 			"SMCP/0.1",
 			headers,
@@ -139,7 +118,7 @@ bail:
 }
 
 int
-tool_cmd_list(
+tool_cmd_get(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
 	int ret = -1;
@@ -149,9 +128,9 @@ tool_cmd_list(
 		goto bail;
 	}
 
-	require(send_list_request(smcp, argv[1], NULL), bail);
+	require(send_get_request(smcp, argv[1]), bail);
 
-	while(!listIsDone)
+	while(!getIsDone)
 		smcp_daemon_process(smcp, 50);
 
 	ret = 0;
