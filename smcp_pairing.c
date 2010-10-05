@@ -126,7 +126,7 @@ smcp_node_pair_with_uri(
 		addr_end--;
 		addr_str++;
 		is_ipv6_or_hostname = true;
-	} else if(!isnumber(addr_str[0])) {
+	} else if(!isdigit(addr_str[0])) {
 		is_ipv6_or_hostname = true;
 	}
 

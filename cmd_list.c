@@ -107,6 +107,7 @@ send_list_request(
 	listIsDone = false;
 
 	snprintf(idValue, sizeof(idValue), "%08x", SMCP_FUNC_RANDOM_UINT32());
+	//snprintf(idValue,sizeof(idValue),"1234");
 
 	util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_ID, idValue);
 

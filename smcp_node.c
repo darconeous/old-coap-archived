@@ -149,6 +149,9 @@ smcp_node_add_action(
 
 	require(ret, bail);
 
+	ret->type = SMCP_NODE_ACTION;
+	ret->name = name;
+
 	if(node) {
 		bt_insert(
 			    (void**)&((smcp_device_node_t)node)->actions,
@@ -159,9 +162,6 @@ smcp_node_add_action(
 		);
 		ret->parent = node;
 	}
-
-	ret->type = SMCP_NODE_ACTION;
-	ret->name = name;
 
 bail:
 	return ret;
@@ -180,6 +180,9 @@ smcp_node_add_variable(
 
 	require(ret, bail);
 
+	ret->type = SMCP_NODE_VARIABLE;
+	ret->name = name;
+
 	if(node) {
 		bt_insert(
 			    (void**)&((smcp_device_node_t)node)->variables,
@@ -190,9 +193,6 @@ smcp_node_add_variable(
 		);
 		ret->parent = node;
 	}
-
-	ret->type = SMCP_NODE_VARIABLE;
-	ret->name = name;
 
 bail:
 	return ret;
@@ -212,6 +212,9 @@ smcp_node_add_event(
 
 	require(ret, bail);
 
+	ret->type = SMCP_NODE_EVENT;
+	ret->name = name;
+
 	if(node) {
 		bt_insert(
 			    (void**)&((smcp_device_node_t)node)->events,
@@ -222,9 +225,6 @@ smcp_node_add_event(
 		);
 		ret->parent = node;
 	}
-
-	ret->type = SMCP_NODE_EVENT;
-	ret->name = name;
 
 bail:
 	return ret;

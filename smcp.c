@@ -785,7 +785,7 @@ smcp_daemon_send_request_to_url(
 		addr_end--;
 		addr_str++;
 		is_ipv6_or_hostname = true;
-	} else if(!isnumber(addr_str[0])) {
+	} else if(!isdigit(addr_str[0])) {
 		is_ipv6_or_hostname = true;
 	}
 

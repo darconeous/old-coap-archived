@@ -152,6 +152,7 @@ tool_cmd_test(
 			smcp_daemon2), "action");
 	action_node->post_func = action_func;
 
+
 	{
 		char url[256];
 		snprintf(url,
@@ -178,8 +179,8 @@ tool_cmd_test(
 		smcp_device_node_t subdevice = smcp_node_add_subdevice(
 			smcp_daemon_get_root_node(smcp_daemon),
 			"lots_of_devices");
-		int i;
-		for(i = 120; i--; ) {
+		unsigned char i = 0;
+		for(i = i * 97 + 101; i; i = i * 97 + 101) {
 			char *name = NULL;
 			asprintf(&name, "subdevice_%d", i); // Will leak, but we don't care.
 			smcp_node_add_subdevice((smcp_node_t)subdevice, name);
@@ -229,7 +230,7 @@ tool_cmd_test(
 
 	int i;
 	for(i = 0; i < 30000; i++) {
-		if(i % 500 == 0) {
+		if(i % 50 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
 			smcp_daemon_refresh_variable(smcp_daemon, var_node);
 		}
