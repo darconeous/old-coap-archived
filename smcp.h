@@ -106,7 +106,8 @@ enum {
 #define SMCP_METHOD_UNPAIR  "UNPAIR"
 #define SMCP_METHOD_LIST    "LIST"
 
-#define SMCP_CONTENT_TYPE_FORM      "misc/x-smcp+form"
+#define SMCP_CONTENT_TYPE_FORM          "misc/x-smcp+form"
+#define SMCP_CONTENT_TYPE_TEXT_PLAIN    "text/plain"
 
 struct smcp_daemon_s;
 typedef struct smcp_daemon_s *smcp_daemon_t;

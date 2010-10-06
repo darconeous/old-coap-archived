@@ -12,6 +12,7 @@
 #include "cmd_test.h"
 #include "cmd_get.h"
 #include "cmd_post.h"
+#include "cmd_pair.h"
 
 
 #define ERRORCODE_HELP          (1)
@@ -44,6 +45,11 @@ struct {
 		"post",
 		"Triggers an event.",
 		&tool_cmd_post
+	},
+	{
+		"pair",
+		"Pairs an event to an action",
+		&tool_cmd_pair
 	},
 	{
 		"list",

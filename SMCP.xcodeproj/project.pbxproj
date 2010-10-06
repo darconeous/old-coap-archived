@@ -13,6 +13,49 @@
 		A6078D35122DAC3F0034291D /* smcp_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A6078D34122DAC3F0034291D /* smcp_node.c */; };
 		A60E57F2116DBA7000F90E64 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E57F1116DBA7000F90E64 /* smcp.c */; };
 		A660F1841175049C005178EC /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A660F1831175049C005178EC /* btree.c */; };
+		A66F2D88125C05D900CDDAF0 /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D1E125C05D800CDDAF0 /* btree.c */; };
+		A66F2D89125C05D900CDDAF0 /* btree.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D20125C05D800CDDAF0 /* btree.o */; };
+		A66F2D8A125C05D900CDDAF0 /* btree.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D2E125C05D800CDDAF0 /* btree.o */; };
+		A66F2D8B125C05D900CDDAF0 /* ll.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D2F125C05D800CDDAF0 /* ll.o */; };
+		A66F2D8C125C05D900CDDAF0 /* main.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D30125C05D800CDDAF0 /* main.o */; };
+		A66F2D8D125C05D900CDDAF0 /* smcp.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D32125C05D800CDDAF0 /* smcp.o */; };
+		A66F2D8E125C05D900CDDAF0 /* smcplite.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D33125C05D800CDDAF0 /* smcplite.o */; };
+		A66F2D8F125C05D900CDDAF0 /* btree.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D35125C05D800CDDAF0 /* btree.o */; };
+		A66F2D90125C05D900CDDAF0 /* cmd_get.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D36125C05D800CDDAF0 /* cmd_get.o */; };
+		A66F2D91125C05D900CDDAF0 /* cmd_list.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D37125C05D800CDDAF0 /* cmd_list.o */; };
+		A66F2D92125C05D900CDDAF0 /* cmd_post.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D38125C05D800CDDAF0 /* cmd_post.o */; };
+		A66F2D93125C05D900CDDAF0 /* cmd_test.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D39125C05D800CDDAF0 /* cmd_test.o */; };
+		A66F2D94125C05D900CDDAF0 /* cmd_test.o~$ in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D3A125C05D800CDDAF0 /* cmd_test.o~$ */; };
+		A66F2D95125C05D900CDDAF0 /* help.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D3D125C05D800CDDAF0 /* help.o */; };
+		A66F2D96125C05D900CDDAF0 /* ll.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D3E125C05D800CDDAF0 /* ll.o */; };
+		A66F2D97125C05D900CDDAF0 /* main.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D3F125C05D800CDDAF0 /* main.o */; };
+		A66F2D98125C05D900CDDAF0 /* smcp.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D41125C05D800CDDAF0 /* smcp.o */; };
+		A66F2D99125C05D900CDDAF0 /* smcp.o~$ in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D42125C05D800CDDAF0 /* smcp.o~$ */; };
+		A66F2D9A125C05D900CDDAF0 /* smcp_node.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D45125C05D800CDDAF0 /* smcp_node.o */; };
+		A66F2D9B125C05D900CDDAF0 /* smcp_node.o~$ in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D46125C05D800CDDAF0 /* smcp_node.o~$ */; };
+		A66F2D9C125C05D900CDDAF0 /* smcp_pairing.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D49125C05D800CDDAF0 /* smcp_pairing.o */; };
+		A66F2D9D125C05D900CDDAF0 /* smcplite.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D4A125C05D800CDDAF0 /* smcplite.o */; };
+		A66F2D9E125C05D900CDDAF0 /* cmd_get.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D60125C05D800CDDAF0 /* cmd_get.c */; };
+		A66F2D9F125C05D900CDDAF0 /* cmd_get.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D62125C05D800CDDAF0 /* cmd_get.o */; };
+		A66F2DA0125C05D900CDDAF0 /* cmd_list.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D63125C05D800CDDAF0 /* cmd_list.c */; };
+		A66F2DA1125C05D900CDDAF0 /* cmd_list.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D65125C05D800CDDAF0 /* cmd_list.o */; };
+		A66F2DA2125C05D900CDDAF0 /* cmd_pair.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D66125C05D800CDDAF0 /* cmd_pair.c */; };
+		A66F2DA3125C05D900CDDAF0 /* cmd_post.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D68125C05D800CDDAF0 /* cmd_post.c */; };
+		A66F2DA4125C05D900CDDAF0 /* cmd_post.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D6A125C05D800CDDAF0 /* cmd_post.o */; };
+		A66F2DA5125C05D900CDDAF0 /* cmd_test.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D6B125C05D800CDDAF0 /* cmd_test.c */; };
+		A66F2DA6125C05D900CDDAF0 /* cmd_test.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D6D125C05D800CDDAF0 /* cmd_test.o */; };
+		A66F2DA7125C05D900CDDAF0 /* help.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D6E125C05D800CDDAF0 /* help.c */; };
+		A66F2DA8125C05D900CDDAF0 /* help.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D70125C05D800CDDAF0 /* help.o */; };
+		A66F2DA9125C05D900CDDAF0 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D72125C05D800CDDAF0 /* main.c */; };
+		A66F2DAA125C05D900CDDAF0 /* main.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D73125C05D800CDDAF0 /* main.o */; };
+		A66F2DAB125C05D900CDDAF0 /* Makefile in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D74125C05D800CDDAF0 /* Makefile */; };
+		A66F2DAC125C05D900CDDAF0 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D78125C05D800CDDAF0 /* smcp.c */; };
+		A66F2DAD125C05D900CDDAF0 /* smcp.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D7A125C05D800CDDAF0 /* smcp.o */; };
+		A66F2DAE125C05D900CDDAF0 /* smcp_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D80125C05D800CDDAF0 /* smcp_node.c */; };
+		A66F2DAF125C05D900CDDAF0 /* smcp_node.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D82125C05D800CDDAF0 /* smcp_node.o */; };
+		A66F2DB0125C05D900CDDAF0 /* smcp_pairing.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D83125C05D800CDDAF0 /* smcp_pairing.c */; };
+		A66F2DB1125C05D900CDDAF0 /* smcp_pairing.o in Frameworks */ = {isa = PBXBuildFile; fileRef = A66F2D85125C05D800CDDAF0 /* smcp_pairing.o */; };
+		A66F2DB2125C05D900CDDAF0 /* cmd_pair.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D86125C05D800CDDAF0 /* cmd_pair.c */; };
 		A6BDBA8F124186B1003FB4AD /* cmd_get.c in Sources */ = {isa = PBXBuildFile; fileRef = A6BDBA8E124186B1003FB4AD /* cmd_get.c */; };
 		A6BDBAC112418A09003FB4AD /* cmd_post.c in Sources */ = {isa = PBXBuildFile; fileRef = A6BDBAC012418A09003FB4AD /* cmd_post.c */; };
 		A6C6C47A121B2CF500CAB3A3 /* help.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C479121B2CF500CAB3A3 /* help.c */; };
@@ -46,6 +89,100 @@
 		A6257CAB1173ADE100C6177E /* btree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = btree.h; sourceTree = "<group>"; };
 		A62E6950123E8B610048F877 /* smcp_logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_logging.h; sourceTree = "<group>"; };
 		A660F1831175049C005178EC /* btree.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = btree.c; sourceTree = "<group>"; };
+		A66F2D1D125C05D800CDDAF0 /* assert_macros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = assert_macros.h; sourceTree = "<group>"; };
+		A66F2D1E125C05D800CDDAF0 /* btree.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = btree.c; sourceTree = "<group>"; };
+		A66F2D1F125C05D800CDDAF0 /* btree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = btree.h; sourceTree = "<group>"; };
+		A66F2D20125C05D800CDDAF0 /* btree.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = btree.o; sourceTree = "<group>"; };
+		A66F2D23125C05D800CDDAF0 /* SMCP */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = SMCP; sourceTree = "<group>"; };
+		A66F2D27125C05D800CDDAF0 /* build-state.dat */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "build-state.dat"; sourceTree = "<group>"; };
+		A66F2D28125C05D800CDDAF0 /* SMCP.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SMCP.dep; sourceTree = "<group>"; };
+		A66F2D2A125C05D800CDDAF0 /* build-state.dat */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "build-state.dat"; sourceTree = "<group>"; };
+		A66F2D2B125C05D800CDDAF0 /* build-state~.dat */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "build-state~.dat"; sourceTree = "<group>"; };
+		A66F2D2E125C05D800CDDAF0 /* btree.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = btree.o; sourceTree = "<group>"; };
+		A66F2D2F125C05D800CDDAF0 /* ll.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = ll.o; sourceTree = "<group>"; };
+		A66F2D30125C05D800CDDAF0 /* main.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = main.o; sourceTree = "<group>"; };
+		A66F2D31125C05D800CDDAF0 /* SMCP.LinkFileList */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SMCP.LinkFileList; sourceTree = "<group>"; };
+		A66F2D32125C05D800CDDAF0 /* smcp.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = smcp.o; sourceTree = "<group>"; };
+		A66F2D33125C05D800CDDAF0 /* smcplite.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = smcplite.o; sourceTree = "<group>"; };
+		A66F2D35125C05D800CDDAF0 /* btree.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = btree.o; sourceTree = "<group>"; };
+		A66F2D36125C05D800CDDAF0 /* cmd_get.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = cmd_get.o; sourceTree = "<group>"; };
+		A66F2D37125C05D800CDDAF0 /* cmd_list.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = cmd_list.o; sourceTree = "<group>"; };
+		A66F2D38125C05D800CDDAF0 /* cmd_post.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = cmd_post.o; sourceTree = "<group>"; };
+		A66F2D39125C05D800CDDAF0 /* cmd_test.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = cmd_test.o; sourceTree = "<group>"; };
+		A66F2D3A125C05D800CDDAF0 /* cmd_test.o~$ */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = "cmd_test.o~$"; sourceTree = "<group>"; };
+		A66F2D3B125C05D800CDDAF0 /* cmd_test.o~> */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "cmd_test.o~>"; sourceTree = "<group>"; };
+		A66F2D3C125C05D800CDDAF0 /* cmd_test.o~? */ = {isa = PBXFileReference; lastKnownFileType = file; path = "cmd_test.o~?"; sourceTree = "<group>"; };
+		A66F2D3D125C05D800CDDAF0 /* help.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = help.o; sourceTree = "<group>"; };
+		A66F2D3E125C05D800CDDAF0 /* ll.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = ll.o; sourceTree = "<group>"; };
+		A66F2D3F125C05D800CDDAF0 /* main.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = main.o; sourceTree = "<group>"; };
+		A66F2D40125C05D800CDDAF0 /* SMCP.LinkFileList */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SMCP.LinkFileList; sourceTree = "<group>"; };
+		A66F2D41125C05D800CDDAF0 /* smcp.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = smcp.o; sourceTree = "<group>"; };
+		A66F2D42125C05D800CDDAF0 /* smcp.o~$ */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = "smcp.o~$"; sourceTree = "<group>"; };
+		A66F2D43125C05D800CDDAF0 /* smcp.o~> */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "smcp.o~>"; sourceTree = "<group>"; };
+		A66F2D44125C05D800CDDAF0 /* smcp.o~? */ = {isa = PBXFileReference; lastKnownFileType = file; path = "smcp.o~?"; sourceTree = "<group>"; };
+		A66F2D45125C05D800CDDAF0 /* smcp_node.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = smcp_node.o; sourceTree = "<group>"; };
+		A66F2D46125C05D800CDDAF0 /* smcp_node.o~$ */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = "smcp_node.o~$"; sourceTree = "<group>"; };
+		A66F2D47125C05D800CDDAF0 /* smcp_node.o~> */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "smcp_node.o~>"; sourceTree = "<group>"; };
+		A66F2D48125C05D800CDDAF0 /* smcp_node.o~? */ = {isa = PBXFileReference; lastKnownFileType = file; path = "smcp_node.o~?"; sourceTree = "<group>"; };
+		A66F2D49125C05D800CDDAF0 /* smcp_pairing.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = smcp_pairing.o; sourceTree = "<group>"; };
+		A66F2D4A125C05D800CDDAF0 /* smcplite.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = smcplite.o; sourceTree = "<group>"; };
+		A66F2D4B125C05D800CDDAF0 /* SMCP-all-target-headers.hmap */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SMCP-all-target-headers.hmap"; sourceTree = "<group>"; };
+		A66F2D4C125C05D800CDDAF0 /* SMCP-generated-files.hmap */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SMCP-generated-files.hmap"; sourceTree = "<group>"; };
+		A66F2D4D125C05D800CDDAF0 /* SMCP-own-target-headers.hmap */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SMCP-own-target-headers.hmap"; sourceTree = "<group>"; };
+		A66F2D4E125C05D800CDDAF0 /* SMCP-project-headers.hmap */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SMCP-project-headers.hmap"; sourceTree = "<group>"; };
+		A66F2D4F125C05D800CDDAF0 /* SMCP.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SMCP.dep; sourceTree = "<group>"; };
+		A66F2D50125C05D800CDDAF0 /* SMCP.hmap */ = {isa = PBXFileReference; lastKnownFileType = file; path = SMCP.hmap; sourceTree = "<group>"; };
+		A66F2D51125C05D800CDDAF0 /* SMCP~.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "SMCP~.dep"; sourceTree = "<group>"; };
+		A66F2D53125C05D800CDDAF0 /* categories.pbxbtree */ = {isa = PBXFileReference; lastKnownFileType = file; path = categories.pbxbtree; sourceTree = "<group>"; };
+		A66F2D54125C05D800CDDAF0 /* cdecls.pbxbtree */ = {isa = PBXFileReference; lastKnownFileType = file; path = cdecls.pbxbtree; sourceTree = "<group>"; };
+		A66F2D55125C05D800CDDAF0 /* decls.pbxbtree */ = {isa = PBXFileReference; lastKnownFileType = file; path = decls.pbxbtree; sourceTree = "<group>"; };
+		A66F2D56125C05D800CDDAF0 /* files.pbxbtree */ = {isa = PBXFileReference; lastKnownFileType = file; path = files.pbxbtree; sourceTree = "<group>"; };
+		A66F2D57125C05D800CDDAF0 /* imports.pbxbtree */ = {isa = PBXFileReference; lastKnownFileType = file; path = imports.pbxbtree; sourceTree = "<group>"; };
+		A66F2D58125C05D800CDDAF0 /* pbxindex.header */ = {isa = PBXFileReference; lastKnownFileType = file; path = pbxindex.header; sourceTree = "<group>"; };
+		A66F2D59125C05D800CDDAF0 /* protocols.pbxbtree */ = {isa = PBXFileReference; lastKnownFileType = file; path = protocols.pbxbtree; sourceTree = "<group>"; };
+		A66F2D5A125C05D800CDDAF0 /* refs.pbxbtree */ = {isa = PBXFileReference; lastKnownFileType = file; path = refs.pbxbtree; sourceTree = "<group>"; };
+		A66F2D5C125C05D800CDDAF0 /* control */ = {isa = PBXFileReference; lastKnownFileType = file; path = control; sourceTree = "<group>"; };
+		A66F2D5D125C05D800CDDAF0 /* strings */ = {isa = PBXFileReference; lastKnownFileType = file; path = strings; sourceTree = "<group>"; };
+		A66F2D5E125C05D800CDDAF0 /* subclasses.pbxbtree */ = {isa = PBXFileReference; lastKnownFileType = file; path = subclasses.pbxbtree; sourceTree = "<group>"; };
+		A66F2D5F125C05D800CDDAF0 /* symbols0.pbxsymbols */ = {isa = PBXFileReference; lastKnownFileType = file; path = symbols0.pbxsymbols; sourceTree = "<group>"; };
+		A66F2D60125C05D800CDDAF0 /* cmd_get.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_get.c; sourceTree = "<group>"; };
+		A66F2D61125C05D800CDDAF0 /* cmd_get.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_get.h; sourceTree = "<group>"; };
+		A66F2D62125C05D800CDDAF0 /* cmd_get.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = cmd_get.o; sourceTree = "<group>"; };
+		A66F2D63125C05D800CDDAF0 /* cmd_list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_list.c; sourceTree = "<group>"; };
+		A66F2D64125C05D800CDDAF0 /* cmd_list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_list.h; sourceTree = "<group>"; };
+		A66F2D65125C05D800CDDAF0 /* cmd_list.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = cmd_list.o; sourceTree = "<group>"; };
+		A66F2D66125C05D800CDDAF0 /* cmd_pair.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_pair.c; sourceTree = "<group>"; };
+		A66F2D67125C05D800CDDAF0 /* cmd_pair.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_pair.h; sourceTree = "<group>"; };
+		A66F2D68125C05D800CDDAF0 /* cmd_post.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_post.c; sourceTree = "<group>"; };
+		A66F2D69125C05D800CDDAF0 /* cmd_post.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_post.h; sourceTree = "<group>"; };
+		A66F2D6A125C05D800CDDAF0 /* cmd_post.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = cmd_post.o; sourceTree = "<group>"; };
+		A66F2D6B125C05D800CDDAF0 /* cmd_test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_test.c; sourceTree = "<group>"; };
+		A66F2D6C125C05D800CDDAF0 /* cmd_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_test.h; sourceTree = "<group>"; };
+		A66F2D6D125C05D800CDDAF0 /* cmd_test.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = cmd_test.o; sourceTree = "<group>"; };
+		A66F2D6E125C05D800CDDAF0 /* help.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = help.c; sourceTree = "<group>"; };
+		A66F2D6F125C05D800CDDAF0 /* help.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = help.h; sourceTree = "<group>"; };
+		A66F2D70125C05D800CDDAF0 /* help.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = help.o; sourceTree = "<group>"; };
+		A66F2D71125C05D800CDDAF0 /* ll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ll.h; sourceTree = "<group>"; };
+		A66F2D72125C05D800CDDAF0 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		A66F2D73125C05D800CDDAF0 /* main.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = main.o; sourceTree = "<group>"; };
+		A66F2D74125C05D800CDDAF0 /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		A66F2D75125C05D800CDDAF0 /* notes.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = notes.txt; sourceTree = "<group>"; };
+		A66F2D76125C05D800CDDAF0 /* smcp */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = smcp; sourceTree = "<group>"; };
+		A66F2D77125C05D800CDDAF0 /* SMCP.1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.man; path = SMCP.1; sourceTree = "<group>"; };
+		A66F2D78125C05D800CDDAF0 /* smcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp.c; sourceTree = "<group>"; };
+		A66F2D79125C05D800CDDAF0 /* smcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp.h; sourceTree = "<group>"; };
+		A66F2D7A125C05D800CDDAF0 /* smcp.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = smcp.o; sourceTree = "<group>"; };
+		A66F2D7B125C05D800CDDAF0 /* SMCP.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = SMCP.xcodeproj; sourceTree = "<group>"; };
+		A66F2D7E125C05D800CDDAF0 /* smcp_helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_helpers.h; sourceTree = "<group>"; };
+		A66F2D7F125C05D800CDDAF0 /* smcp_logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_logging.h; sourceTree = "<group>"; };
+		A66F2D80125C05D800CDDAF0 /* smcp_node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp_node.c; sourceTree = "<group>"; };
+		A66F2D81125C05D800CDDAF0 /* smcp_node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_node.h; sourceTree = "<group>"; };
+		A66F2D82125C05D800CDDAF0 /* smcp_node.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = smcp_node.o; sourceTree = "<group>"; };
+		A66F2D83125C05D800CDDAF0 /* smcp_pairing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp_pairing.c; sourceTree = "<group>"; };
+		A66F2D84125C05D800CDDAF0 /* smcp_pairing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_pairing.h; sourceTree = "<group>"; };
+		A66F2D85125C05D800CDDAF0 /* smcp_pairing.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = smcp_pairing.o; sourceTree = "<group>"; };
+		A66F2D86125C05D800CDDAF0 /* cmd_pair.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_pair.c; sourceTree = "<group>"; };
+		A66F2D87125C05D800CDDAF0 /* cmd_pair.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_pair.h; sourceTree = "<group>"; };
 		A6AFEB8012148C3700DC172A /* ll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ll.h; sourceTree = "<group>"; };
 		A6BDBA8D124186B1003FB4AD /* cmd_get.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_get.h; sourceTree = "<group>"; };
 		A6BDBA8E124186B1003FB4AD /* cmd_get.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_get.c; sourceTree = "<group>"; };
@@ -66,6 +203,36 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A66F2D89125C05D900CDDAF0 /* btree.o in Frameworks */,
+				A66F2D8A125C05D900CDDAF0 /* btree.o in Frameworks */,
+				A66F2D8B125C05D900CDDAF0 /* ll.o in Frameworks */,
+				A66F2D8C125C05D900CDDAF0 /* main.o in Frameworks */,
+				A66F2D8D125C05D900CDDAF0 /* smcp.o in Frameworks */,
+				A66F2D8E125C05D900CDDAF0 /* smcplite.o in Frameworks */,
+				A66F2D8F125C05D900CDDAF0 /* btree.o in Frameworks */,
+				A66F2D90125C05D900CDDAF0 /* cmd_get.o in Frameworks */,
+				A66F2D91125C05D900CDDAF0 /* cmd_list.o in Frameworks */,
+				A66F2D92125C05D900CDDAF0 /* cmd_post.o in Frameworks */,
+				A66F2D93125C05D900CDDAF0 /* cmd_test.o in Frameworks */,
+				A66F2D94125C05D900CDDAF0 /* cmd_test.o~$ in Frameworks */,
+				A66F2D95125C05D900CDDAF0 /* help.o in Frameworks */,
+				A66F2D96125C05D900CDDAF0 /* ll.o in Frameworks */,
+				A66F2D97125C05D900CDDAF0 /* main.o in Frameworks */,
+				A66F2D98125C05D900CDDAF0 /* smcp.o in Frameworks */,
+				A66F2D99125C05D900CDDAF0 /* smcp.o~$ in Frameworks */,
+				A66F2D9A125C05D900CDDAF0 /* smcp_node.o in Frameworks */,
+				A66F2D9B125C05D900CDDAF0 /* smcp_node.o~$ in Frameworks */,
+				A66F2D9C125C05D900CDDAF0 /* smcp_pairing.o in Frameworks */,
+				A66F2D9D125C05D900CDDAF0 /* smcplite.o in Frameworks */,
+				A66F2D9F125C05D900CDDAF0 /* cmd_get.o in Frameworks */,
+				A66F2DA1125C05D900CDDAF0 /* cmd_list.o in Frameworks */,
+				A66F2DA4125C05D900CDDAF0 /* cmd_post.o in Frameworks */,
+				A66F2DA6125C05D900CDDAF0 /* cmd_test.o in Frameworks */,
+				A66F2DA8125C05D900CDDAF0 /* help.o in Frameworks */,
+				A66F2DAA125C05D900CDDAF0 /* main.o in Frameworks */,
+				A66F2DAD125C05D900CDDAF0 /* smcp.o in Frameworks */,
+				A66F2DAF125C05D900CDDAF0 /* smcp_node.o in Frameworks */,
+				A66F2DB1125C05D900CDDAF0 /* smcp_pairing.o in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -107,6 +274,200 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		A66F2D1C125C05D800CDDAF0 /* SMCP */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D1D125C05D800CDDAF0 /* assert_macros.h */,
+				A66F2D1E125C05D800CDDAF0 /* btree.c */,
+				A66F2D1F125C05D800CDDAF0 /* btree.h */,
+				A66F2D20125C05D800CDDAF0 /* btree.o */,
+				A66F2D21125C05D800CDDAF0 /* build */,
+				A66F2D60125C05D800CDDAF0 /* cmd_get.c */,
+				A66F2D61125C05D800CDDAF0 /* cmd_get.h */,
+				A66F2D62125C05D800CDDAF0 /* cmd_get.o */,
+				A66F2D63125C05D800CDDAF0 /* cmd_list.c */,
+				A66F2D64125C05D800CDDAF0 /* cmd_list.h */,
+				A66F2D65125C05D800CDDAF0 /* cmd_list.o */,
+				A66F2D66125C05D800CDDAF0 /* cmd_pair.c */,
+				A66F2D67125C05D800CDDAF0 /* cmd_pair.h */,
+				A66F2D68125C05D800CDDAF0 /* cmd_post.c */,
+				A66F2D69125C05D800CDDAF0 /* cmd_post.h */,
+				A66F2D6A125C05D800CDDAF0 /* cmd_post.o */,
+				A66F2D6B125C05D800CDDAF0 /* cmd_test.c */,
+				A66F2D6C125C05D800CDDAF0 /* cmd_test.h */,
+				A66F2D6D125C05D800CDDAF0 /* cmd_test.o */,
+				A66F2D6E125C05D800CDDAF0 /* help.c */,
+				A66F2D6F125C05D800CDDAF0 /* help.h */,
+				A66F2D70125C05D800CDDAF0 /* help.o */,
+				A66F2D71125C05D800CDDAF0 /* ll.h */,
+				A66F2D72125C05D800CDDAF0 /* main.c */,
+				A66F2D73125C05D800CDDAF0 /* main.o */,
+				A66F2D74125C05D800CDDAF0 /* Makefile */,
+				A66F2D75125C05D800CDDAF0 /* notes.txt */,
+				A66F2D76125C05D800CDDAF0 /* smcp */,
+				A66F2D77125C05D800CDDAF0 /* SMCP.1 */,
+				A66F2D78125C05D800CDDAF0 /* smcp.c */,
+				A66F2D79125C05D800CDDAF0 /* smcp.h */,
+				A66F2D7A125C05D800CDDAF0 /* smcp.o */,
+				A66F2D7B125C05D800CDDAF0 /* SMCP.xcodeproj */,
+				A66F2D7E125C05D800CDDAF0 /* smcp_helpers.h */,
+				A66F2D7F125C05D800CDDAF0 /* smcp_logging.h */,
+				A66F2D80125C05D800CDDAF0 /* smcp_node.c */,
+				A66F2D81125C05D800CDDAF0 /* smcp_node.h */,
+				A66F2D82125C05D800CDDAF0 /* smcp_node.o */,
+				A66F2D83125C05D800CDDAF0 /* smcp_pairing.c */,
+				A66F2D84125C05D800CDDAF0 /* smcp_pairing.h */,
+				A66F2D85125C05D800CDDAF0 /* smcp_pairing.o */,
+			);
+			name = SMCP;
+			sourceTree = "<group>";
+		};
+		A66F2D21125C05D800CDDAF0 /* build */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D22125C05D800CDDAF0 /* Debug */,
+				A66F2D24125C05D800CDDAF0 /* SMCP.build */,
+			);
+			path = build;
+			sourceTree = "<group>";
+		};
+		A66F2D22125C05D800CDDAF0 /* Debug */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D23125C05D800CDDAF0 /* SMCP */,
+			);
+			path = Debug;
+			sourceTree = "<group>";
+		};
+		A66F2D24125C05D800CDDAF0 /* SMCP.build */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D25125C05D800CDDAF0 /* Debug */,
+				A66F2D52125C05D800CDDAF0 /* SMCP.pbxindex */,
+			);
+			path = SMCP.build;
+			sourceTree = "<group>";
+		};
+		A66F2D25125C05D800CDDAF0 /* Debug */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D26125C05D800CDDAF0 /* SHAP.build */,
+				A66F2D29125C05D800CDDAF0 /* SMCP.build */,
+			);
+			path = Debug;
+			sourceTree = "<group>";
+		};
+		A66F2D26125C05D800CDDAF0 /* SHAP.build */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D27125C05D800CDDAF0 /* build-state.dat */,
+				A66F2D28125C05D800CDDAF0 /* SMCP.dep */,
+			);
+			path = SHAP.build;
+			sourceTree = "<group>";
+		};
+		A66F2D29125C05D800CDDAF0 /* SMCP.build */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D2A125C05D800CDDAF0 /* build-state.dat */,
+				A66F2D2B125C05D800CDDAF0 /* build-state~.dat */,
+				A66F2D2C125C05D800CDDAF0 /* Objects-normal */,
+				A66F2D4B125C05D800CDDAF0 /* SMCP-all-target-headers.hmap */,
+				A66F2D4C125C05D800CDDAF0 /* SMCP-generated-files.hmap */,
+				A66F2D4D125C05D800CDDAF0 /* SMCP-own-target-headers.hmap */,
+				A66F2D4E125C05D800CDDAF0 /* SMCP-project-headers.hmap */,
+				A66F2D4F125C05D800CDDAF0 /* SMCP.dep */,
+				A66F2D50125C05D800CDDAF0 /* SMCP.hmap */,
+				A66F2D51125C05D800CDDAF0 /* SMCP~.dep */,
+			);
+			path = SMCP.build;
+			sourceTree = "<group>";
+		};
+		A66F2D2C125C05D800CDDAF0 /* Objects-normal */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D2D125C05D800CDDAF0 /* i386 */,
+				A66F2D34125C05D800CDDAF0 /* x86_64 */,
+			);
+			path = "Objects-normal";
+			sourceTree = "<group>";
+		};
+		A66F2D2D125C05D800CDDAF0 /* i386 */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D2E125C05D800CDDAF0 /* btree.o */,
+				A66F2D2F125C05D800CDDAF0 /* ll.o */,
+				A66F2D30125C05D800CDDAF0 /* main.o */,
+				A66F2D31125C05D800CDDAF0 /* SMCP.LinkFileList */,
+				A66F2D32125C05D800CDDAF0 /* smcp.o */,
+				A66F2D33125C05D800CDDAF0 /* smcplite.o */,
+			);
+			path = i386;
+			sourceTree = "<group>";
+		};
+		A66F2D34125C05D800CDDAF0 /* x86_64 */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D35125C05D800CDDAF0 /* btree.o */,
+				A66F2D36125C05D800CDDAF0 /* cmd_get.o */,
+				A66F2D37125C05D800CDDAF0 /* cmd_list.o */,
+				A66F2D38125C05D800CDDAF0 /* cmd_post.o */,
+				A66F2D39125C05D800CDDAF0 /* cmd_test.o */,
+				A66F2D3A125C05D800CDDAF0 /* cmd_test.o~$ */,
+				A66F2D3B125C05D800CDDAF0 /* cmd_test.o~> */,
+				A66F2D3C125C05D800CDDAF0 /* cmd_test.o~? */,
+				A66F2D3D125C05D800CDDAF0 /* help.o */,
+				A66F2D3E125C05D800CDDAF0 /* ll.o */,
+				A66F2D3F125C05D800CDDAF0 /* main.o */,
+				A66F2D40125C05D800CDDAF0 /* SMCP.LinkFileList */,
+				A66F2D41125C05D800CDDAF0 /* smcp.o */,
+				A66F2D42125C05D800CDDAF0 /* smcp.o~$ */,
+				A66F2D43125C05D800CDDAF0 /* smcp.o~> */,
+				A66F2D44125C05D800CDDAF0 /* smcp.o~? */,
+				A66F2D45125C05D800CDDAF0 /* smcp_node.o */,
+				A66F2D46125C05D800CDDAF0 /* smcp_node.o~$ */,
+				A66F2D47125C05D800CDDAF0 /* smcp_node.o~> */,
+				A66F2D48125C05D800CDDAF0 /* smcp_node.o~? */,
+				A66F2D49125C05D800CDDAF0 /* smcp_pairing.o */,
+				A66F2D4A125C05D800CDDAF0 /* smcplite.o */,
+			);
+			path = x86_64;
+			sourceTree = "<group>";
+		};
+		A66F2D52125C05D800CDDAF0 /* SMCP.pbxindex */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D53125C05D800CDDAF0 /* categories.pbxbtree */,
+				A66F2D54125C05D800CDDAF0 /* cdecls.pbxbtree */,
+				A66F2D55125C05D800CDDAF0 /* decls.pbxbtree */,
+				A66F2D56125C05D800CDDAF0 /* files.pbxbtree */,
+				A66F2D57125C05D800CDDAF0 /* imports.pbxbtree */,
+				A66F2D58125C05D800CDDAF0 /* pbxindex.header */,
+				A66F2D59125C05D800CDDAF0 /* protocols.pbxbtree */,
+				A66F2D5A125C05D800CDDAF0 /* refs.pbxbtree */,
+				A66F2D5B125C05D800CDDAF0 /* strings.pbxstrings */,
+				A66F2D5E125C05D800CDDAF0 /* subclasses.pbxbtree */,
+				A66F2D5F125C05D800CDDAF0 /* symbols0.pbxsymbols */,
+			);
+			path = SMCP.pbxindex;
+			sourceTree = "<group>";
+		};
+		A66F2D5B125C05D800CDDAF0 /* strings.pbxstrings */ = {
+			isa = PBXGroup;
+			children = (
+				A66F2D5C125C05D800CDDAF0 /* control */,
+				A66F2D5D125C05D800CDDAF0 /* strings */,
+			);
+			path = strings.pbxstrings;
+			sourceTree = "<group>";
+		};
+		A66F2D7C125C05D800CDDAF0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		A6C6C40E121AF50900CAB3A3 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
@@ -121,6 +482,9 @@
 		A6C6C483121B2EE200CAB3A3 /* Tool Source */ = {
 			isa = PBXGroup;
 			children = (
+				A66F2D1C125C05D800CDDAF0 /* SMCP */,
+				A66F2D86125C05D800CDDAF0 /* cmd_pair.c */,
+				A66F2D87125C05D800CDDAF0 /* cmd_pair.h */,
 				A6BDBABF12418A09003FB4AD /* cmd_post.h */,
 				A6BDBAC012418A09003FB4AD /* cmd_post.c */,
 				A6BDBA8D124186B1003FB4AD /* cmd_get.h */,
@@ -185,6 +549,12 @@
 			);
 			mainGroup = 08FB7794FE84155DC02AAC07 /* SHAP */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = A66F2D7C125C05D800CDDAF0 /* Products */;
+					ProjectRef = A66F2D7B125C05D800CDDAF0 /* SMCP.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				8DD76FA90486AB0100D96B5E /* SMCP */,
@@ -207,6 +577,19 @@
 				A6078D35122DAC3F0034291D /* smcp_node.c in Sources */,
 				A6BDBA8F124186B1003FB4AD /* cmd_get.c in Sources */,
 				A6BDBAC112418A09003FB4AD /* cmd_post.c in Sources */,
+				A66F2D88125C05D900CDDAF0 /* btree.c in Sources */,
+				A66F2D9E125C05D900CDDAF0 /* cmd_get.c in Sources */,
+				A66F2DA0125C05D900CDDAF0 /* cmd_list.c in Sources */,
+				A66F2DA2125C05D900CDDAF0 /* cmd_pair.c in Sources */,
+				A66F2DA3125C05D900CDDAF0 /* cmd_post.c in Sources */,
+				A66F2DA5125C05D900CDDAF0 /* cmd_test.c in Sources */,
+				A66F2DA7125C05D900CDDAF0 /* help.c in Sources */,
+				A66F2DA9125C05D900CDDAF0 /* main.c in Sources */,
+				A66F2DAB125C05D900CDDAF0 /* Makefile in Sources */,
+				A66F2DAC125C05D900CDDAF0 /* smcp.c in Sources */,
+				A66F2DAE125C05D900CDDAF0 /* smcp_node.c in Sources */,
+				A66F2DB0125C05D900CDDAF0 /* smcp_pairing.c in Sources */,
+				A66F2DB2125C05D900CDDAF0 /* cmd_pair.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

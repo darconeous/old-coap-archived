@@ -873,6 +873,10 @@ smcp_daemon_handle_inbound_packet(
 
 	require_string(packet_length > 15, bail, "Inbound packet too short");
 
+	// Make sure there is a zero at the end of the packet, so that
+	// if the content is a string it will be conveniently zero terminated.
+	packet[packet_length] = 0;
+
 	if(memcmp(packet_cursor, "SMCP/", 5) == 0) {
 		// This is a reply.
 		int statuscode;
@@ -2293,10 +2297,16 @@ smcp_daemon_handle_pair(
 		goto bail;
 	}
 
-	// TODO: Writeme!
-	smcp_daemon_send_response(self,
+	smcp_daemon_send_response(
+		self,
 		version,
-		SMCP_RESULT_CODE_NOT_IMPLEMENTED,
+		smcp_convert_status_to_result_code(
+			smcp_node_pair_with_uri(
+				node,
+				content,
+				0
+			)
+		),
 		replyHeaders,
 		NULL,
 		0,

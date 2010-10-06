@@ -132,7 +132,6 @@ tool_cmd_test(
 	smcp_daemon_t smcp_daemon2;
 
 	smcp_device_node_t device_node;
-	smcp_action_node_t action_node;
 	smcp_variable_node_t var_node;
 
 	smcp_daemon2 = smcp_daemon_create(12345);
@@ -147,6 +146,7 @@ tool_cmd_test(
 
 	var_node = create_load_average_variable_node(device_node, "loadavg");
 
+	smcp_action_node_t action_node;
 	action_node =
 	    smcp_node_add_action(smcp_daemon_get_root_node(
 			smcp_daemon2), "action");
