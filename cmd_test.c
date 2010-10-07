@@ -23,10 +23,10 @@
 smcp_status_t
 action_func(
 	smcp_action_node_t	node,
-	const char*			headers[],
+	smcp_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length,
-	const char*			content_type,
+	smcp_content_type_t content_type,
 	struct sockaddr*	saddr,
 	socklen_t			socklen,
 	void*				context
@@ -42,10 +42,10 @@ action_func(
 smcp_status_t
 loadavg_get_func(
 	smcp_variable_node_t	node,
-	const char*				headers[],
+	smcp_header_item_t		headers[],
 	char*					content,
 	size_t*					content_length,
-	const char**			content_type,
+	smcp_content_type_t*	content_type,
 	struct sockaddr*		saddr,
 	socklen_t				socklen,
 	void*					context
@@ -61,7 +61,7 @@ loadavg_get_func(
 
 	snprintf(content, *content_length, "v=%0.2f", loadavg[0]);
 	*content_length = strlen(content);
-	*content_type = SMCP_CONTENT_TYPE_FORM;
+	*content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
 
 	fprintf(stderr, " *** Queried for load average (%s)\n", content);
 
@@ -87,9 +87,8 @@ smcp_variable_node_t create_load_average_variable_node(
 static void
 list_response_handler(
 	smcp_daemon_t		self,
-	const char*			version,
 	int					statuscode,
-	const char*			headers[],
+	smcp_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length,
 	struct sockaddr*	saddr,
@@ -109,10 +108,10 @@ list_response_handler(
 
 static bool
 util_add_header(
-	const char* headerList[],
-	int			maxHeaders,
-	const char* name,
-	const char* value
+	smcp_header_item_t	headerList[],
+	int					maxHeaders,
+	const char*			name,
+	const char*			value
 ) {
 	for(; maxHeaders && headerList[0]; maxHeaders--, headerList += 2) ;
 	if(maxHeaders) {
@@ -188,9 +187,13 @@ tool_cmd_test(
 	}
 
 	{
-		const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
-		char idValue[30];
-		snprintf(idValue, sizeof(idValue), "%08x", SMCP_FUNC_RANDOM_UINT32());
+		//const char* headers[SMCP_MAX_HEADERS*2+1] = { NULL };
+		smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
+		//static char tid_str[30];
+
+		//snprintf(tid_str,sizeof(tid_str),"%d",tid);
+
+		//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_ID,tid_str);
 
 		char url[256];
 #if 0
@@ -205,11 +208,11 @@ tool_cmd_test(
 			smcp_daemon_get_port(smcp_daemon));
 #endif
 
-		util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_ID, idValue);
+		//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_ID,tid_str);
 
 		smcp_daemon_add_response_handler(
 			smcp_daemon2,
-			idValue,
+			tid,
 			5000,
 			0, // Flags
 			&list_response_handler,
@@ -218,10 +221,10 @@ tool_cmd_test(
 
 		smcp_daemon_send_request_to_url(
 			smcp_daemon2,
+			tid,
 			SMCP_METHOD_LIST,
 			url,
-			"SMCP/0.1",
-			headers,
+			NULL, // headers
 			NULL,
 			0
 		);
@@ -229,8 +232,8 @@ tool_cmd_test(
 	}
 
 	int i;
-	for(i = 0; i < 30000; i++) {
-		if(i % 50 == 0) {
+	for(i = 0; i < 3000000; i++) {
+		if(i % 500 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
 			smcp_daemon_refresh_variable(smcp_daemon, var_node);
 		}

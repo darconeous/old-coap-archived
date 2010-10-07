@@ -166,3 +166,13 @@ bail:
 
 	return (void*)item_;
 }
+
+int
+bt_count(void** bt) {
+	int ret = 0;
+	void* iter;
+
+	for(iter = bt_first(*bt); iter; iter = bt_next(iter))
+		ret++;
+	return ret;
+}

@@ -35,9 +35,8 @@ bool send_post_request(
 static void
 post_response_handler(
 	smcp_daemon_t		self,
-	const char*			version,
 	int					statuscode,
-	const char*			headers[],
+	smcp_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length,
 	struct sockaddr*	saddr,
@@ -67,10 +66,10 @@ post_response_handler(
 
 static bool
 util_add_header(
-	const char* headerList[],
-	int			maxHeaders,
-	const char* name,
-	const char* value
+	smcp_header_item_t	headerList[],
+	int					maxHeaders,
+	const char*			name,
+	const char*			value
 ) {
 	for(; maxHeaders && headerList[0]; maxHeaders--, headerList += 2) ;
 	if(maxHeaders) {
@@ -91,17 +90,19 @@ send_post_request(
 ) {
 	bool ret = false;
 	const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
-	static char idValue[30];
+	smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
+
+	//static char tid_str[30];
+
+	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
+
+	//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_ID,tid_str);
 
 	postIsDone = false;
 
-	snprintf(idValue, sizeof(idValue), "%08x", SMCP_FUNC_RANDOM_UINT32());
-
-	util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_ID, idValue);
-
 	require_noerr(smcp_daemon_add_response_handler(
 			smcp,
-			idValue,
+			tid,
 			5000,
 			0, // Flags
 			&post_response_handler,
@@ -110,9 +111,9 @@ send_post_request(
 
 	require_noerr(smcp_daemon_send_request_to_url(
 			smcp,
+			tid,
 			SMCP_METHOD_POST,
 			url,
-			"SMCP/0.1",
 			headers,
 			content,
 			content_len

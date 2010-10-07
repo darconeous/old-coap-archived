@@ -55,9 +55,8 @@
 
 
 #define SMCP_DEFAULT_PORT           (29280)
-#define SMCP_MAX_PACKET_LENGTH      (1500)
-//#define	SMCP_MAX_PACKET_LENGTH		(300)
-#define SMCP_MAX_HEADERS            (20)
+#define SMCP_MAX_PACKET_LENGTH      (1200)
+#define SMCP_MAX_HEADERS            (15)
 #define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
 #define SMCP_MAX_PATH_LENGTH        (256)
 
@@ -89,25 +88,84 @@ enum {
 	SMCP_RESULT_CODE_PROTOCOL_VERSION_NOT_SUPPORTED = 505,
 };
 
-#define SMCP_HEADER_ID          "Id"
+typedef uint16_t smcp_transaction_id_t;
+
+#define HEADER_CSTR_LEN     ((size_t)-1)
+
+#define USE_COAP_COMPATIBLE_HEADERS 0
+#if USE_COAP_COMPATIBLE_HEADERS
+typedef enum {
+	SMCP_HEADER_CONTENT_TYPE = 1,
+	SMCP_HEADER_MAX_AGE = 2,
+	SMCP_HEADER_ETAG = 4,           //!< @note UNUSED IN SMCP
+	SMCP_HEADER_URI_AUTHORITY = 5,  //!< @note UNUSED IN SMCP
+	SMCP_HEADER_LOCATION = 6,       //!< @note UNUSED IN SMCP
+	SMCP_HEADER_URI_PATH = 9,       //!< @note UNUSED IN SMCP
+
+	SMCP_HEADER_CSEQ = 10,
+	SMCP_HEADER_NEXT = 11,
+	SMCP_HEADER_MORE = 12,
+	SMCP_HEADER_ORIGIN = 13,
+} smcp_header_key_t;
+
+typedef struct {
+	smcp_header_key_t	key;
+	char*				value;
+	size_t				value_len;
+} smcp_header_item_t;
+
+#define smcp_header_item_next(item)         ((item) + 1)
+#define smcp_header_item_get_value(item)    ((item)->value)
+#define smcp_header_item_get_key(item)      ((item)->key)
+#define smcp_header_item_get_value_len(item)        ((item)->value_len)
+#define smcp_header_item_key_equal(item, k)      ((item)->key == (k))
+
+#else
+typedef const char* smcp_header_key_t;
+typedef const char* smcp_header_item_t;
+
+#define smcp_header_item_next(item)         ((item) + 2)
+#define smcp_header_item_get_key(item)      ((item)[0])
+#define smcp_header_item_get_value(item)    ((item)[1])
+#define smcp_header_item_get_value_len(item)        HEADER_CSTR_LEN
+#define smcp_header_item_key_equal(item, k)  (strcmp((item)[0], (k)) == 0)
+
+//#define SMCP_HEADER_ID			"Id"
 #define SMCP_HEADER_CSEQ        "CSeq"
 #define SMCP_HEADER_ALLOW       "Allow"
 #define SMCP_HEADER_ORIGIN      "Origin"
 #define SMCP_HEADER_CONTENT_TYPE        "Content-Type"
+#define SMCP_HEADER_MAX_AGE     "Max-Age"
+#define SMCP_HEADER_ETAG        "Etag"
 
 // Used with LIST method.
 #define SMCP_HEADER_NEXT        "Next"  //! Optionally present in LIST request.
 #define SMCP_HEADER_MORE        "More"  //! Optionally present in LIST response.
 
-#define SMCP_METHOD_GET     "GET"
-#define SMCP_METHOD_POST    "POST"
-#define SMCP_METHOD_OPTIONS "OPTIONS"
-#define SMCP_METHOD_PAIR    "PAIR"
-#define SMCP_METHOD_UNPAIR  "UNPAIR"
-#define SMCP_METHOD_LIST    "LIST"
+#endif
 
-#define SMCP_CONTENT_TYPE_FORM          "misc/x-smcp+form"
-#define SMCP_CONTENT_TYPE_TEXT_PLAIN    "text/plain"
+typedef enum {
+	SMCP_METHOD_GET = 1,
+	SMCP_METHOD_POST = 2,
+	SMCP_METHOD_PUT = 3,    //!< @note UNUSED IN SMCP
+	SMCP_METHOD_DELETE = 4, //!< @note UNUSED IN SMCP
+	SMCP_METHOD_LIST = 5,
+	SMCP_METHOD_OPTIONS = 6,
+	SMCP_METHOD_PAIR = 7,
+	SMCP_METHOD_UNPAIR = 8,
+} smcp_method_t;
+
+typedef enum {
+	SMCP_CONTENT_TYPE_TEXT_PLAIN = 0,
+	SMCP_CONTENT_TYPE_TEXT_XML = 1,
+	SMCP_CONTENT_TYPE_TEXT_CSV = 2,
+	SMCP_CONTENT_TYPE_TEXT_HTML = 3,
+
+	SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT = 40,
+	SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM = 42,
+
+	SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED = 99, //!< SMCP Specific
+} smcp_content_type_t;
 
 struct smcp_daemon_s;
 typedef struct smcp_daemon_s *smcp_daemon_t;
@@ -196,9 +254,8 @@ typedef int smcp_status_t;
 typedef int32_t cms_t;
 
 typedef void (*smcp_response_handler_func)(smcp_daemon_t self,
-    const char* version, int statuscode, const char* headers[],
-    const char* content, size_t content_length, SMCP_SOCKET_ARGS,
-    void* context);
+    int statuscode, smcp_header_item_t headers[], const char* content,
+    size_t content_length, SMCP_SOCKET_ARGS, void* context);
 
 typedef enum smcp_node_type_t {
 	SMCP_NODE_ACTION,
@@ -222,48 +279,48 @@ extern cms_t smcp_daemon_get_timeout(smcp_daemon_t self);
 extern smcp_node_t smcp_daemon_get_root_node(smcp_daemon_t self);
 
 extern smcp_status_t smcp_daemon_trigger_event(
-	smcp_daemon_t	self,
-	const char*		path,
-	const char*		content,
-	size_t			content_length,
-	const char*		content_type);
+	smcp_daemon_t		self,
+	const char*			path,
+	const char*			content,
+	size_t				content_length,
+	smcp_content_type_t content_type);
 extern smcp_status_t smcp_daemon_trigger_event_for_node(
 	smcp_daemon_t		self,
 	smcp_event_node_t	node,
 	const char*			content,
 	size_t				content_length,
-	const char*			content_type);
+	smcp_content_type_t content_type);
 
 extern smcp_status_t smcp_daemon_refresh_variable(
 	smcp_daemon_t daemon, smcp_variable_node_t node);
 
 extern smcp_status_t smcp_daemon_add_response_handler(
 	smcp_daemon_t				self,
-	const char*					idValue,
+	smcp_transaction_id_t		tid,
 	cms_t						cmsExpiration,
 	int							flags,
 	smcp_response_handler_func	callback,
 	void*						context);
 extern smcp_status_t smcp_invalidate_response_handler(
-	smcp_daemon_t self, const char* idValue);
+	smcp_daemon_t self, smcp_transaction_id_t tid);
 
 extern smcp_status_t smcp_daemon_send_request(
-	smcp_daemon_t	self,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS);
 extern smcp_status_t smcp_daemon_send_request_to_url(
-	smcp_daemon_t	self,
-	const char*		method,
-	const char*		url,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length);
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				url,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length);
 
 #pragma mark -
 #pragma mark Network Interface

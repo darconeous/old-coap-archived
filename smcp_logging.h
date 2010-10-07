@@ -12,8 +12,8 @@
 #include <avr/pgmspace.h>
 #define CSTR(x)     PSTR(x)
 #define DEBUG_PRINTF(...) \
-    do { fprintf_P(stderr, __VA_ARGS__); fprintf_P( \
-			stderr, \
+    do { fprintf_P(stdout, __VA_ARGS__); fprintf_P( \
+			stdout, \
 			CSTR("\n")); } while(0)
 
 #else // __AVR__

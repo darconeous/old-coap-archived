@@ -9,6 +9,12 @@
 #define VERBOSE_DEBUG 0
 #endif
 
+#ifndef DEBUG
+#define DEBUG VERBOSE_DEBUG
+#endif
+
+#define SMCP_VERSION_STRING "SMCP/0.1"
+
 #ifdef __CONTIKI__
 #include "contiki.h"
 #include "net/uip-udp-packet.h"
@@ -112,23 +118,111 @@ convert_timeval_to_cms(const struct timeval* tv) {
 #pragma mark -
 #pragma mark Private Functions
 
+static const char*
+get_method_string(smcp_method_t method) {
+	const char* method_string = NULL;
+
+	switch(method) {
+	case SMCP_METHOD_GET: method_string = "GET"; break;
+	case SMCP_METHOD_POST: method_string = "POST"; break;
+	case SMCP_METHOD_PUT: method_string = "PUT"; break;
+	case SMCP_METHOD_DELETE: method_string = "DELETE"; break;
+	case SMCP_METHOD_LIST: method_string = "LIST"; break;
+	case SMCP_METHOD_OPTIONS: method_string = "OPTIONS"; break;
+	case SMCP_METHOD_PAIR: method_string = "PAIR"; break;
+	case SMCP_METHOD_UNPAIR: method_string = "UNPAIR"; break;
+	}
+	return method_string;
+}
+
+static smcp_method_t
+get_method_index(const char* method_string) {
+	if(strcmp(method_string, "GET") == 0)
+		return SMCP_METHOD_GET;
+	else if(strcmp(method_string, "POST") == 0)
+		return SMCP_METHOD_POST;
+	else if(strcmp(method_string, "PUT") == 0)
+		return SMCP_METHOD_PUT;
+	else if(strcmp(method_string, "DELETE") == 0)
+		return SMCP_METHOD_DELETE;
+	else if(strcmp(method_string, "LIST") == 0)
+		return SMCP_METHOD_LIST;
+	else if(strcmp(method_string, "OPTIONS") == 0)
+		return SMCP_METHOD_OPTIONS;
+	else if(strcmp(method_string, "PAIR") == 0)
+		return SMCP_METHOD_PAIR;
+	else if(strcmp(method_string, "UNPAIR") == 0)
+		return SMCP_METHOD_UNPAIR;
+
+	return 0;
+}
+
+
+static const char*
+get_content_type_string(smcp_content_type_t content_type) {
+	const char* content_type_string = NULL;
+
+	switch(content_type) {
+	case SMCP_CONTENT_TYPE_TEXT_PLAIN: content_type_string = "text/plain";
+		break;
+	case SMCP_CONTENT_TYPE_TEXT_CSV: content_type_string = "text/csv";
+		break;
+	case SMCP_CONTENT_TYPE_TEXT_XML: content_type_string = "text/xml";
+		break;
+	case SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED:
+		content_type_string = "application/x-www-form-urlencoded"; break;
+	default:
+	case SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM: content_type_string =
+		    "application/octet-stream"; break;
+	}
+	return content_type_string;
+}
+
+static smcp_content_type_t
+get_content_type_index(const char* content_type_string) {
+	if(strcmp(content_type_string, "text/plain") == 0)
+		return SMCP_CONTENT_TYPE_TEXT_PLAIN;
+	else if(strcmp(content_type_string,
+			"application/x-www-form-urlencoded") == 0)
+		return SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
+	else if(strcmp(content_type_string, "text/csv") == 0)
+		return SMCP_CONTENT_TYPE_TEXT_CSV;
+	else if(strcmp(content_type_string, "text/xml") == 0)
+		return SMCP_CONTENT_TYPE_TEXT_XML;
+	return SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+}
+
 #pragma mark -
 #pragma mark Other
 
+
 static bool
 util_add_header(
-	const char* headerList[],
-	int			maxHeaders,
-	const char* name,
-	const char* value
+	smcp_header_item_t	headerList[],
+	int					maxHeaders,
+	smcp_header_key_t	key,
+	const char*			value,
+	size_t				len
 ) {
+#if USE_COAP_COMPATIBLE_HEADERS
+	for(; maxHeaders && headerList[0].key; maxHeaders--, headerList++) ;
+	if(maxHeaders) {
+		headerList[0].key = name;
+		headerList[0].value = value;
+		headerList[0].value_len = (len == HEADER_CSTR_LEN) ? len : strlen(
+			value);
+		headerList[1].key = 0;
+		return true;
+	}
+#else
 	for(; maxHeaders && headerList[0]; maxHeaders--, headerList += 2) ;
 	if(maxHeaders) {
-		headerList[0] = name;
+		headerList[0] = key;
 		headerList[1] = value;
 		headerList[2] = NULL;
 		return true;
 	}
+#endif
 	return false;
 }
 
@@ -150,7 +244,7 @@ typedef struct smcp_timer_s *smcp_timer_t;
 
 struct smcp_response_handler_s {
 	struct bt_item_s			bt_item;
-	const char*					idValue;
+	smcp_transaction_id_t		tid;
 	struct timeval				expiration;
 	int							flags;
 	smcp_timer_t				timer;
@@ -167,13 +261,11 @@ smcp_response_handler_compare(
 	const smcp_response_handler_t lhs = (smcp_response_handler_t)lhs_;
 	const smcp_response_handler_t rhs = (smcp_response_handler_t)rhs_;
 
-	if(lhs->idValue == rhs->idValue)
-		return 0;
-	if(!lhs->idValue)
+	if(lhs->tid > rhs->tid)
 		return 1;
-	if(!rhs->idValue)
+	if(lhs->tid < rhs->tid)
 		return -1;
-	return strcmp(lhs->idValue, rhs->idValue);
+	return 0;
 }
 
 static bt_compare_result_t
@@ -181,15 +273,27 @@ smcp_response_handler_compare_str(
 	const void* lhs_, const void* rhs_, void* context
 ) {
 	const smcp_response_handler_t lhs = (smcp_response_handler_t)lhs_;
-	const char* rhs = (const char*)rhs_;
+	smcp_transaction_id_t rhs = strtol((const char*)rhs_, NULL, 10);
 
-	if(lhs->idValue == rhs)
-		return 0;
-	if(!lhs->idValue)
+	if(lhs->tid > rhs)
 		return 1;
-	if(!rhs)
+	if(lhs->tid < rhs)
 		return -1;
-	return strcmp(lhs->idValue, rhs);
+	return 0;
+}
+
+static bt_compare_result_t
+smcp_response_handler_compare_tid(
+	const void* lhs_, const void* rhs_, void* context
+) {
+	const smcp_response_handler_t lhs = (smcp_response_handler_t)lhs_;
+	smcp_transaction_id_t rhs = *(smcp_transaction_id_t*)rhs_;
+
+	if(lhs->tid > rhs)
+		return 1;
+	if(lhs->tid < rhs)
+		return -1;
+	return 0;
 }
 
 // Consider members of this struct to be private!
@@ -218,83 +322,83 @@ struct smcp_daemon_s smcp_daemon_global_instance;
 
 
 smcp_status_t smcp_daemon_handle_post(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_options(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_get(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_list(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_pair(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS);
 
 
 smcp_status_t smcp_invalidate_response_handler(
-	smcp_daemon_t self, const char* idValue);
+	smcp_daemon_t self, smcp_transaction_id_t tid);
 smcp_status_t smcp_daemon_add_response_handler(
 	smcp_daemon_t				self,
-	const char*					idValue,
+	smcp_transaction_id_t		tid,
 	cms_t						cmsExpiration,
 	int							flags,
 	smcp_response_handler_func	callback,
 	void*						context);
 
 smcp_status_t smcp_daemon_handle_request(
-	smcp_daemon_t	self,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS);
 smcp_status_t smcp_daemon_handle_response(
-	smcp_daemon_t	self,
-	const char*		version,
-	int				statuscode,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid,
+	int						statuscode,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS);
 
 
@@ -491,7 +595,7 @@ smcp_daemon_release(smcp_daemon_t self) {
 
 	// Delete all response handlers
 	while(self->handlers) {
-		smcp_invalidate_response_handler(self, self->handlers->idValue);
+		smcp_invalidate_response_handler(self, self->handlers->tid);
 	}
 
 	// Delete all timers
@@ -562,12 +666,12 @@ const char* smcp_get_status_description(smcp_status_t statuscode) {
 
 smcp_status_t
 smcp_daemon_send_response(
-	smcp_daemon_t	self,
-	const char*		version,
-	int				statuscode,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid,
+	int						statuscode,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
@@ -578,15 +682,22 @@ smcp_daemon_send_response(
 	packet_length += snprintf(packet,
 		SMCP_MAX_PACKET_LENGTH,
 		"%s %d\r\n",
-		version,
+		SMCP_VERSION_STRING,
 		statuscode);
 
-	for(header_iter = headers; header_iter[0]; header_iter += 2) {
-		packet_length += snprintf(packet + packet_length,
-			SMCP_MAX_PACKET_LENGTH - packet_length,
-			"%s: %s\r\n",
-			header_iter[0],
-			header_iter[1]);
+	packet_length += snprintf(packet + packet_length,
+		SMCP_MAX_PACKET_LENGTH - packet_length,
+		"Id: %d\r\n",
+		tid);
+
+	if(headers) {
+		for(header_iter = headers; header_iter[0]; header_iter += 2) {
+			packet_length += snprintf(packet + packet_length,
+				SMCP_MAX_PACKET_LENGTH - packet_length,
+				"%s: %s\r\n",
+				header_iter[0],
+				header_iter[1]);
+		}
 	}
 
 	packet_length += snprintf(packet + packet_length,
@@ -632,16 +743,15 @@ bail:
 	return ret;
 }
 
-
 smcp_status_t
 smcp_daemon_send_request(
-	smcp_daemon_t	self,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
@@ -652,16 +762,23 @@ smcp_daemon_send_request(
 	packet_length += snprintf(packet,
 		SMCP_MAX_PACKET_LENGTH,
 		"%s %s %s\r\n",
-		method,
+		get_method_string(method),
 		path ? path : "",
-		version ? version : "SMCP/0.1");
+		SMCP_VERSION_STRING);
 
-	for(header_iter = headers; header_iter[0]; header_iter += 2) {
-		packet_length += snprintf(packet + packet_length,
-			SMCP_MAX_PACKET_LENGTH - packet_length,
-			"%s: %s\r\n",
-			header_iter[0],
-			header_iter[1]);
+	packet_length += snprintf(packet + packet_length,
+		SMCP_MAX_PACKET_LENGTH - packet_length,
+		"Id: %d\r\n",
+		tid);
+
+	if(headers) {
+		for(header_iter = headers; header_iter[0]; header_iter += 2) {
+			packet_length += snprintf(packet + packet_length,
+				SMCP_MAX_PACKET_LENGTH - packet_length,
+				"%s: %s\r\n",
+				header_iter[0],
+				header_iter[1]);
+		}
 	}
 
 	packet_length += snprintf(packet + packet_length,
@@ -691,7 +808,7 @@ smcp_daemon_send_request(
 		packet,
 		packet_length,
 		toaddr,
-		toport
+		htons(toport)
 	);
 #endif
 
@@ -705,13 +822,13 @@ bail:
 
 smcp_status_t
 smcp_daemon_send_request_to_url(
-	smcp_daemon_t	self,
-	const char*		method,
-	const char*		uri,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				uri,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length
 ) {
 	smcp_status_t ret = 0;
 	const char* path_str = NULL;
@@ -838,9 +955,9 @@ smcp_daemon_send_request_to_url(
 	// Send the request
 	ret = smcp_daemon_send_request(
 		self,
+		tid,
 		method,
 		path_str,
-		version,
 		headers,
 		content,
 		content_length,
@@ -870,8 +987,9 @@ smcp_daemon_handle_inbound_packet(
 	smcp_status_t ret = 0;
 	char* packet_cursor = packet;
 	ssize_t packet_length_remaining = packet_length;
+	smcp_transaction_id_t tid;
 
-	require_string(packet_length > 15, bail, "Inbound packet too short");
+	require_string(packet_length > 10, bail, "Inbound packet too short");
 
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
@@ -951,9 +1069,14 @@ smcp_daemon_handle_inbound_packet(
 			// Mark the end of the header value.
 			packet_cursor[0] = 0;
 
-			DEBUG_PRINTF("Parsed header \"%s\" = \"%s\"",
+			DEBUG_PRINTF(CSTR("Parsed header \"%s\" = \"%s\""),
 				headers[hindex - 2], headers[hindex - 1]);
 
+			// The transaction id is special, remove it from the headers.
+			if(strcmp(headers[hindex - 2], "Id") == 0) {
+				tid = strtol(headers[hindex - 1], NULL, 10);
+				hindex -= 2;
+			}
 
 			while(packet_cursor[-1] != '\n') {
 				require(packet_length_remaining >= 2, bail);
@@ -974,7 +1097,7 @@ smcp_daemon_handle_inbound_packet(
 
 		smcp_daemon_handle_response(
 			self,
-			version,
+			tid,
 			statuscode,
 			headers,
 			packet_cursor,
@@ -991,13 +1114,14 @@ smcp_daemon_handle_inbound_packet(
 		);
 	} else {
 		// This is a request.
-		const char* method;
+		smcp_method_t method;
+		const char* method_string;
 		const char* path;
 		const char* version;
 		const char* headers[SMCP_MAX_HEADERS * 2 + 1];
 		int hindex = 0;
 
-		method = packet_cursor;
+		method_string = packet_cursor;
 
 		// Move to the end of the method name
 		do {
@@ -1010,6 +1134,8 @@ smcp_daemon_handle_inbound_packet(
 
 		// Zero terminate the method name.
 		packet_cursor[0] = 0;
+
+		method = get_method_index(method_string);
 
 		// Move to the start of the path.
 		packet_cursor++;
@@ -1090,6 +1216,12 @@ smcp_daemon_handle_inbound_packet(
 				packet_cursor++;
 				packet_length_remaining--;
 			} while(packet_cursor[-1] != '\n');
+
+			// The transaction id is special, remove it from the headers.
+			if(strcmp(headers[hindex - 2], "Id") == 0) {
+				tid = strtol(headers[hindex - 1], NULL, 10);
+				hindex -= 2;
+			}
 		}
 
 		// Zero-terminate the header list
@@ -1104,9 +1236,9 @@ smcp_daemon_handle_inbound_packet(
 		// Handle the request.
 		smcp_daemon_handle_request(
 			self,
+			tid,
 			method,
 			path,
-			version,
 			headers,
 			packet_cursor,
 			packet_length_remaining,
@@ -1186,6 +1318,9 @@ smcp_internal_delete_handler_(
 	smcp_response_handler_t handler,
 	smcp_daemon_t			self
 ) {
+	DEBUG_PRINTF(CSTR(
+			"%p: Deleting response handler w/tid=%d"), self, handler->tid);
+
 	// Remove the timer associated with this handler.
 	if(handler->timer)
 		smcp_daemon_invalidate_timer(self, handler->timer);
@@ -1194,7 +1329,6 @@ smcp_internal_delete_handler_(
 	if(handler->callback) {
 		    (*handler->callback)(
 			self,
-			NULL,
 			SMCP_STATUS_HANDLER_INVALIDATED,
 			NULL,
 			NULL,
@@ -1204,9 +1338,6 @@ smcp_internal_delete_handler_(
 			handler->context
 		);
 	}
-
-	if(handler->idValue)
-		free((void*)handler->idValue);
 
 	free(handler);
 }
@@ -1223,7 +1354,6 @@ smcp_internal_handler_timeout_(
 		handler->callback = NULL;
 		    (*callback)(
 		    self,
-		    NULL,
 		    SMCP_STATUS_TIMEOUT,
 		    NULL,
 		    NULL,
@@ -1232,14 +1362,14 @@ smcp_internal_handler_timeout_(
 		    0,
 		    handler->context
 		);
-		smcp_invalidate_response_handler(self, handler->idValue);
+		smcp_invalidate_response_handler(self, handler->tid);
 	}
 }
 
 smcp_status_t
 smcp_daemon_add_response_handler(
 	smcp_daemon_t				self,
-	const char*					idValue,
+	smcp_transaction_id_t		tid,
 	cms_t						cmsExpiration,
 	int							flags,
 	smcp_response_handler_func	callback,
@@ -1248,9 +1378,6 @@ smcp_daemon_add_response_handler(
 	smcp_status_t ret = 0;
 	smcp_response_handler_t handler;
 
-	require_action(idValue != NULL,
-		bail,
-		ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(callback != NULL,
 		bail,
 		ret = SMCP_STATUS_INVALID_ARGUMENT);
@@ -1259,14 +1386,9 @@ smcp_daemon_add_response_handler(
 
 	require_action(handler, bail, ret = SMCP_STATUS_MALLOC_FAILURE);
 
-	handler->idValue = malloc(strlen(idValue) + 1);
+	DEBUG_PRINTF(CSTR("%p: Adding response handler w/tid=%d"), self, tid);
 
-	require_action(handler->idValue,
-		bail,
-		ret = SMCP_STATUS_MALLOC_FAILURE);
-
-	strcpy((char*)handler->idValue, idValue);
-
+	handler->tid = tid;
 	handler->callback = callback;
 	handler->context = context;
 	handler->flags = flags;
@@ -1287,6 +1409,8 @@ smcp_daemon_add_response_handler(
 		self
 	);
 
+	DEBUG_PRINTF(CSTR("%p: Total Handlers: %d"), self,
+		bt_count((void**)&self->handlers));
 
 bail:
 	return ret;
@@ -1294,13 +1418,13 @@ bail:
 
 smcp_status_t
 smcp_invalidate_response_handler(
-	smcp_daemon_t	self,
-	const char*		idValue
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid
 ) {
 	bt_remove(
 		    (void**)&self->handlers,
-		    (void*)idValue,
-		    (bt_compare_func_t)smcp_response_handler_compare_str,
+		    (void*)&tid,
+		    (bt_compare_func_t)smcp_response_handler_compare_tid,
 		    (bt_delete_func_t)smcp_internal_delete_handler_,
 		self
 	);
@@ -1309,24 +1433,23 @@ smcp_invalidate_response_handler(
 
 smcp_status_t
 smcp_daemon_handle_response(
-	smcp_daemon_t	self,
-	const char*		version,
-	int				statuscode,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid,
+	int						statuscode,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	const char* idValue = NULL;
 	smcp_response_handler_t handler = NULL;
-	int i;
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		const char** header_iter;
-		DEBUG_PRINTF(CSTR("smcp_daemon(%p): Incoming response!"), self);
-		DEBUG_PRINTF(CSTR("RESULT: %s %d"), version, statuscode);
+		DEBUG_PRINTF(CSTR(
+				"smcp_daemon(%p): Incoming response! tid=%d"), self, tid);
+		DEBUG_PRINTF(CSTR("RESULT: %d"), statuscode);
 		for(header_iter = headers; header_iter[0]; header_iter += 2) {
 			DEBUG_PRINTF(CSTR(
 					"\tHEADER: %s: %s"), header_iter[0], header_iter[1]);
@@ -1336,27 +1459,27 @@ smcp_daemon_handle_response(
 
 	// Lookup response, fire handler.
 
-	for(i = 0; headers[i]; i += 2) {
-		if(0 == strcmp(headers[i], SMCP_HEADER_ID))
-			idValue = headers[i + 1];
-	}
+//	for(i=0;headers[i];i+=2) {
+//		if(0==strcmp(headers[i],SMCP_HEADER_ID))
+//			tid = strtol(headers[i+1],NULL,10);
+//	}
 
-	require_quiet(idValue, bail);
+	DEBUG_PRINTF(CSTR("%p: Total Handlers: %d"), self,
+		bt_count((void**)&self->handlers));
 
 	handler = (smcp_response_handler_t)bt_find(
 		    (void**)&self->handlers,
-		    (void*)idValue,
-		    (bt_compare_func_t)smcp_response_handler_compare_str,
+		    (void*)&tid,
+		    (bt_compare_func_t)smcp_response_handler_compare_tid,
 		self
 	    );
 
-	require(handler, bail);
+	require_string(handler, bail, "Unable to find response handler");
 
 	if(handler->callback) {
 		if(handler->flags & SMCP_RESPONSE_HANDLER_ALWAYS_TIMEOUT) {
 			    (*handler->callback)(
 				self,
-				version,
 				statuscode,
 				headers,
 				content,
@@ -1377,7 +1500,6 @@ smcp_daemon_handle_response(
 			handler->callback = NULL;
 			    (*callback)(
 			    self,
-			    version,
 			    statuscode,
 			    headers,
 			    content,
@@ -1393,7 +1515,7 @@ smcp_daemon_handle_response(
 #endif
 			    handler->context
 			);
-			smcp_invalidate_response_handler(self, idValue);
+			smcp_invalidate_response_handler(self, tid);
 		}
 	}
 
@@ -1425,13 +1547,13 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 
 smcp_status_t
 smcp_daemon_handle_request(
-	smcp_daemon_t	self,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
@@ -1439,8 +1561,10 @@ smcp_daemon_handle_request(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		const char** header_iter;
-		DEBUG_PRINTF(CSTR("smcp_daemon(%p): Incoming request!"), self);
-		DEBUG_PRINTF(CSTR("REQUEST: %s %s %s"), version, method, path);
+		DEBUG_PRINTF(CSTR(
+				"smcp_daemon(%p): Incoming request! tid=%d"), self, tid);
+		DEBUG_PRINTF(CSTR("REQUEST: %s %s"), get_method_string(
+				method), path);
 		for(header_iter = headers; header_iter[0]; header_iter += 2) {
 			DEBUG_PRINTF(CSTR(
 					"\tHEADER: %s: %s"), header_iter[0], header_iter[1]);
@@ -1454,8 +1578,7 @@ smcp_daemon_handle_request(
 	    smcp_node_find_with_path(smcp_daemon_get_root_node(self), path);
 	if(!node &&
 	        ((strcmp(path,
-					"*") != 0) &&
-	            (strcmp(method, SMCP_METHOD_OPTIONS) != 0))) {
+					"*") != 0) && (method != SMCP_METHOD_OPTIONS))) {
 		// Try to find the closest node and call the unhandled_request handler.
 		path +=
 		    smcp_node_find_closest_with_path(smcp_daemon_get_root_node(
@@ -1468,7 +1591,6 @@ smcp_daemon_handle_request(
 					self,
 					method,
 					path,
-					version,
 					headers,
 					content,
 					content_length,
@@ -1483,40 +1605,30 @@ smcp_daemon_handle_request(
 #endif
 					node->context
 				    );
-				if((ret == SMCP_STATUS_OK) &&
-				        (strcmp(method, SMCP_METHOD_PAIR) != 0))
+				if((ret == SMCP_STATUS_OK) && (method != SMCP_METHOD_PAIR))
 					goto bail;
 			}
 		}
 
 		// The PAIR method we can handle without a node, as long as
 		// the unhandled_request function doesn't indicate that the path doesn't exist.
-		if((strcmp(method,
-					SMCP_METHOD_PAIR) != 0) ||
+		if((method != SMCP_METHOD_PAIR) ||
 		        (ret == SMCP_STATUS_NOT_FOUND)) {
-			const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
-			int i;
-
+			smcp_header_item_t replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 			replyHeaders[0] = NULL;
 
-			for(i = 0; headers[i]; i += 2) {
-				if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
-					util_add_header(replyHeaders,
-						SMCP_MAX_HEADERS,
-						SMCP_HEADER_CSEQ,
-						headers[i + 1]);
-				}
-				if(0 == strcmp(headers[i], SMCP_HEADER_ID)) {
-					util_add_header(replyHeaders,
-						SMCP_MAX_HEADERS,
-						SMCP_HEADER_ID,
-						headers[i + 1]);
-				}
-			}
+/*
+            for(i=0;headers[i];i+=2) {
+                if(0==strcmp(headers[i],SMCP_HEADER_CSEQ))
+                    util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_CSEQ,headers[i+1],HEADER_CSTR_LEN);
+                if(0==strcmp(headers[i],SMCP_HEADER_ID))
+                    util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_ID,headers[i+1],HEADER_CSTR_LEN);
+            }
+ */
 			if(!ret)
 				ret = SMCP_STATUS_NOT_FOUND;
 			smcp_daemon_send_response(self,
-				version,
+				tid,
 				smcp_convert_status_to_result_code(ret),
 				replyHeaders,
 				NULL,
@@ -1535,12 +1647,12 @@ smcp_daemon_handle_request(
 		}
 	}
 
-	if(strcmp(method, SMCP_METHOD_POST) == 0) {
+	if(method == SMCP_METHOD_POST) {
 		ret = smcp_daemon_handle_post(self,
 			node,
+			tid,
 			method,
 			path,
-			version,
 			headers,
 			content,
 			content_length,
@@ -1554,12 +1666,12 @@ smcp_daemon_handle_request(
 #error TODO: Implement me!
 #endif
 		    );
-	} else if(strcmp(method, SMCP_METHOD_OPTIONS) == 0) {
+	} else if(method == SMCP_METHOD_OPTIONS) {
 		ret = smcp_daemon_handle_options(self,
 			node,
+			tid,
 			method,
 			path,
-			version,
 			headers,
 			content,
 			content_length,
@@ -1573,12 +1685,12 @@ smcp_daemon_handle_request(
 #error TODO: Implement me!
 #endif
 		    );
-	} else if(strcmp(method, SMCP_METHOD_GET) == 0) {
+	} else if(method == SMCP_METHOD_GET) {
 		ret = smcp_daemon_handle_get(self,
 			node,
+			tid,
 			method,
 			path,
-			version,
 			headers,
 			content,
 			content_length,
@@ -1592,12 +1704,12 @@ smcp_daemon_handle_request(
 #error TODO: Implement me!
 #endif
 		    );
-	} else if(strcmp(method, SMCP_METHOD_LIST) == 0) {
+	} else if(method == SMCP_METHOD_LIST) {
 		ret = smcp_daemon_handle_list(self,
 			node,
+			tid,
 			method,
 			path,
-			version,
 			headers,
 			content,
 			content_length,
@@ -1611,12 +1723,12 @@ smcp_daemon_handle_request(
 #error TODO: Implement me!
 #endif
 		    );
-	} else if(strcmp(method, SMCP_METHOD_PAIR) == 0) {
+	} else if(method == SMCP_METHOD_PAIR) {
 		ret = smcp_daemon_handle_pair(self,
 			node,
+			tid,
 			method,
 			path,
-			version,
 			headers,
 			content,
 			content_length,
@@ -1632,26 +1744,33 @@ smcp_daemon_handle_request(
 		    );
 	} else {
 		// Unknown or unsupported method.
-		const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
-		int i;
+		smcp_header_item_t replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 		replyHeaders[0] = NULL;
-		for(i = 0; headers[i]; i += 2) {
-			if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
-				util_add_header(replyHeaders,
-					SMCP_MAX_HEADERS,
-					SMCP_HEADER_CSEQ,
-					headers[i + 1]);
-			}
-			if(0 == strcmp(headers[i], SMCP_HEADER_ID)) {
-				util_add_header(replyHeaders,
-					SMCP_MAX_HEADERS,
-					SMCP_HEADER_ID,
-					headers[i + 1]);
-			}
-		}
-		DEBUG_PRINTF(CSTR("Unknown method in request: %s"), method);
+/*
+        smcp_header_item_t *next_header;
+        for(next_header=headers;smcp_header_item_get_key(next_header);next_header=smcp_header_item_next(next_header)) {
+            if(smcp_header_item_key_equal(next_header,SMCP_HEADER_CSEQ))
+                util_add_header(
+                    replyHeaders,
+                    SMCP_MAX_HEADERS,
+                    SMCP_HEADER_CSEQ,
+                    smcp_header_item_get_value(next_header),
+                    smcp_header_item_get_value_len(next_header)
+                );
+            if(smcp_header_item_key_equal(next_header,SMCP_HEADER_ID))
+                util_add_header(
+                    replyHeaders,
+                    SMCP_MAX_HEADERS,
+                    SMCP_HEADER_ID,
+                    smcp_header_item_get_value(next_header),
+                    smcp_header_item_get_value_len(next_header)
+                );
+        }
+ */
+		DEBUG_PRINTF(CSTR(
+				"Unknown method in request: %s"), get_method_string(method));
 		smcp_daemon_send_response(self,
-			version,
+			tid,
 			SMCP_RESULT_CODE_NOT_IMPLEMENTED,
 			replyHeaders,
 			NULL,
@@ -1674,37 +1793,48 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_post(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
-	const char* content_type = NULL;
-	int i;
+	smcp_header_item_t replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = {};
+	smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
 
-	replyHeaders[0] = NULL;
-	for(i = 0; headers[i]; i += 2) {
-		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_CSEQ,
-				headers[i + 1]);
-		}
-		if(0 == strcmp(headers[i], SMCP_HEADER_ID)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_ID,
-				headers[i + 1]);
-		}
-		if(0 == strcmp(headers[i], SMCP_HEADER_CONTENT_TYPE))
-			content_type = headers[i + 1];
+	smcp_header_item_t *next_header;
+
+	for(next_header = headers;
+	    smcp_header_item_get_key(next_header);
+	    next_header = smcp_header_item_next(next_header)) {
+/*
+        if(smcp_header_item_key_equal(next_header,SMCP_HEADER_CSEQ))
+            util_add_header(
+                replyHeaders,
+                SMCP_MAX_HEADERS,
+                SMCP_HEADER_CSEQ,
+                smcp_header_item_get_value(next_header),
+                smcp_header_item_get_value_len(next_header)
+            );
+        else if(smcp_header_item_key_equal(next_header,SMCP_HEADER_ID))
+            util_add_header(
+                replyHeaders,
+                SMCP_MAX_HEADERS,
+                SMCP_HEADER_ID,
+                smcp_header_item_get_value(next_header),
+                smcp_header_item_get_value_len(next_header)
+            );
+        else
+ */
+		if(smcp_header_item_key_equal(next_header,
+				SMCP_HEADER_CONTENT_TYPE))
+			content_type = get_content_type_index(
+				smcp_header_item_get_value(next_header));
 	}
 
 	// Node should always be set by the time we get here.
@@ -1713,7 +1843,7 @@ smcp_daemon_handle_post(
 	if(node->type != SMCP_NODE_ACTION) {
 		// Method not allowed.
 		smcp_daemon_send_response(self,
-			version,
+			tid,
 			SMCP_RESULT_CODE_METHOD_NOT_ALLOWED,
 			replyHeaders,
 			NULL,
@@ -1752,7 +1882,7 @@ smcp_daemon_handle_post(
 	}
 
 	smcp_daemon_send_response(self,
-		version,
+		tid,
 		SMCP_RESULT_CODE_ACK,
 		replyHeaders,
 		NULL,
@@ -1774,43 +1904,49 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_options(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
-	int i;
+	smcp_header_item_t replyHeaders[SMCP_MAX_HEADERS * 2 + 1] = {};
 
-	replyHeaders[0] = NULL;
-	for(i = 0; headers[i]; i += 2) {
-		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_CSEQ,
-				headers[i + 1]);
-		}
-		if(0 == strcmp(headers[i], SMCP_HEADER_ID)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_ID,
-				headers[i + 1]);
-		}
-	}
+/*
+    smcp_header_item_t *next_header;
+    for(next_header=headers;smcp_header_item_get_key(next_header);next_header=smcp_header_item_next(next_header)) {
+        if(smcp_header_item_key_equal(next_header,SMCP_HEADER_CSEQ))
+            util_add_header(
+                replyHeaders,
+                SMCP_MAX_HEADERS,
+                SMCP_HEADER_CSEQ,
+                smcp_header_item_get_value(next_header),
+                smcp_header_item_get_value_len(next_header)
+            );
+        else if(smcp_header_item_key_equal(next_header,SMCP_HEADER_ID))
+            util_add_header(
+                replyHeaders,
+                SMCP_MAX_HEADERS,
+                SMCP_HEADER_ID,
+                smcp_header_item_get_value(next_header),
+                smcp_header_item_get_value_len(next_header)
+            );
+    }
+ */
 
 	if(0 == strcmp("*", path)) {
 		util_add_header(replyHeaders,
 			SMCP_MAX_HEADERS,
 			SMCP_HEADER_ALLOW,
-			"GET, POST, OPTIONS, PAIR, LIST");
+			"GET, POST, OPTIONS, PAIR, LIST",
+			HEADER_CSTR_LEN);
 		smcp_daemon_send_response(self,
-			version,
+			tid,
 			SMCP_RESULT_CODE_OK,
 			replyHeaders,
 			NULL,
@@ -1834,29 +1970,33 @@ smcp_daemon_handle_options(
 			util_add_header(replyHeaders,
 				SMCP_MAX_HEADERS,
 				SMCP_HEADER_ALLOW,
-				"POST, OPTIONS, PAIR");
+				"POST, OPTIONS, PAIR",
+				HEADER_CSTR_LEN);
 			break;
 		case SMCP_NODE_EVENT:
 			util_add_header(replyHeaders,
 				SMCP_MAX_HEADERS,
 				SMCP_HEADER_ALLOW,
-				"OPTIONS, PAIR");
+				"OPTIONS, PAIR",
+				HEADER_CSTR_LEN);
 			break;
 		case SMCP_NODE_DEVICE:
 			util_add_header(replyHeaders,
 				SMCP_MAX_HEADERS,
 				SMCP_HEADER_ALLOW,
-				"GET, OPTIONS, LIST");
+				"GET, OPTIONS, LIST",
+				HEADER_CSTR_LEN);
 			break;
 		case SMCP_NODE_VARIABLE:
 			util_add_header(replyHeaders,
 				SMCP_MAX_HEADERS,
 				SMCP_HEADER_ALLOW,
-				"GET, OPTIONS, LIST");
+				"GET, OPTIONS, LIST",
+				HEADER_CSTR_LEN);
 			break;
 		}
 		smcp_daemon_send_response(self,
-			version,
+			tid,
 			SMCP_RESULT_CODE_OK,
 			replyHeaders,
 			NULL,
@@ -1878,39 +2018,33 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_get(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	char replyContent[128];
 	size_t replyContentLength = 0;
-	const char* replyContentType = NULL;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
-	int i;
+	smcp_content_type_t replyContentType = SMCP_CONTENT_TYPE_TEXT_PLAIN;
+	smcp_header_item_t replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 
 	replyHeaders[0] = NULL;
 
-	for(i = 0; headers[i]; i += 2) {
-		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_CSEQ,
-				headers[i + 1]);
-		}
-		if(0 == strcmp(headers[i], SMCP_HEADER_ID)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_ID,
-				headers[i + 1]);
-		}
-	}
+/*
+    int i;
+    for(i=0;headers[i];i+=2) {
+        if(0==strcmp(headers[i],SMCP_HEADER_CSEQ))
+            util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_CSEQ,headers[i+1],HEADER_CSTR_LEN);
+        if(0==strcmp(headers[i],SMCP_HEADER_ID))
+            util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_ID,headers[i+1],HEADER_CSTR_LEN);
+    }
+ */
 
 	// Node should always be set by the time we get here.
 	require(node, bail);
@@ -1936,7 +2070,7 @@ smcp_daemon_handle_get(
 		    );
 	} else {
 		smcp_daemon_send_response(self,
-			version,
+			tid,
 			SMCP_RESULT_CODE_BAD_REQUEST,
 			replyHeaders,
 			NULL,
@@ -1956,7 +2090,7 @@ smcp_daemon_handle_get(
 
 	if(ret != SMCP_STATUS_OK) {
 		smcp_daemon_send_response(self,
-			version,
+			tid,
 			SMCP_RESULT_CODE_INTERNAL_SERVER_ERROR,
 			replyHeaders,
 			NULL,
@@ -1977,10 +2111,11 @@ smcp_daemon_handle_get(
 	util_add_header(replyHeaders,
 		SMCP_MAX_HEADERS,
 		SMCP_HEADER_CONTENT_TYPE,
-		replyContentType);
+		get_content_type_string(replyContentType),
+		HEADER_CSTR_LEN);
 
 	smcp_daemon_send_response(self,
-		version,
+		tid,
 		SMCP_RESULT_CODE_OK,
 		replyHeaders,
 		replyContent,
@@ -2001,38 +2136,32 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_list(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
 	const char* next_node = NULL;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
-	int i;
+	smcp_header_item_t replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 	char replyContent[128];
 
 	replyHeaders[0] = NULL;
 
 	memset(replyContent, 0, sizeof(replyContent));
+	int i;
 	for(i = 0; headers[i]; i += 2) {
-		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_CSEQ,
-				headers[i + 1]);
-		}
-		if(0 == strcmp(headers[i], SMCP_HEADER_ID)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_ID,
-				headers[i + 1]);
-		}
+/*
+        if(0==strcmp(headers[i],SMCP_HEADER_CSEQ))
+            util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_CSEQ,headers[i+1],HEADER_CSTR_LEN);
+        if(0==strcmp(headers[i],SMCP_HEADER_ID))
+            util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_ID,headers[i+1],HEADER_CSTR_LEN);
+ */
 		if(0 == strcmp(headers[i], SMCP_HEADER_NEXT))
 			next_node = headers[i + 1];
 	}
@@ -2045,7 +2174,7 @@ smcp_daemon_handle_list(
 		// You can't call LIST on events or actions
 		// TODO: PROTOCOL: Consider using this method for listing pairings...?
 		smcp_daemon_send_response(self,
-			version,
+			tid,
 			SMCP_RESULT_CODE_BAD_REQUEST,
 			replyHeaders,
 			NULL,
@@ -2200,11 +2329,12 @@ smcp_daemon_handle_list(
 		util_add_header(replyHeaders,
 			SMCP_MAX_HEADERS,
 			SMCP_HEADER_MORE,
-			"");
+			"",
+			HEADER_CSTR_LEN);
 	}
 
 	smcp_daemon_send_response(self,
-		version,
+		tid,
 		SMCP_RESULT_CODE_OK,
 		replyHeaders,
 		replyContent,
@@ -2225,40 +2355,34 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_pair(
-	smcp_daemon_t	self,
-	smcp_node_t		node,
-	const char*		method,
-	const char*		path,
-	const char*		version,
-	const char*		headers[],
-	const char*		content,
-	size_t			content_length,
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	smcp_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	smcp_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	const char* replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
-	int i;
+	smcp_header_item_t replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 
 	replyHeaders[0] = NULL;
 
-	for(i = 0; headers[i]; i += 2) {
-		if(0 == strcmp(headers[i], SMCP_HEADER_CSEQ)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_CSEQ,
-				headers[i + 1]);
-		}
-		if(0 == strcmp(headers[i], SMCP_HEADER_ID)) {
-			util_add_header(replyHeaders,
-				SMCP_MAX_HEADERS,
-				SMCP_HEADER_ID,
-				headers[i + 1]);
-		}
-	}
+/*
+    for(i=0;headers[i];i+=2) {
+        if(0==strcmp(headers[i],SMCP_HEADER_CSEQ))
+            util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_CSEQ,headers[i+1],HEADER_CSTR_LEN);
+        if(0==strcmp(headers[i],SMCP_HEADER_ID))
+            util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_ID,headers[i+1],HEADER_CSTR_LEN);
+
+    }
+ */
 
 	if(!node) {
 		smcp_daemon_send_response(self,
-			version,
+			tid,
 			SMCP_RESULT_CODE_NOT_FOUND,
 			replyHeaders,
 			NULL,
@@ -2279,7 +2403,7 @@ smcp_daemon_handle_pair(
 	if((node->type != SMCP_NODE_EVENT) &&
 	        (node->type != SMCP_NODE_ACTION)) {
 		smcp_daemon_send_response(self,
-			version,
+			tid,
 			SMCP_RESULT_CODE_BAD_REQUEST,
 			replyHeaders,
 			NULL,
@@ -2299,7 +2423,7 @@ smcp_daemon_handle_pair(
 
 	smcp_daemon_send_response(
 		self,
-		version,
+		tid,
 		smcp_convert_status_to_result_code(
 			smcp_node_pair_with_uri(
 				node,
@@ -2335,23 +2459,24 @@ smcp_daemon_get_root_node(smcp_daemon_t self) {
 
 smcp_status_t
 smcp_daemon_trigger_event(
-	smcp_daemon_t	self,
-	const char*		path,
-	const char*		content,
-	size_t			content_length,
-	const char*		content_type
+	smcp_daemon_t		self,
+	const char*			path,
+	const char*			content,
+	size_t				content_length,
+	smcp_content_type_t content_type
 ) {
 	smcp_status_t ret = 0;
 	smcp_pairing_t iter;
 	char cseq[24];
 	char url[SMCP_MAX_PATH_LENGTH + 128 + 1];
+	smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
 
 	memset(cseq, 0, sizeof(cseq));
 
 	const char* headers[] = {
 		SMCP_HEADER_CSEQ,		  cseq,
 		SMCP_HEADER_ORIGIN,		  url,
-		SMCP_HEADER_CONTENT_TYPE, content_type,
+		SMCP_HEADER_CONTENT_TYPE, get_content_type_string(content_type),
 		NULL
 	};
 
@@ -2364,16 +2489,16 @@ smcp_daemon_trigger_event(
 	    iter;
 	    iter = iter->next) {
 		iter->seq++;
-		DEBUG_PRINTF(CSTR("sending stuff..."));
+		DEBUG_PRINTF(CSTR("sending stuff for pairing \"%p\"..."), iter);
 		snprintf(cseq,
 			sizeof(cseq) - 1,
 			"%lX POST",
 			    (long unsigned int)iter->seq);
 		smcp_daemon_send_request(
 			self,
-			"POST",
+			tid,
+			SMCP_METHOD_POST,
 			iter->path,
-			"SMCP/0.1",
 			headers,
 			content,
 			content_length,
@@ -2401,7 +2526,7 @@ smcp_daemon_trigger_event_for_node(
 	smcp_event_node_t	node,
 	const char*			content,
 	size_t				content_length,
-	const char*			content_type
+	smcp_content_type_t content_type
 ) {
 	smcp_status_t ret = 0;
 	char path[SMCP_MAX_PATH_LENGTH + 1];
@@ -2430,7 +2555,7 @@ smcp_daemon_refresh_variable(
 	smcp_status_t ret = 0;
 	char content[512];
 	size_t content_length = sizeof(content);
-	const char* content_type = NULL;
+	smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
 	smcp_event_node_t event_node;
 
 	require_action(daemon != NULL,

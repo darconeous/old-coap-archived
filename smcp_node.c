@@ -234,6 +234,7 @@ void
 smcp_node_delete(smcp_node_t node) {
 	void** owner = NULL;
 
+	// Delete all child objects.
 	switch(node->type) {
 	case SMCP_NODE_DEVICE:
 		while(((smcp_device_node_t)node)->actions)
@@ -266,11 +267,19 @@ smcp_node_delete(smcp_node_t node) {
 		break;
 	}
 
-	if(owner)
-		bt_remove(owner, node, (bt_compare_func_t)smcp_node_compare,
-			    (bt_delete_func_t)smcp_node_dealloc, NULL);
-	else
-		smcp_node_dealloc(node);
+	if(node->finalize)
+		    (*node->finalize)(node, node->context);
+
+	if(owner) {
+		bt_remove(owner,
+			node,
+			    (bt_compare_func_t)smcp_node_compare,
+			NULL,
+			NULL);
+	}
+
+	smcp_node_dealloc(node);
+
 bail:
 	return;
 }
