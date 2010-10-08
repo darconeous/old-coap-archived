@@ -9,6 +9,8 @@
 #ifndef __SMCP_HEADER__
 #define __SMCP_HEADER__ 1
 
+#define SMCP_PAIRINGS_ARE_IN_NODES 1
+
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
 #define __BEGIN_DECLS   extern "C" {
@@ -63,6 +65,8 @@
 #ifndef IPv4_COMPATIBLE_IPv6_PREFIX
 #define IPv4_COMPATIBLE_IPv6_PREFIX "::FFFF:"
 #endif
+
+#define SMCP_DEPRECATED
 
 __BEGIN_DECLS
 
@@ -173,11 +177,11 @@ typedef struct smcp_daemon_s *smcp_daemon_t;
 struct smcp_node_s;
 typedef struct smcp_node_s *smcp_node_t;
 
-struct smcp_action_node_s;
-typedef struct smcp_action_node_s *smcp_action_node_t;
+struct smcp_action_node_s;                              //!< Deprecated
+typedef struct smcp_action_node_s *smcp_action_node_t;  //!< Deprecated
 
-struct smcp_event_node_s;
-typedef struct smcp_event_node_s *smcp_event_node_t;
+struct smcp_event_node_s;                               //!< Deprecated
+typedef struct smcp_event_node_s *smcp_event_node_t;    //!< Deprecated
 
 struct smcp_variable_node_s;
 typedef struct smcp_variable_node_s *smcp_variable_node_t;
@@ -241,6 +245,7 @@ enum {
 	SMCP_STATUS_TIMEOUT             = -8,
 	SMCP_STATUS_NOT_IMPLEMENTED     = -9,
 	SMCP_STATUS_NOT_FOUND           = -10,
+	SMCP_STATUS_H_ERRNO             = -11,
 };
 
 
@@ -258,10 +263,10 @@ typedef void (*smcp_response_handler_func)(smcp_daemon_t self,
     size_t content_length, SMCP_SOCKET_ARGS, void* context);
 
 typedef enum smcp_node_type_t {
-	SMCP_NODE_ACTION,
-	SMCP_NODE_EVENT,
-	SMCP_NODE_VARIABLE,
 	SMCP_NODE_DEVICE,
+	SMCP_NODE_VARIABLE,
+	SMCP_NODE_ACTION,   //!< Deprecated
+	SMCP_NODE_EVENT,    //!< Deprecated
 } smcp_node_type_t;
 
 
@@ -344,20 +349,21 @@ extern smcp_status_t smcp_daemon_handle_inbound_packet(
 extern smcp_device_node_t smcp_node_add_subdevice(
 	smcp_node_t node, const char* name);
 extern smcp_action_node_t smcp_node_add_action(
-	smcp_node_t node, const char* name);
+	smcp_node_t node, const char* name);                                            //!< Deprecated
 extern smcp_variable_node_t smcp_node_add_variable(
 	smcp_node_t node, const char* name);
 extern smcp_event_node_t smcp_node_add_event(
-	smcp_node_t node, const char* name);
+	smcp_node_t node, const char* name);                                            //!< Deprecated
 extern void smcp_node_delete(smcp_node_t node);
 extern smcp_status_t smcp_node_get_path(
 	smcp_node_t node, char* path, size_t max_path_len);
 extern smcp_node_t smcp_node_find_with_path(
 	smcp_node_t node, const char* path);
-extern smcp_status_t smcp_node_pair_with_uri(
-	smcp_node_t node, const char* uri, int flags);
-extern smcp_status_t smcp_node_pair_with_sockaddr(
-	smcp_node_t node, SMCP_SOCKET_ARGS, const char* path, int flags);
+
+
+extern smcp_status_t smcp_daemon_pair_with_uri(
+	smcp_daemon_t self, const char* path, const char* uri, int flags);
+
 
 extern int smcp_node_find_closest_with_path(
 	smcp_node_t node, const char* path, smcp_node_t* closest);

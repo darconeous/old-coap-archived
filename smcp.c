@@ -22,10 +22,9 @@
 #include "net/tcpip.h"
 #endif
 
+#include "assert_macros.h"
 
 #include "smcp.h"
-
-#include "assert_macros.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -36,6 +35,7 @@
 #include <sys/time.h>
 #include "ll.h"
 
+#include "url-helpers.h"
 #include "smcp_node.h"
 #include "smcp_pairing.h"
 #include "smcp_logging.h"
@@ -296,6 +296,9 @@ smcp_response_handler_compare_tid(
 	return 0;
 }
 
+#pragma mark -
+#pragma mark Class Definition
+
 // Consider members of this struct to be private!
 struct smcp_daemon_s {
 #if SMCP_USE_BSD_SOCKETS
@@ -309,6 +312,8 @@ struct smcp_daemon_s {
 	smcp_node_t				root_node;
 	smcp_timer_t			timers;
 	smcp_response_handler_t handlers;
+
+	smcp_pairing_t			pairings;
 
 	uint16_t				port;
 };
@@ -795,13 +800,13 @@ smcp_daemon_send_request(
 		packet_length + content_length);
 
 #if SMCP_USE_BSD_SOCKETS
-	require_action(0 <
+	require_action_string(0 <
 		sendto(self->fd,
 			packet,
 			packet_length,
 			0,
 			saddr,
-			socklen), bail, ret = SMCP_STATUS_ERRNO);
+			socklen), bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
 #elif __CONTIKI__
 	uip_udp_packet_sendto(
 		self->udp_conn,
@@ -825,20 +830,17 @@ smcp_daemon_send_request_to_url(
 	smcp_daemon_t			self,
 	smcp_transaction_id_t	tid,
 	smcp_method_t			method,
-	const char*				uri,
+	const char*				uri_,
 	smcp_header_item_t		headers[],
 	const char*				content,
 	size_t					content_length
 ) {
 	smcp_status_t ret = 0;
-	const char* path_str = NULL;
-	const char* addr_str = NULL;
-	const char* addr_end;
-	size_t addr_str_len;
-	char addr_cstr[256];
-	bool is_ipv6_or_hostname = false;
-
-	memset(addr_cstr, 0, sizeof(addr_cstr));
+	char uri[uri_ ? strlen(uri_) : 0 + 1];        // Requires compiler support for variable sized arrays
+	char* proto_str = NULL;
+	char* path_str = NULL;
+	char* addr_str = NULL;
+	char* port_str = NULL;
 
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
@@ -853,100 +855,70 @@ smcp_daemon_send_request_to_url(
 	uint16_t toport = SMCP_DEFAULT_PORT;
 #endif
 
-	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(strncmp(uri,
-			"smcp://",
-			7) == 0, bail, ret = SMCP_STATUS_UNSUPPORTED_URI);
+	require_action(uri_, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(strncmp(uri_,
+			"smcp:",
+			5) == 0, bail, ret = SMCP_STATUS_UNSUPPORTED_URI);
+
+	strcpy(uri, uri_);
 
 	// Parse the URI.
+	require_action_string(
+		url_parse(uri, &proto_str, &addr_str, &port_str, &path_str),
+		bail,
+		ret = SMCP_STATUS_UNSUPPORTED_URI,
+		"Unable to parse URL"
+	);
 
-	// Find the start of the path
-	for(path_str = uri + 7; *path_str && (*path_str != '/'); path_str++) {
-	}
-
-	// Find the end of the address part.
-	for(addr_end = path_str;; addr_end--) {
-		if((addr_end < uri + 7) || (*addr_end == '@')) {
-			// There was no port, just an address.
-			addr_str = addr_end + 1;
-			addr_end = path_str;
-			break;
-		}
-		if((*addr_end == ']')) {
-			for(addr_str = addr_end;
-			        (addr_str > (uri + 7)) && (addr_str[-1] != '[');
-			    addr_str--) {
-			}
-			is_ipv6_or_hostname = true;
-			break;
-		}
-		if((*addr_end == ':')) {
+	if(port_str) {
 #if SMCP_USE_BSD_SOCKETS
-			saddr.sin6_port = htons(strtol(addr_end + 1, NULL, 10));
+		saddr.sin6_port = htons(strtol(port_str, NULL, 10));
 #elif __CONTIKI__
-			toport = strtol(addr_end + 1, NULL, 10);
+		toport = strtol(port_str, NULL, 10);
 #else
 #error TODO: Implement me!
 #endif
-
-			for(addr_str = addr_end;
-			        (addr_str > (uri + 7)) && (addr_str[-1] != '@');
-			    addr_str--) {
-			}
-
-			break;
-		}
-	}
-
-	if(addr_end[-1] == ']') {
-		addr_end--;
-		addr_str++;
-		is_ipv6_or_hostname = true;
-	} else if(!isdigit(addr_str[0])) {
-		is_ipv6_or_hostname = true;
-	}
-
-	addr_str_len = addr_end - addr_str;
-
-	if(is_ipv6_or_hostname) {
-		memcpy(addr_cstr, addr_str, MIN(addr_str_len, sizeof(addr_cstr)));
-	} else {
-		memcpy(addr_cstr, IPv4_COMPATIBLE_IPv6_PREFIX,
-			sizeof(IPv4_COMPATIBLE_IPv6_PREFIX) - 1);
-		memcpy(addr_cstr + sizeof(IPv4_COMPATIBLE_IPv6_PREFIX) - 1,
-			addr_str,
-			MIN(addr_str_len, sizeof(addr_cstr) +
-				sizeof(IPv4_COMPATIBLE_IPv6_PREFIX) - 1));
 	}
 
 	DEBUG_PRINTF(
-		CSTR("URI Parse: ADDR: %s   PORT: %d   PATH: %s"),
-		addr_cstr,
-#if SMCP_USE_BSD_SOCKETS
-		ntohs(saddr.sin6_port),
-#elif __CONTIKI__
-		toport,
-#else
-#error TODO: Implement me!
-#endif
+		CSTR("URI Parse: \"%s\" -> host=\"%s\" port=\"%s\" path=\"%s\""),
+		uri_,
+		addr_str,
+		port_str,
 		path_str
 	);
 
 #if SMCP_USE_BSD_SOCKETS
 	{
-		// TODO: Implement this in a non-blocking manner, perhaps using MDNS
-		struct hostent *tmp = gethostbyname2(addr_cstr, AF_INET6);
-		require_action_string(!h_errno && tmp,
+		struct addrinfo hint = {
+			.ai_flags		= AI_ALL | AI_V4MAPPED,
+			.ai_family		= AF_INET6,
+			.ai_socktype	= SOCK_DGRAM,
+			.ai_protocol	= IPPROTO_UDP,
+		};
+		struct addrinfo *results = NULL;
+		int error = getaddrinfo(addr_str, port_str, &hint, &results);
+
+		if(error && (inet_addr(addr_str) != INADDR_NONE)) {
+			char addr_v4mapped_str[8 + strlen(addr_str)];
+			sprintf(addr_v4mapped_str, "::ffff:%s", addr_str);
+			error = getaddrinfo(addr_v4mapped_str,
+				port_str,
+				&hint,
+				&results);
+		}
+		require_action_string(!error,
 			bail,
-			ret = -1,
-			"gethostbyname2() failed");
-		require_action(tmp->h_length > 1, bail, ret = -1);
-		memcpy(&saddr.sin6_addr.s6_addr, tmp->h_addr_list[0], 16);
+			ret = SMCP_STATUS_FAILURE,
+			gai_strerror(error));
+		require_action(results, bail, ret = SMCP_STATUS_FAILURE);
+
+		memcpy(&saddr, results->ai_addr, results->ai_addrlen);
 	}
 #elif __CONTIKI__
 	// TODO: We should be doing domain name resolution here too!
-	require_action(uiplib_ipaddrconv(addr_cstr,
-			&toaddr) != 0, bail, ret = -1);
+	require_action(uiplib_ipaddrconv(addr_str,
+			&toaddr) != 0, bail, ret = SMCP_STATUS_FAILURE);
 #else
 #error TODO: Implement me!
 #endif
@@ -2366,46 +2338,13 @@ smcp_daemon_handle_pair(
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	smcp_header_item_t replyHeaders[SMCP_MAX_HEADERS * 2 + 1];
 
-	replyHeaders[0] = NULL;
-
-/*
-    for(i=0;headers[i];i+=2) {
-        if(0==strcmp(headers[i],SMCP_HEADER_CSEQ))
-            util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_CSEQ,headers[i+1],HEADER_CSTR_LEN);
-        if(0==strcmp(headers[i],SMCP_HEADER_ID))
-            util_add_header(replyHeaders,SMCP_MAX_HEADERS,SMCP_HEADER_ID,headers[i+1],HEADER_CSTR_LEN);
-
-    }
- */
-
-	if(!node) {
-		smcp_daemon_send_response(self,
-			tid,
-			SMCP_RESULT_CODE_NOT_FOUND,
-			replyHeaders,
-			NULL,
-			0,
-#if SMCP_USE_BSD_SOCKETS
-			saddr,
-			socklen
-#elif __CONTIKI__
-			toaddr,
-			toport
-#else
-#error TODO: Implement me!
-#endif
-		);
-		goto bail;
-	}
-
-	if((node->type != SMCP_NODE_EVENT) &&
+	if(node && (node->type != SMCP_NODE_EVENT) &&
 	        (node->type != SMCP_NODE_ACTION)) {
-		smcp_daemon_send_response(self,
+		ret = smcp_daemon_send_response(self,
 			tid,
 			SMCP_RESULT_CODE_BAD_REQUEST,
-			replyHeaders,
+			NULL,
 			NULL,
 			0,
 #if SMCP_USE_BSD_SOCKETS
@@ -2417,21 +2356,22 @@ smcp_daemon_handle_pair(
 #else
 #error TODO: Implement me!
 #endif
-		);
+		    );
 		goto bail;
 	}
 
-	smcp_daemon_send_response(
+	ret = smcp_daemon_send_response(
 		self,
 		tid,
 		smcp_convert_status_to_result_code(
-			smcp_node_pair_with_uri(
-				node,
+			smcp_daemon_pair_with_uri(
+				self,
+				path,
 				content,
 				0
 			)
 		),
-		replyHeaders,
+		NULL,
 		NULL,
 		0,
 #if SMCP_USE_BSD_SOCKETS
@@ -2443,7 +2383,7 @@ smcp_daemon_handle_pair(
 #else
 #error TODO: Implement me!
 #endif
-	);
+	    );
 bail:
 	return ret;
 }
@@ -2482,18 +2422,24 @@ smcp_daemon_trigger_event(
 
 	require_action(path, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
+	// Move past any preceding slashes.
+	while(path && *path == '/') path++;
+
 	// TODO: Get IP address, and add it to the URL!
-	snprintf(url, sizeof(url) - 1, "smcp://%s/%s", "undefined", path);
+	snprintf(url, sizeof(url) - 1, "smcp:%s", path);
 
 	for(iter = smcp_daemon_get_first_pairing_for_path(self, path);
 	    iter;
-	    iter = iter->next) {
-		iter->seq++;
+	    iter = smcp_daemon_next_pairing(self, iter)) {
+		smcp_pairing_seq_t seq = smcp_pairing_get_next_seq(iter);
+
 		DEBUG_PRINTF(CSTR("sending stuff for pairing \"%p\"..."), iter);
+
 		snprintf(cseq,
 			sizeof(cseq) - 1,
 			"%lX POST",
-			    (long unsigned int)iter->seq);
+			    (long unsigned int)seq);
+
 		smcp_daemon_send_request(
 			self,
 			tid,
@@ -2521,6 +2467,46 @@ bail:
 }
 
 smcp_status_t
+smcp_daemon_refresh_variable(
+	smcp_daemon_t daemon, smcp_variable_node_t node
+) {
+	smcp_status_t ret = 0;
+	char content[512];
+	size_t content_length = sizeof(content);
+	smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
+	char path[100];
+
+	require_action(daemon != NULL,
+		bail,
+		ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+
+	smcp_node_get_path((smcp_node_t)node, path, sizeof(path));
+
+	strncat(path, "!changed", sizeof(path));
+
+	if(node->get_func) {
+		ret =
+		    (*node->get_func)(node, NULL, content, &content_length,
+			&content_type,
+			NULL, 0, node->context);
+		require(ret == 0, bail);
+	}
+
+	ret = smcp_daemon_trigger_event(
+		daemon,
+		path,
+		content,
+		content_length,
+		content_type
+	    );
+
+bail:
+	return ret;
+}
+
+//! Deprecated.
+smcp_status_t
 smcp_daemon_trigger_event_for_node(
 	smcp_daemon_t		self,
 	smcp_event_node_t	node,
@@ -2542,52 +2528,6 @@ smcp_daemon_trigger_event_for_node(
 		content,
 		content_length,
 		content_type);
-
-bail:
-	return ret;
-}
-
-
-smcp_status_t
-smcp_daemon_refresh_variable(
-	smcp_daemon_t daemon, smcp_variable_node_t node
-) {
-	smcp_status_t ret = 0;
-	char content[512];
-	size_t content_length = sizeof(content);
-	smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
-	smcp_event_node_t event_node;
-
-	require_action(daemon != NULL,
-		bail,
-		ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-
-	event_node = (smcp_event_node_t)smcp_node_find_with_path(
-		    (smcp_node_t)node,
-		"!changed");
-
-	require_action_string(
-		event_node != NULL,
-		bail,
-		ret = SMCP_STATUS_FAILURE,
-		"smcp_daemon_refresh_variable: Variable doesn't have a \"!changed\" node");
-
-	if(node->get_func) {
-		ret =
-		    (*node->get_func)(node, NULL, content, &content_length,
-			&content_type,
-			NULL, 0, node->context);
-		require(ret == 0, bail);
-	}
-
-	ret = smcp_daemon_trigger_event_for_node(
-		daemon,
-		event_node,
-		content,
-		content_length,
-		content_type
-	    );
 
 bail:
 	return ret;

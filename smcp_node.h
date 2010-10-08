@@ -78,6 +78,7 @@ struct smcp_variable_node_s {
 		smcp_content_type_t* content_type, SMCP_SOCKET_ARGS, void* context);
 };
 
+/*! Deprecated */
 struct smcp_event_node_s {
 	struct bt_item_s	bt_item;
 	smcp_node_type_t	type;
@@ -90,6 +91,7 @@ struct smcp_event_node_s {
 	smcp_pairing_t		pairings;
 };
 
+/*! Deprecated */
 struct smcp_action_node_s {
 	struct bt_item_s	bt_item;
 	smcp_node_type_t	type;

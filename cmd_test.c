@@ -158,17 +158,19 @@ tool_cmd_test(
 			sizeof(url),
 			"smcp://127.0.0.1:%d/?action",
 			smcp_daemon_get_port(smcp_daemon2));
-		smcp_node_pair_with_uri((smcp_node_t)smcp_node_find_with_path((
-				    smcp_node_t)var_node, "!changed"), url, 0);
+		smcp_daemon_pair_with_uri(smcp_daemon,
+			"device/loadavg!changed",
+			url,
+			0);
 		printf("EVENT_NODE PAIRED WITH %s\n", url);
 	}
 	{
 		char url[256];
 		snprintf(url,
 			sizeof(url),
-			"smcp://127.0.0.1:%d/device/loadavg!changed",
+			"smcp://[::1]:%d/device/loadavg!changed",
 			smcp_daemon_get_port(smcp_daemon));
-		smcp_node_pair_with_uri((smcp_node_t)action_node, url, 0);
+		smcp_daemon_pair_with_uri(smcp_daemon2, "?action", url, 0);
 		printf("ACTION_NODE PAIRED WITH %s\n", url);
 	}
 

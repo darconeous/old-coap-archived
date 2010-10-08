@@ -10,6 +10,8 @@
 #ifndef __SMCP_ASSERT_MACROS__
 #define __SMCP_ASSERT_MACROS__
 
+#include <stdio.h>
+
 #if HAS_ASSERTMACROS_H
  #include <AssertMacros.h>
 #else

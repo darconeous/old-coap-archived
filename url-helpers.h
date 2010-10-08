@@ -22,4 +22,11 @@ extern void url_decode_cstr_inplace(char *str);
 extern size_t url_form_next_value(
 	char** form_string, char** key, char** value);
 
+extern int url_parse(
+	char*	form_string,
+	char**	protocol,
+	char**	host,
+	char**	port,
+	char**	path);
+
 #endif // __URL_HELPERS_H__

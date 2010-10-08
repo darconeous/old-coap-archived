@@ -1,5 +1,22 @@
+#include "assert_macros.h"
 #include "url-helpers.h"
 #include "ctype.h"
+
+static bool
+isurlchar(int src_char) {
+	return isalnum(src_char)
+	       || (src_char == '$')
+	       || (src_char == '-')
+	       || (src_char == '_')
+	       || (src_char == '.')
+	       || (src_char == '+')
+	       || (src_char == '!')
+	       || (src_char == '*')
+	       || (src_char == '\'')
+	       || (src_char == '(')
+	       || (src_char == ')')
+	       || (src_char == ',');
+}
 
 size_t
 url_encode_cstr(
@@ -19,19 +36,7 @@ url_encode_cstr(
 			break;
 		}
 
-		if(isalnum(src_char)
-		    || (src_char == '$')
-		    || (src_char == '-')
-		    || (src_char == '_')
-		    || (src_char == '.')
-		    || (src_char == '+')
-		    || (src_char == '!')
-		    || (src_char == '*')
-		    || (src_char == '\'')
-		    || (src_char == '(')
-		    || (src_char == ')')
-		    || (src_char == ',')
-		) {
+		if(isurlchar(src_char)) {
 			*dest++ = src_char;
 			ret++;
 			max_size--;
@@ -186,5 +191,90 @@ bail:
 	if(*value)
 		url_decode_cstr_inplace(*value);
 
+	return bytes_parsed;
+}
+
+
+int
+url_parse(
+	char* uri, char** protocol, char** host, char** port, char** path
+) {
+	int bytes_parsed = 0;
+
+	require_string(uri, bail, "NULL uri parameter");
+
+	if(protocol)
+		*protocol = uri;
+
+	while(*uri != ':') {
+		require_string(*uri, bail, "unexpected end of string");
+		uri++;
+		bytes_parsed++;
+	}
+
+	// Zero terminate the protocol;
+	*uri++ = 0;
+	bytes_parsed++;
+
+	require_string(*uri, bail, "unexpected end of string");
+
+	if(uri[0] == '/' && uri[1] == '/') {
+		char* addr_end;
+		char* addr_begin;
+		bool got_port = false;
+
+		// Contains a hostname. Parse it.
+		uri += 2;
+		bytes_parsed += 2;
+
+		addr_begin = uri;
+
+		while((isurlchar(*uri) || (*uri == '[') || (*uri == ']') ||
+		            (*uri == ':') || (*uri == '@')) && (*uri != '/')) {
+			uri++;
+			bytes_parsed++;
+		}
+
+		addr_end = uri - 1;
+
+		if(*uri) {
+			*uri++ = 0;
+			bytes_parsed++;
+		}
+
+		for(;
+		        (addr_end >= addr_begin) && (*addr_end != '@') &&
+		        (*addr_end != '[');
+		    addr_end--) {
+			if((*addr_end == ']')) {
+				*addr_end = 0;
+			} else if(!got_port && (*addr_end == ':')) {
+				if(port)
+					*port = addr_end + 1;
+				*addr_end = 0;
+				got_port = true;
+			}
+		}
+		if(host)
+			*host = addr_end + 1;
+	}
+
+	if(path)
+		*path = uri;
+
+	// Move to the end of the path.
+	while((isurlchar(*uri) || (*uri == '/') ||
+	            (*uri == '?')) && (*uri != '#')) {
+		uri++;
+		bytes_parsed++;
+	}
+
+	// Zero terminate the path
+	if(*uri) {
+		*uri++ = 0;
+		bytes_parsed++;
+	}
+
+bail:
 	return bytes_parsed;
 }
