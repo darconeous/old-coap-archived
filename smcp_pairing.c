@@ -119,6 +119,10 @@ smcp_node_pair_with_uri(
 #else
 #error TODO: Implement me!
 #endif
+#if SMCP_USE_BSD_SOCKETS
+	} else {
+		port_str = SMCP_DEFAULT_PORT_CSTR;
+#endif
 	}
 
 	DEBUG_PRINTF(

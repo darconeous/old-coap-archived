@@ -23,10 +23,13 @@ extern size_t url_form_next_value(
 	char** form_string, char** key, char** value);
 
 extern int url_parse(
-	char*	form_string,
-	char**	protocol,
-	char**	host,
-	char**	port,
-	char**	path);
+	char* url, char** protocol, char** host, char** port, char** path);
+
+extern bool url_is_absolute(const char* url);
+
+extern bool string_contains_colons(const char* str);
+
+extern bool url_change(
+	char* current_url, const char* new_url);
 
 #endif // __URL_HELPERS_H__

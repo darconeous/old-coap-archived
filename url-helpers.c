@@ -1,6 +1,9 @@
 #include "assert_macros.h"
 #include "url-helpers.h"
 #include "ctype.h"
+#include <string.h>
+
+//#define VERBOSE_DEBUG 1
 
 static bool
 isurlchar(int src_char) {
@@ -248,6 +251,7 @@ url_parse(
 		    addr_end--) {
 			if((*addr_end == ']')) {
 				*addr_end = 0;
+				got_port = true;
 			} else if(!got_port && (*addr_end == ':')) {
 				if(port)
 					*port = addr_end + 1;
@@ -277,4 +281,155 @@ url_parse(
 
 bail:
 	return bytes_parsed;
+}
+
+extern bool url_is_absolute(const char* uri) {
+	bool ret = false;
+	int bytes_parsed = 0;
+
+	require(uri, bail);
+
+	while(*uri && isalpha(*uri) && (*uri != ':')) {
+		require(*uri, bail);
+		uri++;
+		bytes_parsed++;
+	}
+
+	if(bytes_parsed && *uri == ':')
+		ret = true;
+
+bail:
+	return ret;
+}
+
+extern bool string_contains_colons(const char* str) {
+	if(!str)
+		return false;
+	for(; (*str != ':') && *str; str++) ;
+	return *str == ':';
+}
+
+extern bool url_change(
+	char* url, const char* new_url_
+) {
+#define MAX_URL_SIZE        (128)
+
+	bool ret = false;
+	if(url_is_absolute(new_url_)) {
+		strcpy(url, new_url_);
+		ret = true;
+		goto bail;
+	}
+
+	{
+		char new_url[strlen(new_url_) + 1];
+		strcpy(new_url, new_url_);
+
+		char current_path[MAX_URL_SIZE];
+		char* proto_str = NULL;
+		char* path_str = NULL;
+		char* addr_str = NULL;
+		char* port_str = NULL;
+
+		strcpy(current_path, url);
+
+		url_parse(current_path,
+			&proto_str,
+			&addr_str,
+			&port_str,
+			&path_str);
+
+#if VERBOSE_DEBUG
+		fprintf(
+			stderr,
+			"url_change: proto=\"%s\", host=\"%s\", port=\"%s\", path=\"%s\"\n",
+			proto_str,
+			addr_str,
+			port_str,
+			path_str);
+#endif
+
+		if(!proto_str) {
+			fprintf(stderr, "Must cd into full URL first\n");
+			ret = false;
+			goto bail;
+		}
+
+		if(!addr_str) {
+			fprintf(stderr, "Bad base URL.\n");
+			ret = false;
+			goto bail;
+		}
+
+		url[0] = 0;
+
+		if(proto_str) {
+			strcat(url, proto_str);
+			strcat(url, "://");
+
+			// Path is absolute. Must drop the path from the URL.
+			if(string_contains_colons(addr_str)) {
+				strcat(url, "[");
+				strcat(url, addr_str);
+				strcat(url, "]");
+			} else {
+				strcat(url, addr_str);
+			}
+
+			if(port_str) {
+				strcat(url, ":");
+				strcat(url, port_str);
+			}
+		}
+
+		{
+			char* path_components[100];
+			char** pp = path_components;
+			int path_items = 0;
+
+			if(new_url[0] != '/') {
+				while((*pp = strsep(&path_str, "/"))) {
+					if(strcmp(*pp, "..") == 0) {
+						if(path_items) {
+							pp--;
+							path_items--;
+						}
+					} else if(strcmp(*pp, ".") == 0) {
+					} else if(**pp != '\0') {
+						pp++;
+						path_items++;
+					}
+				}
+			}
+
+			path_str = new_url;
+			while((*pp = strsep(&path_str, "/"))) {
+				if(strcmp(*pp, "..") == 0) {
+					if(path_items) {
+						pp--;
+						path_items--;
+					}
+				} else if(strcmp(*pp, ".") == 0) {
+				} else if(**pp != '\0') {
+					pp++;
+					path_items++;
+				}
+			}
+
+
+			for(pp = path_components; path_items; path_items--, pp++) {
+				strcat(url, "/");
+				strcat(url, *pp);
+			}
+			//strcat(url,"/");
+		}
+
+		ret = true;
+	}
+bail:
+#if VERBOSE_DEBUG
+	fprintf(stderr, "url_change: final-url=\"%s\"\n", url);
+#endif
+
+	return ret;
 }

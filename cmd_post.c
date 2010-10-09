@@ -16,6 +16,7 @@
 #include <sys/errno.h>
 #include "help.h"
 #include "cmd_post.h"
+#include "url-helpers.h"
 
 /*
    static arg_list_item_t option_list[] = {
@@ -64,22 +65,6 @@ post_response_handler(
 	postIsDone = true;
 }
 
-static bool
-util_add_header(
-	smcp_header_item_t	headerList[],
-	int					maxHeaders,
-	const char*			name,
-	const char*			value
-) {
-	for(; maxHeaders && headerList[0]; maxHeaders--, headerList += 2) ;
-	if(maxHeaders) {
-		headerList[0] = name;
-		headerList[1] = value;
-		headerList[2] = NULL;
-		return true;
-	}
-	return false;
-}
 
 bool
 send_post_request(
@@ -89,7 +74,7 @@ send_post_request(
 	int				content_len
 ) {
 	bool ret = false;
-	const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	smcp_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
 	smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
 
 	//static char tid_str[30];
@@ -131,15 +116,26 @@ tool_cmd_post(
 ) {
 	int ret = -1;
 
-	if(argc == 3) {
-		require(send_post_request(smcp, argv[1], argv[2], strlen(
-					argv[2])), bail);
-	} else if(argc == 2) {
-		require(send_post_request(smcp, argv[1], NULL, 0), bail);
+	char url[1000];
+
+	if(getenv("SMCP_CURRENT_PATH")) {
+		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+		if(argc >= 2)
+			url_change(url, argv[1]);
 	} else {
-		fprintf(stderr, "Bad args.\b");
-		goto bail;
+		if(argc >= 2) {
+			strncpy(url, argv[1], sizeof(url));
+		} else {
+			fprintf(stderr, "Bad args.\n");
+			goto bail;
+		}
 	}
+
+	if(argc >= 3)
+		require(send_post_request(smcp, url, argv[2], strlen(
+					argv[2])), bail);
+	else
+		require(send_post_request(smcp, url, NULL, 0), bail);
 
 	while(!postIsDone)
 		smcp_daemon_process(smcp, 50);

@@ -61,29 +61,13 @@ pair_response_handler(
 	pairIsDone = true;
 }
 
-static bool
-util_add_header(
-	smcp_header_item_t	headerList[],
-	int					maxHeaders,
-	const char*			name,
-	const char*			value
-) {
-	for(; maxHeaders && headerList[0]; maxHeaders--, headerList += 2) ;
-	if(maxHeaders) {
-		headerList[0] = name;
-		headerList[1] = value;
-		headerList[2] = NULL;
-		return true;
-	}
-	return false;
-}
 
 bool
 send_pair_request(
 	smcp_daemon_t smcp, const char* url, const char* url2
 ) {
 	bool ret = false;
-	const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	smcp_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
 	smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
 
 	//static char tid_str[30];
@@ -93,6 +77,13 @@ send_pair_request(
 	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
 
 //	util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_ID,tid_str);
+
+	if(strcmp(url, url2) == 0) {
+		fprintf(stderr, "Pairing a URL to itself is invalid.\n");
+		goto bail;
+	}
+
+	printf("Pairing \"%s\" to \"%s\"...\n", url, url2);
 
 	require_noerr(smcp_daemon_add_response_handler(
 			smcp,
@@ -125,22 +116,45 @@ tool_cmd_pair(
 ) {
 	int ret = -1;
 
-	if(argc == 3) {
-		require(send_pair_request(smcp, argv[1], argv[2]), bail);
+	char url[1000];
+
+	if(getenv("SMCP_CURRENT_PATH")) {
+		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+		if(argc >= 2)
+			url_change(url, argv[1]);
 	} else {
-		fprintf(stderr, "Bad args.\b");
+		if(argc >= 2) {
+			strncpy(url, argv[1], sizeof(url));
+		} else {
+			fprintf(stderr, "Bad args.\n");
+			goto bail;
+		}
+	}
+
+	if(argc == 2) {
+		require(send_pair_request(smcp, getenv(
+					"SMCP_CURRENT_PATH"), url), bail);
+	} else if(argc == 3) {
+		char url2[1000];
+
+		if(getenv("SMCP_CURRENT_PATH")) {
+			strncpy(url2, getenv("SMCP_CURRENT_PATH"), sizeof(url2));
+			url_change(url2, argv[2]);
+		} else {
+			strncpy(url2, argv[2], sizeof(url2));
+		}
+
+		require(send_pair_request(smcp, url, url2), bail);
+	} else {
+		fprintf(stderr, "Bad args.\n");
 		goto bail;
 	}
 
-	while(!pairIsDone)
-		smcp_daemon_process(smcp, 50);
-
 	pairIsDone = 0;
 
-	require(send_pair_request(smcp, argv[2], argv[1]), bail);
-
 	while(!pairIsDone)
 		smcp_daemon_process(smcp, 50);
+
 
 	ret = 0;
 bail:

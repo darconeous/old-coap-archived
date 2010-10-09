@@ -24,6 +24,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
 #ifdef __CONTIKI__
 #include "contiki.h"
@@ -57,6 +58,7 @@
 
 
 #define SMCP_DEFAULT_PORT           (29280)
+#define SMCP_DEFAULT_PORT_CSTR      "29280"
 #define SMCP_MAX_PACKET_LENGTH      (1200)
 #define SMCP_MAX_HEADERS            (15)
 #define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
@@ -96,8 +98,6 @@ typedef uint16_t smcp_transaction_id_t;
 
 #define HEADER_CSTR_LEN     ((size_t)-1)
 
-#define USE_COAP_COMPATIBLE_HEADERS 0
-#if USE_COAP_COMPATIBLE_HEADERS
 typedef enum {
 	SMCP_HEADER_CONTENT_TYPE = 1,
 	SMCP_HEADER_MAX_AGE = 2,
@@ -110,6 +110,7 @@ typedef enum {
 	SMCP_HEADER_NEXT = 11,
 	SMCP_HEADER_MORE = 12,
 	SMCP_HEADER_ORIGIN = 13,
+	SMCP_HEADER_ALLOW = 14,
 } smcp_header_key_t;
 
 typedef struct {
@@ -118,35 +119,68 @@ typedef struct {
 	size_t				value_len;
 } smcp_header_item_t;
 
+static inline const char* smcp_get_header_key_cstr(smcp_header_key_t key)
+{
+	const char* ret = NULL;
+
+	switch(key) {
+	case SMCP_HEADER_CONTENT_TYPE: ret = "Content-type"; break;
+	case SMCP_HEADER_MAX_AGE: ret = "Max-age"; break;
+	case SMCP_HEADER_ETAG: ret = "Etag"; break;
+	case SMCP_HEADER_URI_AUTHORITY: ret = "URI-authority"; break;
+	case SMCP_HEADER_LOCATION: ret = "Location"; break;
+	case SMCP_HEADER_URI_PATH: ret = "URI-path"; break;
+
+	case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
+	case SMCP_HEADER_NEXT: ret = "Next"; break;
+	case SMCP_HEADER_MORE: ret = "More"; break;
+	case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
+	case SMCP_HEADER_ALLOW: ret = "Allow"; break;
+	}
+	return ret;
+}
+
+static inline smcp_header_key_t smcp_get_header_key_from_cstr(
+	const char* key) {
+	if(strcasecmp(key, "Content-type") == 0)
+		return SMCP_HEADER_CONTENT_TYPE;
+	else if(strcasecmp(key, "Max-age") == 0)
+		return SMCP_HEADER_MAX_AGE;
+	else if(strcasecmp(key, "Etag") == 0)
+		return SMCP_HEADER_ETAG;
+	else if(strcasecmp(key, "URI-authority") == 0)
+		return SMCP_HEADER_URI_AUTHORITY;
+	else if(strcasecmp(key, "Location") == 0)
+		return SMCP_HEADER_LOCATION;
+	else if(strcasecmp(key, "URI-path") == 0)
+		return SMCP_HEADER_URI_PATH;
+	else if(strcasecmp(key, "Cseq") == 0)
+		return SMCP_HEADER_CSEQ;
+	else if(strcasecmp(key, "Next") == 0)
+		return SMCP_HEADER_NEXT;
+	else if(strcasecmp(key, "More") == 0)
+		return SMCP_HEADER_MORE;
+	else if(strcasecmp(key, "Origin") == 0)
+		return SMCP_HEADER_ORIGIN;
+	else if(strcasecmp(key, "Allow") == 0)
+		return SMCP_HEADER_ALLOW;
+
+	return 0;
+}
+
 #define smcp_header_item_next(item)         ((item) + 1)
 #define smcp_header_item_get_value(item)    ((item)->value)
 #define smcp_header_item_get_key(item)      ((item)->key)
+
+#define smcp_header_item_set_value(item, x)  ((item)->value = (x))
+#define smcp_header_item_set_key(item, x)        ((item)->key = (x))
+
 #define smcp_header_item_get_value_len(item)        ((item)->value_len)
 #define smcp_header_item_key_equal(item, k)      ((item)->key == (k))
+#define smcp_header_item_get_key_cstr(item) \
+    smcp_get_header_key_cstr( \
+	    smcp_header_item_get_key(item))
 
-#else
-typedef const char* smcp_header_key_t;
-typedef const char* smcp_header_item_t;
-
-#define smcp_header_item_next(item)         ((item) + 2)
-#define smcp_header_item_get_key(item)      ((item)[0])
-#define smcp_header_item_get_value(item)    ((item)[1])
-#define smcp_header_item_get_value_len(item)        HEADER_CSTR_LEN
-#define smcp_header_item_key_equal(item, k)  (strcmp((item)[0], (k)) == 0)
-
-//#define SMCP_HEADER_ID			"Id"
-#define SMCP_HEADER_CSEQ        "CSeq"
-#define SMCP_HEADER_ALLOW       "Allow"
-#define SMCP_HEADER_ORIGIN      "Origin"
-#define SMCP_HEADER_CONTENT_TYPE        "Content-Type"
-#define SMCP_HEADER_MAX_AGE     "Max-Age"
-#define SMCP_HEADER_ETAG        "Etag"
-
-// Used with LIST method.
-#define SMCP_HEADER_NEXT        "Next"  //! Optionally present in LIST request.
-#define SMCP_HEADER_MORE        "More"  //! Optionally present in LIST response.
-
-#endif
 
 typedef enum {
 	SMCP_METHOD_GET = 1,
@@ -154,9 +188,9 @@ typedef enum {
 	SMCP_METHOD_PUT = 3,    //!< @note UNUSED IN SMCP
 	SMCP_METHOD_DELETE = 4, //!< @note UNUSED IN SMCP
 	SMCP_METHOD_LIST = 5,
-	SMCP_METHOD_OPTIONS = 6,
-	SMCP_METHOD_PAIR = 7,
-	SMCP_METHOD_UNPAIR = 8,
+//	SMCP_METHOD_OPTIONS = 6,
+	SMCP_METHOD_PAIR = 6,
+	SMCP_METHOD_UNPAIR = 7,
 } smcp_method_t;
 
 typedef enum {
@@ -373,3 +407,5 @@ extern int smcp_node_find_next_with_path(
 __END_DECLS
 
 #endif
+
+#include "smcp_helpers.h"

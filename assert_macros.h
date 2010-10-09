@@ -15,7 +15,7 @@
 #if HAS_ASSERTMACROS_H
  #include <AssertMacros.h>
 #else
-#if DEBUG
+#if !DEBUG
  #define check_string(c, s)   do { } while(0)
  #define require_action_string(c, l, a, s) \
     do { if(!(c)) { \

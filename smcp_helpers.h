@@ -29,5 +29,27 @@
               _b ? _a : _b; })
 #endif
 
+#include <string.h>
+
+static inline bool
+util_add_header(
+	smcp_header_item_t	headerList[],
+	int					maxHeaders,
+	smcp_header_key_t	key,
+	const char*			value,
+	size_t				len
+) {
+	for(; maxHeaders && headerList[0].key; maxHeaders--, headerList++) ;
+	if(maxHeaders) {
+		headerList[0].key = key;
+		headerList[0].value = (char*)value;
+		headerList[0].value_len = (len == HEADER_CSTR_LEN) ? len : strlen(
+			value);
+		headerList[1].key = 0;
+		return true;
+	}
+	return false;
+}
+
 
 #endif

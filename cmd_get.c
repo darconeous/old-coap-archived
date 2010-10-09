@@ -16,6 +16,7 @@
 #include <sys/errno.h>
 #include "help.h"
 #include "cmd_get.h"
+#include "url-helpers.h"
 
 /*
    static arg_list_item_t option_list[] = {
@@ -60,29 +61,12 @@ get_response_handler(
 	getIsDone = true;
 }
 
-static bool
-util_add_header(
-	smcp_header_item_t	headerList[],
-	int					maxHeaders,
-	const char*			name,
-	const char*			value
-) {
-	for(; maxHeaders && headerList[0]; maxHeaders--, headerList += 2) ;
-	if(maxHeaders) {
-		headerList[0] = name;
-		headerList[1] = value;
-		headerList[2] = NULL;
-		return true;
-	}
-	return false;
-}
-
 bool
 send_get_request(
 	smcp_daemon_t smcp, const char* url
 ) {
 	bool ret = false;
-	const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	smcp_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
 	smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
 
 	//static char tid_str[30];
@@ -124,12 +108,22 @@ tool_cmd_get(
 ) {
 	int ret = -1;
 
-	if(argc != 2) {
-		fprintf(stderr, "Bad args.\b");
-		goto bail;
+	char url[1000];
+
+	if(getenv("SMCP_CURRENT_PATH")) {
+		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+		if(argc >= 2)
+			url_change(url, argv[1]);
+	} else {
+		if(argc >= 2) {
+			strncpy(url, argv[1], sizeof(url));
+		} else {
+			fprintf(stderr, "Bad args.\n");
+			goto bail;
+		}
 	}
 
-	require(send_get_request(smcp, argv[1]), bail);
+	require(send_get_request(smcp, url), bail);
 
 	while(!getIsDone)
 		smcp_daemon_process(smcp, 50);

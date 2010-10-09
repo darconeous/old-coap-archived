@@ -106,23 +106,6 @@ list_response_handler(
 	}
 }
 
-static bool
-util_add_header(
-	smcp_header_item_t	headerList[],
-	int					maxHeaders,
-	const char*			name,
-	const char*			value
-) {
-	for(; maxHeaders && headerList[0]; maxHeaders--, headerList += 2) ;
-	if(maxHeaders) {
-		headerList[0] = name;
-		headerList[1] = value;
-		headerList[2] = NULL;
-		return true;
-	}
-	return false;
-}
-
 int
 tool_cmd_test(
 	smcp_daemon_t smcp, int argc, char* argv[]

@@ -16,6 +16,8 @@
 #include <sys/errno.h>
 #include "help.h"
 #include "cmd_list.h"
+#include <string.h>
+#include "url-helpers.h"
 
 /*
    static arg_list_item_t option_list[] = {
@@ -40,8 +42,6 @@ list_response_handler(
 	socklen_t			socklen,
 	void*				context
 ) {
-	int i;
-
 	if(statuscode != SMCP_RESULT_CODE_OK)
 		printf("*** RESULT CODE = %d\n", statuscode);
 	if(content && content_length) {
@@ -58,9 +58,13 @@ list_response_handler(
 
 		printf("%s\n", contentBuffer);
 
-		for(i = 0; headers[i]; i += 2) {
-			if(0 == strcmp(headers[i], SMCP_HEADER_MORE)) {
-				const char* next = headers[i + 1];
+		smcp_header_item_t *next_header;
+		for(next_header = headers;
+		    smcp_header_item_get_key(next_header);
+		    next_header = smcp_header_item_next(next_header)) {
+			if(smcp_header_item_key_equal(next_header,
+					SMCP_HEADER_MORE)) {
+				const char* next = smcp_header_item_get_value(next_header);
 				if(next[0] == 0) {
 					// In this case we need to use
 					// the last item in the list.
@@ -78,60 +82,59 @@ list_response_handler(
 	listIsDone = true;
 }
 
-static bool
-util_add_header(
-	smcp_header_item_t	headerList[],
-	int					maxHeaders,
-	const char*			name,
-	const char*			value
-) {
-	for(; maxHeaders && headerList[0]; maxHeaders--, headerList += 2) ;
-	if(maxHeaders) {
-		headerList[0] = name;
-		headerList[1] = value;
-		headerList[2] = NULL;
-		return true;
-	}
-	return false;
-}
-
 bool
 send_list_request(
 	smcp_daemon_t smcp, const char* url, const char* next
 ) {
 	bool ret = false;
-	const char* headers[SMCP_MAX_HEADERS * 2 + 1] = { NULL };
+	smcp_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
 	smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
-
-	//static char tid_str[30];
-
-	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
-
-	//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_ID,tid_str);
+	smcp_status_t status = 0;
 
 	listIsDone = false;
 
-	if(next)
-		util_add_header(headers, SMCP_MAX_HEADERS, SMCP_HEADER_NEXT, next);
+	if(next) {
+		util_add_header(headers,
+			SMCP_MAX_HEADERS,
+			SMCP_HEADER_NEXT,
+			next,
+			HEADER_CSTR_LEN);
+	}
 
-	require_noerr(smcp_daemon_add_response_handler(
-			smcp,
-			tid,
-			5000,
-			0, // Flags
-			&list_response_handler,
-			    (void*)url
-		), bail);
+	status = smcp_daemon_add_response_handler(
+		smcp,
+		tid,
+		5000,
+		0, // Flags
+		&list_response_handler,
+		    (void*)url
+	    );
 
-	require_noerr(smcp_daemon_send_request_to_url(
-			smcp,
-			tid,
-			SMCP_METHOD_LIST,
-			url,
-			headers,
-			NULL,
-			0
-		), bail);
+	if(status) {
+		check(status);
+		fprintf(stderr,
+			"smcp_daemon_add_response_handler() returned %d.\n",
+			status);
+		goto bail;
+	}
+
+	status = smcp_daemon_send_request_to_url(
+		smcp,
+		tid,
+		SMCP_METHOD_LIST,
+		url,
+		headers,
+		NULL,
+		0
+	    );
+
+	if(status) {
+		check(status);
+		fprintf(stderr,
+			"smcp_daemon_send_request_to_url() returned %d.\n",
+			status);
+		goto bail;
+	}
 
 	ret = true;
 
@@ -145,12 +148,22 @@ tool_cmd_list(
 ) {
 	int ret = -1;
 
-	if(argc != 2) {
-		fprintf(stderr, "Bad args.\b");
-		goto bail;
+	char url[1000];
+
+	if(getenv("SMCP_CURRENT_PATH")) {
+		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+		if(argc >= 2)
+			url_change(url, argv[1]);
+	} else {
+		if(argc >= 2) {
+			strncpy(url, argv[1], sizeof(url));
+		} else {
+			fprintf(stderr, "Bad args.\n");
+			goto bail;
+		}
 	}
 
-	require(send_list_request(smcp, argv[1], NULL), bail);
+	require(send_list_request(smcp, url, NULL), bail);
 
 	while(!listIsDone)
 		smcp_daemon_process(smcp, 50);

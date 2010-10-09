@@ -1,3 +1,5 @@
+#define HAS_LIBREADLINE 1
+
 #include "assert_macros.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,6 +7,12 @@
 #include <string.h>
 #include <sys/errno.h>
 #include "help.h"
+#include <unistd.h>
+
+#if HAS_LIBREADLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
 
 #include "smcp.h"
 
@@ -14,12 +22,16 @@
 #include "cmd_post.h"
 #include "cmd_pair.h"
 
+#include "url-helpers.h"
+
 
 #define ERRORCODE_HELP          (1)
 #define ERRORCODE_BADARG        (2)
 #define ERRORCODE_NOCOMMAND     (3)
 #define ERRORCODE_UNKNOWN       (4)
 #define ERRORCODE_BADCOMMAND    (5)
+#define ERRORCODE_NOREADLINE    (6)
+#define ERRORCODE_QUIT          (7)
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",	NULL, "Print Help"			  },
@@ -27,6 +39,39 @@ static arg_list_item_t option_list[] = {
 	{ 'p', "port",	NULL, "Port number"			  },
 	{ 0 }
 };
+
+void print_commands();
+
+static int
+tool_cmd_help(
+	smcp_daemon_t smcp, int argc, char* argv[]
+) {
+	print_arg_list_help(option_list, "smcp [options] <sub-command> [args]");
+	print_commands();
+	return ERRORCODE_HELP;
+}
+
+
+static int
+tool_cmd_cd(
+	smcp_daemon_t smcp, int argc, char* argv[]
+) {
+	if(argc == 1) {
+		printf("%s\n", getenv("SMCP_CURRENT_PATH"));
+		return 0;
+	}
+
+	if(argc == 2) {
+		char url[1000];
+		strcpy(url, getenv("SMCP_CURRENT_PATH"));
+		if(url_change(url, argv[1]))
+			setenv("SMCP_CURRENT_PATH", url, 1);
+		else
+			return ERRORCODE_BADARG;
+	}
+
+	return 0;
+}
 
 
 struct {
@@ -41,6 +86,9 @@ struct {
 		"Fetches the value of a variable.",
 		&tool_cmd_get
 	},
+	{ "cat", NULL,
+	  &tool_cmd_get,
+	  1 },
 	{
 		"post",
 		"Triggers an event.",
@@ -55,16 +103,32 @@ struct {
 		"list",
 		"Fetches the contents of a node.",
 		&tool_cmd_list
-	},{ "ls",	 NULL, &tool_cmd_list, 1 },
+	},
+	{ "ls",	 NULL,
+	  &tool_cmd_list,
+	  1 },
 	{
 		"test",
-		"TEST.",
+		"Self test mode.",
 		&tool_cmd_test
 	},
+
+	{
+		"help",
+		"Display this help.",
+		&tool_cmd_help
+	},
+	{ "?",	 NULL,
+	  &tool_cmd_help,
+	  1 },
+
+	{ "cd",	 "Change current directory or URL (command mode)",
+	  &tool_cmd_cd },
+
 	{ NULL }
 };
 
-static void
+void
 print_commands() {
 	int i;
 
@@ -81,20 +145,63 @@ print_commands() {
 	}
 }
 
+static int
+exec_command(
+	smcp_daemon_t smcp_daemon, int argc, char * argv[]
+) {
+	int ret = 0;
+	int j;
+
+	require(argc, bail);
+
+	if((strcmp(argv[0],
+				"quit") == 0) ||
+	        (strcmp(argv[0],
+				"exit") == 0) || (strcmp(argv[0], "q") == 0)) {
+		ret = ERRORCODE_QUIT;
+		goto bail;
+	}
+
+	for(j = 0; commandList[j].name; ++j) {
+		if(strcmp(argv[0], commandList[j].name) == 0) {
+			if(commandList[j].entrypoint) {
+				ret = commandList[j].entrypoint(smcp_daemon, argc, argv);
+				goto bail;
+			} else {
+				fprintf(stderr,
+					"The command \"%s\" is not yet implemented.\n",
+					commandList[j].name);
+				ret = ERRORCODE_NOCOMMAND;
+				goto bail;
+			}
+		}
+	}
+
+	fprintf(stderr, "The command \"%s\" is not recognised.\n", argv[0]);
+
+	ret = ERRORCODE_BADCOMMAND;
+
+bail:
+	return ret;
+}
 
 int
 main(
 	int argc, char * argv[]
 ) {
+	int ret = 0;
 	int i, debug_mode = 0;
 	int port = SMCP_DEFAULT_PORT + 1;
+	bool istty = isatty(STDIN_FILENO);
 
+#if !HAS_LIBREADLINE
 	if(argc <= 1) {
 		print_arg_list_help(option_list,
 			"smcp [options] <sub-command> [args]");
 		print_commands();
 		return ERRORCODE_HELP;
 	}
+#endif
 	for(i = 1; i < argc; i++) {
 		if(argv[i][0] == '-' && argv[i][1] == '-') {
 			if(strcmp(argv[i] + 2, "help") == 0) {
@@ -147,41 +254,77 @@ main(
 		}
 	}
 
-	if(i >= argc) {
-		fprintf(stderr, "%s: error: Missing command.\n", argv[0]);
-		return ERRORCODE_NOCOMMAND;
+	smcp_daemon_t smcp_daemon = smcp_daemon_create(port);
+	setenv("SMCP_CURRENT_PATH", "smcp://localhost/", 0);
+
+	if(i < argc) {
+		ret = exec_command(smcp_daemon, argc - i, argv + i);
+#if HAS_LIBREADLINE
+		if(ret || (0 != strcmp(argv[i], "cd")))
+#endif
+		goto bail;
 	}
 
-	// The 'help' command is a special case.
-	if(strcmp(argv[i], "help") == 0) {
-		print_arg_list_help(option_list,
-			"smcp [options] <sub-command> [args]");
-		print_commands();
-		return ERRORCODE_HELP;
-	}
+#if HAS_LIBREADLINE
+	// Command mode.
+	require_action(NULL != readline, bail, ret = ERRORCODE_NOREADLINE);
+	setenv("SMCP_HISTORY_FILE", tilde_expand("~/.smcp_history"), 0);
+	rl_initialize();
+	using_history();
+	read_history(getenv("SMCP_HISTORY_FILE"));
+	while(true) {
+		char *l;
+		char *inputstring;
+		char *argv2[100];
+		char **ap = argv2;
+		int argc2 = 0;
+		char prompt[128] = "";
 
+		if(istty) {
+			char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
+			snprintf(prompt,
+				sizeof(prompt),
+				"%s> ",
+				current_smcp_path ? current_smcp_path : "");
+		}
 
-	int j;
-	for(j = 0; commandList[j].name; ++j) {
-		if(strcmp(argv[i], commandList[j].name) == 0) {
-			if(commandList[j].entrypoint) {
-				int ret;
-				smcp_daemon_t smcp_daemon = smcp_daemon_create(port);
-				ret = commandList[j].entrypoint(smcp_daemon,
-					argc - i,
-					argv + i);
-				smcp_daemon_release(smcp_daemon);
-				return ret;
-			} else {
-				fprintf(stderr,
-					"The command \"%s\" is not yet implemented.\n",
-					commandList[j].name);
-				return ERRORCODE_NOCOMMAND;
+		if(!(l = readline(prompt)))
+			break;
+
+		if(!l[0])
+			continue;
+
+		add_history(l);
+
+		inputstring = l;
+
+		while((*ap = strsep(&inputstring, " \t\n\r"))) {
+			if(**ap != '\0') {
+				ap++;
+				argc2++;
 			}
 		}
+		if(argc2 > 0) {
+			ret = exec_command(smcp_daemon, argc2, argv2);
+			if(ret == ERRORCODE_QUIT) {
+				ret = 0;
+				break;
+			} else if(ret && (ret != ERRORCODE_HELP)) {
+				printf("Error %d\n", ret);
+			}
+
+			write_history(getenv("SMCP_HISTORY_FILE"));
+		}
+
+		free(l);
 	}
 
-	fprintf(stderr, "The command \"%s\" is not recognised.\n", argv[i]);
+#else // !HAS_LIBREADLINE
+	fprintf(stderr, "%s: error: Missing command.\n", argv[0]);
+	ret = ERRORCODE_NOCOMMAND;
+#endif // !HAS_LIBREADLINE
 
-	return ERRORCODE_BADCOMMAND;
+bail:
+	smcp_daemon_release(smcp_daemon);
+	return ret;
 }

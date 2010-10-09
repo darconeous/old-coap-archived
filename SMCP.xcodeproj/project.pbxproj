@@ -12,6 +12,7 @@
 		A6078D32122DAC2F0034291D /* smcp_pairing.c in Sources */ = {isa = PBXBuildFile; fileRef = A6078D31122DAC2F0034291D /* smcp_pairing.c */; };
 		A6078D35122DAC3F0034291D /* smcp_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A6078D34122DAC3F0034291D /* smcp_node.c */; };
 		A60E57F2116DBA7000F90E64 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E57F1116DBA7000F90E64 /* smcp.c */; };
+		A63B1EBA125FC4E900BF2543 /* libreadline.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A63B1EB9125FC4E900BF2543 /* libreadline.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
 		A6601206125D17EB00B06DF7 /* url-helpers.c in Sources */ = {isa = PBXBuildFile; fileRef = A6601205125D17EB00B06DF7 /* url-helpers.c */; };
 		A660F1841175049C005178EC /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A660F1831175049C005178EC /* btree.c */; };
 		A66F2DB2125C05D900CDDAF0 /* cmd_pair.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D86125C05D800CDDAF0 /* cmd_pair.c */; };
@@ -47,6 +48,7 @@
 		A60E57F1116DBA7000F90E64 /* smcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp.c; sourceTree = "<group>"; };
 		A6257CAB1173ADE100C6177E /* btree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = btree.h; sourceTree = "<group>"; };
 		A62E6950123E8B610048F877 /* smcp_logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_logging.h; sourceTree = "<group>"; };
+		A63B1EB9125FC4E900BF2543 /* libreadline.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libreadline.dylib; path = usr/lib/libreadline.dylib; sourceTree = SDKROOT; };
 		A6601204125D17EB00B06DF7 /* url-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "url-helpers.h"; sourceTree = "<group>"; };
 		A6601205125D17EB00B06DF7 /* url-helpers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "url-helpers.c"; sourceTree = "<group>"; };
 		A660F1831175049C005178EC /* btree.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = btree.c; sourceTree = "<group>"; };
@@ -72,6 +74,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A63B1EBA125FC4E900BF2543 /* libreadline.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,6 +88,7 @@
 				08FB7795FE84155DC02AAC07 /* Source */,
 				C6A0FF2B0290797F04C91782 /* Documentation */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
+				A63B1EB9125FC4E900BF2543 /* libreadline.dylib */,
 			);
 			name = SHAP;
 			sourceTree = "<group>";
@@ -101,8 +105,6 @@
 				A6078D34122DAC3F0034291D /* smcp_node.c */,
 				A6078D58122DB5540034291D /* assert_macros.h */,
 				A62E6950123E8B610048F877 /* smcp_logging.h */,
-				A6601204125D17EB00B06DF7 /* url-helpers.h */,
-				A6601205125D17EB00B06DF7 /* url-helpers.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -118,6 +120,8 @@
 		A6C6C40E121AF50900CAB3A3 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				A6601204125D17EB00B06DF7 /* url-helpers.h */,
+				A6601205125D17EB00B06DF7 /* url-helpers.c */,
 				A6257CAB1173ADE100C6177E /* btree.h */,
 				A660F1831175049C005178EC /* btree.c */,
 				A6AFEB8012148C3700DC172A /* ll.h */,
