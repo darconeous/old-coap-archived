@@ -13,6 +13,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
+#include <poll.h>
 
 #include "smcp.h"
 
@@ -185,14 +186,67 @@ bail:
 	return ret;
 }
 
+static int ret = 0;
+static smcp_daemon_t smcp_daemon;
+static bool istty = true;
+
+#if HAS_LIBREADLINE
+void process_input_line(char *l) {
+	char *inputstring;
+	char *argv2[100];
+	char **ap = argv2;
+	int argc2 = 0;
+
+	if(!l[0])
+		goto bail;
+
+	add_history(l);
+
+	inputstring = l;
+
+	while((*ap = strsep(&inputstring, " \t\n\r"))) {
+		if(**ap == '#')    // Ignore everything after a comment symbol.
+			break;
+		if(**ap != '\0') {
+			ap++;
+			argc2++;
+		}
+	}
+	if(argc2 > 0) {
+		ret = exec_command(smcp_daemon, argc2, argv2);
+		if(ret == ERRORCODE_QUIT)
+			return;
+		else if(ret && (ret != ERRORCODE_HELP))
+			printf("Error %d\n", ret);
+
+		write_history(getenv("SMCP_HISTORY_FILE"));
+	}
+
+bail:
+	rl_prep_terminal(0);
+	{
+		char prompt[128] = "";
+		if(istty) {
+			char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
+			snprintf(prompt,
+				sizeof(prompt),
+				"%s> ",
+				current_smcp_path ? current_smcp_path : "");
+		}
+		rl_callback_handler_install(prompt, &process_input_line);
+	}
+	rl_redisplay();
+}
+#endif
+
 int
 main(
 	int argc, char * argv[]
 ) {
-	int ret = 0;
 	int i, debug_mode = 0;
 	int port = SMCP_DEFAULT_PORT + 1;
-	bool istty = isatty(STDIN_FILENO);
+
+	istty = isatty(STDIN_FILENO);
 
 #if !HAS_LIBREADLINE
 	if(argc <= 1) {
@@ -254,7 +308,7 @@ main(
 		}
 	}
 
-	smcp_daemon_t smcp_daemon = smcp_daemon_create(port);
+	smcp_daemon = smcp_daemon_create(port);
 	setenv("SMCP_CURRENT_PATH", "smcp://localhost/", 0);
 
 	if(i < argc) {
@@ -272,14 +326,8 @@ main(
 	rl_initialize();
 	using_history();
 	read_history(getenv("SMCP_HISTORY_FILE"));
-	while(true) {
-		char *l;
-		char *inputstring;
-		char *argv2[100];
-		char **ap = argv2;
-		int argc2 = 0;
+	{
 		char prompt[128] = "";
-
 		if(istty) {
 			char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
 			snprintf(prompt,
@@ -287,36 +335,23 @@ main(
 				"%s> ",
 				current_smcp_path ? current_smcp_path : "");
 		}
+		rl_callback_handler_install(prompt, &process_input_line);
+	}
+	while(ret != ERRORCODE_QUIT) {
+		struct pollfd polltable[2] = {
+			{ STDIN_FILENO,					   POLLIN | POLLHUP,
+			  0 },
+			{ smcp_daemon_get_fd(smcp_daemon), POLLIN | POLLHUP,
+			  0 },
+		};
 
-		if(!(l = readline(prompt)))
+		if(poll(polltable, 2, smcp_daemon_get_timeout(smcp_daemon)) < 0)
 			break;
 
-		if(!l[0])
-			continue;
+		if(polltable[0].revents)
+			rl_callback_read_char();
 
-		add_history(l);
-
-		inputstring = l;
-
-		while((*ap = strsep(&inputstring, " \t\n\r"))) {
-			if(**ap != '\0') {
-				ap++;
-				argc2++;
-			}
-		}
-		if(argc2 > 0) {
-			ret = exec_command(smcp_daemon, argc2, argv2);
-			if(ret == ERRORCODE_QUIT) {
-				ret = 0;
-				break;
-			} else if(ret && (ret != ERRORCODE_HELP)) {
-				printf("Error %d\n", ret);
-			}
-
-			write_history(getenv("SMCP_HISTORY_FILE"));
-		}
-
-		free(l);
+		smcp_daemon_process(smcp_daemon, 0);
 	}
 
 #else // !HAS_LIBREADLINE
@@ -325,6 +360,9 @@ main(
 #endif // !HAS_LIBREADLINE
 
 bail:
+	if(ret == ERRORCODE_QUIT)
+		ret = 0;
+
 	smcp_daemon_release(smcp_daemon);
 	return ret;
 }

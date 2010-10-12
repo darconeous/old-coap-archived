@@ -33,9 +33,9 @@
 
 static inline bool
 util_add_header(
-	smcp_header_item_t	headerList[],
+	coap_header_item_t	headerList[],
 	int					maxHeaders,
-	smcp_header_key_t	key,
+	coap_header_key_t	key,
 	const char*			value,
 	size_t				len
 ) {
@@ -43,8 +43,8 @@ util_add_header(
 	if(maxHeaders) {
 		headerList[0].key = key;
 		headerList[0].value = (char*)value;
-		headerList[0].value_len = (len == HEADER_CSTR_LEN) ? len : strlen(
-			value);
+		headerList[0].value_len = (len == COAP_HEADER_CSTR_LEN) ? strlen(
+			value) : len;
 		headerList[1].key = 0;
 		return true;
 	}

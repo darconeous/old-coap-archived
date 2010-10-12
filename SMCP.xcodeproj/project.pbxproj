@@ -18,6 +18,7 @@
 		A66F2DB2125C05D900CDDAF0 /* cmd_pair.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D86125C05D800CDDAF0 /* cmd_pair.c */; };
 		A6BDBA8F124186B1003FB4AD /* cmd_get.c in Sources */ = {isa = PBXBuildFile; fileRef = A6BDBA8E124186B1003FB4AD /* cmd_get.c */; };
 		A6BDBAC112418A09003FB4AD /* cmd_post.c in Sources */ = {isa = PBXBuildFile; fileRef = A6BDBAC012418A09003FB4AD /* cmd_post.c */; };
+		A6C4EA101263DA6600E75D94 /* coap.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C4EA0F1263DA6600E75D94 /* coap.c */; };
 		A6C6C47A121B2CF500CAB3A3 /* help.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C479121B2CF500CAB3A3 /* help.c */; };
 		A6C6C4E9121B52C200CAB3A3 /* cmd_test.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C4E8121B52C200CAB3A3 /* cmd_test.c */; };
 		A6C6C4EC121B536F00CAB3A3 /* cmd_list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C4EB121B536F00CAB3A3 /* cmd_list.c */; };
@@ -59,6 +60,8 @@
 		A6BDBA8E124186B1003FB4AD /* cmd_get.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_get.c; sourceTree = "<group>"; };
 		A6BDBABF12418A09003FB4AD /* cmd_post.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_post.h; sourceTree = "<group>"; };
 		A6BDBAC012418A09003FB4AD /* cmd_post.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_post.c; sourceTree = "<group>"; };
+		A6C4EA0E1263DA6600E75D94 /* coap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coap.h; sourceTree = "<group>"; };
+		A6C4EA0F1263DA6600E75D94 /* coap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = coap.c; sourceTree = "<group>"; };
 		A6C6C478121B2CF500CAB3A3 /* help.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = help.h; sourceTree = "<group>"; };
 		A6C6C479121B2CF500CAB3A3 /* help.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = help.c; sourceTree = "<group>"; };
 		A6C6C4E7121B52C200CAB3A3 /* cmd_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_test.h; sourceTree = "<group>"; };
@@ -105,6 +108,8 @@
 				A6078D34122DAC3F0034291D /* smcp_node.c */,
 				A6078D58122DB5540034291D /* assert_macros.h */,
 				A62E6950123E8B610048F877 /* smcp_logging.h */,
+				A6C4EA0E1263DA6600E75D94 /* coap.h */,
+				A6C4EA0F1263DA6600E75D94 /* coap.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -223,6 +228,7 @@
 				A6BDBAC112418A09003FB4AD /* cmd_post.c in Sources */,
 				A66F2DB2125C05D900CDDAF0 /* cmd_pair.c in Sources */,
 				A6601206125D17EB00B06DF7 /* url-helpers.c in Sources */,
+				A6C4EA101263DA6600E75D94 /* coap.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

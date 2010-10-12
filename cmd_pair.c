@@ -16,6 +16,7 @@
 #include <sys/errno.h>
 #include "help.h"
 #include "cmd_pair.h"
+#include "url-helpers.h"
 
 /*
    static arg_list_item_t option_list[] = {
@@ -25,6 +26,15 @@
  */
 
 static bool pairIsDone;
+static sig_t previous_sigint_handler;
+static coap_transaction_id_t tid;
+
+static void
+signal_interrupt(int sig) {
+	fprintf(stderr, "Interrupt\n");
+	pairIsDone = 1;
+	signal(SIGINT, previous_sigint_handler);
+}
 
 bool send_pair_request(
 	smcp_daemon_t smcp, const char* url, const char* content);
@@ -33,7 +43,7 @@ static void
 pair_response_handler(
 	smcp_daemon_t		self,
 	int					statuscode,
-	smcp_header_item_t	headers[],
+	coap_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length,
 	struct sockaddr*	saddr,
@@ -67,8 +77,8 @@ send_pair_request(
 	smcp_daemon_t smcp, const char* url, const char* url2
 ) {
 	bool ret = false;
-	smcp_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
-	smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
+	coap_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
+	coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
 
 	//static char tid_str[30];
 
@@ -116,6 +126,8 @@ tool_cmd_pair(
 ) {
 	int ret = -1;
 
+	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
+
 	char url[1000];
 
 	if(getenv("SMCP_CURRENT_PATH")) {
@@ -155,8 +167,9 @@ tool_cmd_pair(
 	while(!pairIsDone)
 		smcp_daemon_process(smcp, 50);
 
-
 	ret = 0;
 bail:
+	smcp_invalidate_response_handler(smcp, tid);
+	signal(SIGINT, previous_sigint_handler);
 	return 0;
 }

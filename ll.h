@@ -75,7 +75,7 @@ ll_sorted_insert(
 	ll_item_t location_ = *list;
 
 	if(location_) {
-		while(compare_func(item, location_, context) > 1) {
+		while(compare_func(item, location_, context) > 0) {
 			if(location_->next) {
 				location_ = location_->next;
 			} else {
@@ -101,6 +101,16 @@ ll_remove(
 		item_->next->prev = item_->prev;
 	if(*list == item_)
 		*list = item_->next;
+}
+
+static inline size_t
+ll_count(void* item) {
+	size_t ret = 0;
+	ll_item_t item_ = item;
+
+	for(; item_; item_ = item_->next)
+		ret++;
+	return ret;
 }
 
 __END_DECLS

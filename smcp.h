@@ -57,8 +57,8 @@
 #endif
 
 
-#define SMCP_DEFAULT_PORT           (29280)
-#define SMCP_DEFAULT_PORT_CSTR      "29280"
+#define SMCP_DEFAULT_PORT           (61616)
+#define SMCP_DEFAULT_PORT_CSTR      "61616"
 #define SMCP_MAX_PACKET_LENGTH      (1200)
 #define SMCP_MAX_HEADERS            (15)
 #define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
@@ -69,6 +69,8 @@
 #endif
 
 #define SMCP_DEPRECATED
+
+#include "coap.h"
 
 __BEGIN_DECLS
 
@@ -94,11 +96,9 @@ enum {
 	SMCP_RESULT_CODE_PROTOCOL_VERSION_NOT_SUPPORTED = 505,
 };
 
-typedef uint16_t smcp_transaction_id_t;
-
 #define HEADER_CSTR_LEN     ((size_t)-1)
 
-typedef enum {
+enum {
 	SMCP_HEADER_CONTENT_TYPE = 1,
 	SMCP_HEADER_MAX_AGE = 2,
 	SMCP_HEADER_ETAG = 4,           //!< @note UNUSED IN SMCP
@@ -107,19 +107,13 @@ typedef enum {
 	SMCP_HEADER_URI_PATH = 9,       //!< @note UNUSED IN SMCP
 
 	SMCP_HEADER_CSEQ = 10,
-	SMCP_HEADER_NEXT = 11,
-	SMCP_HEADER_MORE = 12,
+	SMCP_HEADER_MORE = 11,
+	SMCP_HEADER_NEXT = 12,
 	SMCP_HEADER_ORIGIN = 13,
-	SMCP_HEADER_ALLOW = 14,
-} smcp_header_key_t;
+	SMCP_HEADER_ALLOW = 16,
+};
 
-typedef struct {
-	smcp_header_key_t	key;
-	char*				value;
-	size_t				value_len;
-} smcp_header_item_t;
-
-static inline const char* smcp_get_header_key_cstr(smcp_header_key_t key)
+static inline const char* smcp_get_header_key_cstr(coap_header_key_t key)
 {
 	const char* ret = NULL;
 
@@ -136,11 +130,20 @@ static inline const char* smcp_get_header_key_cstr(smcp_header_key_t key)
 	case SMCP_HEADER_MORE: ret = "More"; break;
 	case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
 	case SMCP_HEADER_ALLOW: ret = "Allow"; break;
+	default:
+		if(key % 14) {
+			static char x[20];
+			sprintf(x, "unknown-%u", key);
+			ret = x;
+		} else {
+			ret = "Ignore";
+		}
+		break;
 	}
 	return ret;
 }
 
-static inline smcp_header_key_t smcp_get_header_key_from_cstr(
+static inline coap_header_key_t smcp_get_header_key_from_cstr(
 	const char* key) {
 	if(strcasecmp(key, "Content-type") == 0)
 		return SMCP_HEADER_CONTENT_TYPE;
@@ -293,7 +296,7 @@ typedef int smcp_status_t;
 typedef int32_t cms_t;
 
 typedef void (*smcp_response_handler_func)(smcp_daemon_t self,
-    int statuscode, smcp_header_item_t headers[], const char* content,
+    int statuscode, coap_header_item_t headers[], const char* content,
     size_t content_length, SMCP_SOCKET_ARGS, void* context);
 
 typedef enum smcp_node_type_t {
@@ -335,29 +338,29 @@ extern smcp_status_t smcp_daemon_refresh_variable(
 
 extern smcp_status_t smcp_daemon_add_response_handler(
 	smcp_daemon_t				self,
-	smcp_transaction_id_t		tid,
+	coap_transaction_id_t		tid,
 	cms_t						cmsExpiration,
 	int							flags,
 	smcp_response_handler_func	callback,
 	void*						context);
 extern smcp_status_t smcp_invalidate_response_handler(
-	smcp_daemon_t self, smcp_transaction_id_t tid);
+	smcp_daemon_t self, coap_transaction_id_t tid);
 
 extern smcp_status_t smcp_daemon_send_request(
 	smcp_daemon_t			self,
-	smcp_transaction_id_t	tid,
+	coap_transaction_id_t	tid,
 	smcp_method_t			method,
 	const char*				path,
-	smcp_header_item_t		headers[],
+	coap_header_item_t		headers[],
 	const char*				content,
 	size_t					content_length,
 	SMCP_SOCKET_ARGS);
 extern smcp_status_t smcp_daemon_send_request_to_url(
 	smcp_daemon_t			self,
-	smcp_transaction_id_t	tid,
+	coap_transaction_id_t	tid,
 	smcp_method_t			method,
 	const char*				url,
-	smcp_header_item_t		headers[],
+	coap_header_item_t		headers[],
 	const char*				content,
 	size_t					content_length);
 

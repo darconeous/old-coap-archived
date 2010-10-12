@@ -23,7 +23,7 @@
 smcp_status_t
 action_func(
 	smcp_action_node_t	node,
-	smcp_header_item_t	headers[],
+	coap_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length,
 	smcp_content_type_t content_type,
@@ -42,7 +42,7 @@ action_func(
 smcp_status_t
 loadavg_get_func(
 	smcp_variable_node_t	node,
-	smcp_header_item_t		headers[],
+	coap_header_item_t		headers[],
 	char*					content,
 	size_t*					content_length,
 	smcp_content_type_t*	content_type,
@@ -88,7 +88,7 @@ static void
 list_response_handler(
 	smcp_daemon_t		self,
 	int					statuscode,
-	smcp_header_item_t	headers[],
+	coap_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length,
 	struct sockaddr*	saddr,
@@ -173,7 +173,7 @@ tool_cmd_test(
 
 	{
 		//const char* headers[SMCP_MAX_HEADERS*2+1] = { NULL };
-		smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
+		coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
 		//static char tid_str[30];
 
 		//snprintf(tid_str,sizeof(tid_str),"%d",tid);
@@ -218,7 +218,7 @@ tool_cmd_test(
 
 	int i;
 	for(i = 0; i < 3000000; i++) {
-		if(i % 500 == 0) {
+		if(i % 50 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
 			smcp_daemon_refresh_variable(smcp_daemon, var_node);
 		}
@@ -226,6 +226,7 @@ tool_cmd_test(
 		smcp_daemon_process(smcp_daemon2, 50);
 	}
 
+bail:
 
 	return 0;
 }

@@ -18,6 +18,7 @@
 #include "cmd_list.h"
 #include <string.h>
 #include "url-helpers.h"
+#include <math.h>
 
 /*
    static arg_list_item_t option_list[] = {
@@ -27,23 +28,59 @@
  */
 
 static bool listIsDone;
+static sig_t previous_sigint_handler;
+static coap_transaction_id_t tid;
+
+static void
+signal_interrupt(int sig) {
+	fprintf(stderr, "Interrupt\n");
+	listIsDone = 1;
+	signal(SIGINT, previous_sigint_handler);
+}
 
 bool send_list_request(
 	smcp_daemon_t smcp, const char* url, const char* next);
+
+static int retries = 0;
+static char url_data[128];
+static char next_data[128];
+static size_t next_len = HEADER_CSTR_LEN;
+static int smcp_rtt = 100;
+
+int calc_retransmit_timeout(int retries) {
+	int ret = smcp_rtt;
+	int i;
+
+	for(i = 0; i < retries; i++)
+		ret *= 2;
+
+	ret *= (1000 - 150) + (SMCP_FUNC_RANDOM_UINT32() % 300);
+	ret /= 1000;
+
+//	if(ret!=smcp_rtt)
+//		fprintf(stderr,"(retransmit in %dms)\n",ret);
+	return ret;
+}
+
+bool resend_list_request(smcp_daemon_t smcp);
 
 static void
 list_response_handler(
 	smcp_daemon_t		self,
 	int					statuscode,
-	smcp_header_item_t	headers[],
+	coap_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length,
 	struct sockaddr*	saddr,
 	socklen_t			socklen,
 	void*				context
 ) {
-	if(statuscode != SMCP_RESULT_CODE_OK)
+	if(statuscode == SMCP_STATUS_TIMEOUT && (retries++ < 8)) {
+		resend_list_request(self);
+		return;
+	} else if(statuscode != SMCP_RESULT_CODE_OK) {
 		printf("*** RESULT CODE = %d\n", statuscode);
+	}
 	if(content && content_length) {
 		char contentBuffer[500];
 
@@ -58,7 +95,7 @@ list_response_handler(
 
 		printf("%s\n", contentBuffer);
 
-		smcp_header_item_t *next_header;
+		coap_header_item_t *next_header;
 		for(next_header = headers;
 		    smcp_header_item_get_key(next_header);
 		    next_header = smcp_header_item_next(next_header)) {
@@ -83,35 +120,30 @@ list_response_handler(
 }
 
 bool
-send_list_request(
-	smcp_daemon_t smcp, const char* url, const char* next
-) {
+resend_list_request(smcp_daemon_t smcp) {
 	bool ret = false;
-	smcp_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
-	smcp_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
 	smcp_status_t status = 0;
+	coap_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
 
-	listIsDone = false;
-
-	if(next) {
+	if(next_data[0]) {
 		util_add_header(headers,
 			SMCP_MAX_HEADERS,
 			SMCP_HEADER_NEXT,
-			next,
-			HEADER_CSTR_LEN);
+			next_data,
+			next_len);
 	}
 
 	status = smcp_daemon_add_response_handler(
 		smcp,
 		tid,
-		5000,
+		calc_retransmit_timeout(retries),
 		0, // Flags
 		&list_response_handler,
-		    (void*)url
+		    (void*)url_data
 	    );
 
 	if(status) {
-		check(status);
+		check(!status);
 		fprintf(stderr,
 			"smcp_daemon_add_response_handler() returned %d.\n",
 			status);
@@ -122,14 +154,14 @@ send_list_request(
 		smcp,
 		tid,
 		SMCP_METHOD_LIST,
-		url,
+		url_data,
 		headers,
 		NULL,
 		0
 	    );
 
 	if(status) {
-		check(status);
+		check(!status);
 		fprintf(stderr,
 			"smcp_daemon_send_request_to_url() returned %d.\n",
 			status);
@@ -137,6 +169,28 @@ send_list_request(
 	}
 
 	ret = true;
+bail:
+	return ret;
+}
+
+bool
+send_list_request(
+	smcp_daemon_t smcp, const char* url, const char* next
+) {
+	bool ret = false;
+
+	tid = SMCP_FUNC_RANDOM_UINT32();
+	listIsDone = false;
+
+	retries = 0;
+
+	strcpy(url_data, url);
+	if(next)
+		strcpy(next_data, next);
+	else
+		next_data[0] = 0;
+
+	ret = resend_list_request(smcp);
 
 bail:
 	return ret;
@@ -147,6 +201,8 @@ tool_cmd_list(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
 	int ret = -1;
+
+	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
 	char url[1000];
 
@@ -166,9 +222,11 @@ tool_cmd_list(
 	require(send_list_request(smcp, url, NULL), bail);
 
 	while(!listIsDone)
-		smcp_daemon_process(smcp, 50);
+		smcp_daemon_process(smcp, -1);
 
 	ret = 0;
 bail:
+	smcp_invalidate_response_handler(smcp, tid);
+	signal(SIGINT, previous_sigint_handler);
 	return 0;
 }
