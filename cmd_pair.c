@@ -50,8 +50,12 @@ pair_response_handler(
 	socklen_t			socklen,
 	void*				context
 ) {
-	if((statuscode < 200) || (statuscode >= 300))
-		printf("*** RESULT CODE = %d\n", statuscode);
+	if((statuscode < 200) || (statuscode >= 300)) {
+		fprintf(stderr,
+			" *** RESULT CODE = %d (%s)\n",
+			statuscode,
+			smcp_code_to_cstr(statuscode));
+	}
 	if(content && (statuscode != SMCP_RESULT_CODE_ACK) &&
 	    content_length) {
 		char contentBuffer[500];
@@ -165,7 +169,7 @@ tool_cmd_pair(
 	pairIsDone = 0;
 
 	while(!pairIsDone)
-		smcp_daemon_process(smcp, 50);
+		smcp_daemon_process(smcp, -1);
 
 	ret = 0;
 bail:

@@ -69,7 +69,7 @@ list_response_handler(
 	smcp_daemon_t		self,
 	int					statuscode,
 	coap_header_item_t	headers[],
-	const char*			content,
+	char*				content,
 	size_t				content_length,
 	struct sockaddr*	saddr,
 	socklen_t			socklen,
@@ -79,39 +79,79 @@ list_response_handler(
 		resend_list_request(self);
 		return;
 	} else if(statuscode != SMCP_RESULT_CODE_OK) {
-		printf("*** RESULT CODE = %d\n", statuscode);
+		fprintf(stderr,
+			" *** RESULT CODE = %d (%s)\n",
+			statuscode,
+			smcp_code_to_cstr(statuscode));
 	}
 	if(content && content_length) {
-		char contentBuffer[500];
-
-		content_length =
-		    ((content_length > sizeof(contentBuffer) -
-		        2) ? sizeof(contentBuffer) - 2 : content_length);
-		memcpy(contentBuffer, content, content_length);
-		contentBuffer[content_length] = 0;
-
-		if(content_length && (contentBuffer[content_length - 1] == '\n'))
-			contentBuffer[--content_length] = 0;
-
-		printf("%s\n", contentBuffer);
-
 		coap_header_item_t *next_header;
+		char contentBuffer[500];
+		smcp_content_type_t content_type = 0;
 		for(next_header = headers;
 		    smcp_header_item_get_key(next_header);
 		    next_header = smcp_header_item_next(next_header)) {
 			if(smcp_header_item_key_equal(next_header,
-					SMCP_HEADER_MORE)) {
-				const char* next = smcp_header_item_get_value(next_header);
-				if(next[0] == 0) {
-					// In this case we need to use
-					// the last item in the list.
-					next = contentBuffer + content_length - 1;
-					while((next != contentBuffer) && next[-1] != '\n') {
-						next--;
+					SMCP_HEADER_CONTENT_TYPE))
+				content_type = (unsigned char)next_header->value[0];
+		}
+
+		if(content_type != SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
+			fprintf(stderr, " *** Not a directory\n");
+		} else {
+			char *iter = content;
+			char *end = content + content_length;
+
+			while(iter < end) {
+				if(*iter == '<') {
+					iter++;
+
+					// print out the node name
+					while((iter < end) && (*iter != '>')) {
+						printf("%c", *iter++);
 					}
+					printf("\n");
+
+					// Skip past any arguments
+					while((iter < end) && (*iter != ',')) {
+						iter++;
+					}
+					iter++;
+				} else {
+					iter++;
 				}
-				if(send_list_request(self, (const char*)context, next))
-					return;
+			}
+
+			content_length =
+			    ((content_length > sizeof(contentBuffer) -
+			        2) ? sizeof(contentBuffer) - 2 : content_length);
+
+			if(content[content_length - 1] == '\n')
+				content[--content_length] = 0;
+			else
+				content[content_length] = 0;
+
+			for(next_header = headers;
+			    smcp_header_item_get_key(next_header);
+			    next_header = smcp_header_item_next(next_header)) {
+				if(smcp_header_item_key_equal(next_header,
+						SMCP_HEADER_MORE)) {
+					char* next = smcp_header_item_get_value(next_header);
+					if(0 == smcp_header_item_get_value_len(next_header)) {
+						// In this case we need to use
+						// the last item in the list.
+						next = content + content_length - 1;
+						while((next != content) && (next[-1] != '\n') &&
+						        (next[-1] != ',')) {
+							next--;
+						}
+					} else {
+						next[smcp_header_item_get_value_len(next_header)]
+						    = 0;
+					}
+					if(send_list_request(self, (const char*)context, next))
+						return;
+				}
 			}
 		}
 	}
@@ -138,7 +178,7 @@ resend_list_request(smcp_daemon_t smcp) {
 		tid,
 		calc_retransmit_timeout(retries),
 		0, // Flags
-		&list_response_handler,
+		    (void*)&list_response_handler,
 		    (void*)url_data
 	    );
 
@@ -153,7 +193,11 @@ resend_list_request(smcp_daemon_t smcp) {
 	status = smcp_daemon_send_request_to_url(
 		smcp,
 		tid,
+#if 0
 		SMCP_METHOD_LIST,
+#else
+		SMCP_METHOD_GET,
+#endif
 		url_data,
 		headers,
 		NULL,

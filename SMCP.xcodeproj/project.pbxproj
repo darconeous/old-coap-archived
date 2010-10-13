@@ -138,15 +138,15 @@
 		A6C6C483121B2EE200CAB3A3 /* Tool Source */ = {
 			isa = PBXGroup;
 			children = (
+				08FB7796FE84155DC02AAC07 /* main.c */,
+				A6C6C478121B2CF500CAB3A3 /* help.h */,
+				A6C6C479121B2CF500CAB3A3 /* help.c */,
 				A66F2D86125C05D800CDDAF0 /* cmd_pair.c */,
 				A66F2D87125C05D800CDDAF0 /* cmd_pair.h */,
 				A6BDBABF12418A09003FB4AD /* cmd_post.h */,
 				A6BDBAC012418A09003FB4AD /* cmd_post.c */,
 				A6BDBA8D124186B1003FB4AD /* cmd_get.h */,
 				A6BDBA8E124186B1003FB4AD /* cmd_get.c */,
-				08FB7796FE84155DC02AAC07 /* main.c */,
-				A6C6C478121B2CF500CAB3A3 /* help.h */,
-				A6C6C479121B2CF500CAB3A3 /* help.c */,
 				A6C6C4E7121B52C200CAB3A3 /* cmd_test.h */,
 				A6C6C4E8121B52C200CAB3A3 /* cmd_test.c */,
 				A6C6C4EA121B536F00CAB3A3 /* cmd_list.h */,

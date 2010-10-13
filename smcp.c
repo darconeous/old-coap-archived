@@ -6,7 +6,7 @@
 */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
 #endif
 
 #ifndef DEBUG
@@ -665,11 +665,6 @@ smcp_daemon_send_response(
 	size_t packet_length = 0;
 	int header_count = 0;
 
-	DEBUG_PRINTF(CSTR(
-			"%p: sending response tid=%d, statuscode=%d (coap_code = %d)"),
-		self,
-		tid, statuscode, http_to_coap_code(statuscode));
-
 	if(headers) {
 		coap_header_item_t* next_header;
 		for(next_header = headers;
@@ -710,6 +705,11 @@ smcp_daemon_send_response(
 
 	packet_length = MIN(SMCP_MAX_PACKET_LENGTH,
 		packet_length + content_length);
+
+	DEBUG_PRINTF(CSTR(
+			"%p: sending response tid=%d, size=%d, statuscode=%d (coap_code = %d)"),
+		self, tid, (int)packet_length, statuscode,
+		http_to_coap_code(statuscode));
 
 #if SMCP_USE_BSD_SOCKETS
 	require_action(0 <
@@ -814,9 +814,9 @@ smcp_daemon_send_request(
 		packet_length + content_length);
 
 	DEBUG_PRINTF(CSTR(
-			"smcp_daemon(%p):SENT REQUEST PACKET: tid=%d, method=%d"),
-		self, tid,
-		method);
+			"smcp_daemon(%p): sending request tid=%d, size=%d, method=%d"),
+		self,
+		tid, (int)packet_length, method);
 
 #if SMCP_USE_BSD_SOCKETS
 	require_action_string(0 <
@@ -938,9 +938,21 @@ smcp_daemon_send_request_to_url(
 		memcpy(&saddr, results->ai_addr, results->ai_addrlen);
 	}
 #elif __CONTIKI__
-	// TODO: We should be doing domain name resolution here too!
-	require_action(uiplib_ipaddrconv(addr_str,
-			&toaddr) != 0, bail, ret = SMCP_STATUS_FAILURE);
+	ret = uiplib_ipaddrconv(addr_str, &toaddr);
+	if(ret) {
+		uip_ipaddr_t *temp = resolv_lookup(addr_str);
+		if(temp) {
+			memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
+			ret = 0;
+		} else {
+			resolv_query(addr_str);
+			// TODO: We should be doing domain name resolution here too!
+		}
+	}
+	require_action_string(ret == SMCP_STATUS_OK,
+		bail,
+		ret = SMCP_STATUS_FAILURE,
+		"Unable to resolve hostname");
 #else
 #error TODO: Implement me!
 #endif
@@ -1014,7 +1026,7 @@ smcp_daemon_handle_inbound_packet(
 	case COAP_TRANS_TYPE_NONCONFIRMABLE:
 		// Need to extract the path.
 	{
-		char path[128] = "";
+		char path[128] = "/";
 
 		coap_header_item_t *next_header;
 		for(next_header = headers;
@@ -1059,6 +1071,7 @@ smcp_daemon_handle_inbound_packet(
 					"%p: (tid=%d) Bad response code, %d"), self, tid, code);
 			goto bail;
 		}
+	case COAP_TRANS_TYPE_RESET:
 		smcp_daemon_handle_response(
 			self,
 			tid,
@@ -1076,8 +1089,6 @@ smcp_daemon_handle_inbound_packet(
 #error TODO: Implement me!
 #endif
 		);
-		break;
-	case COAP_TRANS_TYPE_RESET:
 		break;
 	default:
 		DEBUG_PRINTF(CSTR("%p: Bad transaction type: %d"), self, tt);
@@ -1569,6 +1580,29 @@ smcp_daemon_handle_response(
 					get_content_type_string(*(const char*)
 						smcp_header_item_get_value(
 							next_header)));
+				break;
+			case SMCP_HEADER_BLOCK:
+				if(next_header->value_len == 0)
+					DEBUG_PRINTF(CSTR(
+							"\tHEADER: %s: empty!"),
+						smcp_header_item_get_key_cstr(next_header));
+				else if(next_header->value_len == 1)
+					DEBUG_PRINTF(CSTR(
+							"\tHEADER: %s: %02x"),
+						smcp_header_item_get_key_cstr(
+							next_header), next_header->value[0]);
+				else if(next_header->value_len == 2)
+					DEBUG_PRINTF(CSTR(
+							"\tHEADER: %s: %02x %02x"),
+						smcp_header_item_get_key_cstr(
+							next_header), next_header->value[0],
+						next_header->value[1]);
+				else
+					DEBUG_PRINTF(CSTR(
+							"\tHEADER: %s: %02x %02x %02x"),
+						smcp_header_item_get_key_cstr(
+							next_header), next_header->value[0],
+						next_header->value[1], next_header->value[2]);
 				break;
 			default:
 				holder = next_header->value[next_header->value_len];
@@ -2073,6 +2107,29 @@ smcp_daemon_handle_get(
 	// Node should always be set by the time we get here.
 	require(node, bail);
 
+	if(node->type == SMCP_NODE_DEVICE) {
+		ret = smcp_daemon_handle_list(self,
+			node,
+			tid,
+			method,
+			path,
+			headers,
+			content,
+			content_length,
+#if SMCP_USE_BSD_SOCKETS
+			saddr,
+			socklen
+#elif __CONTIKI__
+			toaddr,
+			toport
+#else
+#error TODO: Implement me!
+#endif
+		    );
+		goto bail;
+	}
+
+
 	if(node->type == SMCP_NODE_VARIABLE) {
 		replyContentLength = sizeof(replyContent);
 		ret = (*((smcp_variable_node_t)node)->get_func)(
@@ -2489,33 +2546,38 @@ smcp_daemon_trigger_event(
 	memset(cseq, 0, sizeof(cseq));
 	coap_header_item_t headers[7] = {};
 
+	if(!path)
+		path = "/";
+
 	util_add_header(headers,
-		7,
+		sizeof(headers) / sizeof(*headers),
 		SMCP_HEADER_CSEQ,
 		cseq,
 		COAP_HEADER_CSTR_LEN);
+	headers[0].value_len = COAP_HEADER_CSTR_LEN; // Force recalculation of length when we send.
+
 	util_add_header(headers,
-		7,
+		sizeof(headers) / sizeof(*headers),
 		SMCP_HEADER_CONTENT_TYPE,
 		    (const void*)&content_type,
 		1);
 
-	require_action(path, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-
 	// Move past any preceding slashes.
 	while(path && *path == '/') path++;
 
-	// TODO: Get IP address, and add it to the URL!
-	snprintf(url, sizeof(url) - 1, "smcp:%s", path);
-
-	util_add_header(headers, 4, SMCP_HEADER_ORIGIN, url, HEADER_CSTR_LEN);
+	util_add_header(headers,
+		sizeof(headers) / sizeof(*headers),
+		SMCP_HEADER_ORIGIN,
+		path,
+		HEADER_CSTR_LEN);
 
 	for(iter = smcp_daemon_get_first_pairing_for_path(self, path);
 	    iter;
 	    iter = smcp_daemon_next_pairing(self, iter)) {
 		smcp_pairing_seq_t seq = smcp_pairing_get_next_seq(iter);
 
-		DEBUG_PRINTF(CSTR("sending stuff for pairing \"%p\"..."), iter);
+		DEBUG_PRINTF(CSTR(
+				"%p: sending stuff for pairing \"%p\"..."), self, iter);
 
 		snprintf(cseq,
 			sizeof(cseq) - 1,

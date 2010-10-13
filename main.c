@@ -102,7 +102,7 @@ struct {
 	},
 	{
 		"list",
-		"Fetches the contents of a node.",
+		"Displays the contents of a folder.",
 		&tool_cmd_list
 	},
 	{ "ls",	 NULL,

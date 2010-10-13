@@ -52,8 +52,12 @@ get_response_handler(
 	socklen_t			socklen,
 	void*				context
 ) {
-	if(statuscode != SMCP_RESULT_CODE_OK)
-		printf("*** RESULT CODE = %d\n", statuscode);
+	if(statuscode != SMCP_RESULT_CODE_OK) {
+		fprintf(stderr,
+			" *** RESULT CODE = %d (%s)\n",
+			statuscode,
+			smcp_code_to_cstr(statuscode));
+	}
 	if(content && content_length) {
 		char contentBuffer[500];
 

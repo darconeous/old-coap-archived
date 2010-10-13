@@ -2,6 +2,7 @@
 #include "coap.h"
 #include <stdlib.h>
 
+// Used by qsort
 static int
 header_compare(
 	coap_header_item_t*rhs, coap_header_item_t*lhs
@@ -38,15 +39,23 @@ coap_encode_header(
 	ret = 4;
 
 	if(headers && header_count) {
-		heapsort(headers, header_count, sizeof(*headers),
-			    (int (*)(const void*, const void*)) & header_compare);
 		unsigned char* header_ptr = buffer + 4;
 		unsigned char last_option = 0;
 		unsigned char option_delta;
+
+		// Headers must be in order.
+		qsort(
+			headers,
+			header_count,
+			sizeof(*headers),
+			    (int (*)(const void*, const void*)) & header_compare
+		);
+
 		for(; header_count; header_count--, headers++) {
 			option_delta = headers->key - last_option;
+
 			// Add "fenceposts" as necessary.
-			while(option_delta >= 14) {
+			while(option_delta >= 15) {
 				option_delta = (last_option / 14 * 14 + 14) - last_option;
 				*header_ptr++ = (option_delta << 4);
 				ret++;
@@ -55,20 +64,24 @@ coap_encode_header(
 				last_option = (last_option / 14 * 14 + 14);
 				option_delta = headers->key - last_option;
 			}
-			buffer[0]++;    // Increase the total header count.
+
+			// Increase the total header count.
+			buffer[0]++;
+
+			last_option = headers->key;
 
 			if(headers->value_len > 270)
 				headers->value_len = strlen(headers->value);
-			last_option = headers->key;
+
 			if(headers->value_len > 14) {
 				check(headers->value_len < (255 + 15));
-				*header_ptr++ = (option_delta << 4) + 0xF;
+				*header_ptr++ = (option_delta << 4) | 0xF;
 				*header_ptr++ = headers->value_len - 15;
 				memcpy(header_ptr, headers->value, headers->value_len);
 				ret += 2 + headers->value_len;
 				header_ptr += headers->value_len;
 			} else {
-				*header_ptr++ = (option_delta << 4) + headers->value_len;
+				*header_ptr++ = (option_delta << 4) | headers->value_len;
 				memcpy(header_ptr, headers->value, headers->value_len);
 				ret += 1 + headers->value_len;
 				header_ptr += headers->value_len;
@@ -130,7 +143,7 @@ coap_decode_header(
 			ret++;
 		}
 
-		if(max_headers /*&& (last_header%14)*/) {
+		if(max_headers && (last_header % 14)) {
 			headers->key = last_header;
 			headers->value = (char*)buffer;
 			headers->value_len = len;

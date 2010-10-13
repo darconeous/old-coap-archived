@@ -33,10 +33,11 @@ http_to_coap_code(uint16_t code) {
 typedef enum {
 	COAP_HEADER_CONTENT_TYPE = 1,
 	COAP_HEADER_MAX_AGE = 2,
-	COAP_HEADER_ETAG = 4,           //!< @note UNUSED IN SMCP
-	COAP_HEADER_URI_AUTHORITY = 5,  //!< @note UNUSED IN SMCP
-	COAP_HEADER_LOCATION = 6,       //!< @note UNUSED IN SMCP
-	COAP_HEADER_URI_PATH = 9,       //!< @note UNUSED IN SMCP
+	COAP_HEADER_ETAG = 4,
+	COAP_HEADER_URI_AUTHORITY = 5,
+	COAP_HEADER_LOCATION = 6,
+	COAP_HEADER_URI_PATH = 9,
+	COAP_HEADER_BLOCK = 13,         //!< draft-bormann-core-coap-block-00
 } coap_header_key_t;
 
 typedef struct {

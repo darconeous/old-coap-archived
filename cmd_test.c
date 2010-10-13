@@ -96,7 +96,8 @@ list_response_handler(
 	void*				context
 ) {
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
-	printf(" *** STATUS  CODE = %d\n", statuscode);
+	printf("*** RESULT CODE = %d (%s)\n", statuscode,
+		smcp_code_to_cstr(statuscode));
 
 	if(content) {
 		char contentBuffer[500] = "";

@@ -77,9 +77,13 @@ __BEGIN_DECLS
 #include "btree.h"
 
 enum {
+	SMCP_RESULT_CODE_CONTINUE = 100,
+
 	SMCP_RESULT_CODE_OK = 200,
 	SMCP_RESULT_CODE_CREATED = 201,
 	SMCP_RESULT_CODE_ACK = 204,
+
+	SMCP_RESULT_CODE_NOT_MODIFIED = 304,
 
 	SMCP_RESULT_CODE_BAD_REQUEST = 400,
 	SMCP_RESULT_CODE_UNAUTHORIZED = 401,
@@ -88,29 +92,93 @@ enum {
 	SMCP_RESULT_CODE_METHOD_NOT_ALLOWED = 405,
 	SMCP_RESULT_CODE_CONFLICT = 409,
 	SMCP_RESULT_CODE_GONE = 410,
+	SMCP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE = 415,
 
 	SMCP_RESULT_CODE_INTERNAL_SERVER_ERROR = 500,
 	SMCP_RESULT_CODE_NOT_IMPLEMENTED = 501,
+	SMCP_RESULT_CODE_BAD_GATEWAY = 502,
 	SMCP_RESULT_CODE_SERVICE_UNAVAILABLE = 503,
 	SMCP_RESULT_CODE_GATEWAY_TIMEOUT = 504,
 	SMCP_RESULT_CODE_PROTOCOL_VERSION_NOT_SUPPORTED = 505,
 };
+
+typedef enum {
+	SMCP_METHOD_GET = 1,
+	SMCP_METHOD_POST = 2,
+	SMCP_METHOD_PUT = 3,    //!< @note UNUSED IN SMCP
+	SMCP_METHOD_DELETE = 4, //!< @note UNUSED IN SMCP
+
+	// Experimental after this point
+
+	SMCP_METHOD_PAIR = 11,
+	SMCP_METHOD_UNPAIR = 12,
+	SMCP_METHOD_LIST = 20,  //!< Deprecated.
+} smcp_method_t;
+
+static inline const char* smcp_code_to_cstr(int x) {
+	switch(x) {
+	case SMCP_METHOD_GET: return "GET"; break;
+	case SMCP_METHOD_POST: return "POST"; break;
+	case SMCP_METHOD_PUT: return "PUT"; break;
+	case SMCP_METHOD_DELETE: return "DELETE"; break;
+	case SMCP_METHOD_LIST: return "LIST"; break;
+	case SMCP_METHOD_PAIR: return "PAIR"; break;
+	case SMCP_METHOD_UNPAIR: return "UNPAIR"; break;
+
+	case SMCP_RESULT_CODE_CONTINUE: return "CONTINUE"; break;
+	case SMCP_RESULT_CODE_OK: return "OK"; break;
+	case SMCP_RESULT_CODE_CREATED: return "CREATED"; break;
+	case SMCP_RESULT_CODE_ACK: return "ACK"; break;
+
+	case SMCP_RESULT_CODE_NOT_MODIFIED: return "NOT_MODIFIED"; break;
+
+	case SMCP_RESULT_CODE_BAD_REQUEST: return "BAD_REQUEST"; break;
+	case SMCP_RESULT_CODE_UNAUTHORIZED: return "UNAUTHORIZED"; break;
+	case SMCP_RESULT_CODE_FORBIDDEN: return "FORBIDDEN"; break;
+	case SMCP_RESULT_CODE_NOT_FOUND: return "NOT_FOUND"; break;
+	case SMCP_RESULT_CODE_METHOD_NOT_ALLOWED: return "METHOD_NOT_ALLOWED";
+		break;
+	case SMCP_RESULT_CODE_CONFLICT: return "CONFLICT"; break;
+	case SMCP_RESULT_CODE_GONE: return "GONE"; break;
+	case SMCP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE: return
+		    "UNSUPPORTED_MEDIA_TYPE"; break;
+
+	case SMCP_RESULT_CODE_INTERNAL_SERVER_ERROR: return
+		    "INTERNAL_SERVER_ERROR"; break;
+	case SMCP_RESULT_CODE_NOT_IMPLEMENTED: return "NOT_IMPLEMENTED"; break;
+	case SMCP_RESULT_CODE_BAD_GATEWAY: return "BAD_GATEWAY"; break;
+	case SMCP_RESULT_CODE_SERVICE_UNAVAILABLE: return "UNAVAILABLE"; break;
+	case SMCP_RESULT_CODE_GATEWAY_TIMEOUT: return "TIMEOUT"; break;
+	case SMCP_RESULT_CODE_PROTOCOL_VERSION_NOT_SUPPORTED: return
+		    "PROTOCOL_VERSION_NOT_SUPPORTED"; break;
+	default:  break;
+	}
+	return "UNKNOWN";
+}
+
 
 #define HEADER_CSTR_LEN     ((size_t)-1)
 
 enum {
 	SMCP_HEADER_CONTENT_TYPE = 1,
 	SMCP_HEADER_MAX_AGE = 2,
-	SMCP_HEADER_ETAG = 4,           //!< @note UNUSED IN SMCP
-	SMCP_HEADER_URI_AUTHORITY = 5,  //!< @note UNUSED IN SMCP
-	SMCP_HEADER_LOCATION = 6,       //!< @note UNUSED IN SMCP
-	SMCP_HEADER_URI_PATH = 9,       //!< @note UNUSED IN SMCP
+	SMCP_HEADER_ETAG = 4,
+	SMCP_HEADER_URI_AUTHORITY = 5,
+	SMCP_HEADER_LOCATION = 6,
+	SMCP_HEADER_URI_PATH = 9,
 
-	SMCP_HEADER_CSEQ = 10,
-	SMCP_HEADER_MORE = 11,
-	SMCP_HEADER_NEXT = 12,
-	SMCP_HEADER_ORIGIN = 13,
-	SMCP_HEADER_ALLOW = 16,
+	SMCP_HEADER_BLOCK = 13,         //!< draft-bormann-core-coap-block-00
+
+	SMCP_HEADER_FENCEPOST_1 = 14,
+	SMCP_HEADER_FENCEPOST_2 = 28,
+
+	// Experimental after this point
+
+	SMCP_HEADER_CSEQ = SMCP_HEADER_FENCEPOST_2 + 1,
+	SMCP_HEADER_MORE = SMCP_HEADER_FENCEPOST_2 + 2,
+	SMCP_HEADER_NEXT = SMCP_HEADER_FENCEPOST_2 + 3,
+	SMCP_HEADER_ORIGIN = SMCP_HEADER_FENCEPOST_2 + 4,
+	SMCP_HEADER_ALLOW = SMCP_HEADER_FENCEPOST_2 + 5,
 };
 
 static inline const char* smcp_get_header_key_cstr(coap_header_key_t key)
@@ -124,6 +192,7 @@ static inline const char* smcp_get_header_key_cstr(coap_header_key_t key)
 	case SMCP_HEADER_URI_AUTHORITY: ret = "URI-authority"; break;
 	case SMCP_HEADER_LOCATION: ret = "Location"; break;
 	case SMCP_HEADER_URI_PATH: ret = "URI-path"; break;
+	case SMCP_HEADER_BLOCK: ret = "Block"; break;
 
 	case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
 	case SMCP_HEADER_NEXT: ret = "Next"; break;
@@ -131,14 +200,15 @@ static inline const char* smcp_get_header_key_cstr(coap_header_key_t key)
 	case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
 	case SMCP_HEADER_ALLOW: ret = "Allow"; break;
 	default:
-		if(key % 14) {
-			static char x[20];
-			sprintf(x, "unknown-%u", key);
-			ret = x;
-		} else {
-			ret = "Ignore";
-		}
-		break;
+	{
+		static char x[20];
+		if(key % 14)
+			sprintf(x, "Unknown-%u", key);
+		else
+			sprintf(x, "Ignore-%u", key);
+		ret = x;
+	}
+	break;
 	}
 	return ret;
 }
@@ -186,24 +256,23 @@ static inline coap_header_key_t smcp_get_header_key_from_cstr(
 
 
 typedef enum {
-	SMCP_METHOD_GET = 1,
-	SMCP_METHOD_POST = 2,
-	SMCP_METHOD_PUT = 3,    //!< @note UNUSED IN SMCP
-	SMCP_METHOD_DELETE = 4, //!< @note UNUSED IN SMCP
-	SMCP_METHOD_LIST = 5,
-//	SMCP_METHOD_OPTIONS = 6,
-	SMCP_METHOD_PAIR = 6,
-	SMCP_METHOD_UNPAIR = 7,
-} smcp_method_t;
-
-typedef enum {
 	SMCP_CONTENT_TYPE_TEXT_PLAIN = 0,
 	SMCP_CONTENT_TYPE_TEXT_XML = 1,
 	SMCP_CONTENT_TYPE_TEXT_CSV = 2,
 	SMCP_CONTENT_TYPE_TEXT_HTML = 3,
 
-	SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT = 40,
+	SMCP_CONTENT_TYPE_IMAGE_GIF = 21,
+	SMCP_CONTENT_TYPE_IMAGE_JPEG = 22,
+	SMCP_CONTENT_TYPE_IMAGE_PNG = 23,
+	SMCP_CONTENT_TYPE_IMAGE_TIFF = 24,
+
+
+	SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT = 40, //!< draft-shelby-core-link-format
+	SMCP_CONTENT_TYPE_APPLICATION_XML = 41,
 	SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM = 42,
+	SMCP_CONTENT_TYPE_APPLICATION_EXI = 47,
+
+	// Experimental after this point
 
 	SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED = 99, //!< SMCP Specific
 } smcp_content_type_t;

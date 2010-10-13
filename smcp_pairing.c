@@ -31,6 +31,7 @@
 #include <sys/socket.h>
 #include <net/if.h>
 #elif __CONTIKI__
+#include "resolv.h"
 #endif
 
 #include "smcp_pairing.h"
@@ -108,8 +109,9 @@ smcp_node_pair_with_uri(
 		"Unable to parse URL"
 	);
 
-	require_action(strcmp(proto_str,
-			"smcp") == 0, bail, ret = SMCP_STATUS_UNSUPPORTED_URI);
+	require_action((strcmp(proto_str,
+				"smcp") == 0) || (strcmp(proto_str,
+				"coap") == 0), bail, ret = SMCP_STATUS_UNSUPPORTED_URI);
 
 	if(port_str) {
 #if SMCP_USE_BSD_SOCKETS
@@ -162,9 +164,21 @@ smcp_node_pair_with_uri(
 		memcpy(&saddr, results->ai_addr, results->ai_addrlen);
 	}
 #elif __CONTIKI__
-	// TODO: We should be doing domain name resolution here too!
-	require_action(uiplib_ipaddrconv(addr_str,
-			&toaddr) != 0, bail, ret = SMCP_STATUS_FAILURE);
+	ret = uiplib_ipaddrconv(addr_str, &toaddr);
+	if(ret) {
+		uip_ipaddr_t *temp = resolv_lookup(addr_str);
+		if(temp) {
+			memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
+			ret = 0;
+		} else {
+			resolv_query(addr_str);
+			// TODO: We should be doing domain name resolution here too!
+		}
+	}
+	require_action_string(ret == SMCP_STATUS_OK,
+		bail,
+		ret = SMCP_STATUS_FAILURE,
+		"Unable to resolve hostname");
 #else
 #error TODO: Implement me!
 #endif
