@@ -79,10 +79,9 @@ list_response_handler(
 		resend_list_request(self);
 		return;
 	} else if(statuscode != SMCP_RESULT_CODE_OK) {
-		fprintf(stderr,
-			" *** RESULT CODE = %d (%s)\n",
-			statuscode,
-			smcp_code_to_cstr(statuscode));
+		fprintf(stderr, " *** RESULT CODE = %d (%s)\n", statuscode,
+			    (statuscode < 0) ? smcp_status_to_cstr(
+				statuscode) : smcp_code_to_cstr(statuscode));
 	}
 	if(content && content_length) {
 		coap_header_item_t *next_header;

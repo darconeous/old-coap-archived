@@ -53,12 +53,10 @@ post_response_handler(
 	socklen_t			socklen,
 	void*				context
 ) {
-	if((statuscode < 200) || (statuscode >= 300) && !(content_length)) {
-		fprintf(stderr,
-			" *** RESULT CODE = %d (%s)\n",
-			statuscode,
-			smcp_code_to_cstr(statuscode));
-	}
+	if((statuscode < 200) || (statuscode >= 300) && !(content_length))
+		fprintf(stderr, " *** RESULT CODE = %d (%s)\n", statuscode,
+			    (statuscode < 0) ? smcp_status_to_cstr(
+				statuscode) : smcp_code_to_cstr(statuscode));
 	if(content && (statuscode != SMCP_RESULT_CODE_ACK) &&
 	    content_length) {
 		char contentBuffer[500];

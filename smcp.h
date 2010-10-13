@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include <sys/errno.h>
 
 #ifdef __CONTIKI__
 #include "contiki.h"
@@ -156,6 +157,41 @@ static inline const char* smcp_code_to_cstr(int x) {
 	return "UNKNOWN";
 }
 
+enum {
+	SMCP_STATUS_OK                  = 0,
+	SMCP_STATUS_FAILURE             = -1,
+	SMCP_STATUS_INVALID_ARGUMENT    = -2,
+	SMCP_STATUS_BAD_NODE_TYPE       = -3,
+	SMCP_STATUS_UNSUPPORTED_URI     = -4,
+	SMCP_STATUS_ERRNO               = -5,
+	SMCP_STATUS_MALLOC_FAILURE      = -6,
+	SMCP_STATUS_HANDLER_INVALIDATED = -7,
+	SMCP_STATUS_TIMEOUT             = -8,
+	SMCP_STATUS_NOT_IMPLEMENTED     = -9,
+	SMCP_STATUS_NOT_FOUND           = -10,
+	SMCP_STATUS_H_ERRNO             = -11,
+};
+
+typedef int smcp_status_t;
+
+static inline const char* smcp_status_to_cstr(int x) {
+	switch(x) {
+	case SMCP_STATUS_OK: return "OK"; break;
+	case SMCP_STATUS_FAILURE: return "Unspecified Failure"; break;
+	case SMCP_STATUS_INVALID_ARGUMENT: return "Invalid Argument"; break;
+	case SMCP_STATUS_BAD_NODE_TYPE: return "Bad Node Type"; break;
+	case SMCP_STATUS_UNSUPPORTED_URI: return "Unsupported URI"; break;
+	case SMCP_STATUS_ERRNO: return strerror(errno); break;
+	case SMCP_STATUS_MALLOC_FAILURE: return "Malloc Failure"; break;
+	case SMCP_STATUS_HANDLER_INVALIDATED: return "Handler Invalidated";
+		break;
+	case SMCP_STATUS_TIMEOUT: return "Timeout"; break;
+	case SMCP_STATUS_NOT_IMPLEMENTED: return "Not Implemented"; break;
+	case SMCP_STATUS_NOT_FOUND: return "Not Found"; break;
+	case SMCP_STATUS_H_ERRNO: return "HERRNO"; break;
+	}
+	return NULL;
+}
 
 #define HEADER_CSTR_LEN     ((size_t)-1)
 
@@ -339,28 +375,10 @@ enum {
 	SMCP_PARING_FLAG_TEMPORARY = (1 << 2),
 };
 
-enum {
-	SMCP_STATUS_OK                  = 0,
-	SMCP_STATUS_FAILURE             = -1,
-	SMCP_STATUS_INVALID_ARGUMENT    = -2,
-	SMCP_STATUS_BAD_NODE_TYPE       = -3,
-	SMCP_STATUS_UNSUPPORTED_URI     = -4,
-	SMCP_STATUS_ERRNO               = -5,
-	SMCP_STATUS_MALLOC_FAILURE      = -6,
-	SMCP_STATUS_HANDLER_INVALIDATED = -7,
-	SMCP_STATUS_TIMEOUT             = -8,
-	SMCP_STATUS_NOT_IMPLEMENTED     = -9,
-	SMCP_STATUS_NOT_FOUND           = -10,
-	SMCP_STATUS_H_ERRNO             = -11,
-};
-
 
 enum {
 	SMCP_RESPONSE_HANDLER_ALWAYS_TIMEOUT = (1 << 0),
 };
-
-
-typedef int smcp_status_t;
 
 typedef int32_t cms_t;
 
