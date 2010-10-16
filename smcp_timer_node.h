@@ -24,6 +24,7 @@ smcp_timer_node_t smcp_timer_node_init(
 void smcp_timer_node_start(smcp_timer_node_t self);
 void smcp_timer_node_stop(smcp_timer_node_t self);
 void smcp_timer_node_reset(smcp_timer_node_t self);
+void smcp_timer_node_restart(smcp_timer_node_t self);
 void smcp_timer_node_set_autorestart(
 	smcp_timer_node_t self, bool x);
 

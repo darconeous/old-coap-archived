@@ -6,7 +6,7 @@
 */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 0
+#define VERBOSE_DEBUG 1
 #endif
 
 #ifndef DEBUG
@@ -1115,7 +1115,8 @@ smcp_daemon_handle_response(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		DEBUG_PRINTF(CSTR(
-				"smcp_daemon(%p): Incoming response! tid=%d"), self, tid);
+				"smcp_daemon(%p): Incoming response! tid=%d"), self,
+			smcp_daemon_get_current_tid(self));
 		DEBUG_PRINTF(CSTR("RESULT: %d"), statuscode);
 		coap_header_item_t *next_header;
 		unsigned char holder;
@@ -1256,7 +1257,8 @@ smcp_daemon_handle_request(
 	{   // Print out debugging information.
 		bool content_is_text;
 		DEBUG_PRINTF(CSTR(
-				"smcp_daemon(%p): Incoming request! tid=%d"), self, tid);
+				"smcp_daemon(%p): Incoming request! tid=%d"), self,
+			smcp_daemon_get_current_tid(self));
 		DEBUG_PRINTF(CSTR("REQUEST: \"%s\" \"%s\""),
 			get_method_string(method), path);
 		smcp_content_type_t content_type;

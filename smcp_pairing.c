@@ -451,15 +451,13 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_pair(
-	smcp_daemon_t			self,
-	smcp_node_t				node,
-	coap_transaction_id_t	tid,
-	smcp_method_t			method,
-	const char*				path,
-	coap_header_item_t		headers[],
-	const char*				content,
-	size_t					content_length,
-	SMCP_SOCKET_ARGS
+	smcp_daemon_t		self,
+	smcp_node_t			node,
+	smcp_method_t		method,
+	const char*			path,
+	coap_header_item_t	headers[],
+	const char*			content,
+	size_t				content_length
 ) {
 	smcp_status_t ret = 0;
 
@@ -472,16 +470,21 @@ smcp_daemon_handle_pair(
 			0);
 		goto bail;
 	}
+	char full_path[128];
+	smcp_node_get_path(node, full_path, sizeof(full_path));
+	strcat(full_path, path);
+	ret = smcp_daemon_pair_with_uri(
+		self,
+		full_path,
+		content,
+		0
+	    );
 
+	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 	ret = smcp_daemon_send_response(
 		self,
 		smcp_convert_status_to_result_code(
-			smcp_daemon_pair_with_uri(
-				self,
-				path,
-				content,
-				0
-			)
+			ret
 		),
 		NULL,
 		NULL,

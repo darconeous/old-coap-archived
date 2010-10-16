@@ -51,8 +51,8 @@ url_encode_cstr(
 			}
 
 			*dest++ = '%';
-			*dest++ = "0123456789abcdef"[src_char >> 4];
-			*dest++ = "0123456789abcdef"[src_char & 0xF];
+			*dest++ = "0123456789ABCDEF"[src_char >> 4];
+			*dest++ = "0123456789ABCDEF"[src_char & 0xF];
 			ret += 3;
 			max_size -= 3;
 		}
@@ -267,8 +267,9 @@ url_parse(
 		*path = uri;
 
 	// Move to the end of the path.
-	while((isurlchar(*uri) || (*uri == '/') ||
-	            (*uri == '?')) && (*uri != '#')) {
+	while((isurlchar(*uri) || (*uri == '/') || (*uri == '?') ||
+	            (*uri == '=') || (*uri == '&') ||
+	            (*uri == '%')) && (*uri != '#')) {
 		uri++;
 		bytes_parsed++;
 	}

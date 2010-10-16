@@ -8,6 +8,7 @@
 #include "url-helpers.h"
 #include "smcp_node.h"
 #include <string.h>
+#include <ctype.h>
 
 //////////////////////////////////////////////////////////////////
 
@@ -36,11 +37,13 @@ static const char list_content[] =
     "<running>,\n"
     "<running?v=1>;n=\"Start\",\n"
     "<running?v=0>;n=\"Stop\",\n"
+    "<running?v=!v>;n=\"Toggle\",\n"
     "<?reset>,\n"
+    "<?restart>,\n"
     "<!fire>,\n"
     "<period>,\n"
     "<remaining>,\n"
-    "<auto-restart>,\n"
+    "<autorestart>,\n"
 ;
 
 
@@ -72,7 +75,8 @@ void smcp_timer_node_fired(
 	check_string(!status, smcp_status_to_cstr(status));
 
 	if(self->autorestart)
-		smcp_timer_node_reset(self);
+		smcp_timer_node_restart(self);
+	self->remaining = 0;
 }
 
 void smcp_timer_node_start(smcp_timer_node_t self) {
@@ -105,10 +109,18 @@ void smcp_timer_node_toggle(smcp_timer_node_t self) {
 		smcp_timer_node_start(self);
 }
 
-void smcp_timer_node_reset(smcp_timer_node_t self) {
+void smcp_timer_node_restart(smcp_timer_node_t self) {
 	smcp_timer_node_stop(self);
 	self->remaining = self->period;
 	smcp_timer_node_start(self);
+}
+
+void smcp_timer_node_reset(smcp_timer_node_t self) {
+	if(smcp_daemon_timer_is_scheduled(self->smcpd_instance,
+			&self->timer) || self->remaining == 0)
+		smcp_timer_node_restart(self);
+	else
+		self->remaining = self->period;
 }
 
 int smcp_timer_node_get_remaining(smcp_timer_node_t self) {
@@ -175,7 +187,7 @@ smcp_timer_request_handler(
 		default:
 			break;
 		}
-	} else if(0 == strcmp(path, "running")) {
+	} else if(0 == strncmp(path, "running", 7)) {
 		if((method == SMCP_METHOD_GET)) {
 			char content[10];
 			snprintf(content,
@@ -198,51 +210,26 @@ smcp_timer_request_handler(
 			}
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
-			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_NOT_IMPLEMENTED,
-				reply_headers,
-				NULL,
-				0);
-		} else {
-			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_METHOD_NOT_ALLOWED,
-				reply_headers,
-				NULL,
-				0);
-		}
-	} else if(0 == strcmp(path, "running?v=1")) { // Start
-		if((method == SMCP_METHOD_PUT) || (method == SMCP_METHOD_POST)) {
-			smcp_timer_node_start((smcp_timer_node_t)node);
-			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_OK,
-				reply_headers,
-				NULL,
-				0);
-		} else {
-			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_METHOD_NOT_ALLOWED,
-				reply_headers,
-				NULL,
-				0);
-		}
-	} else if(0 == strcmp(path, "running?v=0")) { // Stop
-		if((method == SMCP_METHOD_PUT) || (method == SMCP_METHOD_POST)) {
-			smcp_timer_node_stop((smcp_timer_node_t)node);
-			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_OK,
-				reply_headers,
-				NULL,
-				0);
-		} else {
-			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_METHOD_NOT_ALLOWED,
-				reply_headers,
-				NULL,
-				0);
-		}
-	} else if(0 == strcmp(path, "running?toggle")) { // Toggle
-		if((method == SMCP_METHOD_PUT) || (method == SMCP_METHOD_POST)) {
-			smcp_timer_node_start((smcp_timer_node_t)node);
+			if((path[7] == '?') && (content_length == 0)) {
+				content = path + 8;
+				content_length = strlen(content);
+			}
+			char* key = NULL;
+			char* value = NULL;
+			while(url_form_next_value((char**)&content, &key,
+					&value) && key && value) {
+				if(0 == strcmp(key, "v")) {
+					if(isnumber(value[0])) {
+						if(strtol(value, NULL, 10))
+							smcp_timer_node_start((smcp_timer_node_t)node);
+						else
+							smcp_timer_node_stop((smcp_timer_node_t)node);
+					} else if(0 == strcmp(value, "!v")) {
+						smcp_timer_node_toggle((smcp_timer_node_t)node);
+					}
+					break;
+				}
+			}
 			smcp_daemon_send_response(self,
 				SMCP_RESULT_CODE_OK,
 				reply_headers,
@@ -270,13 +257,28 @@ smcp_timer_request_handler(
 				NULL,
 				0);
 		}
+	} else if(0 == strcmp(path, "?restart")) {
+		if((method == SMCP_METHOD_PUT) || (method == SMCP_METHOD_POST)) {
+			smcp_timer_node_reset((smcp_timer_node_t)node);
+			smcp_daemon_send_response(self,
+				SMCP_RESULT_CODE_OK,
+				reply_headers,
+				NULL,
+				0);
+		} else {
+			smcp_daemon_send_response(self,
+				SMCP_RESULT_CODE_METHOD_NOT_ALLOWED,
+				reply_headers,
+				NULL,
+				0);
+		}
 	} else if(0 == strcmp(path, "!fire")) {
 		smcp_daemon_send_response(self,
 			SMCP_RESULT_CODE_METHOD_NOT_ALLOWED,
 			reply_headers,
 			NULL,
 			0);
-	} else if(0 == strcmp(path, "period")) {
+	} else if(0 == strncmp(path, "period", 6)) {
 		if((method == SMCP_METHOD_GET)) {
 			char content[10];
 			snprintf(content, sizeof(content), "v=%d",
@@ -288,8 +290,24 @@ smcp_timer_request_handler(
 				strlen(content));
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
+			if((path[6] == '?') && (content_length == 0)) {
+				content = path + 7;
+				content_length = strlen(content);
+			}
+			char* key = NULL;
+			char* value = NULL;
+			while(url_form_next_value((char**)&content, &key,
+					&value) && key && value) {
+				if(0 == strcmp(key, "v")) {
+					    ((smcp_timer_node_t)node)->period = strtol(value,
+						NULL,
+						10);
+					break;
+				}
+			}
+
 			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_NOT_IMPLEMENTED,
+				SMCP_RESULT_CODE_OK,
 				reply_headers,
 				NULL,
 				0);
@@ -300,7 +318,7 @@ smcp_timer_request_handler(
 				NULL,
 				0);
 		}
-	} else if(0 == strcmp(path, "remaining")) {
+	} else if(0 == strncmp(path, "remaining", 9)) {
 		if((method == SMCP_METHOD_GET)) {
 			char content[10];
 			snprintf(content,
@@ -314,8 +332,33 @@ smcp_timer_request_handler(
 				strlen(content));
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
+			if((path[9] == '?') && (content_length == 0)) {
+				content = path + 10;
+				content_length = strlen(content);
+			}
+			char* key = NULL;
+			char* value = NULL;
+			while(url_form_next_value((char**)&content, &key,
+					&value) && key && value) {
+				if(0 == strcmp(key, "v")) {
+					    ((smcp_timer_node_t)node)->remaining = strtol(
+						value,
+						NULL,
+						10);
+					if(smcp_daemon_timer_is_scheduled(self,
+							&((smcp_timer_node_t)node)->timer)) {
+						smcp_daemon_invalidate_timer(self,
+							&((smcp_timer_node_t)node)->timer);
+						smcp_daemon_schedule_timer(self,
+							&((smcp_timer_node_t)node)->timer,
+							    ((smcp_timer_node_t)node)->remaining);
+					}
+
+					break;
+				}
+			}
 			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_NOT_IMPLEMENTED,
+				SMCP_RESULT_CODE_OK,
 				reply_headers,
 				NULL,
 				0);
@@ -326,7 +369,7 @@ smcp_timer_request_handler(
 				NULL,
 				0);
 		}
-	} else if(0 == strcmp(path, "auto-restart")) {
+	} else if(0 == strncmp(path, "autorestart", 11)) {
 		if((method == SMCP_METHOD_GET)) {
 			if(((smcp_timer_node_t)node)->autorestart) {
 				smcp_daemon_send_response(self,
@@ -343,8 +386,24 @@ smcp_timer_request_handler(
 			}
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
+			if((path[11] == '?') && (content_length == 0)) {
+				content = path + 12;
+				content_length = strlen(content);
+			}
+			char* key = NULL;
+			char* value = NULL;
+			while(url_form_next_value((char**)&content, &key,
+					&value) && key && value) {
+				if(0 == strcmp(key, "v")) {
+					    ((smcp_timer_node_t)node)->autorestart = !!strtol(
+						value,
+						NULL,
+						10);
+					break;
+				}
+			}
 			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_NOT_IMPLEMENTED,
+				SMCP_RESULT_CODE_OK,
 				reply_headers,
 				NULL,
 				0);
@@ -387,13 +446,16 @@ smcp_timer_node_init(
 			name
 		), bail);
 
+	// Need to add this until I re-write pairing.
+	smcp_node_init_event(NULL, &self->node, "fire");
+
 	    ((smcp_device_node_t)&self->node)->unhandled_request =
 	    &smcp_timer_request_handler;
 
 	smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);
 
 	self->autorestart = true;
-	self->period = 15 * MSEC_PER_SEC;
+	self->period = 5 * MSEC_PER_SEC;
 	self->smcpd_instance = smcp;
 
 bail:
