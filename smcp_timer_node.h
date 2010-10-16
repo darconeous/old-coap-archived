@@ -8,8 +8,8 @@ typedef struct smcp_timer_node_s {
 	struct smcp_node_s	node;
 	struct smcp_timer_s timer;
 	smcp_daemon_t		smcpd_instance;
-	int					period;
-	int					remaining;
+	uint32_t			period;
+	uint32_t			remaining;
 	bool				autorestart;
 } *smcp_timer_node_t;
 

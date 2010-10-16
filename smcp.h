@@ -185,7 +185,12 @@ static inline const char* smcp_status_to_cstr(int x) {
 	case SMCP_STATUS_INVALID_ARGUMENT: return "Invalid Argument"; break;
 	case SMCP_STATUS_BAD_NODE_TYPE: return "Bad Node Type"; break;
 	case SMCP_STATUS_UNSUPPORTED_URI: return "Unsupported URI"; break;
-	case SMCP_STATUS_ERRNO: return strerror(errno); break;
+	case SMCP_STATUS_ERRNO:
+#if 1
+		return "ERRNO"; break;
+#else
+		return strerror(errno); break;
+#endif
 	case SMCP_STATUS_MALLOC_FAILURE: return "Malloc Failure"; break;
 	case SMCP_STATUS_HANDLER_INVALIDATED: return "Handler Invalidated";
 		break;

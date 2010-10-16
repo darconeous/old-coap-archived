@@ -163,6 +163,7 @@ smcp_timer_request_handler(
 				next_header);
 	}
 
+	// TODO: Clean this up!
 	if(0 == strcmp(path, "")) {
 		switch(method) {
 		case SMCP_METHOD_GET:
@@ -210,7 +211,7 @@ smcp_timer_request_handler(
 			}
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
-			if((path[7] == '?') && (content_length == 0)) {
+			if((path[7] == '?')) {
 				content = path + 8;
 				content_length = strlen(content);
 			}
@@ -219,7 +220,7 @@ smcp_timer_request_handler(
 			while(url_form_next_value((char**)&content, &key,
 					&value) && key && value) {
 				if(0 == strcmp(key, "v")) {
-					if(isnumber(value[0])) {
+					if(isdigit(value[0])) {
 						if(strtol(value, NULL, 10))
 							smcp_timer_node_start((smcp_timer_node_t)node);
 						else
@@ -290,7 +291,7 @@ smcp_timer_request_handler(
 				strlen(content));
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
-			if((path[6] == '?') && (content_length == 0)) {
+			if((path[6] == '?')) {
 				content = path + 7;
 				content_length = strlen(content);
 			}
@@ -332,7 +333,7 @@ smcp_timer_request_handler(
 				strlen(content));
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
-			if((path[9] == '?') && (content_length == 0)) {
+			if((path[9] == '?')) {
 				content = path + 10;
 				content_length = strlen(content);
 			}
@@ -386,7 +387,7 @@ smcp_timer_request_handler(
 			}
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
-			if((path[11] == '?') && (content_length == 0)) {
+			if((path[11] == '?')) {
 				content = path + 12;
 				content_length = strlen(content);
 			}

@@ -1,6 +1,6 @@
 #include "assert_macros.h"
 #include "smcp_timer.h"
-#define VERBOSE_DEBUG 1
+//#define VERBOSE_DEBUG 1
 #include <stdio.h>
 #include "smcp.h"
 #include "url-helpers.h"
