@@ -45,7 +45,7 @@ static int retries = 0;
 static char url_data[128];
 static char next_data[128];
 static size_t next_len = HEADER_CSTR_LEN;
-static int smcp_rtt = 100;
+static int smcp_rtt = 120;
 
 int calc_retransmit_timeout(int retries) {
 	int ret = smcp_rtt;
@@ -71,14 +71,13 @@ list_response_handler(
 	coap_header_item_t	headers[],
 	char*				content,
 	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen,
 	void*				context
 ) {
 	if(statuscode == SMCP_STATUS_TIMEOUT && (retries++ < 8)) {
 		resend_list_request(self);
 		return;
-	} else if(statuscode != SMCP_RESULT_CODE_OK) {
+	} else if((statuscode != SMCP_RESULT_CODE_OK) &&
+	        (statuscode != SMCP_RESULT_CODE_PARTIAL_CONTENT)) {
 		fprintf(stderr, " *** RESULT CODE = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : smcp_code_to_cstr(statuscode));
@@ -91,7 +90,7 @@ list_response_handler(
 		    smcp_header_item_get_key(next_header);
 		    next_header = smcp_header_item_next(next_header)) {
 			if(smcp_header_item_key_equal(next_header,
-					SMCP_HEADER_CONTENT_TYPE))
+					COAP_HEADER_CONTENT_TYPE))
 				content_type = (unsigned char)next_header->value[0];
 		}
 
@@ -134,7 +133,9 @@ list_response_handler(
 			    smcp_header_item_get_key(next_header);
 			    next_header = smcp_header_item_next(next_header)) {
 				if(smcp_header_item_key_equal(next_header,
-						SMCP_HEADER_MORE)) {
+						COAP_HEADER_NEXT) ||
+				    smcp_header_item_key_equal(next_header,
+						COAP_HEADER_MORE)) {
 					char* next = smcp_header_item_get_value(next_header);
 					if(0 == smcp_header_item_get_value_len(next_header)) {
 						// In this case we need to use
@@ -162,12 +163,12 @@ bool
 resend_list_request(smcp_daemon_t smcp) {
 	bool ret = false;
 	smcp_status_t status = 0;
-	coap_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
+	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
 
 	if(next_data[0]) {
 		util_add_header(headers,
 			SMCP_MAX_HEADERS,
-			SMCP_HEADER_NEXT,
+			COAP_HEADER_NEXT,
 			next_data,
 			next_len);
 	}
@@ -192,11 +193,7 @@ resend_list_request(smcp_daemon_t smcp) {
 	status = smcp_daemon_send_request_to_url(
 		smcp,
 		tid,
-#if 0
-		SMCP_METHOD_LIST,
-#else
 		SMCP_METHOD_GET,
-#endif
 		url_data,
 		headers,
 		NULL,

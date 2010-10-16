@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		8DD76FAC0486AB0100D96B5E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* main.c */; settings = {ATTRIBUTES = (); }; };
-		8DD76FB00486AB0100D96B5E /* SMCP.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6A0FF2C0290799A04C91782 /* SMCP.1 */; };
+		8DD76FB00486AB0100D96B5E /* smcpctl.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6A0FF2C0290799A04C91782 /* smcpctl.1 */; };
 		A6078D32122DAC2F0034291D /* smcp_pairing.c in Sources */ = {isa = PBXBuildFile; fileRef = A6078D31122DAC2F0034291D /* smcp_pairing.c */; };
 		A6078D35122DAC3F0034291D /* smcp_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A6078D34122DAC3F0034291D /* smcp_node.c */; };
 		A60E57F2116DBA7000F90E64 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E57F1116DBA7000F90E64 /* smcp.c */; };
@@ -22,6 +22,8 @@
 		A6C6C47A121B2CF500CAB3A3 /* help.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C479121B2CF500CAB3A3 /* help.c */; };
 		A6C6C4E9121B52C200CAB3A3 /* cmd_test.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C4E8121B52C200CAB3A3 /* cmd_test.c */; };
 		A6C6C4EC121B536F00CAB3A3 /* cmd_list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C6C4EB121B536F00CAB3A3 /* cmd_list.c */; };
+		A6EB0F881268CBE200DEB616 /* smcp_timer.c in Sources */ = {isa = PBXBuildFile; fileRef = A6EB0F871268CBE200DEB616 /* smcp_timer.c */; };
+		A6EB0F8B1268CF1700DEB616 /* smcp_timer_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A6EB0F8A1268CF1700DEB616 /* smcp_timer_node.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -31,7 +33,7 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
-				8DD76FB00486AB0100D96B5E /* SMCP.1 in CopyFiles */,
+				8DD76FB00486AB0100D96B5E /* smcpctl.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -39,7 +41,7 @@
 
 /* Begin PBXFileReference section */
 		08FB7796FE84155DC02AAC07 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		8DD76FB20486AB0100D96B5E /* SMCP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SMCP; sourceTree = BUILT_PRODUCTS_DIR; };
+		8DD76FB20486AB0100D96B5E /* smcpctl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = smcpctl; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6078D30122DAC2F0034291D /* smcp_pairing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_pairing.h; sourceTree = "<group>"; };
 		A6078D31122DAC2F0034291D /* smcp_pairing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp_pairing.c; sourceTree = "<group>"; };
 		A6078D33122DAC3F0034291D /* smcp_node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_node.h; sourceTree = "<group>"; };
@@ -69,7 +71,12 @@
 		A6C6C4EA121B536F00CAB3A3 /* cmd_list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cmd_list.h; sourceTree = "<group>"; };
 		A6C6C4EB121B536F00CAB3A3 /* cmd_list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cmd_list.c; sourceTree = "<group>"; };
 		A6D20003123EE8D800DA5A12 /* smcp_helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_helpers.h; sourceTree = "<group>"; };
-		C6A0FF2C0290799A04C91782 /* SMCP.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = SMCP.1; sourceTree = "<group>"; };
+		A6EB0F861268CBE200DEB616 /* smcp_timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_timer.h; sourceTree = "<group>"; };
+		A6EB0F871268CBE200DEB616 /* smcp_timer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp_timer.c; sourceTree = "<group>"; };
+		A6EB0F891268CF1700DEB616 /* smcp_timer_node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_timer_node.h; sourceTree = "<group>"; };
+		A6EB0F8A1268CF1700DEB616 /* smcp_timer_node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp_timer_node.c; sourceTree = "<group>"; };
+		A6EB0FA01268D55000DEB616 /* smcp_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_internal.h; sourceTree = "<group>"; };
+		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = smcpctl.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -102,6 +109,7 @@
 				A6C6C40E121AF50900CAB3A3 /* Utils */,
 				A60E57F0116DBA7000F90E64 /* smcp.h */,
 				A60E57F1116DBA7000F90E64 /* smcp.c */,
+				A6EB0FA01268D55000DEB616 /* smcp_internal.h */,
 				A6078D30122DAC2F0034291D /* smcp_pairing.h */,
 				A6078D31122DAC2F0034291D /* smcp_pairing.c */,
 				A6078D33122DAC3F0034291D /* smcp_node.h */,
@@ -110,6 +118,10 @@
 				A62E6950123E8B610048F877 /* smcp_logging.h */,
 				A6C4EA0E1263DA6600E75D94 /* coap.h */,
 				A6C4EA0F1263DA6600E75D94 /* coap.c */,
+				A6EB0F861268CBE200DEB616 /* smcp_timer.h */,
+				A6EB0F871268CBE200DEB616 /* smcp_timer.c */,
+				A6EB0F891268CF1700DEB616 /* smcp_timer_node.h */,
+				A6EB0F8A1268CF1700DEB616 /* smcp_timer_node.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -117,7 +129,7 @@
 		1AB674ADFE9D54B511CA2CBB /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8DD76FB20486AB0100D96B5E /* SMCP */,
+				8DD76FB20486AB0100D96B5E /* smcpctl */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -158,7 +170,7 @@
 		C6A0FF2B0290797F04C91782 /* Documentation */ = {
 			isa = PBXGroup;
 			children = (
-				C6A0FF2C0290799A04C91782 /* SMCP.1 */,
+				C6A0FF2C0290799A04C91782 /* smcpctl.1 */,
 			);
 			name = Documentation;
 			sourceTree = "<group>";
@@ -166,9 +178,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		8DD76FA90486AB0100D96B5E /* SMCP */ = {
+		8DD76FA90486AB0100D96B5E /* smcpctl */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "SMCP" */;
+			buildConfigurationList = 1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "smcpctl" */;
 			buildPhases = (
 				8DD76FAB0486AB0100D96B5E /* Sources */,
 				8DD76FAD0486AB0100D96B5E /* Frameworks */,
@@ -178,10 +190,10 @@
 			);
 			dependencies = (
 			);
-			name = SMCP;
+			name = smcpctl;
 			productInstallPath = "$(HOME)/bin";
 			productName = SHAP;
-			productReference = 8DD76FB20486AB0100D96B5E /* SMCP */;
+			productReference = 8DD76FB20486AB0100D96B5E /* smcpctl */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -206,7 +218,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8DD76FA90486AB0100D96B5E /* SMCP */,
+				8DD76FA90486AB0100D96B5E /* smcpctl */,
 			);
 		};
 /* End PBXProject section */
@@ -229,6 +241,8 @@
 				A66F2DB2125C05D900CDDAF0 /* cmd_pair.c in Sources */,
 				A6601206125D17EB00B06DF7 /* url-helpers.c in Sources */,
 				A6C4EA101263DA6600E75D94 /* coap.c in Sources */,
+				A6EB0F881268CBE200DEB616 /* smcp_timer.c in Sources */,
+				A6EB0F8B1268CF1700DEB616 /* smcp_timer_node.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,7 +259,7 @@
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INSTALL_PATH = /usr/local/bin;
-				PRODUCT_NAME = SMCP;
+				PRODUCT_NAME = smcpctl;
 			};
 			name = Debug;
 		};
@@ -256,7 +270,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = /usr/local/bin;
-				PRODUCT_NAME = SMCP;
+				PRODUCT_NAME = smcpctl;
 			};
 			name = Release;
 		};
@@ -289,7 +303,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "SMCP" */ = {
+		1DEB928508733DD80010E9CD /* Build configuration list for PBXNativeTarget "smcpctl" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1DEB928608733DD80010E9CD /* Debug */,

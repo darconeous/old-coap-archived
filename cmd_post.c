@@ -49,8 +49,6 @@ post_response_handler(
 	coap_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen,
 	void*				context
 ) {
 	if((statuscode < 200) || (statuscode >= 300) && !(content_length))
@@ -85,14 +83,14 @@ send_post_request(
 	int				content_len
 ) {
 	bool ret = false;
-	coap_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
+	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
 
 	tid = SMCP_FUNC_RANDOM_UINT32();
 	//static char tid_str[30];
 
 	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
 
-	//util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_ID,tid_str);
+	//util_add_header(headers,SMCP_MAX_HEADERS,COAP_HEADER_ID,tid_str);
 
 	postIsDone = false;
 

@@ -46,8 +46,6 @@ pair_response_handler(
 	coap_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length,
-	struct sockaddr*	saddr,
-	socklen_t			socklen,
 	void*				context
 ) {
 	if((statuscode < 200) || (statuscode >= 300)) {
@@ -81,7 +79,7 @@ send_pair_request(
 	smcp_daemon_t smcp, const char* url, const char* url2
 ) {
 	bool ret = false;
-	coap_header_item_t headers[SMCP_MAX_HEADERS * 2 + 1] = {  };
+	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
 	coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
 
 	//static char tid_str[30];
@@ -90,7 +88,7 @@ send_pair_request(
 
 	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
 
-//	util_add_header(headers,SMCP_MAX_HEADERS,SMCP_HEADER_ID,tid_str);
+//	util_add_header(headers,SMCP_MAX_HEADERS,COAP_HEADER_ID,tid_str);
 
 	if(strcmp(url, url2) == 0) {
 		fprintf(stderr, "Pairing a URL to itself is invalid.\n");

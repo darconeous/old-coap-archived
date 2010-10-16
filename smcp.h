@@ -24,6 +24,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/errno.h>
 
@@ -83,6 +84,7 @@ enum {
 	SMCP_RESULT_CODE_OK = 200,
 	SMCP_RESULT_CODE_CREATED = 201,
 	SMCP_RESULT_CODE_ACK = 204,
+	SMCP_RESULT_CODE_PARTIAL_CONTENT = 206,
 
 	SMCP_RESULT_CODE_NOT_MODIFIED = 304,
 
@@ -94,6 +96,7 @@ enum {
 	SMCP_RESULT_CODE_CONFLICT = 409,
 	SMCP_RESULT_CODE_GONE = 410,
 	SMCP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE = 415,
+	SMCP_RESULT_CODE_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
 
 	SMCP_RESULT_CODE_INTERNAL_SERVER_ERROR = 500,
 	SMCP_RESULT_CODE_NOT_IMPLEMENTED = 501,
@@ -113,7 +116,6 @@ typedef enum {
 
 	SMCP_METHOD_PAIR = 11,
 	SMCP_METHOD_UNPAIR = 12,
-	SMCP_METHOD_LIST = 20,  //!< Deprecated.
 } smcp_method_t;
 
 static inline const char* smcp_code_to_cstr(int x) {
@@ -122,7 +124,7 @@ static inline const char* smcp_code_to_cstr(int x) {
 	case SMCP_METHOD_POST: return "POST"; break;
 	case SMCP_METHOD_PUT: return "PUT"; break;
 	case SMCP_METHOD_DELETE: return "DELETE"; break;
-	case SMCP_METHOD_LIST: return "LIST"; break;
+
 	case SMCP_METHOD_PAIR: return "PAIR"; break;
 	case SMCP_METHOD_UNPAIR: return "UNPAIR"; break;
 
@@ -130,6 +132,7 @@ static inline const char* smcp_code_to_cstr(int x) {
 	case SMCP_RESULT_CODE_OK: return "OK"; break;
 	case SMCP_RESULT_CODE_CREATED: return "CREATED"; break;
 	case SMCP_RESULT_CODE_ACK: return "ACK"; break;
+	case SMCP_RESULT_CODE_PARTIAL_CONTENT: return "PARTIAL_CONTENT"; break;
 
 	case SMCP_RESULT_CODE_NOT_MODIFIED: return "NOT_MODIFIED"; break;
 
@@ -170,6 +173,7 @@ enum {
 	SMCP_STATUS_NOT_IMPLEMENTED     = -9,
 	SMCP_STATUS_NOT_FOUND           = -10,
 	SMCP_STATUS_H_ERRNO             = -11,
+	SMCP_STATUS_RESPONSE_NOT_ALLOWED = -12,
 };
 
 typedef int smcp_status_t;
@@ -189,52 +193,43 @@ static inline const char* smcp_status_to_cstr(int x) {
 	case SMCP_STATUS_NOT_IMPLEMENTED: return "Not Implemented"; break;
 	case SMCP_STATUS_NOT_FOUND: return "Not Found"; break;
 	case SMCP_STATUS_H_ERRNO: return "HERRNO"; break;
+	case SMCP_STATUS_RESPONSE_NOT_ALLOWED: return "Response not allowed";
+		break;
 	}
 	return NULL;
 }
 
 #define HEADER_CSTR_LEN     ((size_t)-1)
 
-enum {
-	SMCP_HEADER_CONTENT_TYPE = 1,
-	SMCP_HEADER_MAX_AGE = 2,
-	SMCP_HEADER_ETAG = 4,
-	SMCP_HEADER_URI_AUTHORITY = 5,
-	SMCP_HEADER_LOCATION = 6,
-	SMCP_HEADER_URI_PATH = 9,
-
-	SMCP_HEADER_BLOCK = 13,         //!< draft-bormann-core-coap-block-00
-
-	SMCP_HEADER_FENCEPOST_1 = 14,
-	SMCP_HEADER_FENCEPOST_2 = 28,
-
-	// Experimental after this point
-
-	SMCP_HEADER_CSEQ = SMCP_HEADER_FENCEPOST_2 + 1,
-	SMCP_HEADER_MORE = SMCP_HEADER_FENCEPOST_2 + 2,
-	SMCP_HEADER_NEXT = SMCP_HEADER_FENCEPOST_2 + 3,
-	SMCP_HEADER_ORIGIN = SMCP_HEADER_FENCEPOST_2 + 4,
-	SMCP_HEADER_ALLOW = SMCP_HEADER_FENCEPOST_2 + 5,
-};
-
 static inline const char* smcp_get_header_key_cstr(coap_header_key_t key)
 {
 	const char* ret = NULL;
 
 	switch(key) {
-	case SMCP_HEADER_CONTENT_TYPE: ret = "Content-type"; break;
-	case SMCP_HEADER_MAX_AGE: ret = "Max-age"; break;
-	case SMCP_HEADER_ETAG: ret = "Etag"; break;
-	case SMCP_HEADER_URI_AUTHORITY: ret = "URI-authority"; break;
-	case SMCP_HEADER_LOCATION: ret = "Location"; break;
-	case SMCP_HEADER_URI_PATH: ret = "URI-path"; break;
-	case SMCP_HEADER_BLOCK: ret = "Block"; break;
+	case COAP_HEADER_CONTENT_TYPE: ret = "Content-type"; break;
+	case COAP_HEADER_MAX_AGE: ret = "Max-age"; break;
+	case COAP_HEADER_ETAG: ret = "Etag"; break;
+	case COAP_HEADER_URI_AUTHORITY: ret = "URI-authority"; break;
+	case COAP_HEADER_LOCATION: ret = "Location"; break;
+	case COAP_HEADER_URI_PATH: ret = "URI-path"; break;
 
-	case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
-	case SMCP_HEADER_NEXT: ret = "Next"; break;
-	case SMCP_HEADER_MORE: ret = "More"; break;
-	case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
-	case SMCP_HEADER_ALLOW: ret = "Allow"; break;
+	case COAP_HEADER_URI_SCHEME: ret = "URI-scheme"; break;
+	case COAP_HEADER_URI_AUTHORITY_BINARY: ret = "URI-authority-binary";
+		break;
+	case COAP_HEADER_ACCEPT: ret = "Accept"; break;
+	case COAP_HEADER_DATE: ret = "Date"; break;
+	case COAP_HEADER_TOKEN: ret = "Token"; break;
+	case COAP_HEADER_BLOCK: ret = "Block"; break;
+	case COAP_HEADER_PAYLOAD_LENGTH: ret = "Payload-length"; break;
+
+	case COAP_HEADER_CSEQ: ret = "Cseq"; break;
+	case COAP_HEADER_NEXT: ret = "Next"; break;
+	case COAP_HEADER_MORE: ret = "More"; break;
+	case COAP_HEADER_ORIGIN: ret = "Origin"; break;
+	case COAP_HEADER_ALLOW: ret = "Allow"; break;
+
+	case COAP_HEADER_RANGE: ret = "Range"; break;
+
 	default:
 	{
 		static char x[20];
@@ -252,27 +247,27 @@ static inline const char* smcp_get_header_key_cstr(coap_header_key_t key)
 static inline coap_header_key_t smcp_get_header_key_from_cstr(
 	const char* key) {
 	if(strcasecmp(key, "Content-type") == 0)
-		return SMCP_HEADER_CONTENT_TYPE;
+		return COAP_HEADER_CONTENT_TYPE;
 	else if(strcasecmp(key, "Max-age") == 0)
-		return SMCP_HEADER_MAX_AGE;
+		return COAP_HEADER_MAX_AGE;
 	else if(strcasecmp(key, "Etag") == 0)
-		return SMCP_HEADER_ETAG;
+		return COAP_HEADER_ETAG;
 	else if(strcasecmp(key, "URI-authority") == 0)
-		return SMCP_HEADER_URI_AUTHORITY;
+		return COAP_HEADER_URI_AUTHORITY;
 	else if(strcasecmp(key, "Location") == 0)
-		return SMCP_HEADER_LOCATION;
+		return COAP_HEADER_LOCATION;
 	else if(strcasecmp(key, "URI-path") == 0)
-		return SMCP_HEADER_URI_PATH;
+		return COAP_HEADER_URI_PATH;
 	else if(strcasecmp(key, "Cseq") == 0)
-		return SMCP_HEADER_CSEQ;
+		return COAP_HEADER_CSEQ;
 	else if(strcasecmp(key, "Next") == 0)
-		return SMCP_HEADER_NEXT;
+		return COAP_HEADER_NEXT;
 	else if(strcasecmp(key, "More") == 0)
-		return SMCP_HEADER_MORE;
+		return COAP_HEADER_MORE;
 	else if(strcasecmp(key, "Origin") == 0)
-		return SMCP_HEADER_ORIGIN;
+		return COAP_HEADER_ORIGIN;
 	else if(strcasecmp(key, "Allow") == 0)
-		return SMCP_HEADER_ALLOW;
+		return COAP_HEADER_ALLOW;
 
 	return 0;
 }
@@ -384,7 +379,7 @@ typedef int32_t cms_t;
 
 typedef void (*smcp_response_handler_func)(smcp_daemon_t self,
     int statuscode, coap_header_item_t headers[], const char* content,
-    size_t content_length, SMCP_SOCKET_ARGS, void* context);
+    size_t content_length, void* context);
 
 typedef enum smcp_node_type_t {
 	SMCP_NODE_DEVICE,
@@ -392,6 +387,8 @@ typedef enum smcp_node_type_t {
 	SMCP_NODE_ACTION,   //!< Deprecated
 	SMCP_NODE_EVENT,    //!< Deprecated
 } smcp_node_type_t;
+
+extern int smcp_convert_status_to_result_code(smcp_status_t status);
 
 
 extern smcp_daemon_t smcp_daemon_create(uint16_t port);
@@ -406,22 +403,6 @@ extern smcp_status_t smcp_daemon_process(
 extern cms_t smcp_daemon_get_timeout(smcp_daemon_t self);
 
 extern smcp_node_t smcp_daemon_get_root_node(smcp_daemon_t self);
-
-extern smcp_status_t smcp_daemon_trigger_event(
-	smcp_daemon_t		self,
-	const char*			path,
-	const char*			content,
-	size_t				content_length,
-	smcp_content_type_t content_type);
-extern smcp_status_t smcp_daemon_trigger_event_for_node(
-	smcp_daemon_t		self,
-	smcp_event_node_t	node,
-	const char*			content,
-	size_t				content_length,
-	smcp_content_type_t content_type);
-
-extern smcp_status_t smcp_daemon_refresh_variable(
-	smcp_daemon_t daemon, smcp_variable_node_t node);
 
 extern smcp_status_t smcp_daemon_add_response_handler(
 	smcp_daemon_t				self,
@@ -451,6 +432,13 @@ extern smcp_status_t smcp_daemon_send_request_to_url(
 	const char*				content,
 	size_t					content_length);
 
+extern smcp_status_t smcp_daemon_send_response(
+	smcp_daemon_t		self,
+	int					statuscode,
+	coap_header_item_t	headers[],
+	const char*			content,
+	size_t				content_length);
+
 #pragma mark -
 #pragma mark Network Interface
 
@@ -470,29 +458,73 @@ extern smcp_status_t smcp_daemon_handle_inbound_packet(
 #pragma mark -
 #pragma mark Node Functions
 
-extern smcp_device_node_t smcp_node_add_subdevice(
-	smcp_node_t node, const char* name);
-extern smcp_action_node_t smcp_node_add_action(
-	smcp_node_t node, const char* name);                                            //!< Deprecated
-extern smcp_variable_node_t smcp_node_add_variable(
-	smcp_node_t node, const char* name);
-extern smcp_event_node_t smcp_node_add_event(
-	smcp_node_t node, const char* name);                                            //!< Deprecated
+extern smcp_node_t smcp_node_alloc();
+
+extern smcp_device_node_t smcp_node_init_subdevice(
+	smcp_node_t self, smcp_node_t parent, const char* name);
+extern smcp_variable_node_t smcp_node_init_variable(
+	smcp_node_t self, smcp_node_t parent, const char* name);
+extern smcp_action_node_t smcp_node_init_action(
+	smcp_node_t self, smcp_node_t parent, const char* name);
+extern smcp_event_node_t smcp_node_init_event(
+	smcp_node_t self, smcp_node_t parent, const char* name);
+
+
+/*
+   extern smcp_device_node_t smcp_node_init_subdevice(NULL,smcp_node_t node,const char* name);
+   extern smcp_variable_node_t smcp_node_init_variable(NULL,smcp_node_t node,const char* name);
+   extern smcp_action_node_t smcp_node_init_action(NULL,smcp_node_t node,const char* name);	//!< Deprecated
+   extern smcp_event_node_t smcp_node_init_event(NULL,smcp_node_t node,const char* name);	//!< Deprecated
+ */
+
 extern void smcp_node_delete(smcp_node_t node);
 extern smcp_status_t smcp_node_get_path(
 	smcp_node_t node, char* path, size_t max_path_len);
 extern smcp_node_t smcp_node_find_with_path(
 	smcp_node_t node, const char* path);
-
-
-extern smcp_status_t smcp_daemon_pair_with_uri(
-	smcp_daemon_t self, const char* path, const char* uri, int flags);
-
-
 extern int smcp_node_find_closest_with_path(
 	smcp_node_t node, const char* path, smcp_node_t* closest);
 extern int smcp_node_find_next_with_path(
 	smcp_node_t node, const char* path, smcp_node_t* next);
+
+extern smcp_status_t smcp_default_request_handler(
+	smcp_daemon_t		self,
+	smcp_node_t			node,
+	smcp_method_t		method,
+	const char*			relative_path,
+	coap_header_item_t	headers[],
+	const char*			content,
+	size_t				content_length);
+
+#pragma mark -
+#pragma mark Pairing Functions
+
+extern smcp_status_t smcp_daemon_pair_with_uri(
+	smcp_daemon_t self, const char* path, const char* uri, int flags);
+extern smcp_status_t smcp_daemon_trigger_event(
+	smcp_daemon_t		self,
+	const char*			path,
+	const char*			content,
+	size_t				content_length,
+	smcp_content_type_t content_type);
+extern smcp_status_t smcp_daemon_refresh_variable(
+	smcp_daemon_t daemon, smcp_variable_node_t node);
+
+
+coap_transaction_id_t smcp_daemon_get_current_tid(smcp_daemon_t self);
+
+#if SMCP_USE_BSD_SOCKETS
+extern struct sockaddr* smcp_daemon_get_current_request_saddr(
+	smcp_daemon_t self);
+extern socklen_t smcp_daemon_get_current_request_socklen(
+	smcp_daemon_t self);
+#elif defined(__CONTIKI__)
+extern const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr(
+	smcp_daemon_t self);
+extern const uint16_t smcp_daemon_get_current_request_ipport(
+	smcp_daemon_t self);
+#endif
+
 
 __END_DECLS
 

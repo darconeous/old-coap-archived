@@ -41,16 +41,18 @@
 #pragma mark -
 #pragma mark Node Funcs
 
-smcp_node_t
-smcp_node_alloc() {
-	return (smcp_node_t)calloc(sizeof(struct smcp_node_s), 1);
-}
-
 void
 smcp_node_dealloc(smcp_node_t x) {
 	free(x);
 }
 
+smcp_node_t
+smcp_node_alloc() {
+	smcp_node_t ret = (smcp_node_t)calloc(sizeof(struct smcp_node_s), 1);
+
+	ret->finalize = &smcp_node_dealloc;
+	return ret;
+}
 
 static bt_compare_result_t
 smcp_node_compare(
@@ -103,16 +105,19 @@ smcp_node_ncompare_cstr(
 }
 
 smcp_device_node_t
-smcp_node_add_subdevice(
-	smcp_node_t node, const char* name
+smcp_node_init_subdevice(
+	smcp_node_t self, smcp_node_t node, const char* name
 ) {
 	smcp_device_node_t ret = NULL;
 
 	require(!node || (node->type == SMCP_NODE_DEVICE), bail);
 
-	ret = (smcp_device_node_t)smcp_node_alloc();
+	require(self || (self = smcp_node_alloc()), bail);
 
-	require(ret, bail);
+	ret = (smcp_device_node_t)self;
+
+	ret->unhandled_request = &smcp_default_request_handler;
+	ret->type = SMCP_NODE_DEVICE;
 
 	if(node) {
 		require(name, bail);
@@ -125,19 +130,15 @@ smcp_node_add_subdevice(
 			NULL
 		);
 		ret->parent = node;
-	} else {
-		if(!name)
-			name = "";
 	}
-	ret->type = SMCP_NODE_DEVICE;
 
 bail:
 	return ret;
 }
 
 smcp_action_node_t
-smcp_node_add_action(
-	smcp_node_t node, const char* name
+smcp_node_init_action(
+	smcp_node_t self, smcp_node_t node, const char* name
 ) {
 	smcp_action_node_t ret = NULL;
 
@@ -145,9 +146,9 @@ smcp_node_add_action(
 	require((node->type == SMCP_NODE_DEVICE) ||
 		    (node->type == SMCP_NODE_VARIABLE), bail);
 
-	ret = (smcp_action_node_t)smcp_node_alloc();
+	require(self || (self = smcp_node_alloc()), bail);
 
-	require(ret, bail);
+	ret = (smcp_action_node_t)self;
 
 	ret->type = SMCP_NODE_ACTION;
 	ret->name = name;
@@ -168,20 +169,21 @@ bail:
 }
 
 smcp_variable_node_t
-smcp_node_add_variable(
-	smcp_node_t node, const char* name
+smcp_node_init_variable(
+	smcp_node_t self, smcp_node_t node, const char* name
 ) {
 	smcp_variable_node_t ret = NULL;
 
 	require(node, bail);
 	require((node->type == SMCP_NODE_DEVICE), bail);
 
-	ret = (smcp_variable_node_t)smcp_node_alloc();
+	require(self || (self = smcp_node_alloc()), bail);
 
-	require(ret, bail);
+	ret = (smcp_variable_node_t)self;
 
 	ret->type = SMCP_NODE_VARIABLE;
 	ret->name = name;
+	ret->unhandled_request = &smcp_default_request_handler;
 
 	if(node) {
 		bt_insert(
@@ -199,8 +201,8 @@ bail:
 }
 
 smcp_event_node_t
-smcp_node_add_event(
-	smcp_node_t node, const char* name
+smcp_node_init_event(
+	smcp_node_t self, smcp_node_t node, const char* name
 ) {
 	smcp_event_node_t ret = NULL;
 
@@ -208,9 +210,9 @@ smcp_node_add_event(
 	require((node->type == SMCP_NODE_DEVICE) ||
 		    (node->type == SMCP_NODE_VARIABLE), bail);
 
-	ret = (smcp_event_node_t)smcp_node_alloc();
+	require(self || (self = smcp_node_alloc()), bail);
 
-	require(ret, bail);
+	ret = (smcp_event_node_t)self;
 
 	ret->type = SMCP_NODE_EVENT;
 	ret->name = name;
@@ -267,9 +269,6 @@ smcp_node_delete(smcp_node_t node) {
 		break;
 	}
 
-	if(node->finalize)
-		    (*node->finalize)(node, node->context);
-
 	if(owner) {
 		bt_remove(owner,
 			node,
@@ -278,7 +277,8 @@ smcp_node_delete(smcp_node_t node) {
 			NULL);
 	}
 
-	smcp_node_dealloc(node);
+	if(node->finalize)
+		    (*node->finalize)(node);
 
 bail:
 	return;
@@ -343,6 +343,8 @@ extern int smcp_node_find_next_with_path(
 			path,
 			    (bt_compare_func_t)smcp_node_compare_cstr,
 			NULL);
+		if(!*next)
+			path--;
 	} else if(path[0] == '!') {
 		// Event.
 		require((node->type == SMCP_NODE_DEVICE) ||
@@ -355,6 +357,8 @@ extern int smcp_node_find_next_with_path(
 			    (bt_compare_func_t)smcp_node_compare_cstr,
 			NULL
 		    );
+		if(!*next)
+			path--;
 	} else {
 		// Device or Variable.
 		int namelen;
@@ -440,10 +444,12 @@ again:
 	require(node, bail);
 	require(path, bail);
 
+	*closest = node;
 	do {
-		*closest = node;
 		ret += smcp_node_find_next_with_path(*closest, path + ret, &node);
-	} while(node && path[0]);
+		if(node)
+			*closest = node;
+	} while(node && path[ret]);
 
 bail:
 	return ret;

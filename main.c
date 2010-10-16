@@ -35,9 +35,10 @@
 #define ERRORCODE_QUIT          (7)
 
 static arg_list_item_t option_list[] = {
-	{ 'h', "help",	NULL, "Print Help"			  },
-	{ 'd', "debug", NULL, "Enable debugging mode" },
-	{ 'p', "port",	NULL, "Port number"			  },
+	{ 'h', "help",	NULL, "Print Help"				},
+	{ 'd', "debug", NULL, "Enable debugging mode"	},
+	{ 'p', "port",	NULL, "Port number"				},
+	{ 'f', NULL,	NULL, "Read commands from file" },
 	{ 0 }
 };
 
@@ -190,7 +191,6 @@ static int ret = 0;
 static smcp_daemon_t smcp_daemon;
 static bool istty = true;
 
-#if HAS_LIBREADLINE
 void process_input_line(char *l) {
 	char *inputstring;
 	char *argv2[100];
@@ -223,21 +223,19 @@ void process_input_line(char *l) {
 	}
 
 bail:
-	rl_prep_terminal(0);
-	{
+	if(istty) {
 		char prompt[128] = "";
-		if(istty) {
-			char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
-			snprintf(prompt,
-				sizeof(prompt),
-				"%s> ",
-				current_smcp_path ? current_smcp_path : "");
-		}
+		char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
+
+		snprintf(prompt,
+			sizeof(prompt),
+			"%s> ",
+			current_smcp_path ? current_smcp_path : "");
+		rl_prep_terminal(0);
 		rl_callback_handler_install(prompt, &process_input_line);
 	}
-	rl_redisplay();
+	return;
 }
-#endif
 
 int
 main(
@@ -246,16 +244,6 @@ main(
 	int i, debug_mode = 0;
 	int port = SMCP_DEFAULT_PORT + 1;
 
-	istty = isatty(STDIN_FILENO);
-
-#if !HAS_LIBREADLINE
-	if(argc <= 1) {
-		print_arg_list_help(option_list,
-			"smcp [options] <sub-command> [args]");
-		print_commands();
-		return ERRORCODE_HELP;
-	}
-#endif
 	for(i = 1; i < argc; i++) {
 		if(argv[i][0] == '-' && argv[i][1] == '-') {
 			if(strcmp(argv[i] + 2, "help") == 0) {
@@ -290,6 +278,18 @@ main(
 					print_commands();
 					return ERRORCODE_HELP;
 					break;
+#if HAS_LIBREADLINE
+				case 'f':
+					stdin = fopen(argv[++i], "r");
+					if(!stdin) {
+						fprintf(stderr,
+							"%s: error: Unable to open file \"%s\".\n",
+							argv[0],
+							argv[i - 1]);
+						return ERRORCODE_BADARG;
+					}
+					break;
+#endif
 				case 'd':
 					debug_mode++;
 					break;
@@ -308,6 +308,9 @@ main(
 		}
 	}
 
+	istty = isatty(fileno(stdin));
+
+
 	smcp_daemon = smcp_daemon_create(port);
 	setenv("SMCP_CURRENT_PATH", "smcp://localhost/", 0);
 
@@ -319,45 +322,60 @@ main(
 		goto bail;
 	}
 
-#if HAS_LIBREADLINE
-	// Command mode.
-	require_action(NULL != readline, bail, ret = ERRORCODE_NOREADLINE);
-	setenv("SMCP_HISTORY_FILE", tilde_expand("~/.smcp_history"), 0);
-	rl_initialize();
-	using_history();
-	read_history(getenv("SMCP_HISTORY_FILE"));
-	{
+	if(istty) {
+#if !HAS_LIBREADLINE
+		print_arg_list_help(option_list,
+			"smcp [options] <sub-command> [args]");
+		print_commands();
+		ret = ERRORCODE_NOCOMMAND;
+		goto bail;
+#else   // HAS_LIBREADLINE
 		char prompt[128] = "";
-		if(istty) {
-			char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
-			snprintf(prompt,
-				sizeof(prompt),
-				"%s> ",
-				current_smcp_path ? current_smcp_path : "");
-		}
+		char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
+		snprintf(prompt,
+			sizeof(prompt),
+			"%s> ",
+			current_smcp_path ? current_smcp_path : "");
+
+		require_action(NULL != readline, bail, ret = ERRORCODE_NOREADLINE);
+
+		setenv("SMCP_HISTORY_FILE", tilde_expand("~/.smcp_history"), 0);
+		rl_initialize();
+		using_history();
+		read_history(getenv("SMCP_HISTORY_FILE"));
+		rl_instream = stdin;
+
 		rl_callback_handler_install(prompt, &process_input_line);
+#endif  // HAS_LIBREADLINE
 	}
-	while(ret != ERRORCODE_QUIT) {
-		struct pollfd polltable[2] = {
-			{ STDIN_FILENO,					   POLLIN | POLLHUP,
-			  0 },
-			{ smcp_daemon_get_fd(smcp_daemon), POLLIN | POLLHUP,
-			  0 },
-		};
 
-		if(poll(polltable, 2, smcp_daemon_get_timeout(smcp_daemon)) < 0)
-			break;
+	// Command mode.
+	while((ret != ERRORCODE_QUIT) && !feof(stdin)) {
+#if HAS_LIBREADLINE
+		if(istty) {
+			struct pollfd polltable[2] = {
+				{ fileno(stdin),				   POLLIN | POLLHUP,
+				  0 },
+				{ smcp_daemon_get_fd(smcp_daemon), POLLIN | POLLHUP,
+				  0 },
+			};
 
-		if(polltable[0].revents)
-			rl_callback_read_char();
+			if(poll(polltable, 2,
+					smcp_daemon_get_timeout(smcp_daemon)) < 0)
+				break;
+
+			if(polltable[0].revents)
+				rl_callback_read_char();
+		} else
+#endif  // HAS_LIBREADLINE
+		{
+			char linebuffer[200];
+			fgets(linebuffer, sizeof(linebuffer), stdin);
+			process_input_line(linebuffer);
+		}
 
 		smcp_daemon_process(smcp_daemon, 0);
 	}
-
-#else // !HAS_LIBREADLINE
-	fprintf(stderr, "%s: error: Missing command.\n", argv[0]);
-	ret = ERRORCODE_NOCOMMAND;
-#endif // !HAS_LIBREADLINE
 
 bail:
 	if(ret == ERRORCODE_QUIT)

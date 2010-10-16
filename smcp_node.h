@@ -31,8 +31,7 @@ struct smcp_node_s {
 	const char*			name;
 	smcp_node_t			parent;
 	void*				context;
-	void				(*finalize)(
-		smcp_node_t node, void* context);
+	void				(*finalize)(smcp_node_t node);
 	// ---
 	void*				padding[5];
 };
@@ -43,13 +42,12 @@ struct smcp_device_node_s {
 	const char*			name;
 	smcp_node_t			parent;
 	void*				context;
-	void				(*finalize)(
-		smcp_node_t node, void* context);
+	void				(*finalize)(smcp_node_t node);
 	// ---
 	smcp_status_t		(*unhandled_request)(
-		smcp_daemon_t self, smcp_method_t method, const char* path,
-		coap_header_item_t headers[], const char* content,
-		size_t content_length, SMCP_SOCKET_ARGS, void* context);
+		smcp_daemon_t self, smcp_node_t node, smcp_method_t method,
+		const char* relative_path, coap_header_item_t headers[],
+		const char* content, size_t content_length);
 	smcp_node_t			actions;
 	smcp_node_t			events;
 	smcp_node_t			variables;
@@ -62,20 +60,19 @@ struct smcp_variable_node_s {
 	const char*			name;
 	smcp_node_t			parent;
 	void*				context;
-	void				(*finalize)(
-		smcp_node_t node, void* context);
+	void				(*finalize)(smcp_node_t node);
 	// ---
 	smcp_status_t		(*unhandled_request)(
-		smcp_daemon_t self, smcp_method_t method, const char* path,
-		coap_header_item_t headers[], const char* content,
-		size_t content_length, SMCP_SOCKET_ARGS, void* context);
+		smcp_daemon_t self, smcp_node_t node, smcp_method_t method,
+		const char* relative_path, coap_header_item_t headers[],
+		const char* content, size_t content_length);
 	smcp_node_t			actions;
 	smcp_node_t			events;
 
 	smcp_status_t		(*get_func)(
 		smcp_variable_node_t node, coap_header_item_t headers[],
 		char* content, size_t* content_length,
-		smcp_content_type_t* content_type, SMCP_SOCKET_ARGS, void* context);
+		smcp_content_type_t* content_type, void* context);
 };
 
 /*! Deprecated */
@@ -85,8 +82,7 @@ struct smcp_event_node_s {
 	const char*			name;
 	smcp_node_t			parent;
 	void*				context;
-	void				(*finalize)(
-		smcp_node_t node, void* context);
+	void				(*finalize)(smcp_node_t node);
 	// ---
 	smcp_pairing_t		pairings;
 };
@@ -98,14 +94,13 @@ struct smcp_action_node_s {
 	const char*			name;
 	smcp_node_t			parent;
 	void*				context;
-	void				(*finalize)(
-		smcp_node_t node, void* context);
+	void				(*finalize)(smcp_node_t node);
 	// ---
 	smcp_pairing_t		pairings;
 	smcp_status_t		(*post_func)(
 		smcp_action_node_t node, coap_header_item_t headers[],
 		const char* content, size_t content_length,
-		smcp_content_type_t content_type, SMCP_SOCKET_ARGS, void* context);
+		smcp_content_type_t content_type, void* context);
 };
 
 __END_DECLS

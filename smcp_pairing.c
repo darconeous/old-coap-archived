@@ -326,3 +326,167 @@ smcp_daemon_next_pairing(
 bail:
 	return ret;
 }
+
+
+smcp_status_t
+smcp_daemon_trigger_event(
+	smcp_daemon_t		self,
+	const char*			path,
+	const char*			content,
+	size_t				content_length,
+	smcp_content_type_t content_type
+) {
+	smcp_status_t ret = 0;
+	smcp_pairing_t iter;
+	char cseq[24] = "dummy";
+	coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
+
+	memset(cseq, 0, sizeof(cseq));
+	coap_header_item_t headers[7] = {};
+
+	if(!path)
+		path = "/";
+
+	util_add_header(headers,
+		sizeof(headers) / sizeof(*headers),
+		COAP_HEADER_CSEQ,
+		cseq,
+		COAP_HEADER_CSTR_LEN);
+	headers[0].value_len = COAP_HEADER_CSTR_LEN; // Force recalculation of length when we send.
+
+	util_add_header(headers,
+		sizeof(headers) / sizeof(*headers),
+		COAP_HEADER_CONTENT_TYPE,
+		    (const void*)&content_type,
+		1);
+
+	// Move past any preceding slashes.
+	while(path && *path == '/') path++;
+
+	util_add_header(headers,
+		sizeof(headers) / sizeof(*headers),
+		COAP_HEADER_ORIGIN,
+		path,
+		HEADER_CSTR_LEN);
+
+	for(iter = smcp_daemon_get_first_pairing_for_path(self, path);
+	    iter;
+	    iter = smcp_daemon_next_pairing(self, iter)) {
+		smcp_pairing_seq_t seq = smcp_pairing_get_next_seq(iter);
+
+		DEBUG_PRINTF(CSTR(
+				"%p: sending stuff for pairing \"%p\"..."), self, iter);
+
+		snprintf(cseq,
+			sizeof(cseq) - 1,
+			"%lX POST",
+			    (long unsigned int)seq);
+
+		smcp_daemon_send_request(
+			self,
+			tid,
+			SMCP_METHOD_POST,
+			iter->path,
+			headers,
+			content,
+			content_length,
+#if SMCP_USE_BSD_SOCKETS
+			    (struct sockaddr*)&iter->saddr,
+			sizeof(iter->saddr)
+#elif __CONTIKI__
+			&iter->addr,
+			iter->port
+#else
+#error TODO: Implement me!
+#endif
+		);
+
+		// TODO: Handle retransmits for reliable pairings!
+	}
+
+bail:
+	return ret;
+}
+
+
+smcp_status_t
+smcp_daemon_refresh_variable(
+	smcp_daemon_t daemon, smcp_variable_node_t node
+) {
+	smcp_status_t ret = 0;
+	char content[512];
+	size_t content_length = sizeof(content);
+	smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
+	char path[100];
+
+	require_action(daemon != NULL,
+		bail,
+		ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+
+	smcp_node_get_path((smcp_node_t)node, path, sizeof(path));
+
+	strncat(path, "!changed", sizeof(path));
+
+	if(node->get_func) {
+		ret =
+		    (*node->get_func)(node, NULL, content, &content_length,
+			&content_type,
+			node->context);
+		require(ret == 0, bail);
+	}
+
+	ret = smcp_daemon_trigger_event(
+		daemon,
+		path,
+		content,
+		content_length,
+		content_type
+	    );
+
+bail:
+	return ret;
+}
+
+
+smcp_status_t
+smcp_daemon_handle_pair(
+	smcp_daemon_t			self,
+	smcp_node_t				node,
+	coap_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	coap_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
+	SMCP_SOCKET_ARGS
+) {
+	smcp_status_t ret = 0;
+
+	if(node && (node->type != SMCP_NODE_EVENT) &&
+	        (node->type != SMCP_NODE_ACTION)) {
+		ret = smcp_daemon_send_response(self,
+			SMCP_RESULT_CODE_BAD_REQUEST,
+			NULL,
+			NULL,
+			0);
+		goto bail;
+	}
+
+	ret = smcp_daemon_send_response(
+		self,
+		smcp_convert_status_to_result_code(
+			smcp_daemon_pair_with_uri(
+				self,
+				path,
+				content,
+				0
+			)
+		),
+		NULL,
+		NULL,
+		0
+	    );
+bail:
+	return ret;
+}
