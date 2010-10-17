@@ -451,7 +451,7 @@ smcp_daemon_send_response(
 ) {
 	smcp_status_t ret = 0;
 
-#if __CONTIKI__ && 0
+#if __CONTIKI__
 	char* const packet = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
 	char packet[SMCP_MAX_PACKET_LENGTH + 1] = "";
@@ -476,7 +476,7 @@ smcp_daemon_send_response(
 
 	packet_length = coap_encode_header(
 		    (unsigned char*)packet,
-		sizeof(packet),
+		SMCP_MAX_PACKET_LENGTH,
 		COAP_TRANS_TYPE_ACK,
 		http_to_coap_code(statuscode),
 		tid,
@@ -533,7 +533,7 @@ smcp_daemon_send_request(
 ) {
 	smcp_status_t ret = 0;
 
-#if __CONTIKI__ && 0
+#if __CONTIKI__
 	char* const packet = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
 	char packet[SMCP_MAX_PACKET_LENGTH + 1] = "";
@@ -561,7 +561,7 @@ smcp_daemon_send_request(
 
 	packet_length = coap_encode_header(
 		    (unsigned char*)packet,
-		sizeof(packet),
+		SMCP_MAX_PACKET_LENGTH,
 		tid ? COAP_TRANS_TYPE_CONFIRMABLE : COAP_TRANS_TYPE_NONCONFIRMABLE,
 		http_to_coap_code(method),
 		tid,

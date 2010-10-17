@@ -56,12 +56,19 @@
 #define SMCP_SOCKET_ARGS \
     const uip_ipaddr_t *toaddr, \
     uint16_t toport
+#include "net/uip.h"
 #endif
 
 
 #define SMCP_DEFAULT_PORT           (61616)
 #define SMCP_DEFAULT_PORT_CSTR      "61616"
+#if __CONTIKI__
+#define SMCP_MAX_PACKET_LENGTH \
+        ((UIP_BUFSIZE - UIP_LLH_LEN - \
+            UIP_IPUDPH_LEN))
+#else
 #define SMCP_MAX_PACKET_LENGTH      (1200)
+#endif
 #define SMCP_MAX_HEADERS            (15)
 #define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
 #define SMCP_MAX_PATH_LENGTH        (127)
