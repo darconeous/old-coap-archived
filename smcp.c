@@ -451,8 +451,8 @@ smcp_daemon_send_response(
 ) {
 	smcp_status_t ret = 0;
 
-#if __CONTIKI__
-	char* const packet = uip_appdata;
+#if __CONTIKI__ && 0
+	char* const packet = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
 	char packet[SMCP_MAX_PACKET_LENGTH + 1] = "";
 #endif
@@ -533,8 +533,8 @@ smcp_daemon_send_request(
 ) {
 	smcp_status_t ret = 0;
 
-#if __CONTIKI__
-	char* const packet = uip_appdata;
+#if __CONTIKI__ && 0
+	char* const packet = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
 	char packet[SMCP_MAX_PACKET_LENGTH + 1] = "";
 #endif
