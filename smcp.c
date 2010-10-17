@@ -20,6 +20,7 @@
 #include "net/uip-udp-packet.h"
 #include "net/uiplib.h"
 #include "net/tcpip.h"
+#include "net/resolv.h"
 #endif
 
 #include "assert_macros.h"
@@ -90,8 +91,6 @@ get_method_index(const char* method_string) {
 		return SMCP_METHOD_PUT;
 	else if(strcmp(method_string, "DELETE") == 0)
 		return SMCP_METHOD_DELETE;
-//	else if(strcmp(method_string,"OPTIONS")==0)
-//		return SMCP_METHOD_OPTIONS;
 	else if(strcmp(method_string, "PAIR") == 0)
 		return SMCP_METHOD_PAIR;
 	else if(strcmp(method_string, "UNPAIR") == 0)
@@ -451,7 +450,12 @@ smcp_daemon_send_response(
 	size_t				content_length
 ) {
 	smcp_status_t ret = 0;
-	char packet[SMCP_MAX_PACKET_LENGTH];
+
+#if __CONTIKI__
+	char* const packet = uip_appdata;
+#else
+	char packet[SMCP_MAX_PACKET_LENGTH + 1] = "";
+#endif
 	size_t packet_length = 0;
 	int header_count = 0;
 
@@ -479,23 +483,6 @@ smcp_daemon_send_response(
 		headers,
 		header_count
 	    );
-
-/*
-    packet_length += snprintf(packet,SMCP_MAX_PACKET_LENGTH,"%s %d\r\n",SMCP_VERSION_STRING,statuscode);
-
-    packet_length += snprintf(packet+packet_length,SMCP_MAX_PACKET_LENGTH-packet_length,"Id: %d\r\n",tid);
-
-    if(headers) {
-        coap_header_item_t *next_header;
-        for(next_header=headers;smcp_header_item_get_key(next_header);next_header=smcp_header_item_next(next_header)) {
-            packet_length += snprintf(packet+packet_length,SMCP_MAX_PACKET_LENGTH-packet_length,"%s: %s\r\n",smcp_header_item_get_key_cstr(next_header),smcp_header_item_get_value(next_header));
-        }
-    }
-
-    packet_length += snprintf(packet+packet_length,SMCP_MAX_PACKET_LENGTH-packet_length,"\r\n");
-
-    packet_length = strlen(packet);
- */
 
 	memcpy(packet + packet_length, content,
 		MIN(SMCP_MAX_PACKET_LENGTH - packet_length, content_length));
@@ -527,7 +514,6 @@ smcp_daemon_send_response(
 	);
 #endif
 
-	//DEBUG_PRINTF(CSTR("smcp_daemon(%p):SENT RESPONSE PACKET: \"%s\" %d bytes"),self,packet,(int)packet_length);
 	self->did_respond = true;
 
 bail:
@@ -546,7 +532,12 @@ smcp_daemon_send_request(
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
+
+#if __CONTIKI__
+	char* const packet = uip_appdata;
+#else
 	char packet[SMCP_MAX_PACKET_LENGTH + 1] = "";
+#endif
 	size_t packet_length = 0;
 	int header_count = 0;
 
@@ -577,29 +568,6 @@ smcp_daemon_send_request(
 		headers,
 		header_count
 	    );
-
-/*
-    packet_length += snprintf(packet,SMCP_MAX_PACKET_LENGTH,"%s ",get_method_string(method));
-
-    if(path && path[0]!='/') {
-        packet_length += snprintf(packet+packet_length,SMCP_MAX_PACKET_LENGTH,"/");
-    }
-
-    packet_length += snprintf(packet+packet_length,SMCP_MAX_PACKET_LENGTH,"%s %s\r\n",path?path:"/",SMCP_VERSION_STRING);
-
-    packet_length += snprintf(packet+packet_length,SMCP_MAX_PACKET_LENGTH-packet_length,"Id: %d\r\n",tid);
-
-    if(headers) {
-        coap_header_item_t *next_header;
-        for(next_header=headers;smcp_header_item_get_key(next_header);next_header=smcp_header_item_next(next_header)) {
-            packet_length += snprintf(packet+packet_length,SMCP_MAX_PACKET_LENGTH-packet_length,"%s: %s\r\n",smcp_header_item_get_key_cstr(next_header),smcp_header_item_get_value(next_header));
-        }
-    }
-
-    packet_length += snprintf(packet+packet_length,SMCP_MAX_PACKET_LENGTH-packet_length,"\r\n");
-
-    packet_length = strlen(packet);
- */
 
 	if(content && content_length)
 		memcpy(packet + packet_length, content,

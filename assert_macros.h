@@ -12,6 +12,12 @@
 
 #include <stdio.h>
 
+#if __CONTIKI__
+#define assert_error_stream     stdout
+#else
+#define assert_error_stream     stderr
+#endif
+
 #if HAS_ASSERTMACROS_H
  #include <AssertMacros.h>
 #else
@@ -24,13 +30,14 @@
 	} while(0)
 #else
  #define check_string(c, s) \
-    do { if(!(c)) fprintf(stderr, \
+    do { if(!(c)) fprintf(assert_error_stream, \
 				__FILE__ ":%d: Check Failed (%s)\n", \
 				__LINE__, \
 				s); } while(0)
  #define require_action_string(c, l, a, s) \
     do { if(!(c)) { \
-			 fprintf(stderr, \
+			 fprintf( \
+				assert_error_stream, \
 				__FILE__ ":%d: Assert Failed (%s)\n", \
 				__LINE__, \
 				s); a; goto l; \

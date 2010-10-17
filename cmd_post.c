@@ -29,6 +29,13 @@ static bool postIsDone;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
 
+/*
+   static arg_list_item_t option_list[] = {
+    { 'h', "help",NULL,"Print Help" },
+    { 'c', "content-file",NULL,"Use content from the specified input source" },
+    { 0 }
+   };
+ */
 static void
 signal_interrupt(int sig) {
 	fprintf(stderr, "Interrupt\n");
@@ -86,11 +93,6 @@ send_post_request(
 	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
 
 	tid = SMCP_FUNC_RANDOM_UINT32();
-	//static char tid_str[30];
-
-	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
-
-	//util_add_header(headers,SMCP_MAX_HEADERS,COAP_HEADER_ID,tid_str);
 
 	postIsDone = false;
 

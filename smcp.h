@@ -64,7 +64,10 @@
 #define SMCP_MAX_PACKET_LENGTH      (1200)
 #define SMCP_MAX_HEADERS            (15)
 #define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
-#define SMCP_MAX_PATH_LENGTH        (256)
+#define SMCP_MAX_PATH_LENGTH        (127)
+#define SMCP_MAX_URI_LENGTH \
+        (SMCP_MAX_PATH_LENGTH + 7 + 6 + 8 * \
+        4 + 7 + 2)
 
 #ifndef IPv4_COMPATIBLE_IPv6_PREFIX
 #define IPv4_COMPATIBLE_IPv6_PREFIX "::FFFF:"
@@ -302,7 +305,6 @@ typedef enum {
 	SMCP_CONTENT_TYPE_IMAGE_PNG = 23,
 	SMCP_CONTENT_TYPE_IMAGE_TIFF = 24,
 
-
 	SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT = 40, //!< draft-shelby-core-link-format
 	SMCP_CONTENT_TYPE_APPLICATION_XML = 41,
 	SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM = 42,
@@ -509,6 +511,13 @@ extern smcp_status_t smcp_daemon_pair_with_uri(
 extern smcp_status_t smcp_daemon_trigger_event(
 	smcp_daemon_t		self,
 	const char*			path,
+	const char*			content,
+	size_t				content_length,
+	smcp_content_type_t content_type);
+extern smcp_status_t smcp_daemon_trigger_event_with_node(
+	smcp_daemon_t		self,
+	smcp_node_t			node,
+	const char*			subpath,
 	const char*			content,
 	size_t				content_length,
 	smcp_content_type_t content_type);

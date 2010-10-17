@@ -4,13 +4,24 @@
 #include "smcp.h"
 #include "ll.h"
 #include "btree.h"
-#include <sys/time.h>
 
 #define USEC_PER_SEC    (1000000)
 #define USEC_PER_MSEC   (1000)
 #define MSEC_PER_SEC    (1000)
 
 typedef void (*smcp_timer_callback_t)(smcp_daemon_t smcp, void* context);
+
+#if __CONTIKI__
+#if !defined(timeval)
+#define timeval timeval
+struct timeval {
+	time_t		tv_sec;
+	suseconds_t tv_usec;
+};
+#endif
+#else
+#include <sys/time.h>
+#endif
 
 typedef struct smcp_timer_s {
 	struct ll_item_s		ll;

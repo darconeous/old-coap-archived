@@ -73,7 +73,7 @@ smcp_node_pair_with_uri(
 	smcp_node_t node, const char* uri_, int flags
 ) {
 	smcp_status_t ret = 0;
-	char uri[uri_ ? strlen(uri_) : 0 + 1];        // Requires compiler support for variable sized arrays
+	char uri[(uri_ ? strlen(uri_) : 0) + 1];      // Requires compiler support for variable sized arrays
 	char* proto_str = NULL;
 	char* path_str = NULL;
 	char* addr_str = NULL;
@@ -164,7 +164,9 @@ smcp_node_pair_with_uri(
 		memcpy(&saddr, results->ai_addr, results->ai_addrlen);
 	}
 #elif __CONTIKI__
-	ret = uiplib_ipaddrconv(addr_str, &toaddr);
+	ret =
+	    (uiplib_ipaddrconv(addr_str,
+			&toaddr) == 0) ? SMCP_STATUS_FAILURE : SMCP_STATUS_OK;
 	if(ret) {
 		uip_ipaddr_t *temp = resolv_lookup(addr_str);
 		if(temp) {
@@ -408,6 +410,31 @@ bail:
 	return ret;
 }
 
+smcp_status_t
+smcp_daemon_trigger_event_with_node(
+	smcp_daemon_t		self,
+	smcp_node_t			node,
+	const char*			subpath,
+	const char*			content,
+	size_t				content_length,
+	smcp_content_type_t content_type
+) {
+	char path[SMCP_MAX_PATH_LENGTH + 1];
+
+	path[sizeof(path) - 1] = 0;
+
+	smcp_node_get_path(node, path, sizeof(path));
+
+	if(subpath)
+		strncat(path, subpath, sizeof(path) - 1);
+
+	return smcp_daemon_trigger_event(self,
+		path,
+		content,
+		content_length,
+		content_type);
+}
+
 
 smcp_status_t
 smcp_daemon_refresh_variable(
@@ -417,7 +444,9 @@ smcp_daemon_refresh_variable(
 	char content[512];
 	size_t content_length = sizeof(content);
 	smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
-	char path[100];
+	char path[SMCP_MAX_PATH_LENGTH + 1];
+
+	path[sizeof(path) - 1] = 0;
 
 	require_action(daemon != NULL,
 		bail,
@@ -460,6 +489,9 @@ smcp_daemon_handle_pair(
 	size_t				content_length
 ) {
 	smcp_status_t ret = 0;
+	char full_path[SMCP_MAX_PATH_LENGTH + 1];
+
+	full_path[sizeof(full_path) - 1] = 0;
 
 	if(node && (node->type != SMCP_NODE_EVENT) &&
 	        (node->type != SMCP_NODE_ACTION)) {
@@ -470,9 +502,10 @@ smcp_daemon_handle_pair(
 			0);
 		goto bail;
 	}
-	char full_path[128];
+
 	smcp_node_get_path(node, full_path, sizeof(full_path));
-	strcat(full_path, path);
+	strncat(full_path, path, sizeof(full_path) - 1);
+
 	ret = smcp_daemon_pair_with_uri(
 		self,
 		full_path,

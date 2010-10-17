@@ -7,6 +7,18 @@
  *
  */
 
+#if __CONTIKI__
+#if !defined(timeval)
+#define timeval timeval
+struct timeval {
+	time_t		tv_sec;
+	suseconds_t tv_usec;
+};
+#endif
+#else
+#include <sys/time.h>
+#endif
+
 #pragma mark -
 #pragma mark Class Definitions
 
