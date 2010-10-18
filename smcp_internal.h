@@ -7,7 +7,7 @@
  *
  */
 
-#if __CONTIKI__
+#if __CONTIKI__ && !CONTIKI_TARGET_MINIMAL_NET
 #if !defined(timeval)
 #define timeval timeval
 struct timeval {
