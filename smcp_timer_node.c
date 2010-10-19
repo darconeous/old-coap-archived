@@ -10,15 +10,6 @@
 #include <string.h>
 #include <ctype.h>
 
-//////////////////////////////////////////////////////////////////
-
-/*
-    reset = smcp_node_init_action(NULL,(void*)ret, "reset");
-    smcp_node_init_variable(NULL,(void*)ret, "period");
-    smcp_node_init_variable(NULL,(void*)ret, "auto-reset");
-    smcp_node_init_action(NULL,(void*)ret, "start");
-    smcp_node_init_event(NULL,(void*)ret, "fire");
- */
 void
 smcp_timer_node_dealloc(smcp_timer_node_t x) {
 	free(x);
@@ -254,7 +245,7 @@ smcp_timer_request_handler(
 	} else if(0 == strncmp(path, "period", 6)) {
 		if((method == SMCP_METHOD_GET)) {
 			snprintf(tmp_content, sizeof(tmp_content), "v=%lu",
-				    ((smcp_timer_node_t)node)->period);
+				    (long unsigned int)((smcp_timer_node_t)node)->period);
 			reply_code = SMCP_RESULT_CODE_OK;
 			reply_content = tmp_content;
 			reply_content_len = strlen(tmp_content);

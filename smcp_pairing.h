@@ -23,13 +23,20 @@
 
 #include "smcp.h"
 
+#define SMCP_PAIRINGS_ARE_IN_NODES 1
+
+#define PAIRING_STATE   struct smcp_pairing_s* pairings
+
 __BEGIN_DECLS
 typedef uint32_t smcp_pairing_seq_t;
 
 struct smcp_pairing_s {
-	struct bt_item_s	bt_item;
+#if SMCP_PAIRINGS_ARE_IN_NODES
 	smcp_pairing_t		next;
 	smcp_pairing_t		prev;
+#else
+	struct bt_item_s	bt_item;
+#endif
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr;
 #elif __CONTIKI__

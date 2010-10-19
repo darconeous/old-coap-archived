@@ -53,6 +53,7 @@ smcp_daemon_pair_with_uri(
 ) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 
+#if SMCP_PAIRINGS_ARE_IN_NODES
 	smcp_node_t node =
 	    smcp_node_find_with_path(smcp_daemon_get_root_node(self), path);
 
@@ -63,6 +64,9 @@ smcp_daemon_pair_with_uri(
 		uri,
 		flags
 	    );
+#else
+#error fixme
+#endif
 
 bail:
 	return ret;
@@ -246,25 +250,6 @@ bail:
 	return ret;
 }
 
-smcp_pairing_t
-smcp_node_get_first_pairing(smcp_node_t node) {
-	smcp_pairing_t ret = NULL;
-
-	require_string(node, bail, "NULL node argument");
-
-#if SMCP_PAIRINGS_ARE_IN_NODES
-	switch(node->type) {
-	case SMCP_NODE_EVENT:
-	case SMCP_NODE_ACTION:
-		ret = ((smcp_event_node_t)node)->pairings;
-		break;
-	}
-#endif
-
-bail:
-	return ret;
-}
-
 #if !SMCP_PAIRINGS_ARE_IN_NODES
 static bt_compare_result_t
 smcp_pairing_compare(
@@ -302,9 +287,17 @@ smcp_daemon_get_first_pairing_for_path(
 #if SMCP_PAIRINGS_ARE_IN_NODES
 	smcp_node_t node =
 	    smcp_node_find_with_path(smcp_daemon_get_root_node(self), path);
-
-	ret = smcp_node_get_first_pairing(node);
+	if(node) switch(node->type) {
+		case SMCP_NODE_EVENT:
+		case SMCP_NODE_ACTION:
+			ret = ((smcp_event_node_t)node)->pairings;
+			break;
+		}
 #else
+	ret = bt_find((void**)&self->pairings,
+		path,
+		    (bt_compare_func_t)smcp_pairing_compare_cstr,
+		NULL);
 #endif
 
 bail:
@@ -323,7 +316,13 @@ smcp_daemon_next_pairing(
 
 	require(pairing != NULL, bail);
 
+#if SMCP_PAIRINGS_ARE_IN_NODES
 	ret = pairing->next;
+#else
+	ret = bt_next((void*)pairing);
+	if(ret && (0 != strcmp(pairing->path, ret->path)))
+		ret = 0;
+#endif
 
 bail:
 	return ret;
@@ -441,39 +440,41 @@ smcp_daemon_refresh_variable(
 	smcp_daemon_t daemon, smcp_variable_node_t node
 ) {
 	smcp_status_t ret = 0;
-	char content[512];
+	char *content = NULL;
 	size_t content_length = sizeof(content);
 	smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
-	char path[SMCP_MAX_PATH_LENGTH + 1];
-
-	path[sizeof(path) - 1] = 0;
 
 	require_action(daemon != NULL,
 		bail,
 		ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
-	smcp_node_get_path((smcp_node_t)node, path, sizeof(path));
-
-	strncat(path, "!changed", sizeof(path));
-
 	if(node->get_func) {
+		char tmp_content[SMCP_MAX_CONTENT_LENGTH]; // TODO: This is really hard on the stack! Investigate alternatives.
 		ret =
 		    (*node->get_func)(node, NULL, content, &content_length,
 			&content_type,
 			node->context);
 		require(ret == 0, bail);
+		if(content_length) {
+			content = (char*)malloc(content_length);
+			memcpy(content, tmp_content, content_length);
+		}
 	}
 
-	ret = smcp_daemon_trigger_event(
+	ret = smcp_daemon_trigger_event_with_node(
 		daemon,
-		path,
+		    (smcp_node_t)node,
+		"!changed",
 		content,
 		content_length,
 		content_type
 	    );
 
 bail:
+	if(content)
+		free(content);
+
 	return ret;
 }
 

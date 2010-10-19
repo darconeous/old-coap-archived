@@ -54,7 +54,6 @@ typedef enum {
 	// Experimental after this point
 
 	COAP_HEADER_CSEQ = COAP_HEADER_FENCEPOST_2 + 1,
-	COAP_HEADER_MORE = COAP_HEADER_FENCEPOST_2 + 2, //!< Deprecated.
 	COAP_HEADER_NEXT = COAP_HEADER_FENCEPOST_2 + 3,
 	COAP_HEADER_ORIGIN = COAP_HEADER_FENCEPOST_2 + 4,
 	COAP_HEADER_ALLOW = COAP_HEADER_FENCEPOST_2 + 5,
@@ -77,7 +76,7 @@ typedef enum {
 	**	requests MUST be the same for each request.
 	**	Otherwise the behavior is undefined.
 	*/
-	COAP_HEADER_RANGE = COAP_HEADER_FENCEPOST_2 + 6,
+	COAP_HEADER_RANGE = COAP_HEADER_FENCEPOST_2 + 2,
 } coap_header_key_t;
 
 typedef struct {

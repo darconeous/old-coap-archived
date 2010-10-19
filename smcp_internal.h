@@ -19,6 +19,8 @@ struct timeval {
 #include <sys/time.h>
 #endif
 
+#include "smcp_pairing.h"
+
 #pragma mark -
 #pragma mark Class Definitions
 
@@ -47,9 +49,8 @@ struct smcp_daemon_s {
 	struct smcp_node_s		root_node;
 	smcp_timer_t			timers;
 	smcp_response_handler_t handlers;
-
-	smcp_pairing_t			admin_pairings;
-	smcp_pairing_t			pairings;
+	uint16_t				port;
+	PAIRING_STATE;
 
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr*		current_inbound_saddr;
@@ -61,6 +62,4 @@ struct smcp_daemon_s {
 
 	coap_transaction_id_t	current_inbound_request_tid;
 	bool					did_respond;
-
-	uint16_t				port;
 };

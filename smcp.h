@@ -9,8 +9,6 @@
 #ifndef __SMCP_HEADER__
 #define __SMCP_HEADER__ 1
 
-#define SMCP_PAIRINGS_ARE_IN_NODES 1
-
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
 #define __BEGIN_DECLS   extern "C" {
@@ -69,6 +67,7 @@
 #else
 #define SMCP_MAX_PACKET_LENGTH      (1200)
 #endif
+#define SMCP_MAX_CONTENT_LENGTH     (512)
 #define SMCP_MAX_HEADERS            (15)
 #define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
 #define SMCP_MAX_PATH_LENGTH        (127)
@@ -239,7 +238,6 @@ static inline const char* smcp_get_header_key_cstr(coap_header_key_t key)
 
 	case COAP_HEADER_CSEQ: ret = "Cseq"; break;
 	case COAP_HEADER_NEXT: ret = "Next"; break;
-	case COAP_HEADER_MORE: ret = "More"; break;
 	case COAP_HEADER_ORIGIN: ret = "Origin"; break;
 	case COAP_HEADER_ALLOW: ret = "Allow"; break;
 
@@ -277,8 +275,10 @@ static inline coap_header_key_t smcp_get_header_key_from_cstr(
 		return COAP_HEADER_CSEQ;
 	else if(strcasecmp(key, "Next") == 0)
 		return COAP_HEADER_NEXT;
-	else if(strcasecmp(key, "More") == 0)
-		return COAP_HEADER_MORE;
+	else if(strcasecmp(key, "Range") == 0)
+		return COAP_HEADER_RANGE;
+	else if(strcasecmp(key, "Block") == 0)
+		return COAP_HEADER_BLOCK;
 	else if(strcasecmp(key, "Origin") == 0)
 		return COAP_HEADER_ORIGIN;
 	else if(strcasecmp(key, "Allow") == 0)

@@ -133,9 +133,7 @@ list_response_handler(
 			    smcp_header_item_get_key(next_header);
 			    next_header = smcp_header_item_next(next_header)) {
 				if(smcp_header_item_key_equal(next_header,
-						COAP_HEADER_NEXT) ||
-				    smcp_header_item_key_equal(next_header,
-						COAP_HEADER_MORE)) {
+						COAP_HEADER_NEXT)) {
 					char* next = smcp_header_item_get_value(next_header);
 					if(0 == smcp_header_item_get_value_len(next_header)) {
 						// In this case we need to use
