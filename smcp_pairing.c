@@ -89,11 +89,11 @@ smcp_node_pair_with_uri(
 #if SOCKADDR_HAS_LENGTH_FIELD
 		.sin6_len		= sizeof(struct sockaddr_in6),
 #endif
-		.sin6_port		= htons(SMCP_DEFAULT_PORT),
+		.sin6_port		= HTONS(SMCP_DEFAULT_PORT),
 	};
 #elif __CONTIKI__
 	uip_ipaddr_t toaddr;
-	uint16_t toport = SMCP_DEFAULT_PORT;
+	uint16_t toport = htons(SMCP_DEFAULT_PORT);
 #endif
 
 	require_action_string(node,
@@ -121,7 +121,7 @@ smcp_node_pair_with_uri(
 #if SMCP_USE_BSD_SOCKETS
 		saddr.sin6_port = htons(strtol(port_str, NULL, 10));
 #elif __CONTIKI__
-		toport = strtol(port_str, NULL, 10);
+		toport = htons(strtol(port_str, NULL, 10));
 #else
 #error TODO: Implement me!
 #endif

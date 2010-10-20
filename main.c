@@ -8,6 +8,7 @@
 #include <sys/errno.h>
 #include "help.h"
 #include <unistd.h>
+#include <signal.h>
 
 #if HAS_LIBREADLINE
 #include <readline/readline.h>

@@ -19,6 +19,7 @@
 #include <string.h>
 #include "url-helpers.h"
 #include <math.h>
+#include <signal.h>
 
 /*
    static arg_list_item_t option_list[] = {

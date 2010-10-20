@@ -14,6 +14,7 @@
 #include <string.h>
 #include <sys/errno.h>
 #include "help.h"
+#include <signal.h>
 
 #include "smcp.h"
 #include "smcp_node.h"

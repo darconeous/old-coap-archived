@@ -17,6 +17,7 @@
 #include "help.h"
 #include "cmd_get.h"
 #include "url-helpers.h"
+#include <signal.h>
 
 /*
    static arg_list_item_t option_list[] = {

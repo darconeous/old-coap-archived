@@ -1199,6 +1199,10 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 	case SMCP_STATUS_NOT_IMPLEMENTED:
 		ret = SMCP_RESULT_CODE_NOT_IMPLEMENTED;
 		break;
+	case SMCP_STATUS_BAD_NODE_TYPE:
+	case SMCP_STATUS_UNSUPPORTED_URI:
+		ret = SMCP_RESULT_CODE_BAD_REQUEST;
+		break;
 	}
 
 	return ret;
@@ -1444,7 +1448,7 @@ smcp_daemon_handle_get(
 	size_t				content_length
 ) {
 	smcp_status_t ret = 0;
-	char replyContent[128];
+	char replyContent[SMCP_MAX_CONTENT_LENGTH];
 	size_t replyContentLength = 0;
 	smcp_content_type_t replyContentType = SMCP_CONTENT_TYPE_TEXT_PLAIN;
 	coap_header_item_t replyHeaders[SMCP_MAX_HEADERS + 1] = {};
