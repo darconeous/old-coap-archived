@@ -71,11 +71,12 @@ smcp_variable_node_t create_load_average_variable_node(
 	smcp_device_node_t parent, const char* name
 ) {
 	smcp_variable_node_t ret = NULL;
-	smcp_event_node_t changed_event = NULL;
+
+//	smcp_event_node_t changed_event = NULL;
 
 	ret = smcp_node_init_variable(NULL, (void*)parent, name);
 
-	changed_event = smcp_node_init_event(NULL, (void*)ret, "changed");
+//	changed_event = smcp_node_init_event(NULL,(void*)ret, "changed");
 	ret->get_func = loadavg_get_func;
 
 	return ret;
@@ -148,7 +149,8 @@ tool_cmd_test(
 		smcp_daemon_pair_with_uri(smcp_daemon,
 			"device/loadavg!changed",
 			url,
-			0);
+			0,
+			NULL);
 		printf("EVENT_NODE PAIRED WITH %s\n", url);
 	}
 	{
@@ -157,12 +159,12 @@ tool_cmd_test(
 			sizeof(url),
 			"smcp://[::1]:%d/device/loadavg!changed",
 			smcp_daemon_get_port(smcp_daemon));
-		smcp_daemon_pair_with_uri(smcp_daemon2, "?action", url, 0);
+		smcp_daemon_pair_with_uri(smcp_daemon2, "?action", url, 0, NULL);
 		printf("ACTION_NODE PAIRED WITH %s\n", url);
 	}
 
 	// Just adding some random nodes so we can browse thru them with another process...
-	smcp_node_init_event(NULL, (smcp_node_t)device_node, "event");
+//	smcp_node_init_event(NULL,(smcp_node_t)device_node, "event");
 	{
 		smcp_device_node_t subdevice = smcp_node_init_subdevice(NULL,
 			smcp_daemon_get_root_node(smcp_daemon),
@@ -222,7 +224,7 @@ tool_cmd_test(
 
 	int i;
 	for(i = 0; i < 3000000; i++) {
-		if(i % 5000 == 0) {
+		if((i - 1) % 50000 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
 			smcp_daemon_refresh_variable(smcp_daemon, var_node);
 		}

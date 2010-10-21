@@ -61,5 +61,8 @@ struct smcp_daemon_s {
 #endif
 
 	coap_transaction_id_t	current_inbound_request_tid;
-	bool					did_respond;
+	char*					current_inbound_request_token;
+	uint16_t				current_inbound_request_token_len;
+	uint8_t					cascade_count;
+	bool					did_respond, is_processing_message;
 };

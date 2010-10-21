@@ -50,10 +50,20 @@ void smcp_timer_node_fired(
 		0,
 		0);
 
-	if(self->autorestart)
-		smcp_timer_node_restart(self);
-
-	self->remaining = 0;
+	if(self->autorestart) {
+		smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);
+		smcp_daemon_schedule_timer(self->smcpd_instance,
+			&self->timer,
+			self->period);
+	} else {
+		self->remaining = 0;
+		smcp_daemon_trigger_event_with_node(self->smcpd_instance,
+			&self->node,
+			"running",
+			"v=0",
+			3,
+			SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+	}
 }
 
 void smcp_timer_node_start(smcp_timer_node_t self) {
@@ -161,9 +171,7 @@ smcp_timer_request_handler(
 	for(next_header = headers;
 	    smcp_header_item_get_key(next_header);
 	    next_header = smcp_header_item_next(next_header)) {
-		if(smcp_header_item_key_equal(next_header, COAP_HEADER_TOKEN))
-			reply_headers[0] = *next_header;
-		else if(smcp_header_item_key_equal(next_header,
+		if(smcp_header_item_key_equal(next_header,
 				COAP_HEADER_CONTENT_TYPE))
 			content_type = *(unsigned char*)smcp_header_item_get_value(
 				next_header);
@@ -219,6 +227,17 @@ smcp_timer_request_handler(
 				}
 			}
 			reply_code = SMCP_RESULT_CODE_OK;
+		} else if((method == SMCP_METHOD_PAIR)) {
+			ret = smcp_default_request_handler(
+				self,
+				node,
+				method,
+				path,
+				headers,
+				content,
+				content_length
+			    );
+			goto bail;
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
@@ -232,16 +251,26 @@ smcp_timer_request_handler(
 	} else if(0 == strcmp(path, "?restart")) {
 		if((method == SMCP_METHOD_PUT) || (method == SMCP_METHOD_POST)) {
 			smcp_timer_node_reset((smcp_timer_node_t)node);
-			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_OK,
-				reply_headers,
-				NULL,
-				0);
+			reply_code = SMCP_RESULT_CODE_OK;
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
 	} else if(0 == strcmp(path, "!fire")) {
 		reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
+		if((method == SMCP_METHOD_PAIR)) {
+			ret = smcp_default_request_handler(
+				self,
+				node,
+				method,
+				path,
+				headers,
+				content,
+				content_length
+			    );
+			goto bail;
+		} else {
+			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
+		}
 	} else if(0 == strncmp(path, "period", 6)) {
 		if((method == SMCP_METHOD_GET)) {
 			snprintf(tmp_content, sizeof(tmp_content), "v=%lu",
@@ -338,6 +367,17 @@ smcp_timer_request_handler(
 				}
 			}
 			reply_code = SMCP_RESULT_CODE_OK;
+		} else if((method == SMCP_METHOD_PAIR)) {
+			ret = smcp_default_request_handler(
+				self,
+				node,
+				method,
+				path,
+				headers,
+				content,
+				content_length
+			    );
+			goto bail;
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
@@ -381,9 +421,6 @@ smcp_timer_node_init(
 			    (void*)parent,
 			name
 		), bail);
-
-	// Need to add this until I re-write pairing.
-	smcp_node_init_event(NULL, &self->node, "fire");
 
 	    ((smcp_device_node_t)&self->node)->unhandled_request =
 	    &smcp_timer_request_handler;

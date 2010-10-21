@@ -79,6 +79,8 @@
 #define IPv4_COMPATIBLE_IPv6_PREFIX "::FFFF:"
 #endif
 
+#define SMCP_MAX_CASCADE_COUNT      (128)
+
 #define SMCP_DEPRECATED
 
 #include "coap.h"
@@ -183,6 +185,8 @@ enum {
 	SMCP_STATUS_NOT_FOUND           = -10,
 	SMCP_STATUS_H_ERRNO             = -11,
 	SMCP_STATUS_RESPONSE_NOT_ALLOWED = -12,
+	SMCP_STATUS_BAD_HOSTNAME        = -13,
+	SMCP_STATUS_LOOP_DETECTED       = -14,
 };
 
 typedef int smcp_status_t;
@@ -242,6 +246,7 @@ static inline const char* smcp_get_header_key_cstr(coap_header_key_t key)
 	case COAP_HEADER_ALLOW: ret = "Allow"; break;
 
 	case COAP_HEADER_RANGE: ret = "Range"; break;
+	case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
 
 	default:
 	{
@@ -331,8 +336,10 @@ typedef struct smcp_node_s *smcp_node_t;
 struct smcp_action_node_s;                              //!< Deprecated
 typedef struct smcp_action_node_s *smcp_action_node_t;  //!< Deprecated
 
-struct smcp_event_node_s;                               //!< Deprecated
-typedef struct smcp_event_node_s *smcp_event_node_t;    //!< Deprecated
+/*
+   struct smcp_event_node_s;	//!< Deprecated
+   typedef struct smcp_event_node_s *smcp_event_node_t;	//!< Deprecated
+ */
 
 struct smcp_variable_node_s;
 typedef struct smcp_variable_node_s *smcp_variable_node_t;
@@ -399,7 +406,6 @@ typedef enum smcp_node_type_t {
 	SMCP_NODE_DEVICE,
 	SMCP_NODE_VARIABLE,
 	SMCP_NODE_ACTION,   //!< Deprecated
-	SMCP_NODE_EVENT,    //!< Deprecated
 } smcp_node_type_t;
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
@@ -480,16 +486,6 @@ extern smcp_variable_node_t smcp_node_init_variable(
 	smcp_node_t self, smcp_node_t parent, const char* name);
 extern smcp_action_node_t smcp_node_init_action(
 	smcp_node_t self, smcp_node_t parent, const char* name);
-extern smcp_event_node_t smcp_node_init_event(
-	smcp_node_t self, smcp_node_t parent, const char* name);
-
-
-/*
-   extern smcp_device_node_t smcp_node_init_subdevice(NULL,smcp_node_t node,const char* name);
-   extern smcp_variable_node_t smcp_node_init_variable(NULL,smcp_node_t node,const char* name);
-   extern smcp_action_node_t smcp_node_init_action(NULL,smcp_node_t node,const char* name);	//!< Deprecated
-   extern smcp_event_node_t smcp_node_init_event(NULL,smcp_node_t node,const char* name);	//!< Deprecated
- */
 
 extern void smcp_node_delete(smcp_node_t node);
 extern smcp_status_t smcp_node_get_path(
@@ -514,7 +510,11 @@ extern smcp_status_t smcp_default_request_handler(
 #pragma mark Pairing Functions
 
 extern smcp_status_t smcp_daemon_pair_with_uri(
-	smcp_daemon_t self, const char* path, const char* uri, int flags);
+	smcp_daemon_t	self,
+	const char*		path,
+	const char*		uri,
+	int				flags,
+	uintptr_t*		idVal);
 extern smcp_status_t smcp_daemon_trigger_event(
 	smcp_daemon_t		self,
 	const char*			path,

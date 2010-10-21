@@ -53,30 +53,12 @@ typedef enum {
 
 	// Experimental after this point
 
-	COAP_HEADER_CSEQ = COAP_HEADER_FENCEPOST_2 + 1,
-	COAP_HEADER_NEXT = COAP_HEADER_FENCEPOST_2 + 3,
-	COAP_HEADER_ORIGIN = COAP_HEADER_FENCEPOST_2 + 4,
-	COAP_HEADER_ALLOW = COAP_HEADER_FENCEPOST_2 + 5,
-
-	/*! The Range option allows you to specify
-	**	to the server that you want to request
-	**	a maximum of a certain number of bytes
-	**	from a resource, starting at a specific
-	**	byte. Its value is formed by two
-	**	unsigned integers using for format described
-	**	in <http://www.w3.org/TR/exi/#encodingUnsignedInteger>.
-	**	The first unsigned integer represents the requested
-	**	maximum returned content size. The second unsigned
-	**	integer is optional and contains the byte offset
-	**	into the requested content. If the second
-	**	integer is omitted, the offset is implied to be zero.
-	**
-	**	When used in concert with the Next option,
-	**	the value of the range header in the client
-	**	requests MUST be the same for each request.
-	**	Otherwise the behavior is undefined.
-	*/
-	COAP_HEADER_RANGE = COAP_HEADER_FENCEPOST_2 + 2,
+	COAP_HEADER_CASCADE_COUNT = COAP_HEADER_FENCEPOST_2 + 1,    //!< Used for preventing pairing loops.
+	COAP_HEADER_RANGE = COAP_HEADER_FENCEPOST_2 + 2,            //!< Experimental alternative to draft-bormann-core-coap-block-00
+	COAP_HEADER_NEXT = COAP_HEADER_FENCEPOST_2 + 3,             //!< Experimental alternative to draft-bormann-core-coap-block-00
+	COAP_HEADER_ORIGIN = COAP_HEADER_FENCEPOST_2 + 4,           //!< Used for SMCP Pairing.
+	COAP_HEADER_CSEQ = COAP_HEADER_FENCEPOST_2 + 6,             //!< Used for SMCP Pairing.
+	COAP_HEADER_ALLOW = COAP_HEADER_FENCEPOST_2 + 8,
 } coap_header_key_t;
 
 typedef struct {

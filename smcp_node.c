@@ -21,15 +21,6 @@
 #include <sys/types.h>
 #include "ll.h"
 
-/*
-   #include <poll.h>
-   #include <net/if.h>
-   #include <sys/socket.h>
-   #include <sys/sysctl.h>
-   #include <sys/errno.h>
-   #include <netdb.h>
- */
-
 #include "smcp_node.h"
 #include "smcp_helpers.h"
 #include "smcp_logging.h"
@@ -200,38 +191,6 @@ bail:
 	return ret;
 }
 
-smcp_event_node_t
-smcp_node_init_event(
-	smcp_node_t self, smcp_node_t node, const char* name
-) {
-	smcp_event_node_t ret = NULL;
-
-	require(node, bail);
-	require((node->type == SMCP_NODE_DEVICE) ||
-		    (node->type == SMCP_NODE_VARIABLE), bail);
-
-	require(self || (self = smcp_node_alloc()), bail);
-
-	ret = (smcp_event_node_t)self;
-
-	ret->type = SMCP_NODE_EVENT;
-	ret->name = name;
-
-	if(node) {
-		bt_insert(
-			    (void**)&((smcp_device_node_t)node)->events,
-			ret,
-			    (bt_compare_func_t)smcp_node_compare,
-			    (bt_delete_func_t)smcp_node_delete,
-			NULL
-		);
-		ret->parent = node;
-	}
-
-bail:
-	return ret;
-}
-
 void
 smcp_node_delete(smcp_node_t node) {
 	void** owner = NULL;
@@ -241,8 +200,6 @@ smcp_node_delete(smcp_node_t node) {
 	case SMCP_NODE_DEVICE:
 		while(((smcp_device_node_t)node)->actions)
 			smcp_node_delete(((smcp_device_node_t)node)->actions);
-		while(((smcp_device_node_t)node)->events)
-			smcp_node_delete(((smcp_device_node_t)node)->events);
 		while(((smcp_device_node_t)node)->subdevices)
 			smcp_node_delete(((smcp_device_node_t)node)->subdevices);
 		while(((smcp_device_node_t)node)->variables)
@@ -254,14 +211,8 @@ smcp_node_delete(smcp_node_t node) {
 	case SMCP_NODE_VARIABLE:
 		while(((smcp_device_node_t)node)->actions)
 			smcp_node_delete(((smcp_device_node_t)node)->actions);
-		while(((smcp_device_node_t)node)->events)
-			smcp_node_delete(((smcp_device_node_t)node)->events);
 		if(node->parent)
 			owner = (void**)&((smcp_device_node_t)node->parent)->variables;
-		break;
-	case SMCP_NODE_EVENT:
-		if(node->parent)
-			owner = (void**)&((smcp_device_node_t)node->parent)->events;
 		break;
 	case SMCP_NODE_ACTION:
 		if(node->parent)
@@ -304,8 +255,6 @@ smcp_node_get_path(
 
 	if(node->type == SMCP_NODE_ACTION)
 		strlcat(path, "?", max_path_len);
-	else if(node->type == SMCP_NODE_EVENT)
-		strlcat(path, "!", max_path_len);
 
 	if(node->name)
 		strlcat(path, node->name, max_path_len);
@@ -343,20 +292,6 @@ extern int smcp_node_find_next_with_path(
 			path,
 			    (bt_compare_func_t)smcp_node_compare_cstr,
 			NULL);
-		if(!*next)
-			path--;
-	} else if(path[0] == '!') {
-		// Event.
-		require((node->type == SMCP_NODE_DEVICE) ||
-			    (node->type == SMCP_NODE_VARIABLE), bail);
-
-		path++; // Move past exclamation point
-		*next = bt_find(
-			    (void**)&((smcp_device_node_t)node)->events,
-			path,
-			    (bt_compare_func_t)smcp_node_compare_cstr,
-			NULL
-		    );
 		if(!*next)
 			path--;
 	} else {

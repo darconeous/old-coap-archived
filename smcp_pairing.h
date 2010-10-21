@@ -23,7 +23,6 @@
 
 #include "smcp.h"
 
-#define SMCP_PAIRINGS_ARE_IN_NODES 1
 
 #define PAIRING_STATE   struct smcp_pairing_s* pairings
 
@@ -31,32 +30,33 @@ __BEGIN_DECLS
 typedef uint32_t smcp_pairing_seq_t;
 
 struct smcp_pairing_s {
-#if SMCP_PAIRINGS_ARE_IN_NODES
-	smcp_pairing_t		next;
-	smcp_pairing_t		prev;
-#else
 	struct bt_item_s	bt_item;
-#endif
-#if SMCP_USE_BSD_SOCKETS
-	struct sockaddr_in6 saddr;
-#elif __CONTIKI__
-	uip_ipaddr_t		addr;
-	uint16_t			port;
-#endif
-	const char*			path;
+	int					flags;
 	smcp_pairing_seq_t	seq;
 	smcp_pairing_seq_t	ack;
-	int					flags;
+
+	const char*			path; // Local path
+
+	const char*			dest_uri;
+/*
+   #if SMCP_USE_BSD_SOCKETS
+    struct sockaddr_in6 saddr;
+   #elif __CONTIKI__
+    uip_ipaddr_t addr;
+    uint16_t port;
+   #endif
+    const char* dest_path;	// Remote path
+ */
 };
 
 __END_DECLS
 
-extern smcp_status_t smcp_node_pair_with_uri(
-	smcp_node_t node, const char* uri, int flags);
-extern smcp_status_t smcp_node_pair_with_sockaddr(
-	smcp_node_t node, SMCP_SOCKET_ARGS, const char* path, int flags);
-
-extern smcp_pairing_t smcp_node_get_first_pairing(smcp_node_t node);
+extern smcp_status_t smcp_daemon_pair_path_with_sockaddr(
+	smcp_daemon_t	self,
+	const char*		path,
+	const char*		dest_path,
+	SMCP_SOCKET_ARGS,
+	int				flags);
 extern smcp_pairing_t smcp_daemon_get_first_pairing_for_path(
 	smcp_daemon_t self, const char* path);
 extern smcp_pairing_t smcp_daemon_next_pairing(
