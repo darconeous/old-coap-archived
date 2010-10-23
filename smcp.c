@@ -6,7 +6,7 @@
 */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 0
+#define VERBOSE_DEBUG 1
 #endif
 
 #ifndef DEBUG
@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <sys/types.h>
 #include "ll.h"
 
 #include "url-helpers.h"
@@ -47,6 +46,7 @@
 #include <net/if.h>
 #include <sys/sysctl.h>
 #include <sys/errno.h>
+#include <sys/types.h>
 #endif
 
 #include "smcp_helpers.h"
@@ -638,6 +638,8 @@ smcp_daemon_send_request(
 			self, tid, (int)packet_length, method);
 
 #if SMCP_USE_BSD_SOCKETS
+		DEBUG_PRINTF(CSTR("smcp_daemon(%p): port=%d"), self,
+			    (int)ntohs(((struct sockaddr_in6*)saddr)->sin6_port));
 		require_action_string(0 <
 			sendto(self->fd,
 				packet,
@@ -725,7 +727,6 @@ smcp_daemon_send_request_to_url(
 	);
 
 #if SMCP_USE_BSD_SOCKETS
-	saddr.sin6_port = toport;
 	{
 		struct addrinfo hint = {
 			.ai_flags		= AI_ALL | AI_V4MAPPED,
@@ -752,6 +753,7 @@ smcp_daemon_send_request_to_url(
 
 		memcpy(&saddr, results->ai_addr, results->ai_addrlen);
 	}
+	saddr.sin6_port = toport;
 #elif __CONTIKI__
 	memset(&toaddr, 0, sizeof(toaddr));
 	ret = uiplib_ipaddrconv(addr_str, &toaddr) ? 0 : SMCP_STATUS_FAILURE;

@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <sys/types.h>
+//#include <sys/types.h>
 #include "ll.h"
 
 #if SMCP_USE_BSD_SOCKETS

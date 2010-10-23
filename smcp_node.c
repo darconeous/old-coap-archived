@@ -18,7 +18,7 @@
 #include "smcp.h"
 #include <string.h>
 #include <ctype.h>
-#include <sys/types.h>
+//#include <sys/types.h>
 #include "ll.h"
 
 #include "smcp_node.h"

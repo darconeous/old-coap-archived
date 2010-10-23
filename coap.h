@@ -5,7 +5,15 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdint.h>
-#include <sys/types.h>
+//#include <sys/types.h>
+
+#if __CONTIKI__
+#include "net/uip.h"
+#define htons(x)    uip_htons(x)
+#define ntohs(x)    uip_ntohs(x)
+#define HTONS(x)    UIP_HTONS(x)
+#define NTOHS(x)    UIP_NTOHS(x)
+#endif
 
 #define COAP_DEFAULT_PORT   (61616)
 
