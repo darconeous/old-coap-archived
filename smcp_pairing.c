@@ -260,6 +260,12 @@ smcp_daemon_trigger_event_with_node(
 	if(subpath)
 		strncat(path, subpath, sizeof(path) - 1);
 
+	{   // Remove trailing slashes.
+		size_t len = strlen(path);
+		while(len && path[len - 1] == '/')
+			path[--len] = 0;
+	}
+
 	return smcp_daemon_trigger_event(self,
 		path,
 		content,
@@ -297,7 +303,7 @@ smcp_daemon_refresh_variable(
 	ret = smcp_daemon_trigger_event_with_node(
 		daemon,
 		    (smcp_node_t)node,
-		"",
+		NULL,
 		content,
 		content_length,
 		content_type

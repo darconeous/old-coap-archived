@@ -167,10 +167,10 @@ smcp_node_get_path(
 		path[0] = 0;
 	}
 
+	strlcat(path, "/", max_path_len);
+
 	if(node->name)
 		strlcat(path, node->name, max_path_len);
-
-	//strlcat(path,"/",max_path_len);
 
 bail:
 	return ret;
