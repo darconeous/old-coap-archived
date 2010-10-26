@@ -24,6 +24,7 @@ smcp_timer_node_alloc() {
 	return ret;
 }
 
+// TODO: This eats up lots of RAM on AVR devices. Figure out a way to cleanly use this from flash.
 static const char list_content[] =
     "<running>,\n"
     "<running?v=1>;n=\"Start\",\n"
@@ -416,13 +417,13 @@ smcp_timer_node_init(
 ) {
 	require(self || (self = smcp_timer_node_alloc()), bail);
 
-	require(smcp_node_init_subdevice(
+	require(smcp_node_init(
 			&self->node,
 			    (void*)parent,
 			name
 		), bail);
 
-	    ((smcp_device_node_t)&self->node)->unhandled_request =
+	    ((smcp_node_t)&self->node)->unhandled_request =
 	    &smcp_timer_request_handler;
 
 	smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);

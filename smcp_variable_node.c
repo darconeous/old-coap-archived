@@ -107,26 +107,14 @@ smcp_node_init_variable(
 	smcp_variable_node_t ret = NULL;
 
 	require(node, bail);
-	require((node->type == SMCP_NODE_DEVICE), bail);
 
 	require(self || (self = smcp_variable_node_alloc()), bail);
 
 	ret = (smcp_variable_node_t)self;
 
-	ret->node.type = SMCP_NODE_VARIABLE;
-	ret->node.name = name;
-	ret->node.unhandled_request = &smcp_variable_request_handler;
+	smcp_node_init(&ret->node, node, name);
 
-	if(node) {
-		bt_insert(
-			    (void**)&((smcp_device_node_t)node)->variables,
-			ret,
-			    (bt_compare_func_t)smcp_node_compare,
-			    (bt_delete_func_t)smcp_node_delete,
-			NULL
-		);
-		ret->node.parent = node;
-	}
+	ret->node.unhandled_request = &smcp_variable_request_handler;
 
 bail:
 	return ret;

@@ -338,11 +338,10 @@ typedef struct smcp_daemon_s *smcp_daemon_t;
 struct smcp_node_s;
 typedef struct smcp_node_s *smcp_node_t;
 
-//struct smcp_action_node_s SMCP_DEPRECATED;
-//typedef struct smcp_action_node_s *smcp_action_node_t SMCP_DEPRECATED;
-
-struct smcp_device_node_s;
-typedef struct smcp_device_node_s *smcp_device_node_t;
+/*
+   struct smcp_device_node_s;
+   typedef struct smcp_device_node_s *smcp_device_node_t;
+ */
 
 struct smcp_pairing_s;
 typedef struct smcp_pairing_s *smcp_pairing_t;
@@ -399,11 +398,12 @@ typedef void (*smcp_response_handler_func)(smcp_daemon_t self,
     int statuscode, coap_header_item_t headers[], const char* content,
     size_t content_length, void* context);
 
-typedef enum smcp_node_type_t {
-	SMCP_NODE_DEVICE,
-	SMCP_NODE_VARIABLE,
-//	SMCP_NODE_ACTION,	//!< Deprecated
-} smcp_node_type_t;
+/*
+   typedef enum smcp_node_type_t {
+    SMCP_NODE_DEVICE,
+    SMCP_NODE_VARIABLE,
+   } smcp_node_type_t; //!< Deprecated
+ */
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 
@@ -477,9 +477,9 @@ extern smcp_status_t smcp_daemon_handle_inbound_packet(
 
 extern smcp_node_t smcp_node_alloc();
 
-extern smcp_device_node_t smcp_node_init_subdevice(
+extern smcp_node_t smcp_node_init(
 	smcp_node_t self, smcp_node_t parent, const char* name);
-//extern smcp_action_node_t smcp_node_init_action(smcp_node_t self, smcp_node_t parent,const char* name)SMCP_DEPRECATED;
+//extern smcp_device_node_t smcp_node_init_subdevice(smcp_node_t self, smcp_node_t parent,const char* name) SMCP_DEPRECATED;
 
 extern void smcp_node_delete(smcp_node_t node);
 extern smcp_status_t smcp_node_get_path(

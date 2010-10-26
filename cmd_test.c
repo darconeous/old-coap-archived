@@ -94,7 +94,7 @@ tool_cmd_test(
 	smcp_daemon_t smcp_daemon;
 	smcp_daemon_t smcp_daemon2;
 
-	struct smcp_device_node_s device_node = {};
+	struct smcp_node_s device_node = {};
 	struct smcp_timer_node_s timer_node = {};
 	struct smcp_variable_node_s var_node = {};
 	struct smcp_variable_node_s action_node = {};
@@ -105,9 +105,8 @@ tool_cmd_test(
 	else
 		smcp_daemon = smcp_daemon_create(SMCP_DEFAULT_PORT);
 
-	smcp_node_init_subdevice((smcp_node_t)&device_node,
-		smcp_daemon_get_root_node(smcp_daemon),
-		"device");
+	smcp_node_init((smcp_node_t)&device_node,
+		smcp_daemon_get_root_node(smcp_daemon), "device");
 
 	smcp_timer_node_init(&timer_node,
 		smcp_daemon,
@@ -149,14 +148,14 @@ tool_cmd_test(
 
 	// Just adding some random nodes so we can browse thru them with another process...
 	{
-		smcp_device_node_t subdevice = smcp_node_init_subdevice(NULL,
+		smcp_node_t subdevice = smcp_node_init(NULL,
 			smcp_daemon_get_root_node(smcp_daemon),
 			"lots_of_devices");
 		unsigned char i = 0;
 		for(i = i * 97 + 101; i; i = i * 97 + 101) {
 			char *name = NULL;
 			asprintf(&name, "subdevice_%d", i); // Will leak, but we don't care.
-			smcp_node_init_subdevice(NULL, (smcp_node_t)subdevice, name);
+			smcp_node_init(NULL, (smcp_node_t)subdevice, name);
 		}
 	}
 

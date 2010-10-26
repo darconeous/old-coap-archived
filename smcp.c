@@ -6,7 +6,7 @@
 */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
 #endif
 
 #ifndef DEBUG
@@ -195,22 +195,8 @@ struct smcp_daemon_s smcp_daemon_global_instance;
 #pragma mark Declarations
 
 
-smcp_status_t smcp_daemon_handle_post(
-	smcp_daemon_t		self,
-	smcp_node_t			node,
-	smcp_method_t		method,
-	const char*			path,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length);
-smcp_status_t smcp_daemon_handle_get(
-	smcp_daemon_t		self,
-	smcp_node_t			node,
-	smcp_method_t		method,
-	const char*			path,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length);
+//smcp_status_t smcp_daemon_handle_post(smcp_daemon_t self,smcp_node_t node,smcp_method_t method, const char* path,  coap_header_item_t headers[], const char* content, size_t content_length);
+//smcp_status_t smcp_daemon_handle_get(smcp_daemon_t self,smcp_node_t node,smcp_method_t method, const char* path,  coap_header_item_t headers[], const char* content, size_t content_length);
 smcp_status_t smcp_daemon_handle_list(
 	smcp_daemon_t		self,
 	smcp_node_t			node,
@@ -227,7 +213,6 @@ smcp_status_t smcp_daemon_handle_pair(
 	coap_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length);
-
 
 smcp_status_t smcp_invalidate_response_handler(
 	smcp_daemon_t self, coap_transaction_id_t tid);
@@ -353,7 +338,7 @@ smcp_daemon_init(
 
 	ret->port = port;
 	ret->is_processing_message = false;
-	require_string(smcp_node_init_subdevice(&ret->root_node,
+	require_string(smcp_node_init(&ret->root_node,
 			NULL,
 			NULL) != NULL, bail, "Unable to initialize root node");
 
@@ -1539,15 +1524,6 @@ smcp_daemon_handle_list(
 	// Node should always be set by the time we get here.
 	require(node, bail);
 
-/*
-    if(node->type==SMCP_NODE_ACTION) {
-        // You can't call LIST on events or actions
-        // TODO: PROTOCOL: Consider using this method for listing pairings...?
-        smcp_daemon_send_response(self, SMCP_RESULT_CODE_BAD_REQUEST, replyHeaders, NULL, 0);
-        goto bail;
-    }
- */
-
 	if(next_node) {
 		while(*next_node && (*next_node == ' ')) next_node++;
 		if(*next_node == '<') {
@@ -1568,63 +1544,14 @@ smcp_daemon_handle_list(
 		response_code = SMCP_RESULT_CODE_PARTIAL_CONTENT;
 		check_string(node, "Unable to find next node!");
 		next = bt_next(node);
-		if(node && !next && node->parent) {
-			if(node->parent->type == SMCP_NODE_DEVICE) {
-				switch(node->type) {
-/*
-                    case SMCP_NODE_ACTION:
-                        next = bt_first(((smcp_device_node_t)node->parent)->variables);
-                        if(next)
-                            break;
- */
-				case SMCP_NODE_VARIABLE:
-					next = bt_first(
-						    ((smcp_device_node_t)node->parent)->subdevices);
-					if(next)
-						break;
-				case SMCP_NODE_DEVICE:
-					// At the end!
-					break;
-				}
-			} else if(node->parent->type == SMCP_NODE_VARIABLE) {
-/*
-                switch(node->type) {
-                    case SMCP_NODE_ACTION:
-                        // At the end!
-                        break;
-                }
- */
-			}
-		}
+		if(node && !next && node->parent)
+			next = bt_first(((smcp_node_t)node->parent)->children);
 		node = next;
 	} else {
-		switch(node->type) {
-		case SMCP_NODE_DEVICE:
-/*
-                if(((smcp_device_node_t)node)->actions) {
-                    node = bt_first(((smcp_device_node_t)node)->actions);
-                } else
- */
-			if(((smcp_device_node_t)node)->variables)
-				node = bt_first(((smcp_device_node_t)node)->variables);
-			else if(((smcp_device_node_t)node)->subdevices)
-				node = bt_first(((smcp_device_node_t)node)->subdevices);
-			else
-				node = NULL;
-			break;
-		case SMCP_NODE_VARIABLE:
-/*
-                if(((smcp_device_node_t)node)->actions) {
-                    node = bt_first(((smcp_device_node_t)node)->actions);
-                } else {
-                    node = NULL;
-                }
-                break;
- */
-		default:
+		if(((smcp_node_t)node)->children)
+			node = bt_first(((smcp_node_t)node)->children);
+		else
 			node = NULL;
-			break;
-		}
 	}
 
 	while(node) {
@@ -1640,48 +1567,13 @@ smcp_daemon_handle_list(
 
 		strlcat(replyContent, "<", sizeof(replyContent));
 
-/*
-        if(node->type==SMCP_NODE_ACTION)
-            strlcat(replyContent,"?",sizeof(replyContent));
- */
-
 		if(node->name)
 			strlcat(replyContent, node_name, sizeof(replyContent));
-
-		if(node->type == SMCP_NODE_DEVICE)
-			strlcat(replyContent, "/", sizeof(replyContent));
 
 		strlcat(replyContent, ">", sizeof(replyContent));
 
 		next = bt_next(node);
-		if(!next && node->parent) {
-			if(node->parent->type == SMCP_NODE_DEVICE) {
-				switch(node->type) {
-/*
-                    case SMCP_NODE_ACTION:
-                        next = bt_first(((smcp_device_node_t)node->parent)->variables);
-                        if(next)
-                            break;
- */
-				case SMCP_NODE_VARIABLE:
-					next = bt_first(
-						    ((smcp_device_node_t)node->parent)->subdevices);
-					if(next)
-						break;
-				case SMCP_NODE_DEVICE:
-					// At the end!
-					break;
-				}
-			} else if(node->parent->type == SMCP_NODE_VARIABLE) {
-/*
-                switch(node->type) {
-                    case SMCP_NODE_ACTION:
-                        // At the end!
-                        break;
-                }
- */
-			}
-		}
+
 		next_node = (char*)node->name;
 		node = next;
 #if SMCP_ADD_NEWLINES_TO_LIST_OUTPUT

@@ -13,7 +13,6 @@
 
 #include "assert_macros.h"
 #include <stdio.h>
-//#include <unistd.h>
 #include <stdlib.h>
 #include "smcp.h"
 #include <string.h>
@@ -95,26 +94,23 @@ smcp_node_ncompare_cstr(
 	return ret;
 }
 
-smcp_device_node_t
-smcp_node_init_subdevice(
+smcp_node_t
+smcp_node_init(
 	smcp_node_t self, smcp_node_t node, const char* name
 ) {
-	smcp_device_node_t ret = NULL;
-
-	require(!node || (node->type == SMCP_NODE_DEVICE), bail);
+	smcp_node_t ret = NULL;
 
 	require(self || (self = smcp_node_alloc()), bail);
 
-	ret = (smcp_device_node_t)self;
+	ret = (smcp_node_t)self;
 
 	ret->unhandled_request = &smcp_default_request_handler;
-	ret->type = SMCP_NODE_DEVICE;
 
 	if(node) {
 		require(name, bail);
 		ret->name = name;
 		bt_insert(
-			    (void**)&((smcp_device_node_t)node)->subdevices,
+			    (void**)&((smcp_node_t)node)->children,
 			ret,
 			    (bt_compare_func_t)smcp_node_compare,
 			    (bt_delete_func_t)smcp_node_delete,
@@ -127,70 +123,16 @@ bail:
 	return ret;
 }
 
-/*
-   smcp_action_node_t
-   smcp_node_init_action(smcp_node_t self,smcp_node_t node,const char* name) {
-    smcp_action_node_t ret = NULL;
-
-    require(node,bail);
-    require((node->type==SMCP_NODE_DEVICE)||(node->type==SMCP_NODE_VARIABLE),bail);
-
-    require(self || (self = smcp_node_alloc()),bail);
-
-    ret = (smcp_action_node_t)self;
-
-    ret->type = SMCP_NODE_ACTION;
-    ret->name = name;
-
-    if(node) {
-        bt_insert(
-            (void**)&((smcp_device_node_t)node)->actions,
-            ret,
-            (bt_compare_func_t)smcp_node_compare,
-            (bt_delete_func_t)smcp_node_delete,
-            NULL
-        );
-        ret->parent = node;
-    }
-
-   bail:
-    return ret;
-   }
- */
 void
 smcp_node_delete(smcp_node_t node) {
 	void** owner = NULL;
 
 	// Delete all child objects.
-	switch(node->type) {
-	case SMCP_NODE_DEVICE:
-/*
-            while(((smcp_device_node_t)node)->actions)
-                smcp_node_delete(((smcp_device_node_t)node)->actions);
- */
-		while(((smcp_device_node_t)node)->subdevices)
-			smcp_node_delete(((smcp_device_node_t)node)->subdevices);
-		while(((smcp_device_node_t)node)->variables)
-			smcp_node_delete(((smcp_device_node_t)node)->variables);
-		if(node->parent)
-			owner =
-			    (void**)&((smcp_device_node_t)node->parent)->subdevices;
-		break;
-	case SMCP_NODE_VARIABLE:
-/*
-            while(((smcp_device_node_t)node)->actions)
-                smcp_node_delete(((smcp_device_node_t)node)->actions);
- */
-		if(node->parent)
-			owner = (void**)&((smcp_device_node_t)node->parent)->variables;
-		break;
-/*
-        case SMCP_NODE_ACTION:
-            if(node->parent)
-                owner = (void**)&((smcp_device_node_t)node->parent)->actions;
- */
-		break;
-	}
+	while(((smcp_node_t)node)->children)
+		smcp_node_delete(((smcp_node_t)node)->children);
+
+	if(node->parent)
+		owner = (void**)&((smcp_node_t)node->parent)->children;
 
 	if(owner) {
 		bt_remove(owner,
@@ -225,16 +167,10 @@ smcp_node_get_path(
 		path[0] = 0;
 	}
 
-/*
-    if(node->type==SMCP_NODE_ACTION)
-        strlcat(path,"?",max_path_len);
- */
-
 	if(node->name)
 		strlcat(path, node->name, max_path_len);
 
-	if(node->type == SMCP_NODE_DEVICE)
-		strlcat(path, "/", max_path_len);
+	//strlcat(path,"/",max_path_len);
 
 bail:
 	return ret;
@@ -256,15 +192,6 @@ extern int smcp_node_find_next_with_path(
 	if(path[0] == 0) {
 		// Self.
 		*next = node;
-/*
-    } else if(path[0]=='?') {
-        // Action.
-        require((node->type == SMCP_NODE_DEVICE) || (node->type == SMCP_NODE_VARIABLE),bail);
-        path++; // Move past question mark
-   *next = bt_find((void**)&((smcp_device_node_t)node)->actions, path, (bt_compare_func_t)smcp_node_compare_cstr,NULL);
-        if(!*next)
-            path--;
- */
 	} else {
 		// Device or Variable.
 		int namelen;
@@ -275,21 +202,11 @@ extern int smcp_node_find_next_with_path(
 		}
 
 		*next = bt_find(
-			    (void**)&((smcp_device_node_t)node)->subdevices,
+			    (void**)&((smcp_node_t)node)->children,
 			path,
 			    (bt_compare_func_t)smcp_node_ncompare_cstr,
 			&namelen
 		    );
-
-		if(!*next && (node->type == SMCP_NODE_DEVICE)) {
-			// Wasn't a device, must be a variable.
-			*next = bt_find(
-				    (void**)&((smcp_device_node_t)node)->variables,
-				path,
-				    (bt_compare_func_t)smcp_node_ncompare_cstr,
-				&namelen
-			    );
-		}
 
 		if(!*next) {
 			DEBUG_PRINTF(CSTR(
