@@ -17,11 +17,9 @@
 #include "smcp_logging.h"
 
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-//#include <sys/types.h>
 #include "ll.h"
 
 #if SMCP_USE_BSD_SOCKETS
@@ -38,6 +36,8 @@
 #include "smcp_node.h"
 #include "smcp_timer.h"
 #include "smcp_internal.h"
+
+#include "smcp_variable_node.h"
 
 #include "smcp_helpers.h"
 #include "url-helpers.h"
@@ -115,8 +115,8 @@ smcp_daemon_pair_with_uri(
 
 	while(path[0] == '/') path++;
 
-	pairing->path = strdup(path);
-	pairing->dest_uri = strdup(uri);
+	pairing->path = strdup(path);       //! TODO: Fix leak
+	pairing->dest_uri = strdup(uri);    //! TODO: Fix leak
 	pairing->flags = flags;
 
 	if(idVal)
@@ -286,7 +286,7 @@ smcp_daemon_refresh_variable(
 		char tmp_content[SMCP_MAX_CONTENT_LENGTH]; // TODO: This is really hard on the stack! Investigate alternatives.
 		ret =
 		    (*node->get_func)(node, NULL, tmp_content, &content_length,
-			&content_type, node->context);
+			&content_type);
 		require(ret == 0, bail);
 		if(content_length) {
 			content = (char*)malloc(content_length);
@@ -297,7 +297,7 @@ smcp_daemon_refresh_variable(
 	ret = smcp_daemon_trigger_event_with_node(
 		daemon,
 		    (smcp_node_t)node,
-		"!changed",
+		"",
 		content,
 		content_length,
 		content_type
@@ -332,7 +332,6 @@ smcp_daemon_handle_pair(
 
 	smcp_node_get_path(node, full_path, sizeof(full_path));
 	strncat(full_path, path, sizeof(full_path) - 1);
-
 	ret = smcp_daemon_pair_with_uri(
 		self,
 		full_path,
@@ -351,7 +350,7 @@ smcp_daemon_handle_pair(
 		),
 		NULL,
 		reply,
-		ret ? 0 : 4
+		ret ? 0 : strlen(reply)
 	    );
 bail:
 	return ret;

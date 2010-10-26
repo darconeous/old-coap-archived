@@ -87,6 +87,8 @@ send_pair_request(
 
 	pairIsDone = false;
 
+	fprintf(stderr, "Pairing \"%s\" to \"%s\"...\n", url, url2);
+
 	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
 
 //	util_add_header(headers,SMCP_MAX_HEADERS,COAP_HEADER_ID,tid_str);

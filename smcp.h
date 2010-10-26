@@ -57,6 +57,13 @@
 #include "net/uip.h"
 #endif
 
+#ifndef SMCP_DEPRECATED
+#if __GCC_VERSION__
+#define SMCP_DEPRECATED
+#else
+#define SMCP_DEPRECATED __attribute__ ((deprecated))
+#endif
+#endif
 
 #define SMCP_DEFAULT_PORT           (61616)
 #define SMCP_DEFAULT_PORT_CSTR      "61616"
@@ -80,8 +87,6 @@
 #endif
 
 #define SMCP_MAX_CASCADE_COUNT      (128)
-
-#define SMCP_DEPRECATED
 
 #include "coap.h"
 
@@ -333,16 +338,8 @@ typedef struct smcp_daemon_s *smcp_daemon_t;
 struct smcp_node_s;
 typedef struct smcp_node_s *smcp_node_t;
 
-struct smcp_action_node_s;                              //!< Deprecated
-typedef struct smcp_action_node_s *smcp_action_node_t;  //!< Deprecated
-
-/*
-   struct smcp_event_node_s;	//!< Deprecated
-   typedef struct smcp_event_node_s *smcp_event_node_t;	//!< Deprecated
- */
-
-struct smcp_variable_node_s;
-typedef struct smcp_variable_node_s *smcp_variable_node_t;
+//struct smcp_action_node_s SMCP_DEPRECATED;
+//typedef struct smcp_action_node_s *smcp_action_node_t SMCP_DEPRECATED;
 
 struct smcp_device_node_s;
 typedef struct smcp_device_node_s *smcp_device_node_t;
@@ -405,7 +402,7 @@ typedef void (*smcp_response_handler_func)(smcp_daemon_t self,
 typedef enum smcp_node_type_t {
 	SMCP_NODE_DEVICE,
 	SMCP_NODE_VARIABLE,
-	SMCP_NODE_ACTION,   //!< Deprecated
+//	SMCP_NODE_ACTION,	//!< Deprecated
 } smcp_node_type_t;
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
@@ -482,10 +479,7 @@ extern smcp_node_t smcp_node_alloc();
 
 extern smcp_device_node_t smcp_node_init_subdevice(
 	smcp_node_t self, smcp_node_t parent, const char* name);
-extern smcp_variable_node_t smcp_node_init_variable(
-	smcp_node_t self, smcp_node_t parent, const char* name);
-extern smcp_action_node_t smcp_node_init_action(
-	smcp_node_t self, smcp_node_t parent, const char* name);
+//extern smcp_action_node_t smcp_node_init_action(smcp_node_t self, smcp_node_t parent,const char* name)SMCP_DEPRECATED;
 
 extern void smcp_node_delete(smcp_node_t node);
 extern smcp_status_t smcp_node_get_path(
@@ -528,8 +522,6 @@ extern smcp_status_t smcp_daemon_trigger_event_with_node(
 	const char*			content,
 	size_t				content_length,
 	smcp_content_type_t content_type);
-extern smcp_status_t smcp_daemon_refresh_variable(
-	smcp_daemon_t daemon, smcp_variable_node_t node);
 
 
 coap_transaction_id_t smcp_daemon_get_current_tid(smcp_daemon_t self);

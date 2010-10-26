@@ -19,24 +19,24 @@
 #include "smcp.h"
 #include "smcp_node.h"
 #include "smcp_timer_node.h"
+#include "smcp_variable_node.h"
 
 #include "cmd_test.h"
 
 smcp_status_t
 action_func(
-	smcp_action_node_t	node,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length,
-	smcp_content_type_t content_type,
-	void*				context
+	smcp_variable_node_t	node,
+	coap_header_item_t		headers[],
+	char*					content,
+	size_t					content_length,
+	smcp_content_type_t		content_type
 ) {
-	fprintf(stderr,
+	fprintf(stdout,
 		" *** Received Action! content_length = %d ",
 		    (int)content_length);
-	fprintf(stderr, "content = \"%s\"\n", content);
+	fprintf(stdout, "content = \"%s\"\n", content);
 
-	return 0;
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
@@ -45,8 +45,7 @@ loadavg_get_func(
 	coap_header_item_t		headers[],
 	char*					content,
 	size_t*					content_length,
-	smcp_content_type_t*	content_type,
-	void*					context
+	smcp_content_type_t*	content_type
 ) {
 	int ret = 0;
 	double loadavg[3] = { };
@@ -66,22 +65,6 @@ loadavg_get_func(
 bail:
 	return ret;
 }
-
-smcp_variable_node_t create_load_average_variable_node(
-	smcp_device_node_t parent, const char* name
-) {
-	smcp_variable_node_t ret = NULL;
-
-//	smcp_event_node_t changed_event = NULL;
-
-	ret = smcp_node_init_variable(NULL, (void*)parent, name);
-
-//	changed_event = smcp_node_init_event(NULL,(void*)ret, "changed");
-	ret->get_func = loadavg_get_func;
-
-	return ret;
-}
-
 
 static void
 list_response_handler(
@@ -111,10 +94,10 @@ tool_cmd_test(
 	smcp_daemon_t smcp_daemon;
 	smcp_daemon_t smcp_daemon2;
 
-	smcp_device_node_t device_node;
-	smcp_variable_node_t var_node;
-
+	struct smcp_device_node_s device_node = {};
 	struct smcp_timer_node_s timer_node = {};
+	struct smcp_variable_node_s var_node = {};
+	struct smcp_variable_node_s action_node = {};
 
 	smcp_daemon2 = smcp_daemon_create(12345);
 	if(smcp_daemon_get_port(smcp) == SMCP_DEFAULT_PORT)
@@ -122,49 +105,49 @@ tool_cmd_test(
 	else
 		smcp_daemon = smcp_daemon_create(SMCP_DEFAULT_PORT);
 
-	device_node =
-	    smcp_node_init_subdevice(NULL, smcp_daemon_get_root_node(
-			smcp_daemon), "device");
+	smcp_node_init_subdevice((smcp_node_t)&device_node,
+		smcp_daemon_get_root_node(smcp_daemon),
+		"device");
 
 	smcp_timer_node_init(&timer_node,
 		smcp_daemon,
 		smcp_daemon_get_root_node(smcp_daemon),
 		"timer");
 
-	var_node = create_load_average_variable_node(device_node, "loadavg");
+	smcp_node_init_variable(&var_node,
+		    (smcp_node_t)&device_node,
+		"loadavg");
+	var_node.get_func = loadavg_get_func;
 
-	smcp_action_node_t action_node;
-	action_node =
-	    smcp_node_init_action(NULL, smcp_daemon_get_root_node(
-			smcp_daemon2), "action");
-	action_node->post_func = action_func;
-
+	smcp_node_init_variable(&action_node,
+		smcp_daemon_get_root_node(smcp_daemon2), "action");
+	action_node.post_func = action_func;
 
 	{
 		char url[256];
 		snprintf(url,
 			sizeof(url),
-			"smcp://127.0.0.1:%d/?action",
+			"smcp://127.0.0.1:%d/action",
 			smcp_daemon_get_port(smcp_daemon2));
 		smcp_daemon_pair_with_uri(smcp_daemon,
-			"device/loadavg!changed",
+			"device/loadavg",
 			url,
 			0,
 			NULL);
 		printf("EVENT_NODE PAIRED WITH %s\n", url);
 	}
+
 	{
 		char url[256];
 		snprintf(url,
 			sizeof(url),
-			"smcp://[::1]:%d/device/loadavg!changed",
+			"smcp://[::1]:%d/device/loadavg",
 			smcp_daemon_get_port(smcp_daemon));
-		smcp_daemon_pair_with_uri(smcp_daemon2, "?action", url, 0, NULL);
+		smcp_daemon_pair_with_uri(smcp_daemon2, "action", url, 0, NULL);
 		printf("ACTION_NODE PAIRED WITH %s\n", url);
 	}
 
 	// Just adding some random nodes so we can browse thru them with another process...
-//	smcp_node_init_event(NULL,(smcp_node_t)device_node, "event");
 	{
 		smcp_device_node_t subdevice = smcp_node_init_subdevice(NULL,
 			smcp_daemon_get_root_node(smcp_daemon),
@@ -178,15 +161,10 @@ tool_cmd_test(
 	}
 
 	{
-		//const char* headers[SMCP_MAX_HEADERS+1] = { NULL };
 		coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
-		//static char tid_str[30];
-
-		//snprintf(tid_str,sizeof(tid_str),"%d",tid);
-
-		//util_add_header(headers,SMCP_MAX_HEADERS,COAP_HEADER_ID,tid_str);
 
 		char url[256];
+
 #if 0
 		snprintf(url,
 			sizeof(url),
@@ -199,12 +177,10 @@ tool_cmd_test(
 			smcp_daemon_get_port(smcp_daemon));
 #endif
 
-		//util_add_header(headers,SMCP_MAX_HEADERS,COAP_HEADER_ID,tid_str);
-
 		smcp_daemon_add_response_handler(
 			smcp_daemon2,
 			tid,
-			5000,
+			5 * MSEC_PER_SEC,
 			0, // Flags
 			&list_response_handler,
 			NULL
@@ -224,12 +200,12 @@ tool_cmd_test(
 
 	int i;
 	for(i = 0; i < 3000000; i++) {
-		if((i - 1) % 50000 == 0) {
+		if((i - 1) % 250 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
-			smcp_daemon_refresh_variable(smcp_daemon, var_node);
+			smcp_daemon_refresh_variable(smcp_daemon, &var_node);
 		}
-		smcp_daemon_process(smcp_daemon, 50);
-		smcp_daemon_process(smcp_daemon2, 50);
+		smcp_daemon_process(smcp_daemon, 10);
+		smcp_daemon_process(smcp_daemon2, 10);
 	}
 
 bail:

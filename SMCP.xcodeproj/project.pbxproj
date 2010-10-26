@@ -13,6 +13,7 @@
 		A6078D35122DAC3F0034291D /* smcp_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A6078D34122DAC3F0034291D /* smcp_node.c */; };
 		A60E57F2116DBA7000F90E64 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E57F1116DBA7000F90E64 /* smcp.c */; };
 		A63B1EBA125FC4E900BF2543 /* libreadline.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A63B1EB9125FC4E900BF2543 /* libreadline.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		A65E1BA012775F670061AA73 /* smcp_variable_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A65E1B9F12775F670061AA73 /* smcp_variable_node.c */; };
 		A6601206125D17EB00B06DF7 /* url-helpers.c in Sources */ = {isa = PBXBuildFile; fileRef = A6601205125D17EB00B06DF7 /* url-helpers.c */; };
 		A660F1841175049C005178EC /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A660F1831175049C005178EC /* btree.c */; };
 		A66F2DB2125C05D900CDDAF0 /* cmd_pair.c in Sources */ = {isa = PBXBuildFile; fileRef = A66F2D86125C05D800CDDAF0 /* cmd_pair.c */; };
@@ -52,6 +53,8 @@
 		A6257CAB1173ADE100C6177E /* btree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = btree.h; sourceTree = "<group>"; };
 		A62E6950123E8B610048F877 /* smcp_logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_logging.h; sourceTree = "<group>"; };
 		A63B1EB9125FC4E900BF2543 /* libreadline.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libreadline.dylib; path = usr/lib/libreadline.dylib; sourceTree = SDKROOT; };
+		A65E1B9E12775F670061AA73 /* smcp_variable_node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp_variable_node.h; sourceTree = "<group>"; };
+		A65E1B9F12775F670061AA73 /* smcp_variable_node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp_variable_node.c; sourceTree = "<group>"; };
 		A6601204125D17EB00B06DF7 /* url-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "url-helpers.h"; sourceTree = "<group>"; };
 		A6601205125D17EB00B06DF7 /* url-helpers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "url-helpers.c"; sourceTree = "<group>"; };
 		A660F1831175049C005178EC /* btree.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = btree.c; sourceTree = "<group>"; };
@@ -114,7 +117,6 @@
 				A6078D31122DAC2F0034291D /* smcp_pairing.c */,
 				A6078D33122DAC3F0034291D /* smcp_node.h */,
 				A6078D34122DAC3F0034291D /* smcp_node.c */,
-				A6078D58122DB5540034291D /* assert_macros.h */,
 				A62E6950123E8B610048F877 /* smcp_logging.h */,
 				A6C4EA0E1263DA6600E75D94 /* coap.h */,
 				A6C4EA0F1263DA6600E75D94 /* coap.c */,
@@ -122,6 +124,8 @@
 				A6EB0F871268CBE200DEB616 /* smcp_timer.c */,
 				A6EB0F891268CF1700DEB616 /* smcp_timer_node.h */,
 				A6EB0F8A1268CF1700DEB616 /* smcp_timer_node.c */,
+				A65E1B9E12775F670061AA73 /* smcp_variable_node.h */,
+				A65E1B9F12775F670061AA73 /* smcp_variable_node.c */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -143,6 +147,7 @@
 				A660F1831175049C005178EC /* btree.c */,
 				A6AFEB8012148C3700DC172A /* ll.h */,
 				A6D20003123EE8D800DA5A12 /* smcp_helpers.h */,
+				A6078D58122DB5540034291D /* assert_macros.h */,
 			);
 			name = Utils;
 			sourceTree = "<group>";
@@ -243,6 +248,7 @@
 				A6C4EA101263DA6600E75D94 /* coap.c in Sources */,
 				A6EB0F881268CBE200DEB616 /* smcp_timer.c in Sources */,
 				A6EB0F8B1268CF1700DEB616 /* smcp_timer_node.c in Sources */,
+				A65E1BA012775F670061AA73 /* smcp_variable_node.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
