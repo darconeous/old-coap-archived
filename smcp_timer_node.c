@@ -10,6 +10,25 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "smcp_helpers.h"
+
+#if __AVR__
+PROGMEM
+#endif
+const char list_content[] =
+    "<running>,\n"
+    "<running?v=1>;n=\"Start\",\n"
+    "<running?v=0>;n=\"Stop\",\n"
+    "<running?v=!v>;n=\"Toggle\",\n"
+    "<?reset>,\n"
+    "<?restart>,\n"
+    "<!fire>,\n"
+    "<period>,\n"
+    "<remaining>,\n"
+    "<autorestart>\n"
+;
+
+
 void
 smcp_timer_node_dealloc(smcp_timer_node_t x) {
 	free(x);
@@ -23,20 +42,6 @@ smcp_timer_node_alloc() {
 	ret->node.finalize = (void (*)(smcp_node_t)) & smcp_timer_node_dealloc;
 	return ret;
 }
-
-// TODO: This eats up lots of RAM on AVR devices. Figure out a way to cleanly use this from flash.
-static const char list_content[] =
-    "<running>,\n"
-    "<running?v=1>;n=\"Start\",\n"
-    "<running?v=0>;n=\"Stop\",\n"
-    "<running?v=!v>;n=\"Toggle\",\n"
-    "<?reset>,\n"
-    "<?restart>,\n"
-    "<!fire>,\n"
-    "<period>,\n"
-    "<remaining>,\n"
-    "<autorestart>\n"
-;
 
 
 void smcp_timer_node_fired(
@@ -179,7 +184,7 @@ smcp_timer_request_handler(
 	}
 
 	// TODO: Clean this up!
-	if(0 == strcmp(path, "")) {
+	if(!path || path[0] == 0) {
 		if((method == SMCP_METHOD_GET)) {
 			content_type = SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
 			util_add_header(
@@ -191,12 +196,19 @@ smcp_timer_request_handler(
 			);
 
 			reply_code = SMCP_RESULT_CODE_OK;
+
+#if __AVR__
+			// TODO: Make sure this actually works!
+			reply_content = alloca(sizeof(list_content));
+			strcpy_P((char*)reply_content, list_content);
+#else
 			reply_content = list_content;
+#endif
 			reply_content_len = sizeof(list_content) - 1;
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
-	} else if(0 == strncmp(path, "running", 7)) {
+	} else if(strhasprefix_const(path, "running")) {
 		if((method == SMCP_METHOD_GET)) {
 			reply_code = SMCP_RESULT_CODE_OK;
 			reply_content_len = 3;
@@ -215,13 +227,13 @@ smcp_timer_request_handler(
 			}
 			while(url_form_next_value((char**)&content, &key,
 					&value) && key && value) {
-				if(0 == strcmp(key, "v")) {
+				if(strequal_const(key, "v")) {
 					if(isdigit(value[0])) {
 						if(strtol(value, NULL, 10))
 							smcp_timer_node_start((smcp_timer_node_t)node);
 						else
 							smcp_timer_node_stop((smcp_timer_node_t)node);
-					} else if(0 == strcmp(value, "!v")) {
+					} else if(strequal_const(value, "!v")) {
 						smcp_timer_node_toggle((smcp_timer_node_t)node);
 					}
 					break;
@@ -242,21 +254,21 @@ smcp_timer_request_handler(
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
-	} else if(0 == strcmp(path, "?reset")) {
+	} else if(strhasprefix_const(path, "?reset")) {
 		if((method == SMCP_METHOD_PUT) || (method == SMCP_METHOD_POST)) {
 			smcp_timer_node_reset((smcp_timer_node_t)node);
 			reply_code = SMCP_RESULT_CODE_OK;
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
-	} else if(0 == strcmp(path, "?restart")) {
+	} else if(strequal_const(path, "?restart")) {
 		if((method == SMCP_METHOD_PUT) || (method == SMCP_METHOD_POST)) {
 			smcp_timer_node_reset((smcp_timer_node_t)node);
 			reply_code = SMCP_RESULT_CODE_OK;
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
-	} else if(0 == strcmp(path, "!fire")) {
+	} else if(strequal_const(path, "!fire")) {
 		reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		if((method == SMCP_METHOD_PAIR)) {
 			ret = smcp_default_request_handler(
@@ -272,7 +284,7 @@ smcp_timer_request_handler(
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
-	} else if(0 == strncmp(path, "period", 6)) {
+	} else if(strhasprefix_const(path, "period")) {
 		if((method == SMCP_METHOD_GET)) {
 			snprintf(tmp_content, sizeof(tmp_content), "v=%lu",
 				    (long unsigned int)((smcp_timer_node_t)node)->period);
@@ -289,7 +301,7 @@ smcp_timer_request_handler(
 			char* value = NULL;
 			while(url_form_next_value((char**)&content, &key,
 					&value) && key && value) {
-				if(0 == strcmp(key, "v")) {
+				if(strequal_const(key, "v")) {
 					    ((smcp_timer_node_t)node)->period = strtol(value,
 						NULL,
 						10);
@@ -301,7 +313,7 @@ smcp_timer_request_handler(
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
-	} else if(0 == strncmp(path, "remaining", 9)) {
+	} else if(strhasprefix_const(path, "remaining")) {
 		if((method == SMCP_METHOD_GET)) {
 			snprintf(tmp_content,
 				sizeof(tmp_content),
@@ -320,7 +332,7 @@ smcp_timer_request_handler(
 			char* value = NULL;
 			while(url_form_next_value((char**)&content, &key,
 					&value) && key && value) {
-				if(0 == strcmp(key, "v")) {
+				if(strequal_const(key, "v")) {
 					    ((smcp_timer_node_t)node)->remaining = strtol(
 						value,
 						NULL,
@@ -341,7 +353,7 @@ smcp_timer_request_handler(
 		} else {
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
-	} else if(0 == strncmp(path, "autorestart", 11)) {
+	} else if(strhasprefix_const(path, "autorestart")) {
 		if((method == SMCP_METHOD_GET)) {
 			reply_code = SMCP_RESULT_CODE_OK;
 			reply_content_len = 3;
@@ -359,7 +371,7 @@ smcp_timer_request_handler(
 			char* value = NULL;
 			while(url_form_next_value((char**)&content, &key,
 					&value) && key && value) {
-				if(0 == strcmp(key, "v")) {
+				if(strequal_const(key, "v")) {
 					    ((smcp_timer_node_t)node)->autorestart = !!strtol(
 						value,
 						NULL,

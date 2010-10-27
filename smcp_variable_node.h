@@ -18,9 +18,11 @@ struct smcp_variable_node_s {
 		smcp_content_type_t content_type);
 };
 
-extern smcp_variable_node_t smcp_node_init_variable(
-	smcp_variable_node_t self, smcp_node_t parent, const char* name);
 
+#define smcp_node_init_variable smcp_variable_node_init
+
+extern smcp_variable_node_t smcp_variable_node_init(
+	smcp_variable_node_t self, smcp_node_t parent, const char* name);
 
 extern smcp_status_t smcp_daemon_refresh_variable(
 	smcp_daemon_t daemon, smcp_variable_node_t node);

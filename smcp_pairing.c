@@ -149,8 +149,6 @@ smcp_daemon_get_first_pairing_for_path(
 		NULL);
 
 bail:
-//	if(!ret)
-//		DEBUG_PRINTF(CSTR("Unable to find pairings for path %s"),path);
 	return ret;
 }
 

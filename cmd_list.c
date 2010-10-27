@@ -58,6 +58,8 @@ int calc_retransmit_timeout(int retries) {
 	ret *= (1000 - 150) + (SMCP_FUNC_RANDOM_UINT32() % 300);
 	ret /= 1000;
 
+	if(ret > 4000)
+		ret = 4000;
 //	if(ret!=smcp_rtt)
 //		fprintf(stderr,"(retransmit in %dms)\n",ret);
 	return ret;

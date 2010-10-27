@@ -1,3 +1,5 @@
+//#define VERBOSE_DEBUG 1
+
 #include "assert_macros.h"
 #include "smcp_timer.h"
 #include <stdio.h>
@@ -8,7 +10,9 @@
 #include "smcp_internal.h"
 #include "smcp_logging.h"
 
-//#define VERBOSE_DEBUG 1
+#ifndef SMCP_MAX_TIMEOUT
+#define SMCP_MAX_TIMEOUT    (60 * MSEC_PER_SEC)
+#endif
 
 #if defined(__CONTIKI__)
 #define gettimeofday gettimeofday_
@@ -153,14 +157,14 @@ smcp_daemon_invalidate_timer(
 
 cms_t
 smcp_daemon_get_timeout(smcp_daemon_t self) {
-	cms_t ret = 60000;
+	cms_t ret = SMCP_MAX_TIMEOUT;
 
 	if(self->timers)
 		ret = MIN(ret, convert_timeval_to_cms(&self->timers->fire_date));
 
 	ret = MAX(ret, 0);
 
-	if(ret != 60000)
+	if(ret != SMCP_MAX_TIMEOUT)
 		DEBUG_PRINTF(CSTR("%p: next timeout = %dms"), self, ret);
 	return ret;
 }

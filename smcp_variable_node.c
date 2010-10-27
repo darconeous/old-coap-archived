@@ -41,6 +41,7 @@ smcp_variable_request_handler(
 
 
 	if(method == SMCP_METHOD_PUT)
+		// TODO: Implement me!
 		method = SMCP_METHOD_POST;
 
 	if(method == SMCP_METHOD_POST) {
@@ -93,7 +94,14 @@ smcp_variable_request_handler(
 				replyContentLength);
 		}
 	} else {
-		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		ret = smcp_default_request_handler(self,
+			node,
+			method,
+			path,
+			headers,
+			content,
+			content_length);
+		//ret = SMCP_STATUS_NOT_IMPLEMENTED;
 	}
 
 bail:

@@ -60,11 +60,6 @@
 #pragma mark -
 #pragma mark Macros
 
-
-#pragma mark -
-#pragma mark Time Calculation Utils
-
-
 #pragma mark -
 #pragma mark Private Functions
 
@@ -83,25 +78,25 @@ get_method_string(smcp_method_t method) {
 	return method_string;
 }
 
-static smcp_method_t
-get_method_index(const char* method_string) {
-	if(strcmp(method_string, "GET") == 0)
-		return SMCP_METHOD_GET;
-	else if(strcmp(method_string, "POST") == 0)
-		return SMCP_METHOD_POST;
-	else if(strcmp(method_string, "PUT") == 0)
-		return SMCP_METHOD_PUT;
-	else if(strcmp(method_string, "DELETE") == 0)
-		return SMCP_METHOD_DELETE;
-	else if(strcmp(method_string, "PAIR") == 0)
-		return SMCP_METHOD_PAIR;
-	else if(strcmp(method_string, "UNPAIR") == 0)
-		return SMCP_METHOD_UNPAIR;
+/*
+   static smcp_method_t
+   get_method_index(const char* method_string) {
+    if(strcmp(method_string,"GET")==0)
+        return SMCP_METHOD_GET;
+    else if(strcmp(method_string,"POST")==0)
+        return SMCP_METHOD_POST;
+    else if(strcmp(method_string,"PUT")==0)
+        return SMCP_METHOD_PUT;
+    else if(strcmp(method_string,"DELETE")==0)
+        return SMCP_METHOD_DELETE;
+    else if(strcmp(method_string,"PAIR")==0)
+        return SMCP_METHOD_PAIR;
+    else if(strcmp(method_string,"UNPAIR")==0)
+        return SMCP_METHOD_UNPAIR;
 
-	return 0;
-}
-
-
+    return 0;
+   }
+ */
 static const char*
 get_content_type_string(smcp_content_type_t content_type) {
 	const char* content_type_string = NULL;
@@ -122,19 +117,20 @@ get_content_type_string(smcp_content_type_t content_type) {
 	return content_type_string;
 }
 
-static smcp_content_type_t
-get_content_type_index(const char* content_type_string) {
-	if(strcmp(content_type_string, "text/plain") == 0)
-		return SMCP_CONTENT_TYPE_TEXT_PLAIN;
-	else if(strcmp(content_type_string,
-			"application/x-www-form-urlencoded") == 0)
-		return SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
-	else if(strcmp(content_type_string, "text/csv") == 0)
-		return SMCP_CONTENT_TYPE_TEXT_CSV;
-	else if(strcmp(content_type_string, "text/xml") == 0)
-		return SMCP_CONTENT_TYPE_TEXT_XML;
-	return SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
-}
+/*
+   static smcp_content_type_t
+   get_content_type_index(const char* content_type_string) {
+    if(strcmp(content_type_string,"text/plain")==0)
+        return SMCP_CONTENT_TYPE_TEXT_PLAIN;
+    else if(strcmp(content_type_string,"application/x-www-form-urlencoded")==0)
+        return SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
+    else if(strcmp(content_type_string,"text/csv")==0)
+        return SMCP_CONTENT_TYPE_TEXT_CSV;
+    else if(strcmp(content_type_string,"text/xml")==0)
+        return SMCP_CONTENT_TYPE_TEXT_XML;
+    return SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+   }
+ */
 
 #pragma mark -
 #pragma mark Other
@@ -195,8 +191,6 @@ struct smcp_daemon_s smcp_daemon_global_instance;
 #pragma mark Declarations
 
 
-//smcp_status_t smcp_daemon_handle_post(smcp_daemon_t self,smcp_node_t node,smcp_method_t method, const char* path,  coap_header_item_t headers[], const char* content, size_t content_length);
-//smcp_status_t smcp_daemon_handle_get(smcp_daemon_t self,smcp_node_t node,smcp_method_t method, const char* path,  coap_header_item_t headers[], const char* content, size_t content_length);
 smcp_status_t smcp_daemon_handle_list(
 	smcp_daemon_t		self,
 	smcp_node_t			node,
@@ -237,11 +231,6 @@ smcp_status_t smcp_daemon_handle_response(
 	coap_header_item_t	headers[],
 	const char*			content,
 	size_t				content_length);
-
-
-#pragma mark -
-#pragma mark SMCP Timer Implementation
-
 
 #pragma mark -
 #pragma mark SMCP Implementation
@@ -433,7 +422,7 @@ smcp_daemon_send_response(
 #if __CONTIKI__
 	char* const packet = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
-	char packet[SMCP_MAX_PACKET_LENGTH + 1] = "";
+	char packet[SMCP_MAX_PACKET_LENGTH + 1] = {};
 #endif
 	coap_transaction_id_t tid = self->current_inbound_request_tid;
 	size_t packet_length = 0;
@@ -541,7 +530,7 @@ smcp_daemon_send_request(
 #if __CONTIKI__
 	char* const packet = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
-	char packet[SMCP_MAX_PACKET_LENGTH + 1] = "";
+	char packet[SMCP_MAX_PACKET_LENGTH + 1] = {};
 #endif
 	size_t packet_length = 0;
 	int header_count = 0;
@@ -689,11 +678,6 @@ smcp_daemon_send_request_to_url(
 		addr_str = "::1";
 		toport = htons(self->port);
 	} else {
-		require_action((strncmp(uri_, "smcp:",
-					5) == 0) || (strncmp(uri_,
-					"coap:",
-					5) == 0), bail, ret = SMCP_STATUS_UNSUPPORTED_URI);
-
 		strcpy(uri, uri_);
 		// Parse the URI.
 		require_action_string(
@@ -702,6 +686,10 @@ smcp_daemon_send_request_to_url(
 			ret = SMCP_STATUS_UNSUPPORTED_URI,
 			"Unable to parse URL"
 		);
+		require_action(strequal_const(proto_str,
+				"smcp") || strequal_const(proto_str,
+				"coap"), bail, ret = SMCP_STATUS_UNSUPPORTED_URI);
+
 		if(port_str)
 			toport = htons(strtol(port_str, NULL, 10));
 	}
@@ -1508,7 +1496,7 @@ smcp_daemon_handle_list(
 		content_break_threshold = sizeof(replyContent) - 2;
 
 	// We only support this method on direct queries.
-	require(path[0] == 0, bail);
+	require_action(path[0] == 0, bail, ret = SMCP_STATUS_NOT_FOUND);
 
 	if((content_break_threshold == 0) || (content_offset && !next_node)) {
 		// We don't support content offsets right now.

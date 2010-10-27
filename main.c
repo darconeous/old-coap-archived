@@ -225,7 +225,7 @@ void process_input_line(char *l) {
 
 bail:
 	if(istty) {
-		char prompt[128] = "";
+		char prompt[128] = {};
 		char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
 
 		snprintf(prompt,
@@ -331,7 +331,7 @@ main(
 		ret = ERRORCODE_NOCOMMAND;
 		goto bail;
 #else   // HAS_LIBREADLINE
-		char prompt[128] = "";
+		char prompt[128] = {};
 		char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
 		snprintf(prompt,
 			sizeof(prompt),

@@ -51,5 +51,22 @@ util_add_header(
 	return false;
 }
 
+#if defined(__GCC_VERSION__)
+#define SMCP_PURE_FUNC __attribute__((pure))
+#else
+#define SMCP_PURE_FUNC
+#endif
+
+#if __AVR__
+#include <avr/pgmspace.h>
+#include <alloca.h>
+#define strequal_const(a, b) (strcmp_P(a, PSTR(b)) == 0)
+#define strhasprefix_const(a, \
+        b) (strncmp_P(a, PSTR(b), sizeof(b) - 1) == 0)
+#else
+#define strequal_const(a, b) (strcmp(a, b) == 0)
+#define strhasprefix_const(a, b) (strncmp(a, b, sizeof(b) - 1) == 0)
+#endif
+
 
 #endif
