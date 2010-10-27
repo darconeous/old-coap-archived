@@ -7,16 +7,16 @@
  *
  */
 
-#include "assert_macros.h"
+#include <smcp/assert_macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "smcp.h"
+#include <smcp/smcp.h>
 #include <string.h>
 #include <sys/errno.h>
 #include "help.h"
 #include "cmd_post.h"
-#include "url-helpers.h"
+#include <smcp/url-helpers.h>
 #include <signal.h>
 
 /*
@@ -158,5 +158,5 @@ tool_cmd_post(
 bail:
 	smcp_invalidate_response_handler(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
-	return 0;
+	return ret;
 }

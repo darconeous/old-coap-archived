@@ -1,5 +1,5 @@
 /*
- *  cmd_pair.c
+ *  cmd_get.c
  *  SMCP
  *
  *  Created by Robert Quattlebaum on 8/17/10.
@@ -7,16 +7,16 @@
  *
  */
 
-#include "assert_macros.h"
+#include <smcp/assert_macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "smcp.h"
+#include <smcp/smcp.h>
 #include <string.h>
 #include <sys/errno.h>
 #include "help.h"
-#include "cmd_pair.h"
-#include "url-helpers.h"
+#include "cmd_get.h"
+#include <smcp/url-helpers.h>
 #include <signal.h>
 
 /*
@@ -26,22 +26,24 @@
    };
  */
 
-static bool pairIsDone;
+typedef void (*sig_t)(int);
+
+static bool getIsDone;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
 
 static void
 signal_interrupt(int sig) {
 	fprintf(stderr, "Interrupt\n");
-	pairIsDone = 1;
+	getIsDone = 1;
 	signal(SIGINT, previous_sigint_handler);
 }
 
-bool send_pair_request(
-	smcp_daemon_t smcp, const char* url, const char* content);
+bool send_get_request(
+	smcp_daemon_t smcp, const char* url);
 
 static void
-pair_response_handler(
+get_response_handler(
 	smcp_daemon_t		self,
 	int					statuscode,
 	coap_header_item_t	headers[],
@@ -49,14 +51,11 @@ pair_response_handler(
 	size_t				content_length,
 	void*				context
 ) {
-	if((statuscode < 200) || (statuscode >= 300)) {
-		fprintf(stderr,
-			" *** RESULT CODE = %d (%s)\n",
-			statuscode,
-			smcp_code_to_cstr(statuscode));
-	}
-	if(content && (statuscode != SMCP_RESULT_CODE_ACK) &&
-	    content_length) {
+	if(statuscode != SMCP_RESULT_CODE_OK)
+		fprintf(stderr, " *** RESULT CODE = %d (%s)\n", statuscode,
+			    (statuscode < 0) ? smcp_status_to_cstr(
+				statuscode) : smcp_code_to_cstr(statuscode));
+	if(content && content_length) {
 		char contentBuffer[500];
 
 		content_length =
@@ -71,52 +70,43 @@ pair_response_handler(
 		printf("%s\n", contentBuffer);
 	}
 
-	pairIsDone = true;
+	getIsDone = true;
 }
 
-
 bool
-send_pair_request(
-	smcp_daemon_t smcp, const char* url, const char* url2
+send_get_request(
+	smcp_daemon_t smcp, const char* url
 ) {
 	bool ret = false;
 	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
-	coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
 
 	//static char tid_str[30];
 
-	pairIsDone = false;
-
-	fprintf(stderr, "Pairing \"%s\" to \"%s\"...\n", url, url2);
+	tid = SMCP_FUNC_RANDOM_UINT32();
 
 	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
 
-//	util_add_header(headers,SMCP_MAX_HEADERS,COAP_HEADER_ID,tid_str);
+	//util_add_header(headers,SMCP_MAX_HEADERS,COAP_HEADER_ID,tid_str);
 
-	if(strcmp(url, url2) == 0) {
-		fprintf(stderr, "Pairing a URL to itself is invalid.\n");
-		goto bail;
-	}
-
-	printf("Pairing \"%s\" to \"%s\"...\n", url, url2);
+	getIsDone = false;
 
 	require_noerr(smcp_daemon_add_response_handler(
 			smcp,
 			tid,
 			5000,
 			0, // Flags
-			&pair_response_handler,
+			&get_response_handler,
 			    (void*)url
 		), bail);
 
 	require_noerr(smcp_daemon_send_request_to_url(
 			smcp,
 			tid,
-			SMCP_METHOD_PAIR,
+			SMCP_METHOD_GET,
 			url,
 			headers,
-			url2,
-			strlen(url2)
+			NULL,
+			0
 		), bail);
 
 	ret = true;
@@ -126,7 +116,7 @@ bail:
 }
 
 int
-tool_cmd_pair(
+tool_cmd_get(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
 	int ret = -1;
@@ -148,33 +138,14 @@ tool_cmd_pair(
 		}
 	}
 
-	if(argc == 2) {
-		require(send_pair_request(smcp, getenv(
-					"SMCP_CURRENT_PATH"), url), bail);
-	} else if(argc == 3) {
-		char url2[1000];
+	require(send_get_request(smcp, url), bail);
 
-		if(getenv("SMCP_CURRENT_PATH")) {
-			strncpy(url2, getenv("SMCP_CURRENT_PATH"), sizeof(url2));
-			url_change(url2, argv[2]);
-		} else {
-			strncpy(url2, argv[2], sizeof(url2));
-		}
-
-		require(send_pair_request(smcp, url, url2), bail);
-	} else {
-		fprintf(stderr, "Bad args.\n");
-		goto bail;
-	}
-
-	pairIsDone = 0;
-
-	while(!pairIsDone)
+	while(!getIsDone)
 		smcp_daemon_process(smcp, -1);
 
 	ret = 0;
 bail:
 	smcp_invalidate_response_handler(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
-	return 0;
+	return ret;
 }

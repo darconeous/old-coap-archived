@@ -38,15 +38,6 @@ struct smcp_pairing_s {
 	const char*			path; // Local path
 
 	const char*			dest_uri;
-/*
-   #if SMCP_USE_BSD_SOCKETS
-    struct sockaddr_in6 saddr;
-   #elif __CONTIKI__
-    uip_ipaddr_t addr;
-    uint16_t port;
-   #endif
-    const char* dest_path;	// Remote path
- */
 };
 
 __END_DECLS

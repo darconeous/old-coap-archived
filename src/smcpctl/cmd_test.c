@@ -7,7 +7,7 @@
  *
  */
 
-#include "assert_macros.h"
+#include <smcp/assert_macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -16,10 +16,10 @@
 #include "help.h"
 #include <signal.h>
 
-#include "smcp.h"
-#include "smcp_node.h"
-#include "smcp_timer_node.h"
-#include "smcp_variable_node.h"
+#include <smcp/smcp.h>
+#include <smcp/smcp_node.h>
+#include <smcp/smcp_timer_node.h>
+#include <smcp/smcp_variable_node.h>
 
 #include "cmd_test.h"
 

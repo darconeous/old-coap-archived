@@ -221,10 +221,9 @@ smcp_timer_request_handler(
 		        (method == SMCP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			if((path[7] == '?')) {
+			if((path[7] == '?'))
 				content = path + 8;
-				content_length = strlen(content);
-			}
+			//content_length = strlen(content);
 			while(url_form_next_value((char**)&content, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
@@ -269,7 +268,6 @@ smcp_timer_request_handler(
 			reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
 	} else if(strequal_const(path, "!fire")) {
-		reply_code = SMCP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		if((method == SMCP_METHOD_PAIR)) {
 			ret = smcp_default_request_handler(
 				self,
@@ -293,10 +291,9 @@ smcp_timer_request_handler(
 			reply_content_len = strlen(tmp_content);
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
-			if((path[6] == '?')) {
+			if((path[6] == '?'))
 				content = path + 7;
-				content_length = strlen(content);
-			}
+			//content_length = strlen(content);
 			char* key = NULL;
 			char* value = NULL;
 			while(url_form_next_value((char**)&content, &key,
@@ -324,10 +321,9 @@ smcp_timer_request_handler(
 			reply_content_len = strlen(tmp_content);
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
-			if((path[9] == '?')) {
+			if((path[9] == '?'))
 				content = path + 10;
-				content_length = strlen(content);
-			}
+			//content_length = strlen(content);
 			char* key = NULL;
 			char* value = NULL;
 			while(url_form_next_value((char**)&content, &key,
@@ -363,10 +359,9 @@ smcp_timer_request_handler(
 				reply_content = "v=0";
 		} else if((method == SMCP_METHOD_PUT) ||
 		        (method == SMCP_METHOD_POST)) {
-			if((path[11] == '?')) {
+			if((path[11] == '?'))
 				content = path + 12;
-				content_length = strlen(content);
-			}
+			//content_length = strlen(content);
 			char* key = NULL;
 			char* value = NULL;
 			while(url_form_next_value((char**)&content, &key,

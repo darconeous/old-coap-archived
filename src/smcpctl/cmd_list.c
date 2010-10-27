@@ -7,17 +7,17 @@
  *
  */
 
-#include "assert_macros.h"
+#include <smcp/assert_macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "smcp.h"
+#include <smcp/smcp.h>
 #include <string.h>
 #include <sys/errno.h>
 #include "help.h"
 #include "cmd_list.h"
 #include <string.h>
-#include "url-helpers.h"
+#include <smcp/url-helpers.h>
 #include <math.h>
 #include <signal.h>
 
@@ -48,11 +48,11 @@ static char next_data[128];
 static size_t next_len = HEADER_CSTR_LEN;
 static int smcp_rtt = 120;
 
-int calc_retransmit_timeout(int retries) {
+int calc_retransmit_timeout(int retries_) {
 	int ret = smcp_rtt;
 	int i;
 
-	for(i = 0; i < retries; i++)
+	for(i = 0; i < retries_; i++)
 		ret *= 2;
 
 	ret *= (1000 - 150) + (SMCP_FUNC_RANDOM_UINT32() % 300);
@@ -269,5 +269,5 @@ tool_cmd_list(
 bail:
 	smcp_invalidate_response_handler(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
-	return 0;
+	return ret;
 }

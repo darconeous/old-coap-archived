@@ -274,16 +274,14 @@ smcp_daemon_trigger_event_with_node(
 
 smcp_status_t
 smcp_daemon_refresh_variable(
-	smcp_daemon_t daemon, smcp_variable_node_t node
+	smcp_daemon_t self, smcp_variable_node_t node
 ) {
 	smcp_status_t ret = 0;
 	char *content = NULL;
 	size_t content_length = sizeof(content);
 	smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
 
-	require_action(daemon != NULL,
-		bail,
-		ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(self != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
 	if(node->get_func) {
@@ -299,7 +297,7 @@ smcp_daemon_refresh_variable(
 	}
 
 	ret = smcp_daemon_trigger_event_with_node(
-		daemon,
+		self,
 		    (smcp_node_t)node,
 		NULL,
 		content,

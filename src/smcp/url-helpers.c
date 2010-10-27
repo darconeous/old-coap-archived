@@ -136,7 +136,7 @@ size_t
 url_form_next_value(
 	char** form_string, char** key, char** value
 ) {
-	size_t bytes_parsed;
+	size_t bytes_parsed = 0;
 	char c = **form_string;
 
 	if(!c) {
@@ -276,7 +276,7 @@ url_parse(
 
 	// Zero terminate the path
 	if(*uri) {
-		*uri++ = 0;
+		*uri = 0;
 		bytes_parsed++;
 	}
 

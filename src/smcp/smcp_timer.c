@@ -11,7 +11,7 @@
 #include "smcp_logging.h"
 
 #ifndef SMCP_MAX_TIMEOUT
-#define SMCP_MAX_TIMEOUT    (60 * MSEC_PER_SEC)
+#define SMCP_MAX_TIMEOUT    (30 * MSEC_PER_SEC)
 #endif
 
 #if defined(__CONTIKI__)

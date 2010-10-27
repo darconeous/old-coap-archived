@@ -55,7 +55,7 @@
 #include "smcp_internal.h"
 
 // Remove this when we get the node system cleaned up.
-#include "smcp_variable_node.h"
+//#include "smcp_variable_node.h"
 
 #pragma mark -
 #pragma mark Macros
@@ -481,8 +481,9 @@ smcp_daemon_send_response(
 	memcpy(packet + packet_length, content,
 		MIN(SMCP_MAX_PACKET_LENGTH - packet_length, content_length));
 
-	packet_length = MIN(SMCP_MAX_PACKET_LENGTH,
-		packet_length + content_length);
+	packet_length =
+	    MIN((size_t)SMCP_MAX_PACKET_LENGTH,
+		    (size_t)(packet_length + content_length));
 
 	DEBUG_PRINTF(CSTR(
 			"%p: sending response tid=%d, size=%d, statuscode=%d (coap_code = %d)"),
@@ -567,7 +568,7 @@ smcp_daemon_send_request(
 			memset(headers_, 0, sizeof(coap_header_item_t) *
 				    (header_count + extra_headers));
 
-			if(headers_)
+			if(headers)
 				memcpy(headers_,
 					headers,
 					sizeof(coap_header_item_t) * header_count);

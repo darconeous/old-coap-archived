@@ -72,7 +72,7 @@
         ((UIP_BUFSIZE - UIP_LLH_LEN - \
             UIP_IPUDPH_LEN))
 #else
-#define SMCP_MAX_PACKET_LENGTH      (1200)
+#define SMCP_MAX_PACKET_LENGTH      ((size_t)1200)
 #endif
 #define SMCP_MAX_CONTENT_LENGTH     (512)
 #define SMCP_MAX_HEADERS            (15)

@@ -1,6 +1,6 @@
 #define HAS_LIBREADLINE 1
 
-#include "assert_macros.h"
+#include <smcp/assert_macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -16,7 +16,7 @@
 #endif
 #include <poll.h>
 
-#include "smcp.h"
+#include <smcp/smcp.h>
 
 #include "cmd_list.h"
 #include "cmd_test.h"
@@ -24,7 +24,7 @@
 #include "cmd_post.h"
 #include "cmd_pair.h"
 
-#include "url-helpers.h"
+#include <smcp/url-helpers.h>
 
 
 #define ERRORCODE_HELP          (1)
