@@ -313,7 +313,7 @@ main(
 
 
 	smcp_daemon = smcp_daemon_create(port);
-	setenv("SMCP_CURRENT_PATH", "smcp://localhost/", 0);
+	setenv("SMCP_CURRENT_PATH", "coap://localhost/", 0);
 
 	if(i < argc) {
 		if((0 !=

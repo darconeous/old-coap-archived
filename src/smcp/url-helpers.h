@@ -26,7 +26,14 @@ extern size_t url_form_next_value(
 	char** form_string, char** key, char** value);
 
 extern int url_parse(
-	char* url, char** protocol, char** host, char** port, char** path);
+	char*	url,
+	char**	protocol,
+	char**	username,
+	char**	password,
+	char**	host,
+	char**	port,
+	char**	path,
+	char**	query);
 
 extern bool url_is_absolute(const char* url);
 

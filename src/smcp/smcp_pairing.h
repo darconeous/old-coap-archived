@@ -42,6 +42,29 @@ struct smcp_pairing_s {
 
 __END_DECLS
 
+#pragma mark -
+#pragma mark Pairing Functions
+
+extern smcp_status_t smcp_daemon_pair_with_uri(
+	smcp_daemon_t	self,
+	const char*		path,
+	const char*		uri,
+	int				flags,
+	uintptr_t*		idVal);
+extern smcp_status_t smcp_daemon_trigger_event(
+	smcp_daemon_t		self,
+	const char*			path,
+	const char*			content,
+	size_t				content_length,
+	coap_content_type_t content_type);
+extern smcp_status_t smcp_daemon_trigger_event_with_node(
+	smcp_daemon_t		self,
+	smcp_node_t			node,
+	const char*			subpath,
+	const char*			content,
+	size_t				content_length,
+	coap_content_type_t content_type);
+
 extern smcp_status_t smcp_daemon_pair_path_with_sockaddr(
 	smcp_daemon_t	self,
 	const char*		path,

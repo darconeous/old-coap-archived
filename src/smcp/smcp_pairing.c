@@ -190,7 +190,7 @@ smcp_daemon_trigger_event(
 
 	util_add_header(headers,
 		sizeof(headers) / sizeof(*headers),
-		COAP_HEADER_CSEQ,
+		SMCP_HEADER_CSEQ,
 		cseq,
 		COAP_HEADER_CSTR_LEN);
 	headers[0].value_len = COAP_HEADER_CSTR_LEN; // Force recalculation of length when we send.
@@ -206,7 +206,7 @@ smcp_daemon_trigger_event(
 
 	util_add_header(headers,
 		sizeof(headers) / sizeof(*headers),
-		COAP_HEADER_ORIGIN,
+		SMCP_HEADER_ORIGIN,
 		path,
 		HEADER_CSTR_LEN);
 
@@ -226,7 +226,7 @@ smcp_daemon_trigger_event(
 		smcp_daemon_send_request_to_url(
 			self,
 			tid,
-			SMCP_METHOD_POST,
+			COAP_METHOD_POST,
 			iter->dest_uri,
 			headers,
 			content,

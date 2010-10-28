@@ -113,13 +113,11 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				A63EA6E11278B16D00B24867 /* assert_macros.h */,
-				A63EA6E21278B16D00B24867 /* btree.c */,
-				A63EA6E31278B16D00B24867 /* btree.h */,
+				A60D0DB312795ADF00C04B8C /* Utils */,
+				A63EA6F41278B16D00B24867 /* smcp.c */,
+				A63EA6F51278B16D00B24867 /* smcp.h */,
 				A63EA6E41278B16D00B24867 /* coap.c */,
 				A63EA6E51278B16D00B24867 /* coap.h */,
-				A63EA6E61278B16D00B24867 /* ll.h */,
-				A63EA6E71278B16D00B24867 /* smcp_helpers.h */,
 				A63EA6E81278B16D00B24867 /* smcp_internal.h */,
 				A63EA6E91278B16D00B24867 /* smcp_logging.h */,
 				A63EA6EA1278B16D00B24867 /* smcp_node.c */,
@@ -132,10 +130,6 @@
 				A63EA6F11278B16D00B24867 /* smcp_timer.h */,
 				A63EA6F21278B16D00B24867 /* smcp_variable_node.c */,
 				A63EA6F31278B16D00B24867 /* smcp_variable_node.h */,
-				A63EA6F41278B16D00B24867 /* smcp.c */,
-				A63EA6F51278B16D00B24867 /* smcp.h */,
-				A63EA6F71278B16D00B24867 /* url-helpers.c */,
-				A63EA6F81278B16D00B24867 /* url-helpers.h */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -146,6 +140,20 @@
 				8DD76FB20486AB0100D96B5E /* smcpctl */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A60D0DB312795ADF00C04B8C /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				A63EA6E11278B16D00B24867 /* assert_macros.h */,
+				A63EA6E21278B16D00B24867 /* btree.c */,
+				A63EA6E31278B16D00B24867 /* btree.h */,
+				A63EA6E61278B16D00B24867 /* ll.h */,
+				A63EA6E71278B16D00B24867 /* smcp_helpers.h */,
+				A63EA6F71278B16D00B24867 /* url-helpers.c */,
+				A63EA6F81278B16D00B24867 /* url-helpers.h */,
+			);
+			name = Utils;
 			sourceTree = "<group>";
 		};
 		A6C6C483121B2EE200CAB3A3 /* Tool Source */ = {

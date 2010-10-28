@@ -84,10 +84,10 @@ get_response_handler(
 	if(((statuscode < 200) ||
 	            (statuscode >= 300)) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
-	        (statuscode != SMCP_RESULT_CODE_PARTIAL_CONTENT))
+	        (statuscode != COAP_RESULT_CODE_PARTIAL_CONTENT))
 		fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : smcp_code_to_cstr(statuscode));
+				statuscode) : coap_code_to_cstr(statuscode));
 
 	if(content && content_length) {
 		coap_header_item_t *next = NULL;
@@ -155,7 +155,7 @@ resend_get_request(smcp_daemon_t smcp) {
 	status = smcp_daemon_send_request_to_url(
 		smcp,
 		tid,
-		SMCP_METHOD_GET,
+		COAP_METHOD_GET,
 		url_data,
 		headers,
 		NULL,

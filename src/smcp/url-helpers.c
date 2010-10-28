@@ -200,7 +200,14 @@ bail:
 
 int
 url_parse(
-	char* uri, char** protocol, char** host, char** port, char** path
+	char*	uri,
+	char**	protocol,
+	char**	username,
+	char**	password,
+	char**	host,
+	char**	port,
+	char**	path,
+	char**	query
 ) {
 	int bytes_parsed = 0;
 
@@ -335,9 +342,12 @@ extern bool url_change(
 
 		url_parse(current_path,
 			&proto_str,
+			NULL,
+			NULL,
 			&addr_str,
 			&port_str,
-			&path_str);
+			&path_str,
+			NULL);
 
 #if VERBOSE_DEBUG
 		fprintf(
@@ -445,9 +455,14 @@ url_shorten_reference(
 ) {
 	// TODO: Implement me!
 /*
-    Junk from where I was when I started writing this func...
 
     if(url_is_absolute(new_url)) {
+        char temp[256];
+        strncpy(temp,current_url,sizeof(temp);
+        char* proto1;
+        char* proto2;
+        url_parse(current_path, NULL,NULL,NULL, NULL, NULL, (char**)&current_url,NULL);
+        //url_parse(temp, NULL, NULL, NULL, (char**)&current_url);
     }
 
     if(path_is_absolute(new_url)) {

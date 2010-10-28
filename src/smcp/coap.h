@@ -30,31 +30,87 @@ typedef uint16_t coap_transaction_id_t;
 
 typedef uint16_t coap_code_t;
 
-static inline uint16_t
-coap_to_http_code(uint8_t code) {
-	return code / 40 * 100 + code % 40;
+#define COAP_TO_HTTP_CODE(code)     ((code) / 40 * 100 + (code) % 40)
+static inline uint16_t coap_to_http_code(uint8_t code) {
+	return
+	    COAP_TO_HTTP_CODE(
+		code);
 }
 
-static inline uint8_t
-http_to_coap_code(uint16_t code) {
-	return code / 100 * 40 + code % 100;
+#define HTTP_TO_COAP_CODE(code)     ((code) / 100 * 40 + (code) % 100)
+static inline uint8_t http_to_coap_code(uint16_t code) {
+	return
+	    HTTP_TO_COAP_CODE(
+		code);
 }
+
+#define COAP_CODE_IS_REQUEST(code) \
+        (((code)) > 0 && \
+            ((code) < HTTP_TO_COAP_CODE(100)))
+#define COAP_CODE_IS_RESULT(code)   ((code) >= HTTP_TO_COAP_CODE(100))
+
+enum {
+	COAP_METHOD_GET = 1,
+	COAP_METHOD_POST = 2,
+	COAP_METHOD_PUT = 3,    //!< @note UNUSED IN SMCP
+	COAP_METHOD_DELETE = 4, //!< @note UNUSED IN SMCP
+
+	// Experimental after this point
+
+	COAP_METHOD_PAIR = 11,
+	COAP_METHOD_UNPAIR = 12,
+};
+
+enum {
+	COAP_RESULT_CODE_CONTINUE = 100,
+
+	COAP_RESULT_CODE_OK = 200,
+	COAP_RESULT_CODE_CREATED = 201,
+
+	COAP_RESULT_CODE_NOT_MODIFIED = 304,
+
+	COAP_RESULT_CODE_BAD_REQUEST = 400,
+	COAP_RESULT_CODE_NOT_FOUND = 404,
+	COAP_RESULT_CODE_METHOD_NOT_ALLOWED = 405,
+	COAP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE = 415,
+
+	COAP_RESULT_CODE_INTERNAL_SERVER_ERROR = 500,
+	COAP_RESULT_CODE_BAD_GATEWAY = 502,
+	COAP_RESULT_CODE_SERVICE_UNAVAILABLE = 503,
+	COAP_RESULT_CODE_GATEWAY_TIMEOUT = 504,
+
+	COAP_RESULT_CODE_TOKEN_REQUIRED = COAP_TO_HTTP_CODE(240),
+	COAP_RESULT_CODE_URI_AUTHORITY_REQUIRED = COAP_TO_HTTP_CODE(241),
+	COAP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION = COAP_TO_HTTP_CODE(242),
+
+	// Unofficial result codes, taken from HTTP
+	COAP_RESULT_CODE_NO_CONTENT = 204,
+	COAP_RESULT_CODE_PARTIAL_CONTENT = 206,
+	COAP_RESULT_CODE_UNAUTHORIZED = 401,
+	COAP_RESULT_CODE_FORBIDDEN = 403,
+	COAP_RESULT_CODE_CONFLICT = 409,
+	COAP_RESULT_CODE_GONE = 410,
+	COAP_RESULT_CODE_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
+	COAP_RESULT_CODE_NOT_IMPLEMENTED = 501,
+	COAP_RESULT_CODE_PROTOCOL_VERSION_NOT_SUPPORTED = 505,
+};
+
 
 typedef enum {
-	COAP_HEADER_TERI = 0,           //!< draft-bormann-coap-misc-06
+	COAP_HEADER_TERI = 0,           //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
 	COAP_HEADER_CONTENT_TYPE = 1,
 	COAP_HEADER_MAX_AGE = 2,
-	COAP_HEADER_URI_SCHEME = 3,     //!< draft-bormann-coap-misc-06
+	COAP_HEADER_URI_SCHEME = 3,     //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
 	COAP_HEADER_ETAG = 4,
 	COAP_HEADER_URI_AUTHORITY = 5,
 	COAP_HEADER_LOCATION = 6,
-	COAP_HEADER_URI_AUTHORITY_BINARY = 7,   //!< draft-bormann-coap-misc-06
+	COAP_HEADER_URI_AUTHORITY_BINARY = 7,   //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
 	COAP_HEADER_ACCEPT = 8,                 //!< draft-bormann-coap-misc-06
 	COAP_HEADER_URI_PATH = 9,
-	COAP_HEADER_DATE = 10,                  //!< draft-bormann-coap-misc-06
-	COAP_HEADER_TOKEN = 11,                 //!< draft-bormann-coap-misc-06
+	COAP_HEADER_SUBSCRIPTION_LIFETIME = 10, //!< draft-ietf-core-observe
+	COAP_HEADER_TOKEN = 11,
 	COAP_HEADER_BLOCK = 13,                 //!< draft-bormann-core-coap-block-00
-	COAP_HEADER_PAYLOAD_LENGTH = 15,        //!< draft-bormann-coap-misc-06
+	COAP_HEADER_URI_QUERY = 15,
 
 	COAP_HEADER_FENCEPOST_1 = 14,
 	COAP_HEADER_FENCEPOST_2 = 28,
@@ -64,10 +120,13 @@ typedef enum {
 	COAP_HEADER_CASCADE_COUNT = COAP_HEADER_FENCEPOST_2 + 1,    //!< Used for preventing pairing loops.
 	COAP_HEADER_RANGE = COAP_HEADER_FENCEPOST_2 + 2,            //!< Experimental alternative to draft-bormann-core-coap-block-00
 	COAP_HEADER_NEXT = COAP_HEADER_FENCEPOST_2 + 3,             //!< Experimental alternative to draft-bormann-core-coap-block-00
-	COAP_HEADER_ORIGIN = COAP_HEADER_FENCEPOST_2 + 4,           //!< Used for SMCP Pairing.
-	COAP_HEADER_CSEQ = COAP_HEADER_FENCEPOST_2 + 6,             //!< Used for SMCP Pairing.
+	SMCP_HEADER_ORIGIN = COAP_HEADER_FENCEPOST_2 + 4,           //!< Used for SMCP Pairing.
+	SMCP_HEADER_CSEQ = COAP_HEADER_FENCEPOST_2 + 6,             //!< Used for SMCP Pairing.
 	COAP_HEADER_ALLOW = COAP_HEADER_FENCEPOST_2 + 8,
 } coap_header_key_t;
+
+extern const char* coap_header_key_to_cstr(coap_header_key_t key);
+extern coap_header_key_t coap_header_key_from_cstr(const char* key);
 
 typedef struct {
 	coap_header_key_t	key;
@@ -108,6 +167,8 @@ typedef enum {
 
 	COAP_CONTENT_TYPE_UNKNOWN = 255,
 } coap_content_type_t;
+
+extern const char* coap_code_to_cstr(int x);
 
 extern size_t coap_encode_header(
 	unsigned char*			buffer,

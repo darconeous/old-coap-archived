@@ -253,3 +253,134 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 	}
 	return content_type_string;
 }
+
+const char*
+coap_header_key_to_cstr(coap_header_key_t key) {
+	const char* ret = NULL;
+
+	switch(key) {
+	case COAP_HEADER_CONTENT_TYPE: ret = "Content-type"; break;
+	case COAP_HEADER_MAX_AGE: ret = "Max-age"; break;
+	case COAP_HEADER_ETAG: ret = "Etag"; break;
+	case COAP_HEADER_URI_AUTHORITY: ret = "URI-authority"; break;
+	case COAP_HEADER_LOCATION: ret = "Location"; break;
+	case COAP_HEADER_URI_PATH: ret = "URI-path"; break;
+
+	case COAP_HEADER_URI_SCHEME: ret = "URI-scheme"; break;
+	case COAP_HEADER_URI_AUTHORITY_BINARY: ret = "URI-authority-binary";
+		break;
+	case COAP_HEADER_ACCEPT: ret = "Accept"; break;
+	case COAP_HEADER_SUBSCRIPTION_LIFETIME: ret = "Subscription-lifetime";
+		break;
+//		case COAP_HEADER_DATE: ret = "Date"; break;
+	case COAP_HEADER_TOKEN: ret = "Token"; break;
+	case COAP_HEADER_BLOCK: ret = "Block"; break;
+	case COAP_HEADER_URI_QUERY: ret = "URI-query"; break;
+//		case COAP_HEADER_PAYLOAD_LENGTH: ret = "Payload-length"; break;
+
+	case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
+	case COAP_HEADER_NEXT: ret = "Next"; break;
+	case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
+	case COAP_HEADER_ALLOW: ret = "Allow"; break;
+
+	case COAP_HEADER_RANGE: ret = "Range"; break;
+	case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
+
+	default:
+	{
+		static char x[30];
+		if(key % 14) {
+			if(key & 1)
+				sprintf(x, "X-Critical-CoAP-%u", key);
+			else
+				sprintf(x, "X-Elective-CoAP-%u", key);
+		} else {
+			sprintf(x, "Ignore-%u", key);
+		}
+		ret = x;
+	}
+	break;
+	}
+	return ret;
+}
+
+coap_header_key_t
+coap_header_key_from_cstr(const char* key) {
+	if(strcasecmp(key, "Content-type") == 0)
+		return COAP_HEADER_CONTENT_TYPE;
+	else if(strcasecmp(key, "Max-age") == 0)
+		return COAP_HEADER_MAX_AGE;
+	else if(strcasecmp(key, "Etag") == 0)
+		return COAP_HEADER_ETAG;
+	else if(strcasecmp(key, "URI-authority") == 0)
+		return COAP_HEADER_URI_AUTHORITY;
+	else if(strcasecmp(key, "Location") == 0)
+		return COAP_HEADER_LOCATION;
+	else if(strcasecmp(key, "URI-path") == 0)
+		return COAP_HEADER_URI_PATH;
+	else if(strcasecmp(key, "Cseq") == 0)
+		return SMCP_HEADER_CSEQ;
+	else if(strcasecmp(key, "Next") == 0)
+		return COAP_HEADER_NEXT;
+	else if(strcasecmp(key, "Range") == 0)
+		return COAP_HEADER_RANGE;
+	else if(strcasecmp(key, "Block") == 0)
+		return COAP_HEADER_BLOCK;
+	else if(strcasecmp(key, "Origin") == 0)
+		return SMCP_HEADER_ORIGIN;
+	else if(strcasecmp(key, "Allow") == 0)
+		return COAP_HEADER_ALLOW;
+
+	return 0;
+}
+
+
+const char*
+coap_code_to_cstr(int x) {
+	switch(x) {
+	case COAP_METHOD_GET: return "GET"; break;
+	case COAP_METHOD_POST: return "POST"; break;
+	case COAP_METHOD_PUT: return "PUT"; break;
+	case COAP_METHOD_DELETE: return "DELETE"; break;
+
+	case COAP_METHOD_PAIR: return "PAIR"; break;
+	case COAP_METHOD_UNPAIR: return "UNPAIR"; break;
+
+	case COAP_RESULT_CODE_CONTINUE: return "CONTINUE"; break;
+	case COAP_RESULT_CODE_OK: return "OK"; break;
+	case COAP_RESULT_CODE_CREATED: return "CREATED"; break;
+	case COAP_RESULT_CODE_NO_CONTENT: return "NO_CONTENT"; break;
+	case COAP_RESULT_CODE_PARTIAL_CONTENT: return "PARTIAL_CONTENT"; break;
+
+	case COAP_RESULT_CODE_NOT_MODIFIED: return "NOT_MODIFIED"; break;
+
+	case COAP_RESULT_CODE_BAD_REQUEST: return "BAD_REQUEST"; break;
+	case COAP_RESULT_CODE_UNAUTHORIZED: return "UNAUTHORIZED"; break;
+	case COAP_RESULT_CODE_FORBIDDEN: return "FORBIDDEN"; break;
+	case COAP_RESULT_CODE_NOT_FOUND: return "NOT_FOUND"; break;
+	case COAP_RESULT_CODE_METHOD_NOT_ALLOWED: return "METHOD_NOT_ALLOWED";
+		break;
+	case COAP_RESULT_CODE_CONFLICT: return "CONFLICT"; break;
+	case COAP_RESULT_CODE_GONE: return "GONE"; break;
+	case COAP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE: return
+		    "UNSUPPORTED_MEDIA_TYPE"; break;
+
+	case COAP_RESULT_CODE_INTERNAL_SERVER_ERROR: return
+		    "INTERNAL_SERVER_ERROR"; break;
+	case COAP_RESULT_CODE_NOT_IMPLEMENTED: return "NOT_IMPLEMENTED"; break;
+	case COAP_RESULT_CODE_BAD_GATEWAY: return "BAD_GATEWAY"; break;
+	case COAP_RESULT_CODE_SERVICE_UNAVAILABLE: return "UNAVAILABLE"; break;
+	case COAP_RESULT_CODE_GATEWAY_TIMEOUT: return "TIMEOUT"; break;
+	case COAP_RESULT_CODE_PROTOCOL_VERSION_NOT_SUPPORTED: return
+		    "PROTOCOL_VERSION_NOT_SUPPORTED"; break;
+
+	case COAP_RESULT_CODE_TOKEN_REQUIRED: return "TOKEN_REQUIRED"; break;
+	case COAP_RESULT_CODE_URI_AUTHORITY_REQUIRED: return
+		    "URI_AUTHORITY_REQUIRED"; break;
+	case COAP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION: return
+		    "UNSUPPORTED_CRITICAL_OPTION"; break;
+
+	default:  break;
+	}
+	return "UNKNOWN";
+}

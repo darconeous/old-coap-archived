@@ -68,31 +68,32 @@ get_method_string(smcp_method_t method) {
 	const char* method_string = NULL;
 
 	switch(method) {
-	case SMCP_METHOD_GET: method_string = "GET"; break;
-	case SMCP_METHOD_POST: method_string = "POST"; break;
-	case SMCP_METHOD_PUT: method_string = "PUT"; break;
-	case SMCP_METHOD_DELETE: method_string = "DELETE"; break;
-	case SMCP_METHOD_PAIR: method_string = "PAIR"; break;
-	case SMCP_METHOD_UNPAIR: method_string = "UNPAIR"; break;
+	case COAP_METHOD_GET: method_string = "GET"; break;
+	case COAP_METHOD_POST: method_string = "POST"; break;
+	case COAP_METHOD_PUT: method_string = "PUT"; break;
+	case COAP_METHOD_DELETE: method_string = "DELETE"; break;
+	case COAP_METHOD_PAIR: method_string = "PAIR"; break;
+	case COAP_METHOD_UNPAIR: method_string = "UNPAIR"; break;
 	}
 	return method_string;
 }
+
 
 /*
    static smcp_method_t
    get_method_index(const char* method_string) {
     if(strcmp(method_string,"GET")==0)
-        return SMCP_METHOD_GET;
+        return COAP_METHOD_GET;
     else if(strcmp(method_string,"POST")==0)
-        return SMCP_METHOD_POST;
+        return COAP_METHOD_POST;
     else if(strcmp(method_string,"PUT")==0)
-        return SMCP_METHOD_PUT;
+        return COAP_METHOD_PUT;
     else if(strcmp(method_string,"DELETE")==0)
-        return SMCP_METHOD_DELETE;
+        return COAP_METHOD_DELETE;
     else if(strcmp(method_string,"PAIR")==0)
-        return SMCP_METHOD_PAIR;
+        return COAP_METHOD_PAIR;
     else if(strcmp(method_string,"UNPAIR")==0)
-        return SMCP_METHOD_UNPAIR;
+        return COAP_METHOD_UNPAIR;
 
     return 0;
    }
@@ -116,6 +117,31 @@ get_method_string(smcp_method_t method) {
 #pragma mark -
 #pragma mark Other
 
+const char* smcp_status_to_cstr(int x) {
+	switch(x) {
+	case SMCP_STATUS_OK: return "OK"; break;
+	case SMCP_STATUS_FAILURE: return "Unspecified Failure"; break;
+	case SMCP_STATUS_INVALID_ARGUMENT: return "Invalid Argument"; break;
+	case SMCP_STATUS_BAD_NODE_TYPE: return "Bad Node Type"; break;
+	case SMCP_STATUS_UNSUPPORTED_URI: return "Unsupported URI"; break;
+	case SMCP_STATUS_ERRNO:
+#if 1
+		return "ERRNO"; break;
+#else
+		return strerror(errno); break;
+#endif
+	case SMCP_STATUS_MALLOC_FAILURE: return "Malloc Failure"; break;
+	case SMCP_STATUS_HANDLER_INVALIDATED: return "Handler Invalidated";
+		break;
+	case SMCP_STATUS_TIMEOUT: return "Timeout"; break;
+	case SMCP_STATUS_NOT_IMPLEMENTED: return "Not Implemented"; break;
+	case SMCP_STATUS_NOT_FOUND: return "Not Found"; break;
+	case SMCP_STATUS_H_ERRNO: return "HERRNO"; break;
+	case SMCP_STATUS_RESPONSE_NOT_ALLOWED: return "Response not allowed";
+		break;
+	}
+	return NULL;
+}
 
 #pragma mark -
 #pragma mark Private SMCP Types
@@ -663,7 +689,8 @@ smcp_daemon_send_request_to_url(
 		strcpy(uri, uri_);
 		// Parse the URI.
 		require_action_string(
-			url_parse(uri, &proto_str, &addr_str, &port_str, &path_str),
+			url_parse(uri, &proto_str, NULL, NULL, &addr_str, &port_str,
+				&path_str, NULL),
 			bail,
 			ret = SMCP_STATUS_UNSUPPORTED_URI,
 			"Unable to parse URL"
@@ -798,8 +825,9 @@ smcp_daemon_handle_inbound_packet(
 	coap_transaction_type_t tt;
 	coap_code_t code;
 	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = { };
-	size_t header_count = (sizeof(headers)) / (sizeof(headers[0]));
+	size_t header_count = SMCP_MAX_HEADERS;
 	size_t header_length;
+	smcp_status_t status = 0;
 
 	DEBUG_PRINTF(CSTR("%p: Inbound packet!"), self);
 	header_length = coap_decode_header(
@@ -816,6 +844,7 @@ smcp_daemon_handle_inbound_packet(
 
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
+	// Kind of a hack.
 	packet[packet_length] = 0;
 
 	self->current_inbound_request_tid = tid;
@@ -830,93 +859,82 @@ smcp_daemon_handle_inbound_packet(
 
 	self->is_processing_message = true;
 
-	switch(tt) {
-	case COAP_TRANS_TYPE_CONFIRMABLE:
-		self->did_respond = false;
-	case COAP_TRANS_TYPE_NONCONFIRMABLE:
+	self->did_respond = (tt == COAP_TRANS_TYPE_CONFIRMABLE);
+
+	if(COAP_CODE_IS_REQUEST(code)) {
 		// Need to extract the path.
-	{
-		char path[128] = "/";
+		char path[SMCP_MAX_PATH_LENGTH + 1] = "/";
 		coap_header_item_t *next_header;
-		smcp_status_t status;
 
 		self->current_inbound_request_token = 0;
 		self->current_inbound_request_token_len = 0;
 		self->cascade_count = SMCP_MAX_CASCADE_COUNT;
 
 		for(next_header = headers;
-		        smcp_header_item_get_key(next_header);
-		        next_header = smcp_header_item_next(next_header)) {
+		    smcp_header_item_get_key(next_header);
+		    next_header = smcp_header_item_next(next_header)) {
 			if(smcp_header_item_key_equal(next_header,
-						COAP_HEADER_URI_PATH)) {
+					COAP_HEADER_URI_PATH)) {
 				memcpy(path, smcp_header_item_get_value(
-							next_header),
-					    smcp_header_item_get_value_len(next_header));
+						next_header),
+					smcp_header_item_get_value_len(next_header));
 			} else if(smcp_header_item_key_equal(next_header,
-						COAP_HEADER_TOKEN)) {
+					COAP_HEADER_TOKEN)) {
 				self->current_inbound_request_token = next_header->value;
 				self->current_inbound_request_token_len =
-				        next_header->value_len;
+				    next_header->value_len;
 			} else if(smcp_header_item_key_equal(next_header,
-						COAP_HEADER_CASCADE_COUNT)) {
+					COAP_HEADER_CASCADE_COUNT)) {
 				if(next_header->value_len)
 					self->cascade_count =
-					        ((unsigned char)*next_header->value) - 1;
+					    ((unsigned char)*next_header->value) - 1;
 				else
 					self->cascade_count = 128 - 1;
 				if(self->cascade_count > SMCP_MAX_CASCADE_COUNT)
 					self->cascade_count = SMCP_MAX_CASCADE_COUNT;
 			}
 		}
-		if(code >= 40) {
-			DEBUG_PRINTF(CSTR(
-						"%p: (tid=%d) Bad method value, %d"), self, tid,
-				    code);
-			goto bail;
-		}
 
 		status = smcp_daemon_handle_request(
-			    self,
-			    code,
-			    path,
-			    headers,
-			    packet + header_length,
-			    packet_length - header_length
-		        );
-
-		check_string(status == SMCP_STATUS_OK, smcp_status_to_cstr(status));
-
-		// Check to make sure we have responded by now. If not, we need to.
-		if((tt == COAP_TRANS_TYPE_CONFIRMABLE) && !self->did_respond) {
-			smcp_daemon_send_response(
-				    self,
-				    smcp_convert_status_to_result_code(status),
-				    headers,
-				    NULL,
-				    0
-			);
-		}
-	}
-	break;
-	case COAP_TRANS_TYPE_ACK:
-		if(code < 40) {
-			DEBUG_PRINTF(CSTR(
-					"%p: (tid=%d) Bad response code, %d"), self, tid, code);
-			goto bail;
-		}
-	case COAP_TRANS_TYPE_RESET:
-		smcp_daemon_handle_response(
+			self,
+			code,
+			path,
+			headers,
+			packet + header_length,
+			packet_length - header_length
+		    );
+	} else if(COAP_CODE_IS_RESULT(code)) {
+		status = smcp_daemon_handle_response(
 			self,
 			coap_to_http_code(code),
 			headers,
 			packet + header_length,
 			packet_length - header_length
-		);
-		break;
-	default:
-		DEBUG_PRINTF(CSTR("%p: Bad transaction type: %d"), self, tt);
-		goto bail;
-		break;
+		    );
+	}
+
+	check_string(status == SMCP_STATUS_OK, smcp_status_to_cstr(status));
+
+	// Check to make sure we have responded by now. If not, we need to.
+	if(!self->did_respond) {
+		if(COAP_CODE_IS_REQUEST(code)) {
+			smcp_daemon_send_response(
+				self,
+				smcp_convert_status_to_result_code(status),
+				headers,
+				NULL,
+				0
+			);
+		} else {
+			// TODO: Need a way to specify a reset response.
+			smcp_daemon_send_response(
+				self,
+				0,
+				NULL,
+				NULL,
+				0
+			);
+		}
 	}
 
 bail:
@@ -1225,21 +1243,21 @@ bail:
 
 
 int smcp_convert_status_to_result_code(smcp_status_t status) {
-	int ret = SMCP_RESULT_CODE_INTERNAL_SERVER_ERROR;
+	int ret = COAP_RESULT_CODE_INTERNAL_SERVER_ERROR;
 
 	switch(status) {
 	case SMCP_STATUS_OK:
-		ret = SMCP_RESULT_CODE_OK;
+		ret = COAP_RESULT_CODE_OK;
 		break;
 	case SMCP_STATUS_NOT_FOUND:
-		ret = SMCP_RESULT_CODE_NOT_FOUND;
+		ret = COAP_RESULT_CODE_NOT_FOUND;
 		break;
 	case SMCP_STATUS_NOT_IMPLEMENTED:
-		ret = SMCP_RESULT_CODE_NOT_IMPLEMENTED;
+		ret = COAP_RESULT_CODE_NOT_IMPLEMENTED;
 		break;
 	case SMCP_STATUS_BAD_NODE_TYPE:
 	case SMCP_STATUS_UNSUPPORTED_URI:
-		ret = SMCP_RESULT_CODE_BAD_REQUEST;
+		ret = COAP_RESULT_CODE_BAD_REQUEST;
 		break;
 	}
 
@@ -1374,7 +1392,7 @@ smcp_default_request_handler(
 	require(node, bail);
 
 	switch(method) {
-	case SMCP_METHOD_GET:
+	case COAP_METHOD_GET:
 		ret = smcp_daemon_handle_list(self,
 			node,
 			method,
@@ -1383,7 +1401,7 @@ smcp_default_request_handler(
 			content,
 			content_length);
 		break;
-	case SMCP_METHOD_PAIR:
+	case COAP_METHOD_PAIR:
 		ret = smcp_daemon_handle_pair(self,
 			node,
 			method,
@@ -1396,7 +1414,7 @@ smcp_default_request_handler(
 		DEBUG_PRINTF(CSTR(
 				"Unknown method in request: %s"), get_method_string(method));
 		ret = smcp_daemon_send_response(self,
-			SMCP_RESULT_CODE_NOT_IMPLEMENTED,
+			COAP_RESULT_CODE_NOT_IMPLEMENTED,
 			NULL,
 			NULL,
 			0);
@@ -1421,7 +1439,7 @@ smcp_daemon_handle_list(
 	char* next_node = NULL;
 	coap_header_item_t replyHeaders[5] = {};
 	char replyContent[128];
-	coap_code_t response_code = SMCP_RESULT_CODE_OK;
+	coap_code_t response_code = COAP_RESULT_CODE_OK;
 
 	memset(replyContent, 0, sizeof(replyContent));
 	size_t content_break_threshold = 60;
@@ -1485,7 +1503,7 @@ smcp_daemon_handle_list(
 		// We don't support content offsets right now.
 		// TODO: Think about the implications of content offsets.
 		smcp_daemon_send_response(self,
-			SMCP_RESULT_CODE_REQUESTED_RANGE_NOT_SATISFIABLE,
+			COAP_RESULT_CODE_REQUESTED_RANGE_NOT_SATISFIABLE,
 			replyHeaders,
 			NULL,
 			0);
@@ -1512,7 +1530,7 @@ smcp_daemon_handle_list(
 	if(next_node && next_node[0]) {
 		smcp_node_t next;
 		node = smcp_node_find_with_path(node, next_node);
-		response_code = SMCP_RESULT_CODE_PARTIAL_CONTENT;
+		response_code = COAP_RESULT_CODE_PARTIAL_CONTENT;
 		check_string(node, "Unable to find next node!");
 		next = bt_next(node);
 		if(node && !next && node->parent)
@@ -1558,7 +1576,7 @@ smcp_daemon_handle_list(
 
 	// If there are more nodes, indicate as such in the headers.
 	if(node) {
-		response_code = SMCP_RESULT_CODE_PARTIAL_CONTENT;
+		response_code = COAP_RESULT_CODE_PARTIAL_CONTENT;
 #if SUPPORT_USING_LAST_LINE_FOR_EMPTY_NEXT_HEADER
 		util_add_header(replyHeaders,
 			SMCP_MAX_HEADERS,

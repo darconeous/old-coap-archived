@@ -77,7 +77,7 @@ list_response_handler(
 ) {
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
 	printf("*** RESULT CODE = %d (%s)\n", statuscode,
-		smcp_code_to_cstr(statuscode));
+		coap_code_to_cstr(statuscode));
 
 	if(content) {
 		char contentBuffer[SMCP_MAX_CONTENT_LENGTH + 1] = {};
@@ -180,7 +180,7 @@ tool_cmd_test(
 		smcp_daemon_send_request_to_url(
 			smcp_daemon2,
 			tid,
-			SMCP_METHOD_GET,
+			COAP_METHOD_GET,
 			url,
 			NULL, // headers
 			NULL,

@@ -40,11 +40,11 @@ smcp_variable_request_handler(
 	}
 
 
-	if(method == SMCP_METHOD_PUT)
+	if(method == COAP_METHOD_PUT)
 		// TODO: Implement me!
-		method = SMCP_METHOD_POST;
+		method = COAP_METHOD_POST;
 
-	if(method == SMCP_METHOD_POST) {
+	if(method == COAP_METHOD_POST) {
 		coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 
 		coap_header_item_t *next_header;
@@ -66,7 +66,7 @@ smcp_variable_request_handler(
 				content_type
 			    );
 		}
-	} else if(method == SMCP_METHOD_GET) {
+	} else if(method == COAP_METHOD_GET) {
 		char replyContent[SMCP_MAX_CONTENT_LENGTH];
 		size_t replyContentLength = sizeof(replyContent);
 		coap_content_type_t replyContentType =
@@ -88,7 +88,7 @@ smcp_variable_request_handler(
 			util_add_header(replyHeaders, 1, COAP_HEADER_CONTENT_TYPE,
 				    (const void*)&replyContentType, 1);
 			smcp_daemon_send_response(self,
-				SMCP_RESULT_CODE_OK,
+				COAP_RESULT_CODE_OK,
 				replyHeaders,
 				replyContent,
 				replyContentLength);

@@ -54,8 +54,8 @@ pair_response_handler(
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
 		fprintf(stderr, "pair: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : smcp_code_to_cstr(statuscode));
-	if(content && (statuscode != SMCP_RESULT_CODE_ACK) &&
+				statuscode) : coap_code_to_cstr(statuscode));
+	if(content && (statuscode != COAP_RESULT_CODE_NO_CONTENT) &&
 	    content_length) {
 		char contentBuffer[500];
 
@@ -113,7 +113,7 @@ send_pair_request(
 	require_noerr(smcp_daemon_send_request_to_url(
 			smcp,
 			tid,
-			SMCP_METHOD_PAIR,
+			COAP_METHOD_PAIR,
 			url,
 			headers,
 			url2,
