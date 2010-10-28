@@ -859,7 +859,7 @@ smcp_daemon_handle_inbound_packet(
 
 	self->is_processing_message = true;
 
-	self->did_respond = (tt == COAP_TRANS_TYPE_CONFIRMABLE);
+	self->did_respond = (tt != COAP_TRANS_TYPE_CONFIRMABLE);
 
 	if(COAP_CODE_IS_REQUEST(code)) {
 		// Need to extract the path.
