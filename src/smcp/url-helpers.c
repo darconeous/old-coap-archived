@@ -313,9 +313,8 @@ extern bool string_contains_colons(const char* str) {
 extern bool url_change(
 	char* url, const char* new_url_
 ) {
-#define MAX_URL_SIZE        (128)
-
 	bool ret = false;
+
 	if(url_is_absolute(new_url_)) {
 		strcpy(url, new_url_);
 		ret = true;
@@ -351,13 +350,17 @@ extern bool url_change(
 #endif
 
 		if(!proto_str) {
+#if VERBOSE_DEBUG
 			fprintf(stderr, "Must cd into full URL first\n");
+#endif
 			ret = false;
 			goto bail;
 		}
 
 		if(!addr_str) {
+#if VERBOSE_DEBUG
 			fprintf(stderr, "Bad base URL.\n");
+#endif
 			ret = false;
 			goto bail;
 		}
@@ -384,7 +387,7 @@ extern bool url_change(
 		}
 
 		{
-			char* path_components[100];
+			char* path_components[URL_HELPERS_MAX_URL_COMPONENTS];
 			char** pp = path_components;
 			int path_items = 0;
 
@@ -433,4 +436,58 @@ bail:
 #endif
 
 	return ret;
+}
+
+
+void
+url_shorten_reference(
+	const char* current_url, char* new_url
+) {
+	// TODO: Implement me!
+/*
+    Junk from where I was when I started writing this func...
+
+    if(url_is_absolute(new_url)) {
+    }
+
+    if(path_is_absolute(new_url)) {
+        char temp[256];
+        strncpy(temp,current_url,sizeof(temp);
+        url_parse(temp, NULL, NULL, NULL, (char**)&current_url);
+        strncmp(new_url+1,current_url,strlen(current_url))
+
+    }
+
+    char temp[MAX_URL_SIZE];
+    int i,j;
+    strncpy(temp,current_url,sizeof(temp);
+
+    url_change(temp,new_url);
+
+    if(0!=memcmp(temp,current_url,7)) {
+        strcpy(new_url,temp);
+        return;
+    }
+
+    for(i=7;temp[i]!='/';i++) {	}
+
+    if(0!=memcmp(temp,current_url,i)) {
+        strcpy(new_url,temp);
+        return;
+    }
+
+    j=i;
+
+    for(;temp[i]==current_url[i];i++) {
+        if(temp[i]=='/')
+            j=i;
+    }
+
+    if(!temp[i]temp[i]==current_url[i]))
+
+    for(j=0;temp[i];)
+        new_url[j++] = temp[i++];
+
+    new_url[j] = 0;
+ */
 }

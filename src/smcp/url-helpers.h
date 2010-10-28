@@ -5,6 +5,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define URL_HELPERS_MAX_URL_COMPONENTS      (15)
+#define MAX_URL_SIZE        (128)
+
 /*!	Perfoms a URL encoding of the given string.
 **	@returns	Number of bytes in encoded string
 */
@@ -26,6 +29,15 @@ extern int url_parse(
 	char* url, char** protocol, char** host, char** port, char** path);
 
 extern bool url_is_absolute(const char* url);
+
+inline static bool path_is_absolute(const char* path) {
+	return path[0] ==
+	       '/';
+}
+
+// Transforms new_url into a shorter, possibly relative, path/url.
+extern void url_shorten_reference(
+	const char* current_url, char* new_url);
 
 extern bool string_contains_colons(const char* str);
 

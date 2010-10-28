@@ -11,11 +11,11 @@ struct smcp_variable_node_s {
 	smcp_status_t		(*get_func)(
 		smcp_variable_node_t node, coap_header_item_t headers[],
 		char* content, size_t* content_length,
-		smcp_content_type_t* content_type);
+		coap_content_type_t* content_type);
 	smcp_status_t		(*post_func)(
 		smcp_variable_node_t node, coap_header_item_t headers[],
 		char* content, size_t content_length,
-		smcp_content_type_t content_type);
+		coap_content_type_t content_type);
 };
 
 

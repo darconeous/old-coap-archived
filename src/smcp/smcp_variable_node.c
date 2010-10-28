@@ -45,7 +45,7 @@ smcp_variable_request_handler(
 		method = SMCP_METHOD_POST;
 
 	if(method == SMCP_METHOD_POST) {
-		smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
+		coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 
 		coap_header_item_t *next_header;
 		for(next_header = headers;
@@ -69,8 +69,8 @@ smcp_variable_request_handler(
 	} else if(method == SMCP_METHOD_GET) {
 		char replyContent[SMCP_MAX_CONTENT_LENGTH];
 		size_t replyContentLength = sizeof(replyContent);
-		smcp_content_type_t replyContentType =
-		    SMCP_CONTENT_TYPE_TEXT_PLAIN;
+		coap_content_type_t replyContentType =
+		    COAP_CONTENT_TYPE_TEXT_PLAIN;
 		coap_header_item_t replyHeaders[2] = {};
 
 		ret = SMCP_STATUS_NOT_IMPLEMENTED;

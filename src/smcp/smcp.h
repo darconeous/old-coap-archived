@@ -311,27 +311,6 @@ static inline coap_header_key_t smcp_get_header_key_from_cstr(
 	    smcp_header_item_get_key(item))
 
 
-typedef enum {
-	SMCP_CONTENT_TYPE_TEXT_PLAIN = 0,
-	SMCP_CONTENT_TYPE_TEXT_XML = 1,
-	SMCP_CONTENT_TYPE_TEXT_CSV = 2,
-	SMCP_CONTENT_TYPE_TEXT_HTML = 3,
-
-	SMCP_CONTENT_TYPE_IMAGE_GIF = 21,
-	SMCP_CONTENT_TYPE_IMAGE_JPEG = 22,
-	SMCP_CONTENT_TYPE_IMAGE_PNG = 23,
-	SMCP_CONTENT_TYPE_IMAGE_TIFF = 24,
-
-	SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT = 40, //!< draft-shelby-core-link-format
-	SMCP_CONTENT_TYPE_APPLICATION_XML = 41,
-	SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM = 42,
-	SMCP_CONTENT_TYPE_APPLICATION_EXI = 47,
-
-	// Experimental after this point
-
-	SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED = 99, //!< SMCP Specific
-} smcp_content_type_t;
-
 struct smcp_daemon_s;
 typedef struct smcp_daemon_s *smcp_daemon_t;
 
@@ -514,14 +493,14 @@ extern smcp_status_t smcp_daemon_trigger_event(
 	const char*			path,
 	const char*			content,
 	size_t				content_length,
-	smcp_content_type_t content_type);
+	coap_content_type_t content_type);
 extern smcp_status_t smcp_daemon_trigger_event_with_node(
 	smcp_daemon_t		self,
 	smcp_node_t			node,
 	const char*			subpath,
 	const char*			content,
 	size_t				content_length,
-	smcp_content_type_t content_type);
+	coap_content_type_t content_type);
 
 
 coap_transaction_id_t smcp_daemon_get_current_tid(smcp_daemon_t self);

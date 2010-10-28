@@ -97,38 +97,19 @@ get_method_string(smcp_method_t method) {
     return 0;
    }
  */
-static const char*
-get_content_type_string(smcp_content_type_t content_type) {
-	const char* content_type_string = NULL;
-
-	switch(content_type) {
-	case SMCP_CONTENT_TYPE_TEXT_PLAIN: content_type_string = "text/plain";
-		break;
-	case SMCP_CONTENT_TYPE_TEXT_CSV: content_type_string = "text/csv";
-		break;
-	case SMCP_CONTENT_TYPE_TEXT_XML: content_type_string = "text/xml";
-		break;
-	case SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED:
-		content_type_string = "application/x-www-form-urlencoded"; break;
-	default:
-	case SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM: content_type_string =
-		    "application/octet-stream"; break;
-	}
-	return content_type_string;
-}
 
 /*
-   static smcp_content_type_t
+   static coap_content_type_t
    get_content_type_index(const char* content_type_string) {
     if(strcmp(content_type_string,"text/plain")==0)
-        return SMCP_CONTENT_TYPE_TEXT_PLAIN;
+        return COAP_CONTENT_TYPE_TEXT_PLAIN;
     else if(strcmp(content_type_string,"application/x-www-form-urlencoded")==0)
-        return SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
+        return COAP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
     else if(strcmp(content_type_string,"text/csv")==0)
-        return SMCP_CONTENT_TYPE_TEXT_CSV;
+        return COAP_CONTENT_TYPE_TEXT_CSV;
     else if(strcmp(content_type_string,"text/xml")==0)
-        return SMCP_CONTENT_TYPE_TEXT_XML;
-    return SMCP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+        return COAP_CONTENT_TYPE_TEXT_XML;
+    return COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
    }
  */
 
@@ -1153,7 +1134,7 @@ smcp_daemon_handle_response(
 						"\tHEADER: %s: %s"),
 					smcp_header_item_get_key_cstr(
 						next_header),
-					get_content_type_string(*(const char*)
+					coap_content_type_to_cstr(*(const char*)
 						smcp_header_item_get_value(
 							next_header)));
 				break;
@@ -1289,7 +1270,7 @@ smcp_daemon_handle_request(
 			smcp_daemon_get_current_tid(self));
 		DEBUG_PRINTF(CSTR("REQUEST: \"%s\" \"%s\""),
 			get_method_string(method), path);
-		smcp_content_type_t content_type;
+		coap_content_type_t content_type;
 		coap_header_item_t *next_header;
 		for(next_header = headers;
 		    smcp_header_item_get_key(next_header);
@@ -1310,12 +1291,13 @@ smcp_daemon_handle_request(
 				DEBUG_PRINTF(CSTR(
 						"\tHEADER: %s: \"%s\""),
 					smcp_header_item_get_key_cstr(
-						next_header), get_content_type_string(content_type));
-				if((content_type == SMCP_CONTENT_TYPE_TEXT_PLAIN)
+						next_header),
+					coap_content_type_to_cstr(content_type));
+				if((content_type == COAP_CONTENT_TYPE_TEXT_PLAIN)
 				    || (content_type ==
-				        SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
-				    || (content_type == SMCP_CONTENT_TYPE_TEXT_CSV)
-				    || (content_type == SMCP_CONTENT_TYPE_TEXT_XML)
+				        COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
+				    || (content_type == COAP_CONTENT_TYPE_TEXT_CSV)
+				    || (content_type == COAP_CONTENT_TYPE_TEXT_XML)
 				)
 					content_is_text = true;
 				break;
@@ -1561,6 +1543,8 @@ smcp_daemon_handle_list(
 
 		strlcat(replyContent, ">", sizeof(replyContent));
 
+		if(node->children)
+			strlcat(replyContent, ";ct=40", sizeof(replyContent));
 		next = bt_next(node);
 
 		next_node = (char*)node->name;
@@ -1590,8 +1574,8 @@ smcp_daemon_handle_list(
 #endif
 	}
 
-	smcp_content_type_t content_type =
-	    SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
+	coap_content_type_t content_type =
+	    COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
 
 	util_add_header(
 		replyHeaders,

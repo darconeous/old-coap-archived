@@ -23,17 +23,12 @@
 #include "cmd_get.h"
 #include "cmd_post.h"
 #include "cmd_pair.h"
+#include "cmd_repeat.h"
+
+#include "smcpctl.h"
 
 #include <smcp/url-helpers.h>
 
-
-#define ERRORCODE_HELP          (1)
-#define ERRORCODE_BADARG        (2)
-#define ERRORCODE_NOCOMMAND     (3)
-#define ERRORCODE_UNKNOWN       (4)
-#define ERRORCODE_BADCOMMAND    (5)
-#define ERRORCODE_NOREADLINE    (6)
-#define ERRORCODE_QUIT          (7)
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",	NULL, "Print Help"				},
@@ -115,6 +110,11 @@ struct {
 		"Self test mode.",
 		&tool_cmd_test
 	},
+	{
+		"repeat",
+		"Repeat the specified command",
+		&tool_cmd_repeat
+	},
 
 	{
 		"help",
@@ -148,7 +148,7 @@ print_commands() {
 	}
 }
 
-static int
+int
 exec_command(
 	smcp_daemon_t smcp_daemon, int argc, char * argv[]
 ) {
@@ -316,11 +316,17 @@ main(
 	setenv("SMCP_CURRENT_PATH", "smcp://localhost/", 0);
 
 	if(i < argc) {
-		ret = exec_command(smcp_daemon, argc - i, argv + i);
+		if((0 !=
+		        strncmp(argv[i], "smcp:",
+					5)) && (0 != strncmp(argv[i], "coap:", 5))) {
+			ret = exec_command(smcp_daemon, argc - i, argv + i);
 #if HAS_LIBREADLINE
-		if(ret || (0 != strcmp(argv[i], "cd")))
+			if(ret || (0 != strcmp(argv[i], "cd")))
 #endif
-		goto bail;
+			goto bail;
+		} else {
+			setenv("SMCP_CURRENT_PATH", argv[i], 1);
+		}
 	}
 
 	if(istty) {

@@ -10,8 +10,6 @@
 #ifndef __SMCP_ASSERT_MACROS__
 #define __SMCP_ASSERT_MACROS__
 
-#include <stdio.h>
-
 #if __CONTIKI__
 #define assert_error_stream     stdout
 #else
@@ -21,6 +19,8 @@
 #if HAS_ASSERTMACROS_H
  #include <AssertMacros.h>
 #else
+#include <stdio.h>
+#include <assert.h>
 #if !DEBUG
  #define check_string(c, s)   do { } while(0)
  #define require_action_string(c, l, a, s) \
@@ -29,12 +29,28 @@
 		 } \
 	} while(0)
 #else
- #define check_string(c, s) \
+ #if __AVR__
+  #define check_string(c, s) \
+    do { if(!(c)) fprintf_P(assert_error_stream, \
+				PSTR(__FILE__ ":%d: Check Failed (%s)\n"), \
+				__LINE__, \
+				s); } while(0)
+  #define require_action_string(c, l, a, s) \
+    do { if(!(c)) { \
+			 fprintf_P( \
+				assert_error_stream, \
+				PSTR(__FILE__ ":%d: Assert Failed (%s)\n"), \
+				__LINE__, \
+				s); a; goto l; \
+		 } \
+	} while(0)
+ #else
+  #define check_string(c, s) \
     do { if(!(c)) fprintf(assert_error_stream, \
 				__FILE__ ":%d: Check Failed (%s)\n", \
 				__LINE__, \
 				s); } while(0)
- #define require_action_string(c, l, a, s) \
+  #define require_action_string(c, l, a, s) \
     do { if(!(c)) { \
 			 fprintf( \
 				assert_error_stream, \
@@ -43,9 +59,10 @@
 				s); a; goto l; \
 		 } \
 	} while(0)
+ #endif
 #endif
 
- #define check(c)   check_string(c, "")
+ #define check(c)   check_string(c, # c)
  #define require_quiet(c, l)   do { if(!(c)) goto l; } while(0)
  #define require(c, l)   require_action_string(c, l, {}, # c)
 

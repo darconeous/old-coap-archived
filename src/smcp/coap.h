@@ -75,6 +75,40 @@ typedef struct {
 	size_t				value_len;
 } coap_header_item_t;
 
+typedef enum {
+	COAP_CONTENT_TYPE_TEXT_PLAIN = 0,
+	COAP_CONTENT_TYPE_TEXT_XML = 1,
+	COAP_CONTENT_TYPE_TEXT_CSV = 2,
+	COAP_CONTENT_TYPE_TEXT_HTML = 3,
+
+	COAP_CONTENT_TYPE_IMAGE_GIF = 21,
+	COAP_CONTENT_TYPE_IMAGE_JPEG = 22,
+	COAP_CONTENT_TYPE_IMAGE_PNG = 23,
+	COAP_CONTENT_TYPE_IMAGE_TIFF = 24,
+
+	COAP_CONTENT_TYPE_AUDIO_RAW = 25,
+	COAP_CONTENT_TYPE_VIDEO_RAW = 26,
+
+	COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT = 40, //!< draft-shelby-core-link-format
+	COAP_CONTENT_TYPE_APPLICATION_XML = 41,
+	COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM = 42,
+	COAP_CONTENT_TYPE_APPLICATION_RDF_XML = 43,
+	COAP_CONTENT_TYPE_APPLICATION_SOAP_XML = 44,
+	COAP_CONTENT_TYPE_APPLICATION_ATOM_XML = 45,
+	COAP_CONTENT_TYPE_APPLICATION_XMPP_XML = 46,
+	COAP_CONTENT_TYPE_APPLICATION_EXI = 47,
+	COAP_CONTENT_TYPE_APPLICATION_X_BXML = 48,
+	COAP_CONTENT_TYPE_APPLICATION_FASTINFOSET = 49,
+	COAP_CONTENT_TYPE_APPLICATION_SOAP_FASTINFOSET = 50,
+	COAP_CONTENT_TYPE_APPLICATION_JSON = 51,
+
+	// Experimental after this point. Experimentals start at 201.
+
+	SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED = 205, //!< SMCP Specific
+
+	COAP_CONTENT_TYPE_UNKNOWN = 255,
+} coap_content_type_t;
+
 extern size_t coap_encode_header(
 	unsigned char*			buffer,
 	size_t					buffer_len,
@@ -94,6 +128,9 @@ extern size_t coap_decode_header(
 	coap_header_item_t*			headers,
 	size_t*						header_count
 );
+
+extern const char* coap_content_type_to_cstr(
+	coap_content_type_t content_type);
 
 
 #endif // __SMCP_COAP_H__

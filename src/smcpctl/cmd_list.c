@@ -20,6 +20,7 @@
 #include <smcp/url-helpers.h>
 #include <math.h>
 #include <signal.h>
+#include "smcpctl.h"
 
 /*
    static arg_list_item_t option_list[] = {
@@ -28,19 +29,18 @@
    };
  */
 
-static bool listIsDone;
+static int gRet;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
 
 static void
 signal_interrupt(int sig) {
-	fprintf(stderr, "Interrupt\n");
-	listIsDone = 1;
+	gRet = ERRORCODE_INTERRUPT;
 	signal(SIGINT, previous_sigint_handler);
 }
 
 bool send_list_request(
-	smcp_daemon_t smcp, const char* url, const char* next);
+	smcp_daemon_t smcp, const char* url, const char* next, size_t nextlen);
 
 static int retries = 0;
 static char url_data[128];
@@ -48,7 +48,7 @@ static char next_data[128];
 static size_t next_len = HEADER_CSTR_LEN;
 static int smcp_rtt = 120;
 
-int calc_retransmit_timeout(int retries_) {
+static int calc_retransmit_timeout(int retries_) {
 	int ret = smcp_rtt;
 	int i;
 
@@ -79,16 +79,20 @@ list_response_handler(
 	if(statuscode == SMCP_STATUS_TIMEOUT && (retries++ < 8)) {
 		resend_list_request(self);
 		return;
-	} else if((statuscode != SMCP_RESULT_CODE_OK) &&
-	        (statuscode != SMCP_RESULT_CODE_PARTIAL_CONTENT)) {
-		fprintf(stderr, " *** RESULT CODE = %d (%s)\n", statuscode,
+	}
+
+	if(((statuscode < 200) ||
+	            (statuscode >= 300)) &&
+	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
+	        (statuscode != SMCP_RESULT_CODE_PARTIAL_CONTENT))
+		fprintf(stderr, "list: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : smcp_code_to_cstr(statuscode));
-	}
+
 	if(content && content_length) {
 		coap_header_item_t *next_header;
 		char contentBuffer[500];
-		smcp_content_type_t content_type = 0;
+		coap_content_type_t content_type = 0;
 		for(next_header = headers;
 		    smcp_header_item_get_key(next_header);
 		    next_header = smcp_header_item_next(next_header)) {
@@ -97,27 +101,76 @@ list_response_handler(
 				content_type = (unsigned char)next_header->value[0];
 		}
 
-		if(content_type != SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
+		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
 			fprintf(stderr, " *** Not a directory\n");
 		} else {
 			char *iter = content;
 			char *end = content + content_length;
+			int col_width = 16;
 
 			while(iter < end) {
 				if(*iter == '<') {
+					char* uri = 0;
+					char* name = 0;
+					int type = COAP_CONTENT_TYPE_UNKNOWN;
+					int uri_len = 0;
+
 					iter++;
 
-					// print out the node name
-					while((iter < end) && (*iter != '>')) {
-						printf("%c", *iter++);
-					}
-					printf("\n");
+					uri = strsep(&iter, ">");
+					uri_len = iter - uri - 1;
 
 					// Skip past any arguments
-					while((iter < end) && (*iter != ',')) {
-						iter++;
+					if(*iter == ';') {
+						while((iter < end)) {
+							char* key;
+							char* value;
+							char endchar;
+
+							iter++;
+							key = strsep(&iter, "=");
+							if(*iter == '"') {
+								iter++;
+								value = strsep(&iter, "\"");
+								endchar = *iter;
+							} else {
+								value = iter;
+								while((iter < end) && (*iter != ',') &&
+								        (*iter != ';')) {
+									iter++;
+								}
+								endchar = *iter;
+								*iter++ = 0;
+							}
+							if(0 == strcmp(key, "n"))
+								name = value;
+							else if(0 == strcmp(key, "ct"))
+								type = strtol(value, NULL, 0);
+							//printf("%s = %s\n",key,value);
+							if(endchar == ',' || (iter >= end))
+								break;
+						}
 					}
-					iter++;
+
+					url_shorten_reference((const char*)context, uri);
+
+					printf("%s ", uri);
+					if(uri_len < col_width) {
+						if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {
+							uri_len = col_width - uri_len;
+							while(uri_len--) {
+								printf(" ");
+							}
+							printf("\t");
+						}
+					} else {
+						printf("\t");
+						col_width = uri_len;
+					}
+					if(name) printf("\"%s\"", name);
+					if(type != COAP_CONTENT_TYPE_UNKNOWN) printf(" (%s)",
+							coap_content_type_to_cstr(type));
+					printf("\n");
 				} else {
 					iter++;
 				}
@@ -137,27 +190,16 @@ list_response_handler(
 			    next_header = smcp_header_item_next(next_header)) {
 				if(smcp_header_item_key_equal(next_header,
 						COAP_HEADER_NEXT)) {
-					char* next = smcp_header_item_get_value(next_header);
-					if(0 == smcp_header_item_get_value_len(next_header)) {
-						// In this case we need to use
-						// the last item in the list.
-						next = content + content_length - 1;
-						while((next != content) && (next[-1] != '\n') &&
-						        (next[-1] != ',')) {
-							next--;
-						}
-					} else {
-						next[smcp_header_item_get_value_len(next_header)]
-						    = 0;
-					}
-					if(send_list_request(self, (const char*)context, next))
+					if(send_list_request(self, (const char*)context,
+							next_header->value, next_header->value_len))
 						return;
 				}
 			}
 		}
 	}
 
-	listIsDone = true;
+	if(gRet == ERRORCODE_INPROGRESS)
+		gRet = 0;
 }
 
 bool
@@ -216,20 +258,22 @@ bail:
 
 bool
 send_list_request(
-	smcp_daemon_t smcp, const char* url, const char* next
+	smcp_daemon_t smcp, const char* url, const char* next, size_t nextlen
 ) {
 	bool ret = false;
 
 	tid = SMCP_FUNC_RANDOM_UINT32();
-	listIsDone = false;
+	gRet = ERRORCODE_INPROGRESS;
 
 	retries = 0;
 
 	strcpy(url_data, url);
-	if(next)
-		strcpy(next_data, next);
-	else
+	if(next) {
+		memcpy(next_data, next, nextlen);
+		next_len = nextlen;
+	} else {
 		next_data[0] = 0;
+	}
 
 	ret = resend_list_request(smcp);
 
@@ -241,7 +285,7 @@ int
 tool_cmd_list(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
-	int ret = -1;
+	gRet = ERRORCODE_INPROGRESS;
 
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
@@ -260,14 +304,13 @@ tool_cmd_list(
 		}
 	}
 
-	require(send_list_request(smcp, url, NULL), bail);
+	require(send_list_request(smcp, url, NULL, 0), bail);
 
-	while(!listIsDone)
+	while(gRet == ERRORCODE_INPROGRESS)
 		smcp_daemon_process(smcp, -1);
 
-	ret = 0;
 bail:
 	smcp_invalidate_response_handler(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
-	return ret;
+	return gRet;
 }

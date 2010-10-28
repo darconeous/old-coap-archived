@@ -18,6 +18,7 @@
 #include "cmd_pair.h"
 #include <smcp/url-helpers.h>
 #include <signal.h>
+#include "smcpctl.h"
 
 /*
    static arg_list_item_t option_list[] = {
@@ -26,14 +27,13 @@
    };
  */
 
-static bool pairIsDone;
+static int gRet;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
 
 static void
 signal_interrupt(int sig) {
-	fprintf(stderr, "Interrupt\n");
-	pairIsDone = 1;
+	gRet = ERRORCODE_INTERRUPT;
 	signal(SIGINT, previous_sigint_handler);
 }
 
@@ -49,12 +49,12 @@ pair_response_handler(
 	size_t				content_length,
 	void*				context
 ) {
-	if((statuscode < 200) || (statuscode >= 300)) {
-		fprintf(stderr,
-			" *** RESULT CODE = %d (%s)\n",
-			statuscode,
-			smcp_code_to_cstr(statuscode));
-	}
+	if(((statuscode < 200) ||
+	            (statuscode >= 300)) &&
+	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
+		fprintf(stderr, "pair: Result code = %d (%s)\n", statuscode,
+			    (statuscode < 0) ? smcp_status_to_cstr(
+				statuscode) : smcp_code_to_cstr(statuscode));
 	if(content && (statuscode != SMCP_RESULT_CODE_ACK) &&
 	    content_length) {
 		char contentBuffer[500];
@@ -71,7 +71,8 @@ pair_response_handler(
 		printf("%s\n", contentBuffer);
 	}
 
-	pairIsDone = true;
+	if(gRet == ERRORCODE_INPROGRESS)
+		gRet = ERRORCODE_OK;
 }
 
 
@@ -85,7 +86,7 @@ send_pair_request(
 	tid = SMCP_FUNC_RANDOM_UINT32();
 	//static char tid_str[30];
 
-	pairIsDone = false;
+	gRet = ERRORCODE_INPROGRESS;
 
 	fprintf(stderr, "Pairing \"%s\" to \"%s\"...\n", url, url2);
 
@@ -129,11 +130,11 @@ int
 tool_cmd_pair(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
-	int ret = -1;
-
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
 	char url[1000];
+
+	gRet = ERRORCODE_UNKNOWN;
 
 	if(getenv("SMCP_CURRENT_PATH")) {
 		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
@@ -144,6 +145,7 @@ tool_cmd_pair(
 			strncpy(url, argv[1], sizeof(url));
 		} else {
 			fprintf(stderr, "Bad args.\n");
+			gRet = ERRORCODE_BADARG;
 			goto bail;
 		}
 	}
@@ -164,17 +166,17 @@ tool_cmd_pair(
 		require(send_pair_request(smcp, url, url2), bail);
 	} else {
 		fprintf(stderr, "Bad args.\n");
+		gRet = ERRORCODE_BADARG;
 		goto bail;
 	}
 
-	pairIsDone = 0;
+	gRet = ERRORCODE_INPROGRESS;
 
-	while(!pairIsDone)
+	while(ERRORCODE_INPROGRESS == gRet)
 		smcp_daemon_process(smcp, -1);
 
-	ret = 0;
 bail:
 	smcp_invalidate_response_handler(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
-	return ret;
+	return gRet;
 }

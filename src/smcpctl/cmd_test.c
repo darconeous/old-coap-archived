@@ -29,7 +29,7 @@ action_func(
 	coap_header_item_t		headers[],
 	char*					content,
 	size_t					content_length,
-	smcp_content_type_t		content_type
+	coap_content_type_t		content_type
 ) {
 	fprintf(stdout,
 		" *** Received Action! content_length = %d ",
@@ -45,7 +45,7 @@ loadavg_get_func(
 	coap_header_item_t		headers[],
 	char*					content,
 	size_t*					content_length,
-	smcp_content_type_t*	content_type
+	coap_content_type_t*	content_type
 ) {
 	int ret = 0;
 	double loadavg[3] = { };

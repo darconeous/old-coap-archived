@@ -159,3 +159,97 @@ coap_decode_header(
 bail:
 	return ret;
 }
+
+
+const char*
+coap_content_type_to_cstr(coap_content_type_t content_type) {
+	const char* content_type_string = NULL;
+
+	if((content_type > 255) || (content_type < 0))
+		content_type = COAP_CONTENT_TYPE_UNKNOWN;
+
+	switch(content_type) {
+	case COAP_CONTENT_TYPE_UNKNOWN: content_type_string = "unknown"; break;
+
+	case COAP_CONTENT_TYPE_TEXT_PLAIN: content_type_string = "text/plain";
+		break;
+	case COAP_CONTENT_TYPE_TEXT_XML: content_type_string = "text/xml";
+		break;
+	case COAP_CONTENT_TYPE_TEXT_CSV: content_type_string = "text/csv";
+		break;
+	case COAP_CONTENT_TYPE_TEXT_HTML: content_type_string = "text/html";
+		break;
+
+	case COAP_CONTENT_TYPE_IMAGE_GIF: content_type_string = "image/gif";
+		break;
+	case COAP_CONTENT_TYPE_IMAGE_JPEG: content_type_string = "image/jpeg";
+		break;
+	case COAP_CONTENT_TYPE_IMAGE_PNG: content_type_string = "image/png";
+		break;
+	case COAP_CONTENT_TYPE_IMAGE_TIFF: content_type_string = "image/tiff";
+		break;
+
+	case COAP_CONTENT_TYPE_AUDIO_RAW: content_type_string = "audio/raw";
+		break;
+	case COAP_CONTENT_TYPE_VIDEO_RAW: content_type_string = "video/raw";
+		break;
+
+	case COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT: content_type_string =
+		    "application/link-format"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_XML: content_type_string =
+		    "application/xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM: content_type_string =
+		    "application/octet-stream"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_RDF_XML: content_type_string =
+		    "application/rdf+xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_SOAP_XML: content_type_string =
+		    "application/soap+xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_ATOM_XML: content_type_string =
+		    "application/atom+xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_XMPP_XML: content_type_string =
+		    "application/xmpp+xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_EXI: content_type_string =
+		    "application/exi"; break;
+
+	case COAP_CONTENT_TYPE_APPLICATION_X_BXML: content_type_string =
+		    "application/x-bxml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_FASTINFOSET: content_type_string =
+		    "application/fastinfoset"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_SOAP_FASTINFOSET:
+		content_type_string = "application/soap+fastinfoset"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_JSON: content_type_string =
+		    "application/json"; break;
+
+	case SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED:
+		content_type_string = "application/x-www-form-urlencoded"; break;
+
+	default: break;
+	}
+	if(!content_type_string) {
+		// TODO: Make thread safe!
+		static char ret[40];
+		if(content_type < 20) {
+			snprintf(ret,
+				sizeof(ret),
+				"text/x-coap-%02x",
+				    (unsigned char)content_type);
+		} else if(content_type < 40) {
+			snprintf(ret,
+				sizeof(ret),
+				"image/x-coap-%02x",
+				    (unsigned char)content_type);
+		} else if(content_type < 60) {
+			snprintf(ret, sizeof(ret), "application/x-coap-%02x",
+				    (unsigned char)content_type);
+		} else if(content_type < 201) {
+			snprintf(ret, sizeof(ret), "application/x-coap-%02x",
+				    (unsigned char)content_type);
+		} else {
+			// Experimental
+			snprintf(ret, sizeof(ret), "application/x-coap-%02x",
+				    (unsigned char)content_type);
+		}
+		content_type_string = ret;
+	}
+	return content_type_string;
+}

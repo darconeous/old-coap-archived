@@ -25,6 +25,7 @@
 		A63EA6FF1278B16D00B24867 /* smcp_variable_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F21278B16D00B24867 /* smcp_variable_node.c */; };
 		A63EA7001278B16D00B24867 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F41278B16D00B24867 /* smcp.c */; };
 		A63EA7011278B16D00B24867 /* url-helpers.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F71278B16D00B24867 /* url-helpers.c */; };
+		A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EB2881278CBB100B24867 /* cmd_repeat.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -77,9 +78,11 @@
 		A63EA6F31278B16D00B24867 /* smcp_variable_node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = smcp_variable_node.h; path = src/smcp/smcp_variable_node.h; sourceTree = "<group>"; };
 		A63EA6F41278B16D00B24867 /* smcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = smcp.c; path = src/smcp/smcp.c; sourceTree = "<group>"; };
 		A63EA6F51278B16D00B24867 /* smcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = smcp.h; path = src/smcp/smcp.h; sourceTree = "<group>"; };
-		A63EA6F61278B16D00B24867 /* smcpctl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = smcpctl.h; path = src/smcp/smcpctl.h; sourceTree = "<group>"; };
+		A63EA6F61278B16D00B24867 /* smcpctl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = smcpctl.h; path = src/smcpctl/smcpctl.h; sourceTree = "<group>"; };
 		A63EA6F71278B16D00B24867 /* url-helpers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "url-helpers.c"; path = "src/smcp/url-helpers.c"; sourceTree = "<group>"; };
 		A63EA6F81278B16D00B24867 /* url-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "url-helpers.h"; path = "src/smcp/url-helpers.h"; sourceTree = "<group>"; };
+		A63EB2871278CBB100B24867 /* cmd_repeat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_repeat.h; path = src/smcpctl/cmd_repeat.h; sourceTree = "<group>"; };
+		A63EB2881278CBB100B24867 /* cmd_repeat.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_repeat.c; path = src/smcpctl/cmd_repeat.c; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = smcpctl.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -131,7 +134,6 @@
 				A63EA6F31278B16D00B24867 /* smcp_variable_node.h */,
 				A63EA6F41278B16D00B24867 /* smcp.c */,
 				A63EA6F51278B16D00B24867 /* smcp.h */,
-				A63EA6F61278B16D00B24867 /* smcpctl.h */,
 				A63EA6F71278B16D00B24867 /* url-helpers.c */,
 				A63EA6F81278B16D00B24867 /* url-helpers.h */,
 			);
@@ -159,9 +161,12 @@
 				A63EA6D41278B13800B24867 /* cmd_post.h */,
 				A63EA6D51278B13800B24867 /* cmd_test.c */,
 				A63EA6D61278B13800B24867 /* cmd_test.h */,
+				A63EB2871278CBB100B24867 /* cmd_repeat.h */,
+				A63EB2881278CBB100B24867 /* cmd_repeat.c */,
 				A63EA6D71278B13800B24867 /* help.c */,
 				A63EA6D81278B13800B24867 /* help.h */,
 				A63EA6D91278B13800B24867 /* main.c */,
+				A63EA6F61278B16D00B24867 /* smcpctl.h */,
 			);
 			name = "Tool Source";
 			sourceTree = "<group>";
@@ -243,6 +248,7 @@
 				A63EA6FF1278B16D00B24867 /* smcp_variable_node.c in Sources */,
 				A63EA7001278B16D00B24867 /* smcp.c in Sources */,
 				A63EA7011278B16D00B24867 /* url-helpers.c in Sources */,
+				A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

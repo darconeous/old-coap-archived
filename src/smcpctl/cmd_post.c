@@ -18,6 +18,7 @@
 #include "cmd_post.h"
 #include <smcp/url-helpers.h>
 #include <signal.h>
+#include "smcpctl.h"
 
 /*
    static arg_list_item_t option_list[] = {
@@ -26,7 +27,7 @@
    };
  */
 
-static bool postIsDone;
+static int gRet;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
 
@@ -39,8 +40,7 @@ static coap_transaction_id_t tid;
  */
 static void
 signal_interrupt(int sig) {
-	fprintf(stderr, "Interrupt\n");
-	postIsDone = 1;
+	gRet = ERRORCODE_INTERRUPT;
 	signal(SIGINT, previous_sigint_handler);
 }
 
@@ -59,8 +59,10 @@ post_response_handler(
 	size_t				content_length,
 	void*				context
 ) {
-	if((statuscode < 200) || (statuscode >= 300) && !(content_length))
-		fprintf(stderr, " *** RESULT CODE = %d (%s)\n", statuscode,
+	if(((statuscode < 200) ||
+	            (statuscode >= 300)) &&
+	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
+		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : smcp_code_to_cstr(statuscode));
 	if(content && (statuscode != SMCP_RESULT_CODE_ACK) &&
@@ -79,7 +81,8 @@ post_response_handler(
 		printf("%s\n", contentBuffer);
 	}
 
-	postIsDone = true;
+	if(gRet == ERRORCODE_INPROGRESS)
+		gRet = 0;
 }
 
 
@@ -95,7 +98,7 @@ send_post_request(
 
 	tid = SMCP_FUNC_RANDOM_UINT32();
 
-	postIsDone = false;
+	gRet = ERRORCODE_INPROGRESS;
 
 	require_noerr(smcp_daemon_add_response_handler(
 			smcp,
@@ -126,11 +129,11 @@ int
 tool_cmd_post(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
-	int ret = -1;
-
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
 	char url[1000];
+
+	gRet = ERRORCODE_UNKNOWN;
 
 	if(getenv("SMCP_CURRENT_PATH")) {
 		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
@@ -141,6 +144,7 @@ tool_cmd_post(
 			strncpy(url, argv[1], sizeof(url));
 		} else {
 			fprintf(stderr, "Bad args.\n");
+			gRet = ERRORCODE_BADARG;
 			goto bail;
 		}
 	}
@@ -151,12 +155,13 @@ tool_cmd_post(
 	else
 		require(send_post_request(smcp, url, NULL, 0), bail);
 
-	while(!postIsDone)
+	gRet = ERRORCODE_INPROGRESS;
+
+	while(ERRORCODE_INPROGRESS == gRet)
 		smcp_daemon_process(smcp, -1);
 
-	ret = 0;
 bail:
 	smcp_invalidate_response_handler(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
-	return ret;
+	return gRet;
 }

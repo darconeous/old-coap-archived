@@ -16,16 +16,16 @@
 PROGMEM
 #endif
 const char list_content[] =
-    "<running>,\n"
+    "<running>;ct=205,\n"
     "<running?v=1>;n=\"Start\",\n"
     "<running?v=0>;n=\"Stop\",\n"
     "<running?v=!v>;n=\"Toggle\",\n"
     "<?reset>,\n"
     "<?restart>,\n"
     "<!fire>,\n"
-    "<period>,\n"
-    "<remaining>,\n"
-    "<autorestart>\n"
+    "<period>;ct=205,\n"
+    "<remaining>;ct=205,\n"
+    "<autorestart>;ct=205\n"
 ;
 
 
@@ -164,7 +164,7 @@ smcp_timer_request_handler(
 ) {
 	smcp_status_t ret = 0;
 	coap_header_item_t reply_headers[5] = {};
-	smcp_content_type_t content_type =
+	coap_content_type_t content_type =
 	    SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
 	char tmp_content[10];
 
@@ -186,7 +186,7 @@ smcp_timer_request_handler(
 	// TODO: Clean this up!
 	if(!path || path[0] == 0) {
 		if((method == SMCP_METHOD_GET)) {
-			content_type = SMCP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
+			content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
 			util_add_header(
 				reply_headers,
 				sizeof(reply_headers) / sizeof(*reply_headers) - 1,
@@ -200,6 +200,7 @@ smcp_timer_request_handler(
 #if __AVR__
 			// TODO: Make sure this actually works!
 			reply_content = alloca(sizeof(list_content));
+			assert(reply_content);
 			strcpy_P((char*)reply_content, list_content);
 #else
 			reply_content = list_content;

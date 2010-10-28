@@ -175,7 +175,7 @@ smcp_daemon_trigger_event(
 	const char*			path,
 	const char*			content,
 	size_t				content_length,
-	smcp_content_type_t content_type
+	coap_content_type_t content_type
 ) {
 	smcp_status_t ret = 0;
 	smcp_pairing_t iter;
@@ -247,7 +247,7 @@ smcp_daemon_trigger_event_with_node(
 	const char*			subpath,
 	const char*			content,
 	size_t				content_length,
-	smcp_content_type_t content_type
+	coap_content_type_t content_type
 ) {
 	char path[SMCP_MAX_PATH_LENGTH + 1];
 
@@ -279,7 +279,7 @@ smcp_daemon_refresh_variable(
 	smcp_status_t ret = 0;
 	char *content = NULL;
 	size_t content_length = sizeof(content);
-	smcp_content_type_t content_type = SMCP_CONTENT_TYPE_TEXT_PLAIN;
+	coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 
 	require_action(self != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
