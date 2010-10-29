@@ -20,13 +20,13 @@
 #include <smcp/smcp_node.h>
 #include <smcp/smcp_timer_node.h>
 #include <smcp/smcp_variable_node.h>
+#include <smcp/smcp_pairing.h>
 
 #include "cmd_test.h"
 
 smcp_status_t
 action_func(
 	smcp_variable_node_t	node,
-	coap_header_item_t		headers[],
 	char*					content,
 	size_t					content_length,
 	coap_content_type_t		content_type
@@ -42,7 +42,6 @@ action_func(
 smcp_status_t
 loadavg_get_func(
 	smcp_variable_node_t	node,
-	coap_header_item_t		headers[],
 	char*					content,
 	size_t*					content_length,
 	coap_content_type_t*	content_type
@@ -68,12 +67,11 @@ bail:
 
 static void
 list_response_handler(
-	smcp_daemon_t		self,
-	int					statuscode,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length,
-	void*				context
+	smcp_daemon_t	self,
+	int				statuscode,
+	const char*		content,
+	size_t			content_length,
+	void*			context
 ) {
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
 	printf("*** RESULT CODE = %d (%s)\n", statuscode,
@@ -122,21 +120,29 @@ tool_cmd_test(
 		smcp_daemon_get_root_node(smcp_daemon2), "action");
 	action_node.post_func = action_func;
 
-/*
-    {
-        char url[256];
-        snprintf(url,sizeof(url),"smcp://127.0.0.1:%d/action",smcp_daemon_get_port(smcp_daemon2));
-        smcp_daemon_pair_with_uri(smcp_daemon,"device/loadavg",url,0,NULL);
-        printf("EVENT_NODE PAIRED WITH %s\n",url);
-    }
+	{
+		char url[256];
+		snprintf(url,
+			sizeof(url),
+			"smcp://127.0.0.1:%d/action",
+			smcp_daemon_get_port(smcp_daemon2));
+		smcp_daemon_pair_with_uri(smcp_daemon,
+			"device/loadavg",
+			url,
+			0,
+			NULL);
+		printf("EVENT_NODE PAIRED WITH %s\n", url);
+	}
 
-    {
-        char url[256];
-        snprintf(url,sizeof(url),"smcp://[::1]:%d/device/loadavg",smcp_daemon_get_port(smcp_daemon));
-        smcp_daemon_pair_with_uri(smcp_daemon2,"action",url,0,NULL);
-        printf("ACTION_NODE PAIRED WITH %s\n",url);
-    }
- */
+	{
+		char url[256];
+		snprintf(url,
+			sizeof(url),
+			"smcp://[::1]:%d/device/loadavg",
+			smcp_daemon_get_port(smcp_daemon));
+		smcp_daemon_pair_with_uri(smcp_daemon2, "action", url, 0, NULL);
+		printf("ACTION_NODE PAIRED WITH %s\n", url);
+	}
 
 	// Just adding some random nodes so we can browse thru them with another process...
 	{

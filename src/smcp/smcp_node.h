@@ -33,10 +33,10 @@ struct smcp_node_s {
 
 	void*				context;
 	void				(*finalize)(smcp_node_t node);
-	smcp_status_t		(*unhandled_request)(
+	smcp_status_t		(*request_handler)(
 		smcp_daemon_t self, smcp_node_t node, smcp_method_t method,
-		const char* relative_path, coap_header_item_t headers[],
-		const char* content, size_t content_length);
+		const char* relative_path, const char* content,
+		size_t content_length);
 };
 
 extern bt_compare_result_t smcp_node_compare(

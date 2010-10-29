@@ -69,12 +69,11 @@ bool resend_get_request(smcp_daemon_t smcp);
 
 static void
 get_response_handler(
-	smcp_daemon_t		self,
-	int					statuscode,
-	coap_header_item_t	headers[],
-	char*				content,
-	size_t				content_length,
-	void*				context
+	smcp_daemon_t	self,
+	int				statuscode,
+	char*			content,
+	size_t			content_length,
+	void*			context
 ) {
 	if(statuscode == SMCP_STATUS_TIMEOUT && (retries++ < 8)) {
 		resend_get_request(self);
@@ -90,19 +89,19 @@ get_response_handler(
 				statuscode) : coap_code_to_cstr(statuscode));
 
 	if(content && content_length) {
-		coap_header_item_t *next = NULL;
-		coap_header_item_t *next_header;
 		coap_content_type_t content_type = 0;
-		for(next_header = headers;
-		    smcp_header_item_get_key(next_header);
-		    next_header = smcp_header_item_next(next_header)) {
-			if(smcp_header_item_key_equal(next_header,
-					COAP_HEADER_CONTENT_TYPE))
-				content_type = (unsigned char)next_header->value[0];
-			else if(smcp_header_item_key_equal(next_header,
-					COAP_HEADER_NEXT))
-				next = next_header;
+		const coap_header_item_t *next = NULL;
+		const coap_header_item_t *iter =
+		    smcp_daemon_get_current_request_headers(self);
+		const coap_header_item_t *end = iter +
+		    smcp_daemon_get_current_request_header_count(self);
+		for(; iter != end; ++iter) {
+			if(iter->key == COAP_HEADER_CONTENT_TYPE)
+				content_type = (unsigned char)iter->value[0];
+			else if(iter->key == COAP_HEADER_NEXT)
+				next = iter;
 		}
+
 		fwrite(content, content_length, 1, stdout);
 		if(next) {
 			require(send_get_request(self, (const char*)context,

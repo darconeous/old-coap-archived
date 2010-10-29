@@ -17,16 +17,16 @@
 PROGMEM
 #endif
 const char list_content[] =
-    "<running>;ct=205,\n"
-    "<running?v=1>;n=\"Start\",\n"
-    "<running?v=0>;n=\"Stop\",\n"
-    "<running?v=!v>;n=\"Toggle\",\n"
-    "<?reset>,\n"
-    "<?restart>,\n"
-    "<!fire>,\n"
-    "<period>;ct=205,\n"
-    "<remaining>;ct=205,\n"
-    "<autorestart>;ct=205\n"
+    "<running>;rel=\"var\";ct=205,"
+    "<running?v=1>;rel=\"action\";n=\"Start\","
+    "<running?v=0>;rel=\"action\";n=\"Stop\","
+    "<running?v=!v>;rel=\"action\";n=\"Toggle\","
+    "<?reset>;rel=\"action\","
+    "<?restart>;rel=\"action\","
+    "<!fire>;rel=\"event\","
+    "<period>;rel=\"var\";ct=205,"
+    "<remaining>;rel=\"var\";ct=205,"
+    "<autorestart>;rel=\"var\";ct=205"
 ;
 
 
@@ -155,13 +155,12 @@ void smcp_timer_node_set_autorestart(
 
 static smcp_status_t
 smcp_timer_request_handler(
-	smcp_daemon_t		self,
-	smcp_node_t			node,
-	smcp_method_t		method,
-	const char*			path,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	smcp_method_t	method,
+	const char*		path,
+	const char*		content,
+	size_t			content_length
 ) {
 	smcp_status_t ret = 0;
 	coap_header_item_t reply_headers[5] = {};
@@ -172,21 +171,43 @@ smcp_timer_request_handler(
 	int reply_code = 0;
 	const char* reply_content = NULL;
 	size_t reply_content_len = 0;
+	char* query = NULL;
 
-	coap_header_item_t *next_header;
+	const coap_header_item_t *iter =
+	    smcp_daemon_get_current_request_headers(self);
+	const coap_header_item_t *end = iter +
+	    smcp_daemon_get_current_request_header_count(self);
 
-	for(next_header = headers;
-	    smcp_header_item_get_key(next_header);
-	    next_header = smcp_header_item_next(next_header)) {
-		if(smcp_header_item_key_equal(next_header,
-				COAP_HEADER_CONTENT_TYPE))
-			content_type = *(unsigned char*)smcp_header_item_get_value(
-				next_header);
+	for(; iter != end; ++iter) {
+		if(iter->key == COAP_HEADER_CONTENT_TYPE) {
+			content_type = *(unsigned char*)iter->value;
+		} else if(iter->key == COAP_HEADER_URI_QUERY) {
+			query = alloca(iter->value_len + 1);
+			memcpy(query, iter->value, iter->value_len);
+			query[iter->value_len] = 0;
+		}
 	}
+
+	if(!query &&
+	        (content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED))
+		query = (char*)content;
+
+	if(!query)
+		query = "";
 
 	// TODO: Clean this up!
 	if(!path || path[0] == 0) {
-		if((method == COAP_METHOD_GET)) {
+		if((method == COAP_METHOD_PUT) || (method == COAP_METHOD_POST)) {
+			if(strhasprefix_const(query, "reset")) {
+				smcp_timer_node_reset((smcp_timer_node_t)node);
+				reply_code = COAP_RESULT_CODE_OK;
+			} else if(strequal_const(query, "restart")) {
+				smcp_timer_node_reset((smcp_timer_node_t)node);
+				reply_code = COAP_RESULT_CODE_OK;
+			} else {
+				reply_code = COAP_RESULT_CODE_METHOD_NOT_ALLOWED;
+			}
+		} else if((method == COAP_METHOD_GET)) {
 			content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
 			util_add_header(
 				reply_headers,
@@ -223,49 +244,33 @@ smcp_timer_request_handler(
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			if((path[7] == '?'))
-				content = path + 8;
-			//content_length = strlen(content);
-			while(url_form_next_value((char**)&content, &key,
+			reply_code = COAP_RESULT_CODE_NOT_MODIFIED;
+			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
 					if(isdigit(value[0])) {
-						if(strtol(value, NULL, 10))
+						if(strtol(value, NULL, 0))
 							smcp_timer_node_start((smcp_timer_node_t)node);
 						else
 							smcp_timer_node_stop((smcp_timer_node_t)node);
+						reply_code = COAP_RESULT_CODE_OK;
 					} else if(strequal_const(value, "!v")) {
 						smcp_timer_node_toggle((smcp_timer_node_t)node);
+						reply_code = COAP_RESULT_CODE_OK;
 					}
 					break;
 				}
 			}
-			reply_code = COAP_RESULT_CODE_OK;
 		} else if((method == COAP_METHOD_PAIR)) {
 			ret = smcp_default_request_handler(
 				self,
 				node,
 				method,
 				path,
-				headers,
 				content,
 				content_length
 			    );
 			goto bail;
-		} else {
-			reply_code = COAP_RESULT_CODE_METHOD_NOT_ALLOWED;
-		}
-	} else if(strhasprefix_const(path, "?reset")) {
-		if((method == COAP_METHOD_PUT) || (method == COAP_METHOD_POST)) {
-			smcp_timer_node_reset((smcp_timer_node_t)node);
-			reply_code = COAP_RESULT_CODE_OK;
-		} else {
-			reply_code = COAP_RESULT_CODE_METHOD_NOT_ALLOWED;
-		}
-	} else if(strequal_const(path, "?restart")) {
-		if((method == COAP_METHOD_PUT) || (method == COAP_METHOD_POST)) {
-			smcp_timer_node_reset((smcp_timer_node_t)node);
-			reply_code = COAP_RESULT_CODE_OK;
 		} else {
 			reply_code = COAP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
@@ -276,7 +281,6 @@ smcp_timer_request_handler(
 				node,
 				method,
 				path,
-				headers,
 				content,
 				content_length
 			    );
@@ -293,22 +297,19 @@ smcp_timer_request_handler(
 			reply_content_len = strlen(tmp_content);
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
-			if((path[6] == '?'))
-				content = path + 7;
-			//content_length = strlen(content);
 			char* key = NULL;
 			char* value = NULL;
-			while(url_form_next_value((char**)&content, &key,
+			reply_code = COAP_RESULT_CODE_NOT_MODIFIED;
+			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
 					    ((smcp_timer_node_t)node)->period = strtol(value,
 						NULL,
-						10);
+						0);
+					reply_code = COAP_RESULT_CODE_OK;
 					break;
 				}
 			}
-
-			reply_code = COAP_RESULT_CODE_OK;
 		} else {
 			reply_code = COAP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
@@ -323,18 +324,16 @@ smcp_timer_request_handler(
 			reply_content_len = strlen(tmp_content);
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
-			if((path[9] == '?'))
-				content = path + 10;
-			//content_length = strlen(content);
 			char* key = NULL;
 			char* value = NULL;
-			while(url_form_next_value((char**)&content, &key,
+			reply_code = COAP_RESULT_CODE_NOT_MODIFIED;
+			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
 					    ((smcp_timer_node_t)node)->remaining = strtol(
 						value,
 						NULL,
-						10);
+						0);
 					if(smcp_daemon_timer_is_scheduled(self,
 							&((smcp_timer_node_t)node)->timer)) {
 						smcp_daemon_invalidate_timer(self,
@@ -343,11 +342,11 @@ smcp_timer_request_handler(
 							&((smcp_timer_node_t)node)->timer,
 							    ((smcp_timer_node_t)node)->remaining);
 					}
+					reply_code = COAP_RESULT_CODE_OK;
 
 					break;
 				}
 			}
-			reply_code = COAP_RESULT_CODE_OK;
 		} else {
 			reply_code = COAP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		}
@@ -361,29 +360,26 @@ smcp_timer_request_handler(
 				reply_content = "v=0";
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
-			if((path[11] == '?'))
-				content = path + 12;
-			//content_length = strlen(content);
 			char* key = NULL;
 			char* value = NULL;
-			while(url_form_next_value((char**)&content, &key,
+			reply_code = COAP_RESULT_CODE_NOT_MODIFIED;
+			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
 					    ((smcp_timer_node_t)node)->autorestart = !!strtol(
 						value,
 						NULL,
 						10);
+					reply_code = COAP_RESULT_CODE_OK;
 					break;
 				}
 			}
-			reply_code = COAP_RESULT_CODE_OK;
 		} else if((method == COAP_METHOD_PAIR)) {
 			ret = smcp_default_request_handler(
 				self,
 				node,
 				method,
 				path,
-				headers,
 				content,
 				content_length
 			    );
@@ -397,7 +393,6 @@ smcp_timer_request_handler(
 			node,
 			method,
 			path,
-			headers,
 			content,
 			content_length
 		    );
@@ -432,7 +427,7 @@ smcp_timer_node_init(
 			name
 		), bail);
 
-	    ((smcp_node_t)&self->node)->unhandled_request =
+	    ((smcp_node_t)&self->node)->request_handler =
 	    &smcp_timer_request_handler;
 
 	smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);

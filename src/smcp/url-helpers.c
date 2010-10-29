@@ -274,14 +274,31 @@ url_parse(
 		*path = uri;
 
 	// Move to the end of the path.
-	while((isurlchar(*uri) || (*uri == '/') || (*uri == '?') ||
-	            (*uri == '=') || (*uri == '&') ||
-	            (*uri == '%')) && (*uri != '#')) {
+	while((isurlchar(*uri) || (*uri == '/') || (*uri == '=') ||
+	            (*uri == '&') ||
+	            (*uri == '%')) && (*uri != '#') && (*uri != '?')) {
 		uri++;
 		bytes_parsed++;
 	}
 
-	// Zero terminate the path
+	// Handle query component
+	if(*uri == '?') {
+		*uri++ = 0;
+		bytes_parsed++;
+
+		if(query)
+			*query = uri;
+
+		// Move to the end of the query.
+		while((isurlchar(*uri) || (*uri == '/') || (*uri == '=') ||
+		            (*uri == '&') || (*uri == ';') ||
+		            (*uri == '%')) && (*uri != '#')) {
+			uri++;
+			bytes_parsed++;
+		}
+	}
+
+	// Zero terminate
 	if(*uri) {
 		*uri = 0;
 		bytes_parsed++;
@@ -310,7 +327,9 @@ bail:
 	return ret;
 }
 
-extern bool string_contains_colons(const char* str) {
+//!< Used to identify IPv6 address strings
+bool
+string_contains_colons(const char* str) {
 	if(!str)
 		return false;
 	for(; (*str != ':') && *str; str++) ;

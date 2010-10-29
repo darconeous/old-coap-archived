@@ -22,7 +22,7 @@ coap_encode_header(
 	coap_code_t				code,
 	coap_transaction_id_t	tid,
 	coap_header_item_t		headers[],
-	size_t					header_count
+	uint8_t					header_count
 ) {
 	size_t ret = 0;
 
@@ -101,7 +101,7 @@ coap_decode_header(
 	coap_code_t*				code,
 	coap_transaction_id_t*		tid,
 	coap_header_item_t*			headers,
-	size_t*						header_count
+	uint8_t*					header_count
 ) {
 	size_t ret = 0;
 	unsigned char remaining_headers = 0;

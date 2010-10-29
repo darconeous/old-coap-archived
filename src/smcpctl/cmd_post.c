@@ -52,12 +52,11 @@ bool send_post_request(
 
 static void
 post_response_handler(
-	smcp_daemon_t		self,
-	int					statuscode,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length,
-	void*				context
+	smcp_daemon_t	self,
+	int				statuscode,
+	const char*		content,
+	size_t			content_length,
+	void*			context
 ) {
 	if(((statuscode < 200) ||
 	            (statuscode >= 300)) &&

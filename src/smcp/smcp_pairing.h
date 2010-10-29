@@ -76,6 +76,14 @@ extern smcp_pairing_t smcp_daemon_get_first_pairing_for_path(
 extern smcp_pairing_t smcp_daemon_next_pairing(
 	smcp_daemon_t self, smcp_pairing_t pairing);
 
+extern smcp_status_t smcp_daemon_handle_pair(
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	smcp_method_t	method,
+	const char*		path,
+	const char*		content,
+	size_t			content_length);
+
 static inline int
 smcp_pairing_get_next_seq(smcp_pairing_t pairing) {
 	return ++(pairing->seq);

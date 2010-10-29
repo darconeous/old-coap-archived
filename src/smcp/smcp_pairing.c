@@ -287,7 +287,7 @@ smcp_daemon_refresh_variable(
 	if(node->get_func) {
 		char tmp_content[SMCP_MAX_CONTENT_LENGTH]; // TODO: This is really hard on the stack! Investigate alternatives.
 		ret =
-		    (*node->get_func)(node, NULL, tmp_content, &content_length,
+		    (*node->get_func)(node, tmp_content, &content_length,
 			&content_type);
 		require(ret == 0, bail);
 		if(content_length) {
@@ -315,13 +315,12 @@ bail:
 
 smcp_status_t
 smcp_daemon_handle_pair(
-	smcp_daemon_t		self,
-	smcp_node_t			node,
-	smcp_method_t		method,
-	const char*			path,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	smcp_method_t	method,
+	const char*		path,
+	const char*		content,
+	size_t			content_length
 ) {
 	smcp_status_t ret = 0;
 	uintptr_t idVal;

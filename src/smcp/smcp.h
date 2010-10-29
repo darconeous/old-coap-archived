@@ -114,6 +114,7 @@ enum {
 	SMCP_STATUS_RESPONSE_NOT_ALLOWED = -12,
 	SMCP_STATUS_BAD_HOSTNAME        = -13,
 	SMCP_STATUS_LOOP_DETECTED       = -14,
+	SMCP_STATUS_BAD_ARGUMENT        = -15,
 };
 
 typedef int smcp_status_t;
@@ -193,8 +194,8 @@ enum {
 typedef int32_t cms_t;
 
 typedef void (*smcp_response_handler_func)(smcp_daemon_t self,
-    int statuscode, coap_header_item_t headers[], const char* content,
-    size_t content_length, void* context);
+    int statuscode, const char* content, size_t content_length,
+    void* context);
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 
@@ -227,6 +228,7 @@ extern smcp_status_t smcp_daemon_send_request(
 	coap_transaction_id_t	tid,
 	smcp_method_t			method,
 	const char*				path,
+	const char*				query,
 	coap_header_item_t		headers[],
 	const char*				content,
 	size_t					content_length,
@@ -282,13 +284,12 @@ extern int smcp_node_find_next_with_path(
 	smcp_node_t node, const char* path, smcp_node_t* next);
 
 extern smcp_status_t smcp_default_request_handler(
-	smcp_daemon_t		self,
-	smcp_node_t			node,
-	smcp_method_t		method,
-	const char*			relative_path,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length);
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	smcp_method_t	method,
+	const char*		relative_path,
+	const char*		content,
+	size_t			content_length);
 
 
 coap_transaction_id_t smcp_daemon_get_current_tid(smcp_daemon_t self);
@@ -305,6 +306,10 @@ extern const uint16_t smcp_daemon_get_current_request_ipport(
 	smcp_daemon_t self);
 #endif
 
+extern const coap_header_item_t* smcp_daemon_get_current_request_headers(
+	smcp_daemon_t self);
+extern uint8_t smcp_daemon_get_current_request_header_count(
+	smcp_daemon_t self);
 
 __END_DECLS
 

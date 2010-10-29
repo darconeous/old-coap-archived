@@ -69,12 +69,11 @@ bool resend_list_request(smcp_daemon_t smcp);
 
 static void
 list_response_handler(
-	smcp_daemon_t		self,
-	int					statuscode,
-	coap_header_item_t	headers[],
-	char*				content,
-	size_t				content_length,
-	void*				context
+	smcp_daemon_t	self,
+	int				statuscode,
+	char*			content,
+	size_t			content_length,
+	void*			context
 ) {
 	if(statuscode == SMCP_STATUS_TIMEOUT && (retries++ < 8)) {
 		resend_list_request(self);
@@ -89,16 +88,25 @@ list_response_handler(
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
 
+	// TODO: This implementation currently only works when the content only includes entire records.
+	// Chunked encoding could cause single records to be distributed across multiple transactions.
+	// This case must eventually be handled.
+
 	if(content && content_length) {
-		coap_header_item_t *next_header;
 		char contentBuffer[500];
 		coap_content_type_t content_type = 0;
-		for(next_header = headers;
-		    smcp_header_item_get_key(next_header);
-		    next_header = smcp_header_item_next(next_header)) {
-			if(smcp_header_item_key_equal(next_header,
-					COAP_HEADER_CONTENT_TYPE))
-				content_type = (unsigned char)next_header->value[0];
+		const coap_header_item_t *next = NULL;
+		{
+			const coap_header_item_t *iter =
+			    smcp_daemon_get_current_request_headers(self);
+			const coap_header_item_t *end = iter +
+			    smcp_daemon_get_current_request_header_count(self);
+			for(; iter != end; ++iter) {
+				if(iter->key == COAP_HEADER_CONTENT_TYPE)
+					content_type = (unsigned char)iter->value[0];
+				else if(iter->key == COAP_HEADER_NEXT)
+					next = iter;
+			}
 		}
 
 		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
@@ -185,16 +193,10 @@ list_response_handler(
 			else
 				content[content_length] = 0;
 
-			for(next_header = headers;
-			    smcp_header_item_get_key(next_header);
-			    next_header = smcp_header_item_next(next_header)) {
-				if(smcp_header_item_key_equal(next_header,
-						COAP_HEADER_NEXT)) {
-					if(send_list_request(self, (const char*)context,
-							next_header->value, next_header->value_len))
-						return;
-				}
-			}
+			if(next &&
+			    send_list_request(self, (const char*)context, next->value,
+					next->value_len))
+				return;
 		}
 	}
 

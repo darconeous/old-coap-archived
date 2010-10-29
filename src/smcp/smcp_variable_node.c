@@ -22,13 +22,12 @@ smcp_variable_node_alloc() {
 
 smcp_status_t
 smcp_variable_request_handler(
-	smcp_daemon_t		self,
-	smcp_node_t			node,
-	smcp_method_t		method,
-	const char*			path,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	smcp_method_t	method,
+	const char*		path,
+	const char*		content,
+	size_t			content_length
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
 
@@ -47,8 +46,9 @@ smcp_variable_request_handler(
 	if(method == COAP_METHOD_POST) {
 		coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 
-		coap_header_item_t *next_header;
-		for(next_header = headers;
+		const coap_header_item_t *next_header =
+		    smcp_daemon_get_current_request_headers(self);
+		for(;
 		    smcp_header_item_get_key(next_header);
 		    next_header = smcp_header_item_next(next_header)) {
 			if(smcp_header_item_key_equal(next_header,
@@ -60,7 +60,6 @@ smcp_variable_request_handler(
 		if(((smcp_variable_node_t)node)->post_func) {
 			ret = (*((smcp_variable_node_t)node)->post_func)(
 				    ((smcp_variable_node_t)node),
-				headers,
 				    (char*)content,
 				content_length,
 				content_type
@@ -77,7 +76,6 @@ smcp_variable_request_handler(
 		if(((smcp_variable_node_t)node)->get_func) {
 			ret = (*((smcp_variable_node_t)node)->get_func)(
 				    (smcp_variable_node_t)node,
-				headers,
 				replyContent,
 				&replyContentLength,
 				&replyContentType
@@ -98,7 +96,6 @@ smcp_variable_request_handler(
 			node,
 			method,
 			path,
-			headers,
 			content,
 			content_length);
 		//ret = SMCP_STATUS_NOT_IMPLEMENTED;
@@ -122,7 +119,7 @@ smcp_node_init_variable(
 
 	smcp_node_init(&ret->node, node, name);
 
-	ret->node.unhandled_request = &smcp_variable_request_handler;
+	ret->node.request_handler = &smcp_variable_request_handler;
 
 bail:
 	return ret;
