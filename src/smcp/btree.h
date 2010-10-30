@@ -54,6 +54,8 @@ extern void bt_remove(
 	void*				context);
 extern void* bt_first(void* item);
 extern void* bt_next(void* item);
+extern void* bt_last(void* item);   //!< Experimental
+extern void* bt_prev(void* item);   //!< Experimental
 
 extern int bt_count(void** bt);
 

@@ -45,7 +45,7 @@ bool send_get_request(
 static int retries = 0;
 static char url_data[128];
 static char next_data[128];
-static size_t next_len = HEADER_CSTR_LEN;
+static size_t next_len = ((size_t)(-1));
 static int smcp_rtt = 120;
 
 static int calc_retransmit_timeout(int retries_) {
@@ -126,7 +126,7 @@ resend_get_request(smcp_daemon_t smcp) {
 	smcp_status_t status = 0;
 	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
 
-	if(next_data[0]) {
+	if(next_len != ((size_t)(-1))) {
 		util_add_header(headers,
 			SMCP_MAX_HEADERS,
 			COAP_HEADER_NEXT,
@@ -190,7 +190,7 @@ send_get_request(
 		memcpy(next_data, next, nextlen);
 		next_len = nextlen;
 	} else {
-		next_data[0] = 0;
+		next_len = ((size_t)(-1));
 	}
 
 	ret = resend_get_request(smcp);

@@ -160,7 +160,7 @@ bail:
 	return ret;
 }
 
-
+#if 1
 const char*
 coap_content_type_to_cstr(coap_content_type_t content_type) {
 	const char* content_type_string = NULL;
@@ -228,27 +228,26 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 	if(!content_type_string) {
 		// TODO: Make thread safe!
 		static char ret[40];
-		if(content_type < 20) {
+		if(content_type < 20)
 			snprintf(ret,
 				sizeof(ret),
 				"text/x-coap-%02x",
 				    (unsigned char)content_type);
-		} else if(content_type < 40) {
+		else if(content_type < 40)
 			snprintf(ret,
 				sizeof(ret),
 				"image/x-coap-%02x",
 				    (unsigned char)content_type);
-		} else if(content_type < 60) {
+		else if(content_type < 60)
 			snprintf(ret, sizeof(ret), "application/x-coap-%02x",
 				    (unsigned char)content_type);
-		} else if(content_type < 201) {
+		else if(content_type < 201)
 			snprintf(ret, sizeof(ret), "application/x-coap-%02x",
 				    (unsigned char)content_type);
-		} else {
+		else
 			// Experimental
 			snprintf(ret, sizeof(ret), "application/x-coap-%02x",
 				    (unsigned char)content_type);
-		}
 		content_type_string = ret;
 	}
 	return content_type_string;
@@ -384,3 +383,4 @@ coap_code_to_cstr(int x) {
 	}
 	return "UNKNOWN";
 }
+#endif

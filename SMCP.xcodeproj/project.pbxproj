@@ -26,6 +26,7 @@
 		A63EA7001278B16D00B24867 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F41278B16D00B24867 /* smcp.c */; };
 		A63EA7011278B16D00B24867 /* url-helpers.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F71278B16D00B24867 /* url-helpers.c */; };
 		A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EB2881278CBB100B24867 /* cmd_repeat.c */; };
+		A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A27BA2127B934F003708DF /* cmd_delete.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -83,6 +84,8 @@
 		A63EA6F81278B16D00B24867 /* url-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "url-helpers.h"; path = "src/smcp/url-helpers.h"; sourceTree = "<group>"; };
 		A63EB2871278CBB100B24867 /* cmd_repeat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_repeat.h; path = src/smcpctl/cmd_repeat.h; sourceTree = "<group>"; };
 		A63EB2881278CBB100B24867 /* cmd_repeat.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_repeat.c; path = src/smcpctl/cmd_repeat.c; sourceTree = "<group>"; };
+		A6A27BA1127B934F003708DF /* cmd_delete.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_delete.h; path = src/smcpctl/cmd_delete.h; sourceTree = "<group>"; };
+		A6A27BA2127B934F003708DF /* cmd_delete.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_delete.c; path = src/smcpctl/cmd_delete.c; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = smcpctl.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -175,6 +178,8 @@
 				A63EA6D81278B13800B24867 /* help.h */,
 				A63EA6D91278B13800B24867 /* main.c */,
 				A63EA6F61278B16D00B24867 /* smcpctl.h */,
+				A6A27BA1127B934F003708DF /* cmd_delete.h */,
+				A6A27BA2127B934F003708DF /* cmd_delete.c */,
 			);
 			name = "Tool Source";
 			sourceTree = "<group>";
@@ -257,6 +262,7 @@
 				A63EA7001278B16D00B24867 /* smcp.c in Sources */,
 				A63EA7011278B16D00B24867 /* url-helpers.c in Sources */,
 				A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */,
+				A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

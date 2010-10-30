@@ -125,8 +125,6 @@ typedef enum {
 	COAP_HEADER_ALLOW = COAP_HEADER_FENCEPOST_2 + 8,
 } coap_header_key_t;
 
-extern const char* coap_header_key_to_cstr(coap_header_key_t key);
-extern coap_header_key_t coap_header_key_from_cstr(const char* key);
 
 typedef struct {
 	coap_header_key_t	key;
@@ -168,8 +166,6 @@ typedef enum {
 	COAP_CONTENT_TYPE_UNKNOWN = 255,
 } coap_content_type_t;
 
-extern const char* coap_code_to_cstr(int x);
-
 extern size_t coap_encode_header(
 	unsigned char*			buffer,
 	size_t					buffer_len,
@@ -192,6 +188,8 @@ extern size_t coap_decode_header(
 
 extern const char* coap_content_type_to_cstr(
 	coap_content_type_t content_type);
-
+extern const char* coap_header_key_to_cstr(coap_header_key_t key);
+extern coap_header_key_t coap_header_key_from_cstr(const char* key);
+extern const char* coap_code_to_cstr(int x);
 
 #endif // __SMCP_COAP_H__

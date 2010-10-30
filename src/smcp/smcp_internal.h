@@ -42,23 +42,20 @@ struct smcp_daemon_s {
 #if SMCP_USE_BSD_SOCKETS
 	int						fd;
 	int						mcfd;
-#elif __CONTIKI__
+	struct sockaddr*		current_inbound_saddr;
+	socklen_t				current_inbound_socklen;
+#elif defined(__CONTIKI__)
 	struct uip_udp_conn*	udp_conn;
+	const uip_ipaddr_t *	current_inbound_toaddr;
+	uint16_t				current_inbound_toport;
 #endif
+
+	uint16_t				port;
 
 	struct smcp_node_s		root_node;
 	smcp_timer_t			timers;
 	smcp_response_handler_t handlers;
-	uint16_t				port;
 	PAIRING_STATE;
-
-#if SMCP_USE_BSD_SOCKETS
-	struct sockaddr*		current_inbound_saddr;
-	socklen_t				current_inbound_socklen;
-#elif defined(__CONTIKI__)
-	const uip_ipaddr_t *	current_inbound_toaddr;
-	uint16_t				current_inbound_toport;
-#endif
 
 	coap_transaction_id_t	current_inbound_request_tid;
 	char*					current_inbound_request_token;

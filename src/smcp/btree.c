@@ -167,6 +167,36 @@ bail:
 	return (void*)item_;
 }
 
+void*
+bt_last(void* item) {
+	bt_item_t item_ = item;
+
+	if(item_)
+		while(item_->rhs)
+			item_ = item_->rhs;
+
+	return (void*)item_;
+}
+
+void*
+bt_prev(void* item) {
+	bt_item_t item_ = item;
+
+	if(item) {
+		if(item_->lhs) {
+			item_ = bt_last(item_->lhs);
+		} else {
+			while(item_->parent && (item_->parent->lhs == item_)) {
+				item_ = item_->parent;
+			}
+			item_ = item_->parent;
+		}
+	}
+bail:
+
+	return (void*)item_;
+}
+
 int
 bt_count(void** bt) {
 	int ret = 0;

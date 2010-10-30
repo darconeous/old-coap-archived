@@ -24,6 +24,7 @@
 #include "cmd_post.h"
 #include "cmd_pair.h"
 #include "cmd_repeat.h"
+#include "cmd_delete.h"
 
 #include "smcpctl.h"
 
@@ -96,6 +97,11 @@ struct {
 		"pair",
 		"Pairs an event to an action",
 		&tool_cmd_pair
+	},
+	{
+		"delete",
+		"writeme",
+		&tool_cmd_delete
 	},
 	{
 		"list",

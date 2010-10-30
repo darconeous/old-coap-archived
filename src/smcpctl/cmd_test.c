@@ -103,6 +103,11 @@ tool_cmd_test(
 	else
 		smcp_daemon = smcp_daemon_create(SMCP_DEFAULT_PORT);
 
+	smcp_pairing_node_init(NULL, smcp_daemon_get_root_node(
+			smcp_daemon), ".pairings");
+	smcp_pairing_node_init(NULL, smcp_daemon_get_root_node(
+			smcp_daemon2), ".pairings");
+
 	smcp_node_init((smcp_node_t)&device_node,
 		smcp_daemon_get_root_node(smcp_daemon), "device");
 
@@ -120,6 +125,7 @@ tool_cmd_test(
 		smcp_daemon_get_root_node(smcp_daemon2), "action");
 	action_node.post_func = action_func;
 
+#if 1
 	{
 		char url[256];
 		snprintf(url,
@@ -143,6 +149,7 @@ tool_cmd_test(
 		smcp_daemon_pair_with_uri(smcp_daemon2, "action", url, 0, NULL);
 		printf("ACTION_NODE PAIRED WITH %s\n", url);
 	}
+#endif
 
 	// Just adding some random nodes so we can browse thru them with another process...
 	{
@@ -197,10 +204,12 @@ tool_cmd_test(
 
 	int i;
 	for(i = 0; i < 3000000; i++) {
+#if 1
 		if((i - 1) % 250 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
 			smcp_daemon_refresh_variable(smcp_daemon, &var_node);
 		}
+#endif
 		smcp_daemon_process(smcp_daemon, 10);
 		smcp_daemon_process(smcp_daemon2, 10);
 	}

@@ -8,7 +8,7 @@
  */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 0
+#define VERBOSE_DEBUG 1
 #endif
 
 #include "assert_macros.h"
@@ -140,6 +140,7 @@ smcp_daemon_get_first_pairing_for_path(
 	smcp_daemon_t self, const char* path
 ) {
 	smcp_pairing_t ret = NULL;
+	smcp_pairing_t prev = NULL;
 
 	while(path[0] == '/') path++;
 
@@ -147,6 +148,13 @@ smcp_daemon_get_first_pairing_for_path(
 		path,
 		    (bt_compare_func_t)smcp_pairing_compare_cstr,
 		NULL);
+
+	if(ret) {
+		for(prev = bt_prev(ret);
+		    prev && (0 == strcmp(ret->path, prev->path));
+		    ret = prev, prev = bt_prev(ret)) {
+		}
+	}
 
 bail:
 	return ret;
@@ -355,4 +363,266 @@ smcp_daemon_handle_pair(
 	    );
 bail:
 	return ret;
+}
+
+extern smcp_status_t
+smcp_daemon_delete_pairing(
+	smcp_daemon_t self, smcp_pairing_t pairing
+) {
+	bt_remove(
+		    (void**)&((smcp_daemon_t)self)->pairings,
+		pairing,
+		    (bt_compare_func_t)smcp_pairing_compare_for_insert,
+		    (bt_delete_func_t)smcp_pairing_finalize,
+		NULL
+	);
+	return 0;
+}
+
+
+#pragma mark -
+#pragma mark Pairing Node Interface
+
+static smcp_status_t
+smcp_pairing_node_list(
+	smcp_daemon_t self, smcp_pairing_t first_pairing
+) {
+	smcp_status_t ret = 0;
+	coap_header_item_t replyHeaders[5] = {};
+	char replyContent[128];
+	coap_code_t response_code = COAP_RESULT_CODE_OK;
+
+	memset(replyContent, 0, sizeof(replyContent));
+	size_t content_break_threshold = 60;
+	uint16_t start_index = 0, i = 0;
+
+	smcp_pairing_t
+	    pairing_iter = first_pairing ? first_pairing : bt_first(
+		self->pairings),
+	    pairing_prev = NULL;
+
+	{
+		const coap_header_item_t *iter =
+		    smcp_daemon_get_current_request_headers(self);
+		const coap_header_item_t *end = iter +
+		    smcp_daemon_get_current_request_header_count(self);
+		for(; iter != end; ++iter) {
+			if((iter->key == COAP_HEADER_NEXT) &&
+			        (iter->value_len == sizeof(start_index))) {
+				memcpy(&start_index, iter->value, sizeof(start_index));
+				start_index = ntohs(start_index);
+			}
+		}
+	}
+
+	if(content_break_threshold >= sizeof(replyContent) - 1)
+		// Trim the content break threshold to something we support.
+		content_break_threshold = sizeof(replyContent) - 2;
+
+
+	for(i = 0;
+	    pairing_iter && (i < start_index);
+	    i++, pairing_iter = bt_next(pairing_iter)) {
+	}
+
+	while(pairing_iter) {
+		const char* name;
+
+		if(first_pairing)
+			name = pairing_iter->dest_uri;
+		else
+			name = pairing_iter->path;
+
+		if(!name)
+			break;
+
+		if((strlen(name) + 4) >
+		        (content_break_threshold - strlen(replyContent) - 2))
+			break;
+
+		strlcat(replyContent, "<", sizeof(replyContent));
+
+		{
+			size_t len = strlen(replyContent);
+			url_encode_cstr(replyContent + len,
+				name,
+				sizeof(replyContent) - len - 2);
+		}
+
+		strlcat(replyContent, ">", sizeof(replyContent));
+
+		if(first_pairing) {
+		} else {
+			strlcat(replyContent, ";ct=40", sizeof(replyContent));
+		}
+
+		pairing_prev = pairing_iter;
+		pairing_iter = bt_next(pairing_iter);
+		start_index++;
+		if(first_pairing) {
+			if(pairing_iter &&
+			        (0 != strcmp(first_pairing->path, pairing_iter->path)))
+				pairing_iter = NULL;
+		} else {
+			if(pairing_iter) {
+				while(pairing_iter &&
+				        (0 ==
+				        strcmp(pairing_prev->path, pairing_iter->path))) {
+					pairing_prev = pairing_iter;
+					pairing_iter = bt_next(pairing_iter);
+					start_index++;
+				}
+			}
+		}
+
+		strlcat(replyContent, "," + (!pairing_iter), sizeof(replyContent));
+	}
+
+	// If there are more nodes, indicate as such in the headers.
+	if(pairing_iter) {
+		response_code = COAP_RESULT_CODE_PARTIAL_CONTENT;
+		start_index = htons(start_index);
+		util_add_header(replyHeaders, SMCP_MAX_HEADERS, COAP_HEADER_NEXT,
+			    (void*)&start_index, sizeof(start_index));
+	}
+
+	coap_content_type_t content_type =
+	    COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
+
+	util_add_header(
+		replyHeaders,
+		SMCP_MAX_HEADERS,
+		COAP_HEADER_CONTENT_TYPE,
+		    (const void*)&content_type,
+		1
+	);
+
+	smcp_daemon_send_response(self,
+		response_code,
+		replyHeaders,
+		replyContent,
+		strlen(replyContent));
+bail:
+	return ret;
+}
+
+
+static smcp_status_t
+smcp_pairing_node_request_handler(
+	smcp_daemon_t	self,
+	smcp_node_t		node,
+	smcp_method_t	method,
+	const char*		path,
+	const char*		content,
+	size_t			content_length
+) {
+	smcp_status_t ret = 0;
+
+	if(!path || (path[0] == 0)) {
+		if(method == COAP_METHOD_GET) {
+			ret = smcp_pairing_node_list(self, NULL);
+		} else {
+			smcp_daemon_send_response(self,
+				COAP_RESULT_CODE_METHOD_NOT_ALLOWED,
+				NULL,
+				NULL,
+				0);
+		}
+	} else {
+		char* name = strsep((char**)&path, "/");
+		smcp_pairing_t pairing;
+		url_decode_cstr_inplace(name);
+
+		pairing = smcp_daemon_get_first_pairing_for_path(self, name);
+
+		if(!path || (path[0] == 0)) {
+			require_action(pairing != NULL,
+				bail,
+				ret = SMCP_STATUS_NOT_FOUND);
+			if(method == COAP_METHOD_GET) {
+				ret = smcp_pairing_node_list(self, pairing);
+			}
+/*
+            } else if((method==COAP_METHOD_PUT) || (method==COAP_METHOD_POST)) {
+                require_action(content_length,bail,ret=SMCP_STATUS_UNSUPPORTED_URI);
+                ret = smcp_daemon_pair_with_uri(self,name,content,0,NULL);
+                if((ret==SMCP_STATUS_OK)) {
+                    smcp_daemon_send_response(self, COAP_RESULT_CODE_CREATED, NULL, NULL, 0);
+                }
+ */
+			else {
+				smcp_daemon_send_response(self,
+					COAP_RESULT_CODE_METHOD_NOT_ALLOWED,
+					NULL,
+					NULL,
+					0);
+			}
+		} else {
+			char* uri = strsep((char**)&path, "/");
+			url_decode_cstr_inplace(uri);
+			while(pairing && (0 != strcmp(uri, pairing->dest_uri))) {
+				pairing = smcp_daemon_next_pairing(self, pairing);
+			}
+
+			if(method == COAP_METHOD_GET) {
+				char rcontent[128];
+				size_t rcontent_length;
+
+				require_action(pairing != NULL,
+					bail,
+					ret = SMCP_STATUS_NOT_FOUND);
+
+				rcontent_length = snprintf(
+					rcontent,
+					sizeof(rcontent),
+					"DestURI: %s\n"
+					"Flags: 0x%02X\n"
+					"Seq: 0x%08X\n"
+					"Ack: 0x%08X\n"
+					"",
+					pairing->dest_uri,
+					pairing->flags,
+					pairing->seq,
+					pairing->ack
+				    );
+				smcp_daemon_send_response(self,
+					COAP_RESULT_CODE_OK,
+					NULL,
+					rcontent,
+					rcontent_length);
+			} else if((method == COAP_METHOD_PUT) ||
+			        (method == COAP_METHOD_POST)) {
+				ret = smcp_daemon_pair_with_uri(self, name, uri, 0, NULL);
+				if((ret == SMCP_STATUS_OK) && !pairing) {
+					smcp_daemon_send_response(self,
+						COAP_RESULT_CODE_CREATED,
+						NULL,
+						NULL,
+						0);
+				}
+			} else if(method == COAP_METHOD_DELETE) {
+				ret = smcp_daemon_delete_pairing(self, pairing);
+			} else {
+				smcp_daemon_send_response(self,
+					COAP_RESULT_CODE_METHOD_NOT_ALLOWED,
+					NULL,
+					NULL,
+					0);
+			}
+		}
+	}
+
+bail:
+	return ret;
+}
+
+smcp_node_t smcp_pairing_node_init(
+	smcp_node_t self, smcp_node_t parent, const char* name
+) {
+	require(self = smcp_node_init(self, parent, name), bail);
+
+	self->request_handler = &smcp_pairing_node_request_handler;
+
+bail:
+	return self;
 }

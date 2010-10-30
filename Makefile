@@ -22,7 +22,7 @@ SMCP_OBJECT_FILES=${addprefix $(SMCP_SOURCE_PATH),${subst .c,.o,$(SMCP_SOURCE_FI
 
 
 SMCPCTL_SOURCE_PATH=src/smcpctl/
-SMCPCTL_SOURCE_FILES=main.c cmd_list.c cmd_test.c cmd_get.c cmd_post.c cmd_pair.c help.c cmd_repeat.c
+SMCPCTL_SOURCE_FILES=main.c cmd_list.c cmd_test.c cmd_get.c cmd_post.c cmd_pair.c help.c cmd_repeat.c cmd_delete.c
 SMCPCTL_OBJECT_FILES=${addprefix $(SMCPCTL_SOURCE_PATH),${subst .c,.o,$(SMCPCTL_SOURCE_FILES)}}
 
 

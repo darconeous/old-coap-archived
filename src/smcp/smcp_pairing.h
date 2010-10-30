@@ -23,6 +23,7 @@
 
 #include "smcp.h"
 
+#include "smcp_node.h"
 
 #define PAIRING_STATE   struct smcp_pairing_s* pairings
 
@@ -31,7 +32,8 @@ typedef uint32_t smcp_pairing_seq_t;
 
 struct smcp_pairing_s {
 	struct bt_item_s	bt_item;
-	int					flags;
+	uint8_t				flags;
+	uint32_t			idVal;
 	smcp_pairing_seq_t	seq;
 	smcp_pairing_seq_t	ack;
 
@@ -65,6 +67,9 @@ extern smcp_status_t smcp_daemon_trigger_event_with_node(
 	size_t				content_length,
 	coap_content_type_t content_type);
 
+extern smcp_status_t smcp_daemon_delete_pairing(
+	smcp_daemon_t self, smcp_pairing_t pairing);
+
 extern smcp_status_t smcp_daemon_pair_path_with_sockaddr(
 	smcp_daemon_t	self,
 	const char*		path,
@@ -83,6 +88,9 @@ extern smcp_status_t smcp_daemon_handle_pair(
 	const char*		path,
 	const char*		content,
 	size_t			content_length);
+
+extern smcp_node_t smcp_pairing_node_init(
+	smcp_node_t self, smcp_node_t parent, const char* name);
 
 static inline int
 smcp_pairing_get_next_seq(smcp_pairing_t pairing) {

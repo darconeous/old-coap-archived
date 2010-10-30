@@ -1,5 +1,5 @@
 /*
- *  cmd_post.c
+ *  cmd_delete.c
  *  SMCP
  *
  *  Created by Robert Quattlebaum on 8/17/10.
@@ -15,7 +15,7 @@
 #include <string.h>
 #include <sys/errno.h>
 #include "help.h"
-#include "cmd_post.h"
+#include "cmd_delete.h"
 #include <smcp/url-helpers.h>
 #include <signal.h>
 #include "smcpctl.h"
@@ -44,14 +44,8 @@ signal_interrupt(int sig) {
 	signal(SIGINT, previous_sigint_handler);
 }
 
-bool send_post_request(
-	smcp_daemon_t	smcp,
-	const char*		url,
-	const char*		content,
-	int				content_len);
-
 static void
-post_response_handler(
+delete_response_handler(
 	smcp_daemon_t	self,
 	int				statuscode,
 	const char*		content,
@@ -60,7 +54,7 @@ post_response_handler(
 ) {
 	if((statuscode != COAP_RESULT_CODE_OK) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
-		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
+		fprintf(stderr, "delete: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
 	if(content && (statuscode != COAP_RESULT_CODE_NO_CONTENT) &&
@@ -85,73 +79,62 @@ post_response_handler(
 
 
 bool
-send_post_request(
-	smcp_daemon_t	smcp,
-	const char*		url,
-	const char*		content,
-	int				content_len
+send_delete_request(
+	smcp_daemon_t smcp, const char* url
 ) {
 	bool ret = false;
 	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
 
 	tid = SMCP_FUNC_RANDOM_UINT32();
 
-	gRet = ERRORCODE_INPROGRESS;
-
 	require_noerr(smcp_daemon_add_response_handler(
 			smcp,
 			tid,
 			5000,
 			0, // Flags
-			&post_response_handler,
+			&delete_response_handler,
 			    (void*)url
 		), bail);
 
 	require_noerr(smcp_daemon_send_request_to_url(
 			smcp,
 			tid,
-			COAP_METHOD_POST,
+			COAP_METHOD_DELETE,
 			url,
 			headers,
-			content,
-			content_len
+			NULL,
+			0
 		), bail);
 
 	ret = true;
+	gRet = ERRORCODE_INPROGRESS;
 
 bail:
 	return ret;
 }
 
 int
-tool_cmd_post(
+tool_cmd_delete(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
-	char url[1000];
+	char url[1000] = "";
 
 	gRet = ERRORCODE_UNKNOWN;
 
-	if(getenv("SMCP_CURRENT_PATH")) {
+	if(getenv("SMCP_CURRENT_PATH"))
 		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
-		if(argc >= 2)
-			url_change(url, argv[1]);
+
+	if(argc == 2) {
+		url_change(url, argv[1]);
 	} else {
-		if(argc >= 2) {
-			strncpy(url, argv[1], sizeof(url));
-		} else {
-			fprintf(stderr, "Bad args.\n");
-			gRet = ERRORCODE_BADARG;
-			goto bail;
-		}
+		fprintf(stderr, "Bad args.\n");
+		gRet = ERRORCODE_BADARG;
+		goto bail;
 	}
 
-	if(argc >= 3)
-		require(send_post_request(smcp, url, argv[2], strlen(
-					argv[2])), bail);
-	else
-		require(send_post_request(smcp, url, NULL, 0), bail);
+	require(send_delete_request(smcp, url), bail);
 
 	gRet = ERRORCODE_INPROGRESS;
 
