@@ -32,9 +32,35 @@ action_func(
 	coap_content_type_t		content_type
 ) {
 	fprintf(stdout,
-		" *** Received Action! content_length = %d ",
+		" *** Received Action! content_length=%d",
 		    (int)content_length);
-	fprintf(stdout, "content = \"%s\"\n", content);
+
+	{
+		const coap_header_item_t *iter =
+		    smcp_daemon_get_current_request_headers(node->node.context);
+		const coap_header_item_t *end = iter +
+		    smcp_daemon_get_current_request_header_count(
+			node->node.context);
+		for(; iter != end; ++iter) {
+			if(iter->key == COAP_HEADER_CONTENT_TYPE) {
+				fprintf(stdout,
+					" content_type=\"%s\"",
+					coap_content_type_to_cstr((unsigned char)iter->value[0
+						]));
+			} else if(iter->key == SMCP_HEADER_ORIGIN) {
+				char tmp[iter->value_len + 1];
+				memcpy(tmp, iter->value, iter->value_len);
+				tmp[iter->value_len] = 0;
+				fprintf(stdout, " origin=\"%s\"", tmp);
+			}
+		}
+	}
+
+
+	if(content_length)
+		fprintf(stdout, " content=\"%s\"", content);
+
+	fprintf(stdout, "\n");
 
 	return SMCP_STATUS_OK;
 }
@@ -124,6 +150,7 @@ tool_cmd_test(
 	smcp_node_init_variable(&action_node,
 		smcp_daemon_get_root_node(smcp_daemon2), "action");
 	action_node.post_func = action_func;
+	action_node.node.context = smcp_daemon2;
 
 #if 1
 	{

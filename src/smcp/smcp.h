@@ -37,7 +37,9 @@
 #endif
 
 #ifndef SMCP_FUNC_RANDOM_UINT32
-#define SMCP_FUNC_RANDOM_UINT32()   random()
+#define SMCP_FUNC_RANDOM_UINT32() \
+        ((uint32_t)random() ^ \
+            ((uint32_t)random() << 16))
 #endif
 
 #ifndef SMCP_USE_BSD_SOCKETS
@@ -77,7 +79,7 @@
 #define SMCP_MAX_CONTENT_LENGTH     (512)
 #define SMCP_MAX_HEADERS            (15)
 #define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
-#define SMCP_MAX_PATH_LENGTH        (127)
+#define SMCP_MAX_PATH_LENGTH        (127) // TODO: Should this be 270 instead...?
 #define SMCP_MAX_URI_LENGTH \
         (SMCP_MAX_PATH_LENGTH + 7 + 6 + 8 * \
         4 + 7 + 2)
@@ -115,6 +117,8 @@ enum {
 	SMCP_STATUS_BAD_HOSTNAME        = -13,
 	SMCP_STATUS_LOOP_DETECTED       = -14,
 	SMCP_STATUS_BAD_ARGUMENT        = -15,
+	SMCP_STATUS_HOST_LOOKUP_FAILURE = -16,
+	SMCP_STATUS_MESSAGE_TOO_BIG     = -17,
 };
 
 typedef int smcp_status_t;

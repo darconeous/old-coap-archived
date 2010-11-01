@@ -8,7 +8,7 @@
  */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
 #endif
 
 #include "assert_macros.h"
@@ -111,8 +111,6 @@ smcp_daemon_pair_with_uri(
 
 	require(pairing, bail);
 
-	pairing->seq = pairing->ack = SMCP_FUNC_RANDOM_UINT32();
-
 	while(path[0] == '/') path++;
 
 	pairing->path = strdup(path);       //! TODO: Fix leak
@@ -129,6 +127,15 @@ smcp_daemon_pair_with_uri(
 		    (bt_delete_func_t)smcp_pairing_finalize,
 		NULL
 	);
+
+#if 0
+	pairing->seq = pairing->ack = SMCP_FUNC_RANDOM_UINT32();
+#else
+	pairing->seq = pairing->ack = 0;
+#endif
+
+	if(pairing->seq != pairing->ack)
+		abort();
 
 bail:
 	return ret;
@@ -187,51 +194,52 @@ smcp_daemon_trigger_event(
 ) {
 	smcp_status_t ret = 0;
 	smcp_pairing_t iter;
-	char cseq[24] = "dummy";
+	coap_transaction_id_t tid =
+	    (coap_transaction_id_t)SMCP_FUNC_RANDOM_UINT32();
+	char cseq[24];
 
-	memset(cseq, 0, sizeof(cseq));
-	coap_header_item_t headers[7] = {};
-	coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
-
-	if(!path)
-		path = "/";
-
-	util_add_header(headers,
-		sizeof(headers) / sizeof(*headers),
-		SMCP_HEADER_CSEQ,
-		cseq,
-		COAP_HEADER_CSTR_LEN);
-	headers[0].value_len = COAP_HEADER_CSTR_LEN; // Force recalculation of length when we send.
-
-	util_add_header(headers,
-		sizeof(headers) / sizeof(*headers),
-		COAP_HEADER_CONTENT_TYPE,
-		    (const void*)&content_type,
-		1);
+	if(!path) path = "";
 
 	// Move past any preceding slashes.
 	while(path && *path == '/') path++;
 
-	util_add_header(headers,
-		sizeof(headers) / sizeof(*headers),
-		SMCP_HEADER_ORIGIN,
-		path,
-		HEADER_CSTR_LEN);
+	coap_header_item_t headers[] = {
+		{
+			.key = COAP_HEADER_CONTENT_TYPE,
+			.value = (void*)&content_type,
+			.value_len = 1
+		},
+		{
+			.key = SMCP_HEADER_ORIGIN,
+			.value = (void*)path,
+			.value_len = strlen(path)
+		},
+		{
+			.key = SMCP_HEADER_CSEQ,
+			.value = cseq,
+			.value_len = COAP_HEADER_CSTR_LEN
+		},
+		{ }
+	};
+
+	memset(cseq, 0, sizeof(cseq));
 
 	for(iter = smcp_daemon_get_first_pairing_for_path(self, path);
 	    iter;
 	    iter = smcp_daemon_next_pairing(self, iter)) {
 		smcp_pairing_seq_t seq = smcp_pairing_get_next_seq(iter);
+		smcp_status_t status;
 
 		DEBUG_PRINTF(CSTR(
 				"%p: sending stuff for pairing \"%p\"..."), self, iter);
 
-		snprintf(cseq,
-			sizeof(cseq) - 1,
+		headers[2].value_len =
+		    snprintf(cseq,
+			sizeof(cseq),
 			"%lX POST",
 			    (long unsigned int)seq);
 
-		smcp_daemon_send_request_to_url(
+		status = smcp_daemon_send_request_to_url(
 			self,
 			tid,
 			COAP_METHOD_POST,
@@ -239,7 +247,16 @@ smcp_daemon_trigger_event(
 			headers,
 			content,
 			content_length
-		);
+		    );
+
+		check_string(status == SMCP_STATUS_OK, smcp_status_to_cstr(status));
+#if SMCP_CONF_PAIRING_STATS
+		if(status) {
+			iter->errors++;
+			iter->last_error = status;
+		}
+		iter->fire_count++;
+#endif
 
 		// TODO: Handle retransmits for reliable pairings!
 	}
@@ -263,8 +280,11 @@ smcp_daemon_trigger_event_with_node(
 
 	smcp_node_get_path(node, path, sizeof(path));
 
-	if(subpath)
+	if(subpath) {
+		if(path[0])
+			strncat(path, "/", sizeof(path) - 1);
 		strncat(path, subpath, sizeof(path) - 1);
+	}
 
 	{   // Remove trailing slashes.
 		size_t len = strlen(path);
@@ -340,7 +360,11 @@ smcp_daemon_handle_pair(
 	require_action(node, bail, ret = SMCP_STATUS_FAILURE);
 
 	smcp_node_get_path(node, full_path, sizeof(full_path));
-	strncat(full_path, path, sizeof(full_path) - 1);
+	if(path && path[0]) {
+		if(path[0])
+			strncat(full_path, "/", sizeof(full_path) - 1);
+		strncat(full_path, path, sizeof(full_path) - 1);
+	}
 	ret = smcp_daemon_pair_with_uri(
 		self,
 		full_path,
@@ -389,12 +413,13 @@ smcp_pairing_node_list(
 ) {
 	smcp_status_t ret = 0;
 	coap_header_item_t replyHeaders[5] = {};
-	char replyContent[128];
+	char replyContent[160];
 	coap_code_t response_code = COAP_RESULT_CODE_OK;
 
 	memset(replyContent, 0, sizeof(replyContent));
 	size_t content_break_threshold = 60;
 	uint16_t start_index = 0, i = 0;
+
 
 	smcp_pairing_t
 	    pairing_iter = first_pairing ? first_pairing : bt_first(
@@ -425,6 +450,8 @@ smcp_pairing_node_list(
 	    i++, pairing_iter = bt_next(pairing_iter)) {
 	}
 
+	i = 0;
+
 	while(pairing_iter) {
 		const char* name;
 
@@ -436,24 +463,24 @@ smcp_pairing_node_list(
 		if(!name)
 			break;
 
-		if((strlen(name) + 4) >
-		        (content_break_threshold - strlen(replyContent) - 2))
+		if(pairing_prev &&
+		        ((strlen(name) + 4) >
+		            (content_break_threshold - strlen(replyContent) -
+		            2))) {
+			start_index++;
 			break;
-
-		strlcat(replyContent, "<", sizeof(replyContent));
-
-		{
-			size_t len = strlen(replyContent);
-			url_encode_cstr(replyContent + len,
-				name,
-				sizeof(replyContent) - len - 2);
 		}
 
-		strlcat(replyContent, ">", sizeof(replyContent));
+		replyContent[i++] = '<';
+		i += url_encode_cstr(replyContent + i,
+			name,
+			sizeof(replyContent) - i - 2);
+		replyContent[i++] = '>';
 
 		if(first_pairing) {
 		} else {
-			strlcat(replyContent, ";ct=40", sizeof(replyContent));
+			strncpy(replyContent + i, ";ct=40", sizeof(replyContent) - i);
+			i += 6;
 		}
 
 		pairing_prev = pairing_iter;
@@ -475,7 +502,8 @@ smcp_pairing_node_list(
 			}
 		}
 
-		strlcat(replyContent, "," + (!pairing_iter), sizeof(replyContent));
+		if(pairing_iter)
+			replyContent[i++] = ',';
 	}
 
 	// If there are more nodes, indicate as such in the headers.
@@ -564,8 +592,12 @@ smcp_pairing_node_request_handler(
 				pairing = smcp_daemon_next_pairing(self, pairing);
 			}
 
+			require_action(pairing != NULL,
+				bail,
+				ret = SMCP_STATUS_NOT_FOUND);
+
 			if(method == COAP_METHOD_GET) {
-				char rcontent[128];
+				char rcontent[100 + strlen(pairing->dest_uri)];
 				size_t rcontent_length;
 
 				require_action(pairing != NULL,
@@ -577,11 +609,26 @@ smcp_pairing_node_request_handler(
 					sizeof(rcontent),
 					"DestURI: %s\n"
 					"Flags: 0x%02X\n"
+#if SMCP_CONF_PAIRING_STATS
+					"Fire Count: %u\n"
+					"Error Count: %u\n"
+					"Last Error: %d\n"
+#endif
+#if __AVR__
+					"Seq: 0x%08lX\n"
+					"Ack: 0x%08lX\n"
+#else
 					"Seq: 0x%08X\n"
 					"Ack: 0x%08X\n"
+#endif
 					"",
 					pairing->dest_uri,
 					pairing->flags,
+#if SMCP_CONF_PAIRING_STATS
+					pairing->fire_count,
+					pairing->errors,
+					pairing->last_error,
+#endif
 					pairing->seq,
 					pairing->ack
 				    );

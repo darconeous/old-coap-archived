@@ -21,6 +21,19 @@ isurlchar(int src_char) {
 	       || (src_char == ',');
 }
 
+#if __AVR__
+#include <avr/pgmspace.h>
+static char int_to_hex_digit(uint8_t x) {
+	return pgm_read_byte_near(PSTR(
+			"0123456789ABCDEF") + (x & 0xF));
+}
+#else
+static char int_to_hex_digit(uint8_t x) {
+	return "0123456789ABCDEF"[x &
+	    0xF];
+}
+#endif
+
 size_t
 url_encode_cstr(
 	char *dest, const char*src, size_t max_size
@@ -51,8 +64,8 @@ url_encode_cstr(
 			}
 
 			*dest++ = '%';
-			*dest++ = "0123456789ABCDEF"[src_char >> 4];
-			*dest++ = "0123456789ABCDEF"[src_char & 0xF];
+			*dest++ = int_to_hex_digit(src_char >> 4);
+			*dest++ = int_to_hex_digit(src_char & 0xF);
 			ret += 3;
 			max_size -= 3;
 		}

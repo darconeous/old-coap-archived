@@ -50,12 +50,23 @@ void smcp_timer_node_fired(
 ) {
 	smcp_timer_node_t const self = context;
 
+#if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
+	char content[10];
+	snprintf(content, sizeof(content), "count=%d", ++self->count);
+	smcp_daemon_trigger_event_with_node(smcp,
+		&self->node,
+		"!fire",
+		content,
+		strlen(content),
+		SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+#else
 	smcp_daemon_trigger_event_with_node(smcp,
 		&self->node,
 		"!fire",
 		NULL,
 		0,
 		0);
+#endif
 
 	if(self->autorestart) {
 		smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);
@@ -123,6 +134,9 @@ void smcp_timer_node_restart(smcp_timer_node_t self) {
 	if(previously_running)
 		smcp_timer_node_stop(self);
 	self->remaining = self->period;
+#if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
+	self->count = 0;
+#endif
 	if(!previously_running) {
 		smcp_timer_node_start(self);
 	} else {
@@ -139,6 +153,9 @@ void smcp_timer_node_reset(smcp_timer_node_t self) {
 		smcp_timer_node_restart(self);
 	else
 		self->remaining = self->period;
+#if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
+	self->count = 0;
+#endif
 }
 
 int smcp_timer_node_get_remaining(smcp_timer_node_t self) {
@@ -261,7 +278,7 @@ smcp_timer_request_handler(
 					break;
 				}
 			}
-		} else if((method == COAP_METHOD_PAIR)) {
+		} else if(method == COAP_METHOD_PAIR) {
 			ret = smcp_default_request_handler(
 				self,
 				node,

@@ -31,9 +31,10 @@
 
 #include <string.h>
 
+// DEPRECATED.
 static inline bool
 util_add_header(
-	coap_header_item_t	headerList[],
+	coap_header_item_t* headerList,
 	int					maxHeaders,
 	coap_header_key_t	key,
 	const char*			value,

@@ -27,19 +27,26 @@
 
 #define PAIRING_STATE   struct smcp_pairing_s* pairings
 
+#ifndef SMCP_CONF_PAIRING_STATS
+#define SMCP_CONF_PAIRING_STATS 1
+#endif
+
 __BEGIN_DECLS
 typedef uint32_t smcp_pairing_seq_t;
 
 struct smcp_pairing_s {
 	struct bt_item_s	bt_item;
-	uint8_t				flags;
+	const char*			path; // Local path
 	uint32_t			idVal;
 	smcp_pairing_seq_t	seq;
 	smcp_pairing_seq_t	ack;
-
-	const char*			path; // Local path
-
+#if SMCP_CONF_PAIRING_STATS
+	uint16_t			fire_count;
+	uint16_t			errors;
+	smcp_status_t		last_error;
+#endif
 	const char*			dest_uri;
+	uint8_t				flags;
 };
 
 __END_DECLS

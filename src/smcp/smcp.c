@@ -63,6 +63,7 @@
 #pragma mark -
 #pragma mark Private Functions
 
+#if VERBOSE_DEBUG
 static const char*
 get_method_string(smcp_method_t method) {
 	const char* method_string = NULL;
@@ -77,7 +78,7 @@ get_method_string(smcp_method_t method) {
 	}
 	return method_string;
 }
-
+#endif
 
 /*
    static smcp_method_t
@@ -119,6 +120,8 @@ get_method_string(smcp_method_t method) {
 
 const char* smcp_status_to_cstr(int x) {
 	switch(x) {
+	case SMCP_STATUS_HOST_LOOKUP_FAILURE: return "Hostname Lookup Failure";
+		break;
 	case SMCP_STATUS_OK: return "OK"; break;
 	case SMCP_STATUS_FAILURE: return "Unspecified Failure"; break;
 	case SMCP_STATUS_INVALID_ARGUMENT: return "Invalid Argument"; break;
@@ -416,7 +419,7 @@ smcp_daemon_send_response(
 	smcp_status_t ret = 0;
 
 #if __CONTIKI__
-	char* const packet = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+	char* const packet = (char*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
 	char packet[SMCP_MAX_PACKET_LENGTH + 1] = {};
 #endif
@@ -448,7 +451,7 @@ smcp_daemon_send_response(
 		memset(headers_, 0, sizeof(coap_header_item_t) *
 			    (header_count + extra_headers));
 
-		if(headers_)
+		if(headers)
 			memcpy(headers_,
 				headers,
 				sizeof(coap_header_item_t) * header_count);
@@ -474,12 +477,14 @@ smcp_daemon_send_response(
 		header_count
 	    );
 
-	memcpy(packet + packet_length, content,
-		MIN(SMCP_MAX_PACKET_LENGTH - packet_length, content_length));
+	require_action(content_length <=
+		    (SMCP_MAX_PACKET_LENGTH - packet_length),
+		bail,
+		ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
-	packet_length =
-	    MIN((size_t)SMCP_MAX_PACKET_LENGTH,
-		    (size_t)(packet_length + content_length));
+	memcpy(packet + packet_length, content, content_length);
+
+	packet_length += content_length;
 
 	DEBUG_PRINTF(CSTR(
 			"%p: sending response tid=%d, size=%d, statuscode=%d (coap_code = %d)"),
@@ -534,16 +539,15 @@ smcp_daemon_send_request(
 	int header_count = 0;
 	int extra_headers = 0;
 
-	if(headers) {
-		coap_header_item_t* next_header;
-		for(next_header = headers;
-		    next_header && smcp_header_item_get_key(next_header);
-		    next_header = smcp_header_item_next(next_header))
-			header_count++;
-	}
 
 	// Remove any leading slashes.
 	while(path && path[0] == '/') path++;
+
+	if(headers) {
+		coap_header_item_t* iter;
+		for(iter = headers; iter->key; iter++)
+			header_count++;
+	}
 
 	if(path && (path[0] != 0))
 		extra_headers++;
@@ -552,12 +556,10 @@ smcp_daemon_send_request(
 		extra_headers++;
 
 	if(self->is_processing_message) {
-		if(self->cascade_count != 0xFF) {
-			extra_headers++;
-		} else {
-			ret = SMCP_STATUS_LOOP_DETECTED;
-			goto bail;
-		}
+		require_action(self->cascade_count != 0xFF,
+			bail,
+			ret = SMCP_STATUS_LOOP_DETECTED);
+		extra_headers++;
 	}
 
 	{
@@ -565,6 +567,7 @@ smcp_daemon_send_request(
 		    extra_headers : 0];
 
 		if(extra_headers) {
+			coap_header_item_t *iter;
 			memset(headers_, 0, sizeof(coap_header_item_t) *
 				    (header_count + extra_headers));
 
@@ -572,34 +575,31 @@ smcp_daemon_send_request(
 				memcpy(headers_,
 					headers,
 					sizeof(coap_header_item_t) * header_count);
-			headers = headers_;
+			iter = headers = headers_;
+			iter += header_count;
 			header_count += extra_headers;
 
 			if(path && (path[0] != 0)) {
-				util_add_header(headers,
-					header_count,
-					COAP_HEADER_URI_PATH,
-					path,
-					strlen(path));
+				iter->key = COAP_HEADER_URI_PATH;
+				iter->value = (char*)path;
+				iter->value_len = strlen(path);
+				iter++;
 			}
 
 			if(query && (query[0] != 0)) {
-				util_add_header(headers,
-					header_count,
-					COAP_HEADER_URI_QUERY,
-					query,
-					strlen(query));
+				iter->key = COAP_HEADER_URI_QUERY;
+				iter->value = (char*)query;
+				iter->value_len = strlen(query);
+				iter++;
 			}
 
 			if(self->is_processing_message) {
-				util_add_header(headers,
-					header_count,
-					COAP_HEADER_CASCADE_COUNT,
-					    (char*)&self->cascade_count,
-					1);
+				iter->key = COAP_HEADER_CASCADE_COUNT;
+				iter->value = (char*)&self->cascade_count;
+				iter->value_len = 1;
+				iter++;
 			}
 		}
-
 
 		packet_length = coap_encode_header(
 			    (unsigned char*)packet,
@@ -611,38 +611,41 @@ smcp_daemon_send_request(
 			headers,
 			header_count
 		    );
+	}
 
-		if(content && content_length)
-			memcpy(packet + packet_length, content,
-				MIN(SMCP_MAX_PACKET_LENGTH, packet_length + content_length));
+	require_action(content_length <=
+		    (SMCP_MAX_PACKET_LENGTH - packet_length),
+		bail,
+		ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
-		packet_length = MIN(SMCP_MAX_PACKET_LENGTH,
-			packet_length + content_length);
+	memcpy(packet + packet_length, content, content_length);
 
-		DEBUG_PRINTF(CSTR(
-				"smcp_daemon(%p): sending request tid=%d, size=%d, method=%d"),
-			self, tid, (int)packet_length, method);
+	packet_length += content_length;
+
+	DEBUG_PRINTF(CSTR(
+			"smcp_daemon(%p): sending request tid=%d, size=%d, method=%d"),
+		self,
+		tid, (int)packet_length, method);
 
 #if SMCP_USE_BSD_SOCKETS
-		DEBUG_PRINTF(CSTR("smcp_daemon(%p): port=%d"), self,
-			    (int)ntohs(((struct sockaddr_in6*)saddr)->sin6_port));
-		require_action_string(0 <
-			sendto(self->fd,
-				packet,
-				packet_length,
-				0,
-				saddr,
-				socklen), bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
-#elif __CONTIKI__
-		uip_udp_packet_sendto(
-			self->udp_conn,
+	DEBUG_PRINTF(CSTR("smcp_daemon(%p): port=%d"), self,
+		    (int)ntohs(((struct sockaddr_in6*)saddr)->sin6_port));
+	require_action_string(0 <
+		sendto(self->fd,
 			packet,
 			packet_length,
-			toaddr,
-			toport
-		);
+			0,
+			saddr,
+			socklen), bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
+#elif __CONTIKI__
+	uip_udp_packet_sendto(
+		self->udp_conn,
+		packet,
+		packet_length,
+		toaddr,
+		toport
+	);
 #endif
-	}
 
 bail:
 	return ret;
@@ -659,7 +662,6 @@ smcp_daemon_send_request_to_url(
 	size_t					content_length
 ) {
 	smcp_status_t ret = 0;
-	char uri[uri_ ? strlen(uri_) : 0 + 1];        // Requires compiler support for variable sized arrays
 	char* proto_str = NULL;
 	char* path_str = NULL;
 	char* addr_str = NULL;
@@ -688,11 +690,14 @@ smcp_daemon_send_request_to_url(
 		addr_str = "::1";
 		toport = htons(self->port);
 	} else {
-		strcpy(uri, uri_);
+		char* uri_copy = alloca(strlen(uri_) + 1);
+
+		strcpy(uri_copy, uri_);
+
 		// Parse the URI.
 		require_action_string(
-			url_parse(uri, &proto_str, NULL, NULL, &addr_str, &port_str,
-				&path_str, &query_str),
+			url_parse(uri_copy, &proto_str, NULL, NULL, &addr_str,
+				&port_str, &path_str, &query_str),
 			bail,
 			ret = SMCP_STATUS_UNSUPPORTED_URI,
 			"Unable to parse URL"
@@ -738,16 +743,20 @@ smcp_daemon_send_request_to_url(
 		}
 		require_action_string(!error,
 			bail,
-			ret = SMCP_STATUS_FAILURE,
+			ret = SMCP_STATUS_HOST_LOOKUP_FAILURE,
 			gai_strerror(error));
-		require_action(results, bail, ret = SMCP_STATUS_FAILURE);
+		require_action(results,
+			bail,
+			ret = SMCP_STATUS_HOST_LOOKUP_FAILURE);
 
 		memcpy(&saddr, results->ai_addr, results->ai_addrlen);
 	}
 	saddr.sin6_port = toport;
 #elif __CONTIKI__
 	memset(&toaddr, 0, sizeof(toaddr));
-	ret = uiplib_ipaddrconv(addr_str, &toaddr) ? 0 : SMCP_STATUS_FAILURE;
+	ret =
+	    uiplib_ipaddrconv(addr_str,
+		&toaddr) ? 0 : SMCP_STATUS_HOST_LOOKUP_FAILURE;
 	if(ret) {
 		uip_ipaddr_t *temp = resolv_lookup(addr_str);
 		if(temp) {
@@ -762,12 +771,11 @@ smcp_daemon_send_request_to_url(
 //	PRINT6ADDR(&toaddr);
 	require_action_string(ret == SMCP_STATUS_OK,
 		bail,
-		ret = SMCP_STATUS_BAD_HOSTNAME,
+		ret = SMCP_STATUS_HOST_LOOKUP_FAILURE,
 		"Unable to resolve hostname");
 #else
 #error TODO: Implement me!
 #endif
-
 
 	// Send the request
 	ret = smcp_daemon_send_request(
@@ -886,7 +894,7 @@ smcp_daemon_handle_inbound_packet(
 
 	if(COAP_CODE_IS_REQUEST(code)) {
 		// Need to extract the path.
-		char path[SMCP_MAX_PATH_LENGTH + 1] = "/";
+		char *path = "";
 
 		self->current_inbound_request_token = 0;
 		self->current_inbound_request_token_len = 0;
@@ -897,9 +905,9 @@ smcp_daemon_handle_inbound_packet(
 		    self->current_inbound_header_count;
 		for(; iter != end; ++iter) {
 			if(iter->key == COAP_HEADER_URI_PATH) {
-				// TODO: Check length!
-				memcpy(path, smcp_header_item_get_value(
-						iter), smcp_header_item_get_value_len(iter));
+				path = alloca(iter->value_len + 1);
+				memcpy(path, iter->value, iter->value_len);
+				path[iter->value_len] = 0;
 			} else if(iter->key == COAP_HEADER_TOKEN) {
 				self->current_inbound_request_token = iter->value;
 				self->current_inbound_request_token_len = iter->value_len;
@@ -1299,7 +1307,9 @@ smcp_daemon_handle_request(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		coap_header_item_t *headers =
-		    smcp_daemon_get_current_request_headers(self);
+		    (const coap_header_item_t*)
+		    smcp_daemon_get_current_request_headers(
+			self);
 		bool content_is_text;
 		DEBUG_PRINTF(CSTR(
 				"smcp_daemon(%p): Incoming request! tid=%d"), self,

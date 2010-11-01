@@ -43,7 +43,7 @@ bool send_get_request(
 	smcp_daemon_t smcp, const char* url, const char* next, size_t nextlen);
 
 static int retries = 0;
-static char url_data[128];
+static char *url_data;
 static char next_data[128];
 static size_t next_len = ((size_t)(-1));
 static int smcp_rtt = 120;
@@ -146,8 +146,9 @@ resend_get_request(smcp_daemon_t smcp) {
 	if(status) {
 		check(!status);
 		fprintf(stderr,
-			"smcp_daemon_add_response_handler() returned %d.\n",
-			status);
+			"smcp_daemon_add_response_handler() returned %d(%s).\n",
+			status,
+			smcp_status_to_cstr(status));
 		goto bail;
 	}
 
@@ -164,8 +165,9 @@ resend_get_request(smcp_daemon_t smcp) {
 	if(status) {
 		check(!status);
 		fprintf(stderr,
-			"smcp_daemon_send_request_to_url() returned %d.\n",
-			status);
+			"smcp_daemon_send_request_to_url() returned %d(%s).\n",
+			status,
+			smcp_status_to_cstr(status));
 		goto bail;
 	}
 
@@ -185,7 +187,7 @@ send_get_request(
 
 	retries = 0;
 
-	strcpy(url_data, url);
+	url_data = url;
 	if(next) {
 		memcpy(next_data, next, nextlen);
 		next_len = nextlen;

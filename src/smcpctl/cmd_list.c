@@ -43,8 +43,8 @@ bool send_list_request(
 	smcp_daemon_t smcp, const char* url, const char* next, size_t nextlen);
 
 static int retries = 0;
-static char url_data[128];
-static char next_data[128];
+static const char* url_data;
+static char next_data[256];
 static size_t next_len = ((size_t)(-1));
 static int smcp_rtt = 120;
 
@@ -230,8 +230,9 @@ resend_list_request(smcp_daemon_t smcp) {
 	if(status) {
 		check(!status);
 		fprintf(stderr,
-			"smcp_daemon_add_response_handler() returned %d.\n",
-			status);
+			"smcp_daemon_add_response_handler() returned %d(%s).\n",
+			status,
+			smcp_status_to_cstr(status));
 		goto bail;
 	}
 
@@ -248,8 +249,9 @@ resend_list_request(smcp_daemon_t smcp) {
 	if(status) {
 		check(!status);
 		fprintf(stderr,
-			"smcp_daemon_send_request_to_url() returned %d.\n",
-			status);
+			"smcp_daemon_send_request_to_url() returned error %d(%s).\n",
+			status,
+			smcp_status_to_cstr(status));
 		goto bail;
 	}
 
@@ -268,8 +270,7 @@ send_list_request(
 	gRet = ERRORCODE_INPROGRESS;
 
 	retries = 0;
-
-	strcpy(url_data, url);
+	url_data = url;
 	if(next) {
 		memcpy(next_data, next, nextlen);
 		next_len = nextlen;
