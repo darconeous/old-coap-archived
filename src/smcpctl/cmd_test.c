@@ -79,13 +79,23 @@ loadavg_get_func(
 	require_action(content, bail, ret = -1);
 	require_action(content_length, bail, ret = -1);
 
-	getloadavg(loadavg, sizeof(loadavg) / sizeof(*loadavg));
+	require_action(0 <
+		getloadavg(loadavg,
+			sizeof(loadavg) / sizeof(*loadavg)), bail, ret = -1);
 
-	snprintf(content, *content_length, "v=%0.2f", loadavg[0]);
+	require_action(snprintf(content, *content_length, "v=%0.2f",
+			loadavg[0]) <= content_length, bail, ret = -1);
+
+	fprintf(
+		stderr,
+		" *** Queried for load average (max_content_length=%d, content=\"%s\", loadavg=%0.2f) \n",
+		*content_length,
+		content,
+		loadavg[0]);
+
 	*content_length = strlen(content);
 	*content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
 
-	fprintf(stderr, " *** Queried for load average (%s)\n", content);
 
 bail:
 	return ret;

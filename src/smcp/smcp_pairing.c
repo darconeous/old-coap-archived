@@ -306,7 +306,7 @@ smcp_daemon_refresh_variable(
 ) {
 	smcp_status_t ret = 0;
 	char *content = NULL;
-	size_t content_length = sizeof(content);
+	size_t content_length = 0;
 	coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 
 	require_action(self != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
@@ -314,6 +314,7 @@ smcp_daemon_refresh_variable(
 
 	if(node->get_func) {
 		char tmp_content[SMCP_MAX_CONTENT_LENGTH]; // TODO: This is really hard on the stack! Investigate alternatives.
+		content_length = sizeof(tmp_content);
 		ret =
 		    (*node->get_func)(node, tmp_content, &content_length,
 			&content_type);
