@@ -28,11 +28,6 @@ static arg_list_item_t option_list[] = {
 	{ 0 }
 };
 
-static void
-show_help() {
-	print_arg_list_help(option_list, "repeat [args] command [...]");
-}
-
 static int ret = 0;
 static sig_t previous_sigint_handler;
 
@@ -53,57 +48,33 @@ tool_cmd_repeat(
 
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
-	for(i = 1; i < argc; i++) {
-		if(argv[i][0] == '-' && argv[i][1] == '-') {
-			if(strcmp(argv[i] + 2, "help") == 0) {
-				show_help();
-				ret = ERRORCODE_HELP;
-				goto bail;
-			} else if(strcmp(argv[i] + 2, "interval") == 0) {
-				interval = atoi(argv[++i]);
-			} else if(strcmp(argv[i] + 2, "count") == 0) {
-				count = atoi(argv[++i]);
-			} else {
-				fprintf(stderr,
-					"%s: error: Unknown command line argument \"%s\".\n",
-					argv[0],
-					argv[i]);
-				ret = ERRORCODE_BADARG;
-				goto bail;
-			}
-		} else if(argv[i][0] == '-') {
-			int j;
-			int ii = i;
-			for(j = 1; j && argv[ii][j]; j++) {
-				switch(argv[ii][j]) {
-				case 'i':
-					interval = atoi(argv[++i]);
-					break;
-				case 'c':
-					count = atoi(argv[++i]);
-					break;
-				case '?':
-				case 'h':
-					show_help();
-					ret = ERRORCODE_HELP;
-					goto bail;
-					break;
-				default:
-					fprintf(
-						stderr,
-						"%s: error: Unknown command line argument \"-%c\".\n",
-						argv[0],
-						argv[ii][j]);
-					ret = ERRORCODE_BADARG;
-					goto bail;
-				}
-			}
-		} else {
-			break;
-		}
-	}
+	BEGIN_LONG_ARGUMENTS(ret)
+	HANDLE_LONG_ARGUMENT("interval") interval = strtol(argv[++i], NULL, 0);
+	HANDLE_LONG_ARGUMENT("count") count = strtol(argv[++i], NULL, 0);
 
-	require_action(i < argc, bail, show_help());
+	HANDLE_LONG_ARGUMENT("help") {
+		print_arg_list_help(option_list, argv[0], "[args] command [...]");
+		ret = ERRORCODE_HELP;
+		goto bail;
+	}
+	BEGIN_SHORT_ARGUMENTS(ret)
+	HANDLE_SHORT_ARGUMENT('i') interval = strtol(argv[++i], NULL, 0);
+	HANDLE_SHORT_ARGUMENT('c') count = strtol(argv[++i], NULL, 0);
+
+	HANDLE_SHORT_ARGUMENT2('h', '?') {
+		print_arg_list_help(option_list, argv[0], "[args] command [...]");
+		ret = ERRORCODE_HELP;
+		goto bail;
+	}
+	HANDLE_OTHER_ARGUMENT() {
+		break;
+	}
+	END_ARGUMENTS
+
+	require_action(
+		i < argc, bail, { print_arg_list_help(option_list,
+				argv[0],
+				"[args] command [...]"); ret = ERRORCODE_HELP; });
 
 	if((0 == strcmp(argv[i], "repeat"))
 	    || (0 == strcmp(argv[i], "cd"))

@@ -166,6 +166,8 @@
 				A63EA6CE1278B13800B24867 /* cmd_get.h */,
 				A63EA6CF1278B13800B24867 /* cmd_list.c */,
 				A63EA6D01278B13800B24867 /* cmd_list.h */,
+				A6A27BA1127B934F003708DF /* cmd_delete.h */,
+				A6A27BA2127B934F003708DF /* cmd_delete.c */,
 				A63EA6D11278B13800B24867 /* cmd_pair.c */,
 				A63EA6D21278B13800B24867 /* cmd_pair.h */,
 				A63EA6D31278B13800B24867 /* cmd_post.c */,
@@ -178,8 +180,6 @@
 				A63EA6D81278B13800B24867 /* help.h */,
 				A63EA6D91278B13800B24867 /* main.c */,
 				A63EA6F61278B16D00B24867 /* smcpctl.h */,
-				A6A27BA1127B934F003708DF /* cmd_delete.h */,
-				A6A27BA2127B934F003708DF /* cmd_delete.c */,
 			);
 			name = "Tool Source";
 			sourceTree = "<group>";

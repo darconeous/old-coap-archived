@@ -30,6 +30,7 @@
 
 #include <smcp/url-helpers.h>
 
+bool show_headers = 0;
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",	NULL, "Print Help"				},
@@ -45,8 +46,20 @@ static int
 tool_cmd_help(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
-	print_arg_list_help(option_list, "smcp [options] <sub-command> [args]");
-	print_commands();
+	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
+		printf("Help not yet implemented for this command.\n");
+		return ERRORCODE_HELP;
+	}
+
+	if((argc == 2) && argv[1][0] != '-') {
+		const char *argv2[2] = {
+			argv[1],
+			"--help"
+		};
+		return exec_command(smcp, 2, (char**)argv2);
+	} else {
+		print_commands();
+	}
 	return ERRORCODE_HELP;
 }
 
@@ -55,6 +68,11 @@ static int
 tool_cmd_cd(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
+	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
+		printf("Help not yet implemented for this command.\n");
+		return ERRORCODE_HELP;
+	}
+
 	if(argc == 1) {
 		printf("%s\n", getenv("SMCP_CURRENT_PATH"));
 		return 0;
@@ -194,7 +212,7 @@ bail:
 	return ret;
 }
 
-static int ret = 0;
+static int gRet = 0;
 static smcp_daemon_t smcp_daemon;
 static bool istty = true;
 
@@ -211,7 +229,7 @@ void process_input_line(char *l) {
 
 	inputstring = l;
 
-	while((*ap = strsep(&inputstring, " \t\n\r"))) {
+	while((*ap = strsep(&inputstring," \t\n\r"))) {
 		if(**ap == '#')    // Ignore everything after a comment symbol.
 			break;
 		if(**ap != '\0') {
@@ -220,11 +238,11 @@ void process_input_line(char *l) {
 		}
 	}
 	if(argc2 > 0) {
-		ret = exec_command(smcp_daemon, argc2, argv2);
-		if(ret == ERRORCODE_QUIT)
+		gRet = exec_command(smcp_daemon, argc2, argv2);
+		if(gRet == ERRORCODE_QUIT)
 			return;
-		else if(ret && (ret != ERRORCODE_HELP))
-			printf("Error %d\n", ret);
+		else if(gRet && (gRet != ERRORCODE_HELP))
+			printf("Error %d\n", gRet);
 
 		write_history(getenv("SMCP_HISTORY_FILE"));
 	}
@@ -251,83 +269,65 @@ main(
 	int i, debug_mode = 0;
 	int port = SMCP_DEFAULT_PORT + 1;
 
-	for(i = 1; i < argc; i++) {
-		if(argv[i][0] == '-' && argv[i][1] == '-') {
-			if(strcmp(argv[i] + 2, "help") == 0) {
-				print_arg_list_help(option_list,
-					"smcp [options] <sub-command> [args]");
-				print_commands();
-				return ERRORCODE_HELP;
-			} else if(strcmp(argv[i] + 2, "port") == 0) {
-				port = atoi(argv[++i]);
-			} else if(strcmp(argv[i] + 2, "debug") == 0) {
-				debug_mode++;
-			} else {
-				fprintf(stderr,
-					"%s: error: Unknown command line argument \"%s\".\n",
-					argv[0],
-					argv[i]);
-				return ERRORCODE_BADARG;
-				break;
-			}
-		} else if(argv[i][0] == '-') {
-			int j;
-			int ii = i;
-			for(j = 1; j && argv[ii][j]; j++) {
-				switch(argv[ii][j]) {
-				case 'p':
-					port = atoi(argv[++i]);
-					break;
-				case '?':
-				case 'h':
-					print_arg_list_help(option_list,
-						"smcp [options] <sub-command> [args]");
-					print_commands();
-					return ERRORCODE_HELP;
-					break;
+	BEGIN_LONG_ARGUMENTS(gRet)
+	HANDLE_LONG_ARGUMENT("port") port = strtol(argv[++i], NULL, 0);
+	HANDLE_LONG_ARGUMENT("debug") debug_mode++;
+
+	HANDLE_LONG_ARGUMENT("help") {
+		print_arg_list_help(option_list,
+			argv[0],
+			"[options] <sub-command> [args]");
+		print_commands();
+		gRet = ERRORCODE_HELP;
+		goto bail;
+	}
+	BEGIN_SHORT_ARGUMENTS(gRet)
+	HANDLE_SHORT_ARGUMENT('p') port = strtol(argv[++i], NULL, 0);
+	HANDLE_SHORT_ARGUMENT('d') debug_mode++;
 #if HAS_LIBREADLINE
-				case 'f':
-					stdin = fopen(argv[++i], "r");
-					if(!stdin) {
-						fprintf(stderr,
-							"%s: error: Unable to open file \"%s\".\n",
-							argv[0],
-							argv[i - 1]);
-						return ERRORCODE_BADARG;
-					}
-					break;
-#endif
-				case 'd':
-					debug_mode++;
-					break;
-				default:
-					fprintf(
-						stderr,
-						"%s: error: Unknown command line argument \"-%c\".\n",
-						argv[0],
-						argv[ii][j]);
-					return ERRORCODE_BADARG;
-					break;
-				}
-			}
-		} else {
-			break;
+	HANDLE_SHORT_ARGUMENT('f') {
+		stdin = fopen(argv[++i], "r");
+		if(!stdin) {
+			fprintf(stderr,
+				"%s: error: Unable to open file \"%s\".\n",
+				argv[0],
+				argv[i - 1]);
+			return ERRORCODE_BADARG;
 		}
 	}
+#endif
+	HANDLE_SHORT_ARGUMENT2('h', '?') {
+		print_arg_list_help(option_list,
+			argv[0],
+			"[options] <sub-command> [args]");
+		print_commands();
+		gRet = ERRORCODE_HELP;
+		goto bail;
+	}
+	HANDLE_OTHER_ARGUMENT() {
+		break;
+	}
+	END_ARGUMENTS
 
-	istty = isatty(fileno(stdin));
+
+	    istty = isatty(fileno(stdin));
 
 
 	smcp_daemon = smcp_daemon_create(port);
 	setenv("SMCP_CURRENT_PATH", "coap://localhost/", 0);
 
 	if(i < argc) {
+		if(((i + 1) == argc) && (0 == strcmp(argv[i], "help")))
+			print_arg_list_help(option_list,
+				argv[0],
+				"[options] <sub-command> [args]");
+
 		if((0 !=
 		        strncmp(argv[i], "smcp:",
 					5)) && (0 != strncmp(argv[i], "coap:", 5))) {
-			ret = exec_command(smcp_daemon, argc - i, argv + i);
+			gRet = exec_command(smcp_daemon, argc - i, argv + i);
 #if HAS_LIBREADLINE
-			if(ret || (0 != strcmp(argv[i], "cd")))
+			if(gRet || (0 != strcmp(argv[i], "cd")))
 #endif
 			goto bail;
 		} else {
@@ -338,9 +338,10 @@ main(
 	if(istty) {
 #if !HAS_LIBREADLINE
 		print_arg_list_help(option_list,
-			"smcp [options] <sub-command> [args]");
+			argv[0],
+			"[options] <sub-command> [args]");
 		print_commands();
-		ret = ERRORCODE_NOCOMMAND;
+		gRet = ERRORCODE_NOCOMMAND;
 		goto bail;
 #else   // HAS_LIBREADLINE
 		char prompt[128] = {};
@@ -350,7 +351,7 @@ main(
 			"%s> ",
 			current_smcp_path ? current_smcp_path : "");
 
-		require_action(NULL != readline, bail, ret = ERRORCODE_NOREADLINE);
+		require_action(NULL != readline, bail, gRet = ERRORCODE_NOREADLINE);
 
 		setenv("SMCP_HISTORY_FILE", tilde_expand("~/.smcp_history"), 0);
 		rl_initialize();
@@ -363,7 +364,7 @@ main(
 	}
 
 	// Command mode.
-	while((ret != ERRORCODE_QUIT) && !feof(stdin)) {
+	while((gRet != ERRORCODE_QUIT) && !feof(stdin)) {
 #if HAS_LIBREADLINE
 		if(istty) {
 			struct pollfd polltable[2] = {
@@ -391,9 +392,10 @@ main(
 	}
 
 bail:
-	if(ret == ERRORCODE_QUIT)
-		ret = 0;
+	if(gRet == ERRORCODE_QUIT)
+		gRet = 0;
 
-	smcp_daemon_release(smcp_daemon);
-	return ret;
+	if(smcp_daemon)
+		smcp_daemon_release(smcp_daemon);
+	return gRet;
 }

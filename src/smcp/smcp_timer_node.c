@@ -261,7 +261,7 @@ smcp_timer_request_handler(
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			reply_code = COAP_RESULT_CODE_NOT_MODIFIED;
+			reply_code = COAP_RESULT_CODE_OK;
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
@@ -316,7 +316,7 @@ smcp_timer_request_handler(
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			reply_code = COAP_RESULT_CODE_NOT_MODIFIED;
+			reply_code = COAP_RESULT_CODE_OK;
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
@@ -343,7 +343,7 @@ smcp_timer_request_handler(
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			reply_code = COAP_RESULT_CODE_NOT_MODIFIED;
+			reply_code = COAP_RESULT_CODE_OK;
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
@@ -379,7 +379,7 @@ smcp_timer_request_handler(
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			reply_code = COAP_RESULT_CODE_NOT_MODIFIED;
+			reply_code = COAP_RESULT_CODE_OK;
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {

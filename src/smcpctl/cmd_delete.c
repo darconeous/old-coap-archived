@@ -121,6 +121,11 @@ tool_cmd_delete(
 
 	char url[1000] = "";
 
+	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
+		printf("Help not yet implemented for this command.\n");
+		return ERRORCODE_HELP;
+	}
+
 	gRet = ERRORCODE_UNKNOWN;
 
 	if(getenv("SMCP_CURRENT_PATH"))

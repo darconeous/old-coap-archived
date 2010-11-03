@@ -20,18 +20,19 @@
 #include <signal.h>
 #include "smcpctl.h"
 #include <sys/sysctl.h>
-/*
-   static arg_list_item_t option_list[] = {
-    { 'h', "help",NULL,"Print Help" },
-    { 0 }
-   };
- */
+
+static arg_list_item_t option_list[] = {
+	{ 'h', "help",			  NULL, "Print Help"				},
+	{ 'i', "include-headers", NULL, "include headers in output" },
+	{ 0 }
+};
 
 typedef void (*sig_t)(int);
 
 static int gRet;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
+static bool get_show_headers;
 
 static void
 signal_interrupt(int sig) {
@@ -46,7 +47,7 @@ static int retries = 0;
 static char *url_data;
 static char next_data[128];
 static size_t next_len = ((size_t)(-1));
-static int smcp_rtt = 120;
+static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
 
 static int calc_retransmit_timeout(int retries_) {
 	int ret = smcp_rtt;
@@ -67,6 +68,7 @@ static int calc_retransmit_timeout(int retries_) {
 
 bool resend_get_request(smcp_daemon_t smcp);
 
+
 static void
 get_response_handler(
 	smcp_daemon_t	self,
@@ -75,37 +77,63 @@ get_response_handler(
 	size_t			content_length,
 	void*			context
 ) {
-	if(statuscode == SMCP_STATUS_TIMEOUT && (retries++ < 8)) {
+	if(statuscode == SMCP_STATUS_TIMEOUT &&
+	        (++retries < COAP_MAX_RETRANSMIT)) {
 		resend_get_request(self);
 		return;
 	}
 
-	if(((statuscode < 200) ||
+	if((statuscode >= 100) && get_show_headers) {
+		if(next_len != ((size_t)(-1)))
+			fprintf(stdout, "\n\n");
+		coap_dump_headers(stdout,
+			NULL,
+			statuscode,
+			smcp_daemon_get_current_request_headers(self),
+			smcp_daemon_get_current_request_header_count(self));
+	} else if(((statuscode < 200) ||
 	            (statuscode >= 300)) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
-	        (statuscode != COAP_RESULT_CODE_PARTIAL_CONTENT))
+	        (statuscode != COAP_RESULT_CODE_PARTIAL_CONTENT)) {
 		fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
+	}
 
 	if(content && content_length) {
 		coap_content_type_t content_type = 0;
+		char location[256] = "";
 		const coap_header_item_t *next = NULL;
 		const coap_header_item_t *iter =
 		    smcp_daemon_get_current_request_headers(self);
 		const coap_header_item_t *end = iter +
 		    smcp_daemon_get_current_request_header_count(self);
 		for(; iter != end; ++iter) {
-			if(iter->key == COAP_HEADER_CONTENT_TYPE)
+			if(iter->key == COAP_HEADER_CONTENT_TYPE) {
 				content_type = (unsigned char)iter->value[0];
-			else if(iter->key == COAP_HEADER_NEXT)
+			} else if(iter->key == COAP_HEADER_NEXT) {
 				next = iter;
+			} else if(iter->key == COAP_HEADER_LOCATION) {
+				memcpy(location, iter->value, iter->value_len);
+				location[iter->value_len] = 0;
+			}
 		}
 
 		fwrite(content, content_length, 1, stdout);
 		if(next) {
 			require(send_get_request(self, (const char*)context,
 					next->value, next->value_len), bail);
+			fflush(stdout);
+			return;
+		}
+		if(location[0] &&
+		        (0 !=
+		        strcmp(location,
+					    (const char*)context)) && (statuscode >= 300) &&
+		        (statuscode < 400)) {
+			// Redirect.
+			retries = 0;
+			require(send_get_request(self, location, 0, 0), bail);
 			fflush(stdout);
 			return;
 		} else {
@@ -187,7 +215,7 @@ send_get_request(
 
 	retries = 0;
 
-	url_data = url;
+	url_data = (char*)url;
 	if(next) {
 		memcpy(next_data, next, nextlen);
 		next_len = nextlen;
@@ -206,22 +234,52 @@ tool_cmd_get(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
 	gRet = ERRORCODE_INPROGRESS;
+	int i;
+	char url[1000] = "";
 
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
+	get_show_headers = false;
+	next_len = ((size_t)(-1));
 
-	char url[1000];
+	BEGIN_LONG_ARGUMENTS(gRet)
+	HANDLE_LONG_ARGUMENT("include-headers") get_show_headers = true;
 
-	if(getenv("SMCP_CURRENT_PATH")) {
-		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
-		if(argc >= 2)
-			url_change(url, argv[1]);
-	} else {
-		if(argc >= 2) {
-			strncpy(url, argv[1], sizeof(url));
+	HANDLE_LONG_ARGUMENT("help") {
+		print_arg_list_help(option_list, argv[0], "[args] <uri>");
+		gRet = ERRORCODE_HELP;
+		goto bail;
+	}
+	BEGIN_SHORT_ARGUMENTS(gRet)
+	HANDLE_SHORT_ARGUMENT('i') get_show_headers = true;
+
+	HANDLE_SHORT_ARGUMENT2('h', '?') {
+		print_arg_list_help(option_list, argv[0], "[args] <uri>");
+		gRet = ERRORCODE_HELP;
+		goto bail;
+	}
+	HANDLE_OTHER_ARGUMENT() {
+		if(url[0] == 0) {
+			if(getenv("SMCP_CURRENT_PATH")) {
+				strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+				url_change(url, argv[i]);
+			} else {
+				strncpy(url, argv[i], sizeof(url));
+			}
 		} else {
-			fprintf(stderr, "Bad args.\n");
+			fprintf(stderr, "Unexpected extra argument: \"%s\"\n", argv[i]);
+			gRet = ERRORCODE_BADARG;
 			goto bail;
 		}
+	}
+	END_ARGUMENTS
+
+	if((url[0] == 0) && getenv("SMCP_CURRENT_PATH"))
+		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+
+	if(url[0] == 0) {
+		fprintf(stderr, "Missing path argument.\n");
+		gRet = ERRORCODE_BADARG;
+		goto bail;
 	}
 
 	require(send_get_request(smcp, url, NULL, 0), bail);

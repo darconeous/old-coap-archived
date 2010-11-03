@@ -49,8 +49,6 @@ struct smcp_pairing_s {
 	uint8_t				flags;
 };
 
-__END_DECLS
-
 #pragma mark -
 #pragma mark Pairing Functions
 
@@ -96,12 +94,16 @@ extern smcp_status_t smcp_daemon_handle_pair(
 	const char*		content,
 	size_t			content_length);
 
-extern smcp_node_t smcp_pairing_node_init(
-	smcp_node_t self, smcp_node_t parent, const char* name);
+typedef smcp_node_t smcp_pairing_node_t;
+
+extern smcp_pairing_node_t smcp_pairing_node_init(
+	smcp_pairing_node_t self, smcp_node_t parent, const char* name);
 
 static inline int
 smcp_pairing_get_next_seq(smcp_pairing_t pairing) {
 	return ++(pairing->seq);
 }
+
+__END_DECLS
 
 #endif

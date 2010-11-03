@@ -165,8 +165,8 @@ const char*
 coap_content_type_to_cstr(coap_content_type_t content_type) {
 	const char* content_type_string = NULL;
 
-	if((content_type > 255) || (content_type < 0))
-		content_type = COAP_CONTENT_TYPE_UNKNOWN;
+//	if((content_type>255) || (content_type<0))
+//		content_type = COAP_CONTENT_TYPE_UNKNOWN;
 
 	switch(content_type) {
 	case COAP_CONTENT_TYPE_UNKNOWN: content_type_string = "unknown"; break;
@@ -352,6 +352,10 @@ coap_code_to_cstr(int x) {
 	case COAP_RESULT_CODE_PARTIAL_CONTENT: return "PARTIAL_CONTENT"; break;
 
 	case COAP_RESULT_CODE_NOT_MODIFIED: return "NOT_MODIFIED"; break;
+	case COAP_RESULT_CODE_SEE_OTHER: return "SEE_OTHER"; break;
+	case COAP_RESULT_CODE_TEMPORARY_REDIRECT: return "TEMPORARY_REDIRECT";
+		break;
+
 
 	case COAP_RESULT_CODE_BAD_REQUEST: return "BAD_REQUEST"; break;
 	case COAP_RESULT_CODE_UNAUTHORIZED: return "UNAUTHORIZED"; break;
@@ -384,3 +388,88 @@ coap_code_to_cstr(int x) {
 	return "UNKNOWN";
 }
 #endif
+
+
+void
+coap_dump_headers(
+	FILE*						outstream,
+	const char*					prefix,
+	int							statuscode,
+	const coap_header_item_t*	headers,
+	size_t						header_count
+) {
+	const coap_header_item_t *end = headers + header_count;
+	const coap_header_item_t *iter;
+
+	if(!prefix)
+		prefix = "";
+
+	if(statuscode > 100) {
+		fputs(prefix, outstream);
+		fprintf(outstream,
+			"CoAP/1.0 %d %s\n",
+			statuscode,
+			coap_code_to_cstr(statuscode));
+	} else {
+		fputs(prefix, outstream);
+		fprintf(outstream, "%s /", coap_code_to_cstr(statuscode));
+
+		for(iter = headers; iter != end; ++iter) {
+			if(iter->key == COAP_HEADER_URI_PATH) {
+				fwrite(iter->value, iter->value_len, 1, outstream);
+				break;
+			}
+		}
+
+		fprintf(outstream, " CoAP/1.0\n");
+	}
+
+	for(iter = headers; iter != end; ++iter) {
+		fputs(prefix, outstream);
+		fprintf(outstream, "%s: ", coap_header_key_to_cstr(iter->key));
+		switch(iter->key) {
+		case COAP_HEADER_CONTENT_TYPE:
+			fprintf(outstream, "%s",
+				coap_content_type_to_cstr((unsigned char)iter->value[0]));
+			break;
+		case COAP_HEADER_CASCADE_COUNT:
+			fprintf(outstream, "%u", (unsigned char)iter->value[0]);
+			break;
+		case COAP_HEADER_ACCEPT:
+		{
+			size_t i;
+			for(i = 0; i < iter->value_len; i++) {
+				if(i)
+					fputc(',', outstream);
+				fprintf(outstream, "%s",
+					    coap_content_type_to_cstr((uint8_t)iter->value[i]));
+			}
+		}
+		break;
+
+		case COAP_HEADER_URI_AUTHORITY:
+		case COAP_HEADER_URI_PATH:
+		case COAP_HEADER_URI_QUERY:
+		case COAP_HEADER_URI_SCHEME:
+		case COAP_HEADER_LOCATION:
+
+		case SMCP_HEADER_ORIGIN:
+		case SMCP_HEADER_CSEQ:
+
+			fwrite(iter->value, iter->value_len, 1, outstream);
+			break;
+		default:
+		{
+			size_t i;
+			for(i = 0; i < iter->value_len; i++) {
+				fprintf(outstream, "%02X ", (uint8_t)iter->value[i]);
+			}
+		}
+		break;
+		}
+		fputc('\n', outstream);
+	}
+
+	fputs(prefix, outstream);
+	fputc('\n', outstream);
+}

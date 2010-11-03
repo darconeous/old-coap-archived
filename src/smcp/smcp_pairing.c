@@ -16,6 +16,7 @@
 #include "smcp.h"
 #include "smcp_logging.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -479,6 +480,12 @@ smcp_pairing_node_list(
 		replyContent[i++] = '>';
 
 		if(first_pairing) {
+			if(strlen(name) > (2 + sizeof(void*) * 2)) {
+				i += snprintf(replyContent + i,
+					sizeof(replyContent) - i,
+					";sh=\"%p\"",
+					pairing_iter);
+			}
 		} else {
 			strncpy(replyContent + i, ";ct=40", sizeof(replyContent) - i);
 			i += 6;
@@ -588,9 +595,18 @@ smcp_pairing_node_request_handler(
 			}
 		} else {
 			char* uri = strsep((char**)&path, "/");
-			url_decode_cstr_inplace(uri);
-			while(pairing && (0 != strcmp(uri, pairing->dest_uri))) {
-				pairing = smcp_daemon_next_pairing(self, pairing);
+			if(isdigit(uri[0])) {
+				smcp_pairing_t target = (smcp_pairing_t)strtol(uri,
+					NULL,
+					0);
+				while(pairing && (pairing != target)) {
+					pairing = smcp_daemon_next_pairing(self, pairing);
+				}
+			} else {
+				url_decode_cstr_inplace(uri);
+				while(pairing && (0 != strcmp(uri, pairing->dest_uri))) {
+					pairing = smcp_daemon_next_pairing(self, pairing);
+				}
 			}
 
 			require_action(pairing != NULL,
@@ -664,10 +680,10 @@ bail:
 	return ret;
 }
 
-smcp_node_t smcp_pairing_node_init(
-	smcp_node_t self, smcp_node_t parent, const char* name
+smcp_pairing_node_t smcp_pairing_node_init(
+	smcp_pairing_node_t self, smcp_node_t parent, const char* name
 ) {
-	require(self = smcp_node_init(self, parent, name), bail);
+	require(self = smcp_node_init((smcp_node_t)self, parent, name), bail);
 
 	self->request_handler = &smcp_pairing_node_request_handler;
 

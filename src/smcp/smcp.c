@@ -505,7 +505,7 @@ smcp_daemon_send_response(
 		self->udp_conn,
 		packet,
 		packet_length,
-		self->current_inbound_toaddr,
+		&self->current_inbound_toaddr,
 		self->current_inbound_toport
 	);
 #endif
@@ -833,7 +833,7 @@ socklen_t smcp_daemon_get_current_request_socklen(smcp_daemon_t self) {
 #elif defined(__CONTIKI__)
 const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr(
 	smcp_daemon_t self) {
-	return self->current_inbound_toaddr;
+	return &self->current_inbound_toaddr;
 }
 
 const uint16_t smcp_daemon_get_current_request_ipport(smcp_daemon_t self)
@@ -884,7 +884,7 @@ smcp_daemon_handle_inbound_packet(
 	self->current_inbound_saddr = saddr;
 	self->current_inbound_socklen = socklen;
 #elif __CONTIKI__
-	self->current_inbound_toaddr = toaddr;
+	self->current_inbound_toaddr = *toaddr;
 	self->current_inbound_toport = toport;
 #endif
 
@@ -1162,62 +1162,19 @@ smcp_daemon_handle_response(
 		DEBUG_PRINTF(CSTR(
 				"smcp_daemon(%p): Incoming response! tid=%d"), self,
 			smcp_daemon_get_current_tid(self));
-		DEBUG_PRINTF(CSTR("RESULT: %d"), statuscode);
-		coap_header_item_t *headers =
-		    (coap_header_item_t*)smcp_daemon_get_current_request_headers(
-			self);
-		coap_header_item_t *end = headers +
-		    smcp_daemon_get_current_request_header_count(self);
-		coap_header_item_t *next_header;
-		unsigned char holder;
-		for(next_header = headers;
-		    next_header != end;
-		    next_header = smcp_header_item_next(next_header)) {
-			switch(smcp_header_item_get_key(next_header)) {
-			case COAP_HEADER_CONTENT_TYPE:
-				DEBUG_PRINTF(CSTR(
-						"\tHEADER: %s:  %s"),
-					smcp_header_item_get_key_cstr(
-						next_header),
-					coap_content_type_to_cstr(*(const char*)
-						smcp_header_item_get_value(
-							next_header)));
-				break;
-			case COAP_HEADER_BLOCK:
-				if(next_header->value_len == 0)
-					DEBUG_PRINTF(CSTR(
-							"\tHEADER: %s: empty!"),
-						smcp_header_item_get_key_cstr(next_header));
-				else if(next_header->value_len == 1)
-					DEBUG_PRINTF(CSTR(
-							"\tHEADER: %s: %02x"),
-						smcp_header_item_get_key_cstr(
-							next_header), next_header->value[0]);
-				else if(next_header->value_len == 2)
-					DEBUG_PRINTF(CSTR(
-							"\tHEADER: %s: %02x %02x"),
-						smcp_header_item_get_key_cstr(
-							next_header), next_header->value[0],
-						next_header->value[1]);
-				else
-					DEBUG_PRINTF(CSTR(
-							"\tHEADER: %s: %02x %02x %02x"),
-						smcp_header_item_get_key_cstr(
-							next_header), next_header->value[0],
-						next_header->value[1], next_header->value[2]);
-				break;
-			default:
-				holder = next_header->value[next_header->value_len];
-				next_header->value[next_header->value_len] = 0;
-				DEBUG_PRINTF(CSTR(
-						"\tHEADER: %s: (%d) \"%s\""),
-					smcp_header_item_get_key_cstr(
-						next_header), (int)next_header->value_len,
-					smcp_header_item_get_value(next_header));
-				next_header->value[next_header->value_len] = holder;
-				break;
-			}
-		}
+		coap_dump_headers(
+			SMCP_DEBUG_OUT_FILE,
+			"    ",
+			    (int)statuscode,
+			smcp_daemon_get_current_request_headers(self),
+			smcp_daemon_get_current_request_header_count(self)
+		);
+
+/*
+        bool content_is_text;
+        if(content_is_text)
+            DEBUG_PRINTF(CSTR("CONTENT: \"%s\""),content);
+ */
 	}
 #endif
 
@@ -1306,66 +1263,22 @@ smcp_daemon_handle_request(
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
-		coap_header_item_t *headers =
-		    (const coap_header_item_t*)
-		    smcp_daemon_get_current_request_headers(
-			self);
-		bool content_is_text;
 		DEBUG_PRINTF(CSTR(
 				"smcp_daemon(%p): Incoming request! tid=%d"), self,
 			smcp_daemon_get_current_tid(self));
-		DEBUG_PRINTF(CSTR("REQUEST: \"%s\" \"%s\""),
-			get_method_string(method), path);
-		coap_content_type_t content_type;
-		coap_header_item_t *end = headers +
-		    smcp_daemon_get_current_request_header_count(self);
-		coap_header_item_t *next_header;
-		for(next_header = headers;
-		    next_header != end;
-		    next_header = smcp_header_item_next(next_header)) {
-			switch(smcp_header_item_get_key(next_header)) {
-			case COAP_HEADER_CASCADE_COUNT:
-				DEBUG_PRINTF(CSTR(
-						"\tHEADER: %s: %u"),
-					smcp_header_item_get_key_cstr(
-						next_header),
-					    (unsigned int)*(unsigned char*)
-					smcp_header_item_get_value(
-						next_header));
-				break;
-			case COAP_HEADER_CONTENT_TYPE:
-				content_type = *(const char*)smcp_header_item_get_value(
-					next_header);
-				DEBUG_PRINTF(CSTR(
-						"\tHEADER: %s: \"%s\""),
-					smcp_header_item_get_key_cstr(
-						next_header),
-					coap_content_type_to_cstr(content_type));
-				if((content_type == COAP_CONTENT_TYPE_TEXT_PLAIN)
-				    || (content_type ==
-				        COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
-				    || (content_type == COAP_CONTENT_TYPE_TEXT_CSV)
-				    || (content_type == COAP_CONTENT_TYPE_TEXT_XML)
-				)
-					content_is_text = true;
-				break;
-			default:
-			{
-				unsigned char holder =
-				        next_header->value[next_header->value_len];
-				next_header->value[next_header->value_len] = 0;
-				DEBUG_PRINTF(CSTR(
-							"\tHEADER: %s: \"%s\""),
-					    smcp_header_item_get_key_cstr(
-							next_header),
-					    smcp_header_item_get_value(next_header));
-				next_header->value[next_header->value_len] = holder;
-			}
-			break;
-			}
-		}
-		if(content_is_text)
-			DEBUG_PRINTF(CSTR("CONTENT: \"%s\""), content);
+		coap_dump_headers(
+			SMCP_DEBUG_OUT_FILE,
+			"    ",
+			    (int)method,
+			smcp_daemon_get_current_request_headers(self),
+			smcp_daemon_get_current_request_header_count(self)
+		);
+
+/*
+        bool content_is_text;
+        if(content_is_text)
+            DEBUG_PRINTF(CSTR("CONTENT: \"%s\""),content);
+ */
 	}
 #endif
 

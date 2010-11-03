@@ -22,12 +22,10 @@
 #include <signal.h>
 #include "smcpctl.h"
 
-/*
-   static arg_list_item_t option_list[] = {
-    { 'h', "help",NULL,"Print Help" },
-    { 0 }
-   };
- */
+static arg_list_item_t option_list[] = {
+	{ 'h', "help", NULL, "Print Help" },
+	{ 0 }
+};
 
 static int gRet;
 static sig_t previous_sigint_handler;
@@ -46,7 +44,7 @@ static int retries = 0;
 static const char* url_data;
 static char next_data[256];
 static size_t next_len = ((size_t)(-1));
-static int smcp_rtt = 120;
+static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
 
 static int calc_retransmit_timeout(int retries_) {
 	int ret = smcp_rtt;
@@ -75,9 +73,19 @@ list_response_handler(
 	size_t			content_length,
 	void*			context
 ) {
-	if(statuscode == SMCP_STATUS_TIMEOUT && (retries++ < 8)) {
+	if(statuscode == SMCP_STATUS_TIMEOUT &&
+	        (++retries < COAP_MAX_RETRANSMIT)) {
 		resend_list_request(self);
 		return;
+	}
+
+	if((statuscode >= 100) && show_headers) {
+		fprintf(stdout, "\n");
+		coap_dump_headers(stdout,
+			NULL,
+			statuscode,
+			smcp_daemon_get_current_request_headers(self),
+			smcp_daemon_get_current_request_header_count(self));
 	}
 
 	if(((statuscode < 200) ||
@@ -120,6 +128,7 @@ list_response_handler(
 				if(*iter == '<') {
 					char* uri = 0;
 					char* name = 0;
+					char* sh_url = 0;
 					int type = COAP_CONTENT_TYPE_UNKNOWN;
 					int uri_len = 0;
 
@@ -140,7 +149,7 @@ list_response_handler(
 							if(*iter == '"') {
 								iter++;
 								value = strsep(&iter, "\"");
-								endchar = *iter;
+								endchar = *iter++;
 							} else {
 								value = iter;
 								while((iter < end) && (*iter != ',') &&
@@ -154,9 +163,13 @@ list_response_handler(
 								name = value;
 							else if(0 == strcmp(key, "ct"))
 								type = strtol(value, NULL, 0);
+							else if(0 == strcmp(key, "sh"))
+								sh_url = value;
 							//printf("%s = %s\n",key,value);
 							if(endchar == ',' || (iter >= end))
 								break;
+							if(endchar == ';')
+								iter--;
 						}
 					}
 
@@ -175,8 +188,9 @@ list_response_handler(
 						printf("\t");
 						col_width = uri_len;
 					}
-					if(name) printf("\"%s\"", name);
-					if(type != COAP_CONTENT_TYPE_UNKNOWN) printf(" (%s)",
+					if(name) printf("\"%s\" ", name);
+					if(sh_url) printf("<%s> ", sh_url);
+					if(type != COAP_CONTENT_TYPE_UNKNOWN) printf("(%s) ",
 							coap_content_type_to_cstr(type));
 					printf("\n");
 				} else {
@@ -288,25 +302,52 @@ int
 tool_cmd_list(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
-	gRet = ERRORCODE_INPROGRESS;
-
-	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
-
+	int i;
 	char url[1000];
 
+	gRet = ERRORCODE_INPROGRESS;
+	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 	next_len = ((size_t)(-1));
 
-	if(getenv("SMCP_CURRENT_PATH")) {
-		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
-		if(argc >= 2)
-			url_change(url, argv[1]);
-	} else {
-		if(argc >= 2) {
-			strncpy(url, argv[1], sizeof(url));
+	BEGIN_LONG_ARGUMENTS(gRet)
+//		HANDLE_LONG_ARGUMENT("include-headers") get_show_headers = true;
+
+	HANDLE_LONG_ARGUMENT("help") {
+		print_arg_list_help(option_list, argv[0], "[args] <uri>");
+		gRet = ERRORCODE_HELP;
+		goto bail;
+	}
+	BEGIN_SHORT_ARGUMENTS(gRet)
+//		HANDLE_SHORT_ARGUMENT('i') get_show_headers = true;
+
+	HANDLE_SHORT_ARGUMENT2('h', '?') {
+		print_arg_list_help(option_list, argv[0], "[args] <uri>");
+		gRet = ERRORCODE_HELP;
+		goto bail;
+	}
+	HANDLE_OTHER_ARGUMENT() {
+		if(url[0] == 0) {
+			if(getenv("SMCP_CURRENT_PATH")) {
+				strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+				url_change(url, argv[i]);
+			} else {
+				strncpy(url, argv[i], sizeof(url));
+			}
 		} else {
-			fprintf(stderr, "Bad args.\n");
+			fprintf(stderr, "Unexpected extra argument: \"%s\"\n", argv[i]);
+			gRet = ERRORCODE_BADARG;
 			goto bail;
 		}
+	}
+	END_ARGUMENTS
+
+	if((url[0] == 0) && getenv("SMCP_CURRENT_PATH"))
+		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+
+	if(url[0] == 0) {
+		fprintf(stderr, "Missing path argument.\n");
+		gRet = ERRORCODE_BADARG;
+		goto bail;
 	}
 
 	require(send_list_request(smcp, url, NULL, 0), bail);

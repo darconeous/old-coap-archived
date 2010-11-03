@@ -48,6 +48,14 @@ pair_response_handler(
 	size_t			content_length,
 	void*			context
 ) {
+	if((statuscode >= 100) && show_headers) {
+		fprintf(stdout, "\n");
+		coap_dump_headers(stdout,
+			NULL,
+			statuscode,
+			smcp_daemon_get_current_request_headers(self),
+			smcp_daemon_get_current_request_header_count(self));
+	}
 	if(((statuscode < 200) ||
 	            (statuscode >= 300)) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
@@ -132,6 +140,11 @@ tool_cmd_pair(
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
 	char url[1000];
+
+	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
+		printf("Help not yet implemented for this command.\n");
+		return ERRORCODE_HELP;
+	}
 
 	gRet = ERRORCODE_UNKNOWN;
 

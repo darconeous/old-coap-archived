@@ -46,7 +46,7 @@ struct smcp_daemon_s {
 	socklen_t				current_inbound_socklen;
 #elif defined(__CONTIKI__)
 	struct uip_udp_conn*	udp_conn;
-	const uip_ipaddr_t *	current_inbound_toaddr;
+	uip_ipaddr_t			current_inbound_toaddr;
 	uint16_t				current_inbound_toport;
 #endif
 

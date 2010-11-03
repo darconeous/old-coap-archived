@@ -26,4 +26,6 @@
 extern int exec_command(
 	smcp_daemon_t smcp_daemon, int argc, char * argv[]);
 
+extern bool show_headers;
+
 #endif // __SMCPCTL_H__

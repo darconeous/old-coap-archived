@@ -13,7 +13,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <sys/errno.h>
-#include "help.h"
 #include <signal.h>
 
 #include <smcp/smcp.h>
@@ -21,7 +20,8 @@
 #include <smcp/smcp_timer_node.h>
 #include <smcp/smcp_variable_node.h>
 #include <smcp/smcp_pairing.h>
-
+#include "help.h"
+#include "smcpctl.h"
 #include "cmd_test.h"
 
 smcp_status_t
@@ -83,13 +83,13 @@ loadavg_get_func(
 		getloadavg(loadavg,
 			sizeof(loadavg) / sizeof(*loadavg)), bail, ret = -1);
 
-	require_action(snprintf(content, *content_length, "v=%0.2f",
-			loadavg[0]) <= content_length, bail, ret = -1);
+	require_action((size_t)snprintf(content, *content_length, "v=%0.2f",
+			loadavg[0]) <= *content_length, bail, ret = -1);
 
 	fprintf(
 		stderr,
 		" *** Queried for load average (max_content_length=%d, content=\"%s\", loadavg=%0.2f) \n",
-		*content_length,
+		    (int)*content_length,
 		content,
 		loadavg[0]);
 
@@ -125,6 +125,11 @@ int
 tool_cmd_test(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
+	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
+		printf("Help not yet implemented for this command.\n");
+		return ERRORCODE_HELP;
+	}
+
 	smcp_daemon_t smcp_daemon;
 	smcp_daemon_t smcp_daemon2;
 
