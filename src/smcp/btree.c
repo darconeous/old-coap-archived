@@ -1,11 +1,12 @@
-/*	Binary Tree Utilities
+/*	Flexible Binary Tree Utilities
 **
 **	Written by Robert Quattlebaum <darco@deepdarc.com>.
 **	PUBLIC DOMAIN.
+**
+**	Self test code at bottom of file.
 */
 
 #include "btree.h"
-#include <stdlib.h>
 
 void
 bt_insert(
@@ -15,47 +16,53 @@ bt_insert(
 	bt_delete_func_t	delete_func,
 	void*				context
 ) {
-	bt_item_t const location_ = *bt;
 	bt_item_t const item_ = item;
+	bt_item_t location_;
 
-	// TODO: Add some sort of tree-balancing algorithm.
-	// TODO: Make this function not recursive.
+	// TODO: Add some sort of tree-balancing algorithm, like <http://en.wikipedia.org/wiki/Scapegoat_tree>
+
+again:
+
+	location_ = *bt;
 
 	if(location_) {
 		bt_compare_result_t result =
 		    (*compare_func)(location_, item_, context);
-		if(result > 0) {
+
+		if(result) {
+			// One more step down the rabit hole...
 			item_->parent = location_;
-			bt_insert((void**)&location_->lhs,
-				item_,
-				compare_func,
-				delete_func,
-				context);
-		} else if(result < 0) {
-			item_->parent = location_;
-			bt_insert((void**)&location_->rhs,
-				item_,
-				compare_func,
-				delete_func,
-				context);
-		} else {
-			if(item_ != location_) {
-				// Item already exists, so we replace.
-				item_->parent = location_->parent;
-				item_->lhs = location_->lhs;
-				item_->rhs = location_->rhs;
-				*bt = item_;
-				    (*delete_func)(location_, context);
+			bt =
+			    (result <
+			    0) ? (void**)&location_->rhs : (void**)&location_->lhs;
+			goto again;
+		} else if(item_ != location_) {
+			// Item already exists, so we replace.
+			item_->parent = location_->parent;
+			if(item_->parent) {
+				if(location_->parent->rhs == location_)
+					location_->parent->rhs = item;
+				else
+					location_->parent->lhs = item;
 			}
+			item_->lhs = location_->lhs;
+			if(location_->lhs)
+				location_->lhs->parent = item_;
+			item_->rhs = location_->rhs;
+			if(location_->rhs)
+				location_->rhs->parent = item_;
+			*bt = item_;
+			    (*delete_func)(location_, context);
 		}
 	} else {
+		// Found outselves a good spot. Put the item here.
 		*bt = item_;
 	}
 }
 
 void*
 bt_find(
-	void**				bt,
+	void*const*			bt,
 	const void*			item,
 	bt_compare_func_t	compare_func,
 	void*				context
@@ -66,10 +73,8 @@ bt_find(
 	while(location_) {
 		result = (*compare_func)(location_, item, context);
 
-		if(result > 0)
-			location_ = location_->lhs;
-		else if(result < 0)
-			location_ = location_->rhs;
+		if(result)
+			location_ = (result < 0) ? location_->rhs : location_->lhs;
 		else
 			break;
 	}
@@ -77,7 +82,7 @@ bt_find(
 	return location_;
 }
 
-void
+bool
 bt_remove(
 	void**				bt,
 	void*				item,
@@ -134,7 +139,11 @@ bt_remove(
 		item_->parent = NULL;
 
 		    (*delete_func)(item_, context);
+
+		return true;
 	}
+
+	return false;
 }
 
 void*
@@ -197,12 +206,296 @@ bail:
 	return (void*)item_;
 }
 
-int
-bt_count(void** bt) {
-	int ret = 0;
-	void* iter;
+size_t
+bt_count(void*const* bt) {
+	size_t ret = 0;
 
-	for(iter = bt_first(*bt); iter; iter = bt_next(iter))
-		ret++;
+	if(*bt) {
+		bt_item_t iter = bt_first(*bt);
+		bt_item_t end = bt_last(*bt);
+		ret = 1;
+		for(; iter != end; iter = bt_next(iter))
+			ret++;
+	}
 	return ret;
 }
+
+void
+bt_rotate_right(void** bt) {
+	bt_item_t item = *bt;
+
+	if(item && item->lhs) {
+		item->lhs->parent = item->parent;
+		item->parent = item->lhs;
+		*bt = item->lhs;
+		if(item->lhs->rhs)
+			item->lhs->rhs->parent = item;
+		item->lhs = item->lhs->rhs;
+		    ((bt_item_t)*bt)->rhs = item;
+	}
+}
+
+void
+bt_rotate_left(void** bt) {
+	bt_item_t item = *bt;
+
+	if(item && item->rhs) {
+		item->rhs->parent = item->parent;
+		item->parent = item->rhs;
+		*bt = item->rhs;
+		if(item->rhs->lhs)
+			item->rhs->lhs->parent = item;
+		item->rhs = item->rhs->lhs;
+		    ((bt_item_t)*bt)->lhs = item;
+	}
+}
+
+int
+bt_get_balance(void* item_) {
+	int imbalance = 0;
+	bt_item_t item;
+
+	for(item = item_; item; item = item->lhs)
+		imbalance++;
+
+	for(item = item_; item; item = item->rhs)
+		imbalance--;
+
+bail:
+	return imbalance;
+}
+
+unsigned int
+bt_rebalance(void** bt) {
+	unsigned int ret = 0;
+	bt_item_t item = *bt;
+
+	// WARNING: This is a quick-n-dirty naive tree balancing implementation.
+
+	if(!item)
+		goto bail;
+
+	{
+		int imbalance;
+		const int slack = 1;
+
+		imbalance = bt_get_balance((void*)item);
+
+		while(imbalance > slack) {
+			bt_rotate_right(bt);
+			imbalance--;
+			ret++;
+		}
+
+		imbalance = -imbalance;
+
+		while(imbalance > slack) {
+			bt_rotate_left(bt);
+			imbalance--;
+			ret++;
+		}
+	}
+
+	item = *bt;
+
+	ret += bt_rebalance((void**)&item->lhs);
+	ret += bt_rebalance((void**)&item->rhs);
+
+bail:
+	return ret;
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+
+#if BTREE_SELF_TEST
+
+#include <stdlib.h>
+#include <string.h>
+
+static int nodes_alive = 0;
+
+struct self_test_node_s {
+	struct bt_item_s	item;
+	char*				name;
+};
+
+typedef struct self_test_node_s *self_test_node_t;
+
+void
+self_test_node_delete(
+	self_test_node_t item, void* context
+) {
+	free(item->name);
+	memset(item, 0, sizeof(*item));
+	free(item);
+
+	// Decrement total node count.
+	    (*(int*)context)--;
+}
+
+bt_compare_result_t
+self_test_node_compare(
+	self_test_node_t lhs, self_test_node_t rhs, void* context
+) {
+	if(lhs->name == rhs->name)
+		return 0;
+	if(!lhs->name)
+		return 1;
+	if(!rhs->name)
+		return -1;
+	return strcmp(lhs->name, rhs->name);
+}
+
+void
+forward_traversal_test(self_test_node_t root) {
+	printf("Forward traversal test...");
+	fflush(stdout);
+	int j = 0;
+	self_test_node_t iter;
+	for(iter = bt_first(root); iter; iter = bt_next(iter)) {
+		j++;
+
+		if(nodes_alive < j) {
+			printf("Bad node count in forward traversal.\n");
+			exit(-1);
+		}
+	}
+
+	if(nodes_alive != j) {
+		printf("Bad node count in forward traversal.\n");
+		exit(-1);
+	}
+	printf("OK\n");
+}
+
+void
+reverse_traversal_test(self_test_node_t root) {
+	printf("Reverse traversal test...");
+	fflush(stdout);
+	int j = 0;
+	self_test_node_t iter;
+	for(iter = bt_last(root); iter; iter = bt_prev(iter)) {
+		j++;
+		if(nodes_alive < j) {
+			printf("Bad node count in forward traversal.\n");
+			exit(-1);
+		}
+	}
+
+	if(nodes_alive != j) {
+		printf("Bad node count in reverse traversal.\n");
+		exit(-1);
+	}
+	printf("OK\n");
+}
+
+int
+main(
+	int argc, char* argv[]
+) {
+	self_test_node_t root = NULL;
+	unsigned char i = 0;
+
+	// Insert in pseudo random order.
+	printf("Inserting nodes in pseudo random order.\n");
+	for(i = i * 97 + 101; i; i = i * 97 + 101) {
+		self_test_node_t new_node = calloc(sizeof(struct self_test_node_s),
+			1);
+
+		asprintf(&new_node->name, "item_%d", i);
+
+		nodes_alive++;
+
+		bt_insert(
+			    (void**)&root,
+			new_node,
+			    (bt_compare_func_t)&self_test_node_compare,
+			    (bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+	}
+
+	printf("Inserted %d nodes.\n", (int)bt_count((void**)&root));
+
+	if(nodes_alive != bt_count((void**)&root)) {
+		printf("Bad node count.\n");
+		return -1;
+	}
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	{
+		unsigned int i = bt_rebalance((void**)&root);
+		printf("First balance operation took %u rotations\n", i);
+	}
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	{
+		unsigned int i = bt_rebalance((void**)&root);
+		printf("Second balance operation took %u rotations\n", i);
+	}
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	// Insert in sequential order.
+	printf("Inserting nodes in sequential order.\n");
+	for(i = 0; i != 255; i++) {
+		self_test_node_t new_node = calloc(sizeof(struct self_test_node_s),
+			1);
+
+		asprintf(&new_node->name, "item_%d", i);
+
+		nodes_alive++;
+
+		bt_insert(
+			    (void**)&root,
+			new_node,
+			    (bt_compare_func_t)&self_test_node_compare,
+			    (bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+	}
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	{
+		unsigned int i = bt_rebalance((void**)&root);
+		printf("Third balance operation took %u rotations\n", i);
+	}
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	{
+		unsigned int i = bt_rebalance((void**)&root);
+		printf("Fourth balance operation took %u rotations\n", i);
+	}
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	// Cleanup.
+	while(root)
+		bt_remove((void**)&root,
+			root,
+			    (bt_compare_func_t)&self_test_node_compare,
+			    (bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive);
+
+	// Should have no leaks at this point.
+	if(nodes_alive != 0) {
+		printf("nodes_alive = %d, when it should be 0\n", nodes_alive);
+		return -1;
+	}
+
+	printf("OK\n");
+	return 0;
+}
+
+
+#endif
