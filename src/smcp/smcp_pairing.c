@@ -395,14 +395,13 @@ extern smcp_status_t
 smcp_daemon_delete_pairing(
 	smcp_daemon_t self, smcp_pairing_t pairing
 ) {
-	bt_remove(
+	return bt_remove(
 		    (void**)&((smcp_daemon_t)self)->pairings,
 		pairing,
 		    (bt_compare_func_t)smcp_pairing_compare_for_insert,
 		    (bt_delete_func_t)smcp_pairing_finalize,
 		NULL
-	);
-	return 0;
+	) ? SMCP_STATUS_OK : SMCP_STATUS_NOT_FOUND;
 }
 
 

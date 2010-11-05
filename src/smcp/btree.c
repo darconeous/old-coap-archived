@@ -7,6 +7,7 @@
 */
 
 #include "btree.h"
+#include <assert.h>
 
 void
 bt_insert(
@@ -266,6 +267,26 @@ bail:
 }
 
 unsigned int
+bt_unbalance(void** bt) {
+	unsigned int ret = 0;
+	bt_item_t item = *bt;
+
+	if(!item)
+		goto bail;
+
+	while(item->lhs) {
+		bt_rotate_right(bt);
+		item = *bt;
+		ret++;
+	}
+
+	ret += bt_unbalance((void**)&item->rhs);
+
+bail:
+	return ret;
+}
+
+unsigned int
 bt_rebalance(void** bt) {
 	unsigned int ret = 0;
 	bt_item_t item = *bt;
@@ -305,7 +326,9 @@ bail:
 	return ret;
 }
 
+
 //////////////////////////////////////////////////////////////////////////////////
+// SELF TEST CODE
 
 #if BTREE_SELF_TEST
 
@@ -417,13 +440,21 @@ main(
 
 	printf("Inserted %d nodes.\n", (int)bt_count((void**)&root));
 
-	if(nodes_alive != bt_count((void**)&root)) {
+	if(nodes_alive != (int)bt_count((void**)&root)) {
 		printf("Bad node count.\n");
 		return -1;
 	}
 
 	forward_traversal_test(root);
 	reverse_traversal_test(root);
+
+
+/*
+    {
+        unsigned int i = bt_unbalance((void**)&root);
+        printf("Unbalance operation took %u rotations\n",i);
+    }
+ */
 
 	{
 		unsigned int i = bt_rebalance((void**)&root);
@@ -474,6 +505,21 @@ main(
 	{
 		unsigned int i = bt_rebalance((void**)&root);
 		printf("Fourth balance operation took %u rotations\n", i);
+	}
+
+	{
+		unsigned int i = bt_unbalance((void**)&root);
+		printf("Unbalance operation took %u rotations\n", i);
+	}
+
+	{
+		unsigned int i = bt_rebalance((void**)&root);
+		printf("Fifth balance operation took %u rotations\n", i);
+	}
+
+	{
+		unsigned int i = bt_rebalance((void**)&root);
+		printf("Sixth balance operation took %u rotations\n", i);
 	}
 
 	forward_traversal_test(root);
