@@ -199,10 +199,34 @@ tool_cmd_test(
 			smcp_daemon_get_root_node(smcp_daemon),
 			"lots_of_devices");
 		unsigned char i = 0;
+#if 1
 		for(i = i * 97 + 101; i; i = i * 97 + 101) {
+#else
+		for(i = 0; i != 255; i++) {
+#endif
 			char *name = NULL;
 			asprintf(&name, "subdevice_%d", i); // Will leak, but we don't care.
 			smcp_node_init(NULL, (smcp_node_t)subdevice, name);
+		}
+		{
+			unsigned int i = bt_rebalance(
+				    (void**)&((smcp_node_t)subdevice)->children);
+			printf("Balance operation took %u rotations\n", i);
+		}
+		{
+			unsigned int i = bt_rebalance(
+				    (void**)&((smcp_node_t)subdevice)->children);
+			printf("Second balance operation took %u rotations\n", i);
+		}
+		{
+			unsigned int i = bt_rebalance(
+				    (void**)&((smcp_node_t)subdevice)->children);
+			printf("Third balance operation took %u rotations\n", i);
+		}
+		{
+			unsigned int i = bt_rebalance(
+				    (void**)&((smcp_node_t)subdevice)->children);
+			printf("Fourth balance operation took %u rotations\n", i);
 		}
 	}
 
