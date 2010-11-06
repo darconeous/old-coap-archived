@@ -103,12 +103,12 @@ bail:
 
 static void
 list_response_handler(
-	smcp_daemon_t	self,
-	int				statuscode,
-	const char*		content,
-	size_t			content_length,
-	void*			context
+	int			statuscode,
+	const char* content,
+	size_t		content_length,
+	void*		context
 ) {
+//	smcp_daemon_t self = smcp_get_current_daemon();
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
 	printf("*** RESULT CODE = %d (%s)\n", statuscode,
 		coap_code_to_cstr(statuscode));

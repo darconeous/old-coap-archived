@@ -61,7 +61,8 @@ struct smcp_daemon_s {
 	char*					current_inbound_request_token;
 	uint16_t				current_inbound_request_token_len;
 	uint8_t					cascade_count;
-	bool					did_respond, is_processing_message;
+	bool					did_respond, is_processing_message,
+	    has_cascade_count;
 
 	coap_header_item_t		current_inbound_headers[SMCP_MAX_HEADERS + 1];
 	uint8_t					current_inbound_header_count;

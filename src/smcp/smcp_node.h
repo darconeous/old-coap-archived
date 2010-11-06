@@ -26,17 +26,14 @@
 __BEGIN_DECLS
 
 struct smcp_node_s {
-	struct bt_item_s	bt_item;
-	const char*			name;
-	smcp_node_t			parent;
-	smcp_node_t			children;
+	struct bt_item_s			bt_item;
+	const char*					name;
+	smcp_node_t					parent;
+	smcp_node_t					children;
 
-	void*				context;
-	void				(*finalize)(smcp_node_t node);
-	smcp_status_t		(*request_handler)(
-		smcp_daemon_t self, smcp_node_t node, smcp_method_t method,
-		const char* relative_path, const char* content,
-		size_t content_length);
+	void*						context;
+	void						(*finalize)(smcp_node_t node);
+	smcp_request_handler_func	request_handler;
 };
 
 extern bt_compare_result_t smcp_node_compare(

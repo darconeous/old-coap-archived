@@ -46,11 +46,10 @@ signal_interrupt(int sig) {
 
 static void
 delete_response_handler(
-	smcp_daemon_t	self,
-	int				statuscode,
-	const char*		content,
-	size_t			content_length,
-	void*			context
+	int			statuscode,
+	const char* content,
+	size_t		content_length,
+	void*		context
 ) {
 	if((statuscode != COAP_RESULT_CODE_OK) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))

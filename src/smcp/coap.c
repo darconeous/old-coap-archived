@@ -435,6 +435,15 @@ coap_dump_headers(
 		case COAP_HEADER_CASCADE_COUNT:
 			fprintf(outstream, "%u", (unsigned char)iter->value[0]);
 			break;
+		case COAP_HEADER_MAX_AGE:
+		{
+			unsigned long age = 0;
+			uint8_t i;
+			for(i = 0; i < iter->value_len; i++)
+				age = (age << 8) + iter->value[i];
+			fprintf(outstream, "%lu", age);
+		}
+		break;
 		case COAP_HEADER_ACCEPT:
 		{
 			size_t i;

@@ -127,6 +127,7 @@ extern const char* smcp_status_to_cstr(smcp_status_t x);
 
 
 // Avoid using the following preprocessor macros. They were used for a transition period which is now over.
+// They are all DEPRECATED.
 #define HEADER_CSTR_LEN     ((size_t)-1)
 #define smcp_header_item_next(item)         ((item) + 1)
 #define smcp_header_item_get_value(item)    ((item)->value)
@@ -146,50 +147,6 @@ typedef struct smcp_daemon_s *smcp_daemon_t;
 struct smcp_node_s;
 typedef struct smcp_node_s *smcp_node_t;
 
-struct smcp_pairing_s;
-typedef struct smcp_pairing_s *smcp_pairing_t;
-
-enum {
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_MASK
-	**	@abstract Bitmask for obtaining the reliability from
-	**	          pairing flags.
-	*/
-	SMCP_PARING_FLAG_RELIABILITY_MASK = (3 << 0),
-
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_NONE
-	**	@abstract Events are transmitted unreliably.
-	*/
-	SMCP_PARING_FLAG_RELIABILITY_NONE = (0 << 0),
-
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_ASAP
-	**	@abstract Events are transmitted reliably out-of-order.
-	**	          Order-of-events is maintained per-pairing.
-	**	          NOTE: Currently unimplemented!
-	*/
-	SMCP_PARING_FLAG_RELIABILITY_ASAP = (1 << 0),
-
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_PART
-	**	@abstract Events transmitted and will be retransmitted
-	**	          until either the event is ACKed or the event
-	**	          is superceded by a more recent event.
-	**	          NOTE: Currently unimplemented!
-	*/
-	SMCP_PARING_FLAG_RELIABILITY_PART = (2 << 0),
-
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_FULL
-	**	@abstract Events are transmitted reliably and in-order.
-	**	          Order-of-events is maintained per-pairing.
-	**	          NOTE: Currently unimplemented!
-	*/
-	SMCP_PARING_FLAG_RELIABILITY_FULL = (3 << 0),
-
-	/*!	@enum SMCP_PARING_FLAG_TEMPORARY
-	**	@abstract Pairing is not to be comitted to
-	**	          non-volatile storage.
-	*/
-	SMCP_PARING_FLAG_TEMPORARY = (1 << 2),
-};
-
 
 enum {
 	SMCP_RESPONSE_HANDLER_ALWAYS_TIMEOUT = (1 << 0),
@@ -197,9 +154,11 @@ enum {
 
 typedef int32_t cms_t;
 
-typedef void (*smcp_response_handler_func)(smcp_daemon_t self,
-    int statuscode, const char* content, size_t content_length,
-    void* context);
+typedef void (*smcp_response_handler_func)(int statuscode,
+    const char* content, size_t content_length, void* context);
+typedef smcp_status_t (*smcp_request_handler_func)(smcp_node_t node,
+    smcp_method_t method, const char* relative_path, const char* content,
+    size_t content_length);
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 
@@ -247,7 +206,6 @@ extern smcp_status_t smcp_daemon_send_request_to_url(
 	size_t					content_length);
 
 extern smcp_status_t smcp_daemon_send_response(
-	smcp_daemon_t		self,
 	int					statuscode,
 	coap_header_item_t	headers[],
 	const char*			content,
@@ -288,7 +246,6 @@ extern int smcp_node_find_next_with_path(
 	smcp_node_t node, const char* path, smcp_node_t* next);
 
 extern smcp_status_t smcp_default_request_handler(
-	smcp_daemon_t	self,
 	smcp_node_t		node,
 	smcp_method_t	method,
 	const char*		relative_path,
@@ -296,24 +253,19 @@ extern smcp_status_t smcp_default_request_handler(
 	size_t			content_length);
 
 
-coap_transaction_id_t smcp_daemon_get_current_tid(smcp_daemon_t self);
+coap_transaction_id_t smcp_daemon_get_current_tid();
 
 #if SMCP_USE_BSD_SOCKETS
-extern struct sockaddr* smcp_daemon_get_current_request_saddr(
-	smcp_daemon_t self);
-extern socklen_t smcp_daemon_get_current_request_socklen(
-	smcp_daemon_t self);
+extern struct sockaddr* smcp_daemon_get_current_request_saddr();
+extern socklen_t smcp_daemon_get_current_request_socklen();
 #elif defined(__CONTIKI__)
-extern const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr(
-	smcp_daemon_t self);
-extern const uint16_t smcp_daemon_get_current_request_ipport(
-	smcp_daemon_t self);
+extern const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr();
+extern const uint16_t smcp_daemon_get_current_request_ipport();
 #endif
 
-extern const coap_header_item_t* smcp_daemon_get_current_request_headers(
-	smcp_daemon_t self);
-extern uint8_t smcp_daemon_get_current_request_header_count(
-	smcp_daemon_t self);
+extern const coap_header_item_t* smcp_daemon_get_current_request_headers();
+extern uint8_t smcp_daemon_get_current_request_header_count();
+extern smcp_daemon_t smcp_get_current_daemon(); // Used from callbacks
 
 __END_DECLS
 

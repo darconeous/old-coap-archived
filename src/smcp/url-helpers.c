@@ -56,6 +56,8 @@ url_encode_cstr(
 			*dest++ = src_char;
 			ret++;
 			max_size--;
+		} else if(src_char == ' ') {
+			*dest++ = '+';  // Stupid legacy space encoding.
 		} else {
 			if(max_size < 3) {
 				// Too small for the next character.
@@ -127,6 +129,8 @@ url_decode_cstr(
 			*dest++ = (hex_digit_to_int(src[0]) << 4) + hex_digit_to_int(
 				src[1]);
 			src += 2;
+		} else if(src_char == '+') {
+			*dest++ = ' ';  // Stupid legacy space encoding.
 		} else {
 			*dest++ = src_char;
 		}
@@ -287,7 +291,8 @@ url_parse(
 		*path = uri;
 
 	// Move to the end of the path.
-	while((isurlchar(*uri) || (*uri == '/') || (*uri == '=') ||
+	while((isurlchar(*uri) || (*uri == '/') || (*uri == '[') ||
+	            (*uri == ']') || (*uri == ':') || (*uri == '=') ||
 	            (*uri == '&') ||
 	            (*uri == '%')) && (*uri != '#') && (*uri != '?')) {
 		uri++;
@@ -303,9 +308,10 @@ url_parse(
 			*query = uri;
 
 		// Move to the end of the query.
-		while((isurlchar(*uri) || (*uri == '/') || (*uri == '=') ||
-		            (*uri == '&') || (*uri == ';') ||
-		            (*uri == '%')) && (*uri != '#')) {
+		while((isurlchar(*uri) || (*uri == '[') || (*uri == ']') ||
+		            (*uri == ':') || (*uri == '/') || (*uri == '=') ||
+		            (*uri == '&') ||
+		            (*uri == ';') || (*uri == '%')) && (*uri != '#')) {
 			uri++;
 			bytes_parsed++;
 		}
@@ -485,56 +491,117 @@ void
 url_shorten_reference(
 	const char* current_url, char* new_url
 ) {
-	// TODO: Implement me!
-/*
+	// TODO: This function is a mess! Clean it up!
 
-    if(url_is_absolute(new_url)) {
-        char temp[256];
-        strncpy(temp,current_url,sizeof(temp);
-        char* proto1;
-        char* proto2;
-        url_parse(current_path, NULL,NULL,NULL, NULL, NULL, (char**)&current_url,NULL);
-        //url_parse(temp, NULL, NULL, NULL, (char**)&current_url);
-    }
+	if(url_is_absolute(new_url)) {
+		int i;
+		if((0 ==
+		        strncmp(current_url, new_url,
+					7)) && (0 == strncmp(current_url + 4, "://", 3))) {
+			for(i = 7;
+			        (current_url[i] == new_url[i]) &&
+			        (current_url[i] != '/') &&
+			    current_url[i];
+			    i++) {
+			}
+			if(current_url[i] == new_url[i]) {
+				if(current_url[i] == 0) {
+					new_url[0] = '/';
+					new_url[1] = 0;
+					return;
+				} else if(current_url[i] == '/') {
+					int len = strlen(new_url);
+					memmove(new_url, new_url + i, len - i);
+					new_url[len - i] = 0;
+					goto make_relative;
+				}
+			}
+		}
+		return;
+	}
 
-    if(path_is_absolute(new_url)) {
-        char temp[256];
-        strncpy(temp,current_url,sizeof(temp);
-        url_parse(temp, NULL, NULL, NULL, (char**)&current_url);
-        strncmp(new_url+1,current_url,strlen(current_url))
+make_relative:
+	{
+		char temp2[strlen(current_url) + 1];
+		char temp[256];
+		char* new_path;
+		char* new_query = NULL;
+		char* curr_path;
 
-    }
+		strncpy(temp, current_url, sizeof(temp));
+		url_change(temp, new_url);
 
-    char temp[MAX_URL_SIZE];
-    int i,j;
-    strncpy(temp,current_url,sizeof(temp);
+		strcpy(temp2, current_url);
 
-    url_change(temp,new_url);
+		url_parse(temp,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			NULL,
+			&new_path,
+			&new_query);
+		url_parse(temp2, NULL, NULL, NULL, NULL, NULL, &curr_path, NULL);
 
-    if(0!=memcmp(temp,current_url,7)) {
-        strcpy(new_url,temp);
-        return;
-    }
+		while(true) {
+			char* curr_item = strsep(&curr_path, "/");
 
-    for(i=7;temp[i]!='/';i++) {	}
+			if(!curr_item || (curr_item[0] == 0)) {
+				if(!new_path) {
+					new_url[0] = '.';
+					new_url[1] = 0;
+				} else if((strlen(new_path) +
+				            (new_query ? 1 + strlen(new_query) : 0)) <
+				    strlen(new_url)) {
+					strcpy(new_url, new_path);
+					if(new_query) {
+						strcat(new_url, "?");
+						strcat(new_url, new_query);
+					}
+				}
+				return;
+			}
 
-    if(0!=memcmp(temp,current_url,i)) {
-        strcpy(new_url,temp);
-        return;
-    }
+			char* new_item = strsep(&new_path, "/");
+			if(!new_item || (new_item[0] == 0)) {
+				strcpy(temp2, "..");
+				while(strsep(&curr_path, "/"))
+					strcat(temp2, "/..");
+				if(strlen(temp2) +
+				        (new_query ? 1 + strlen(new_query) : 0) <
+				    strlen(new_url)) {
+					strcpy(new_url, temp2);
+					if(new_query) {
+						strcat(new_url, "?");
+						strcat(new_url, new_query);
+					}
+				}
+				return;
+			}
 
-    j=i;
+			if(0 == strcmp(curr_item, new_item))
+				continue;
 
-    for(;temp[i]==current_url[i];i++) {
-        if(temp[i]=='/')
-            j=i;
-    }
+			strcpy(temp, "..");
+			while(strsep(&curr_path, "/"))
+				strcat(temp, "/..");
+			strcat(temp, "/");
+			strcat(temp, new_item);
+			if(new_path) {
+				strcat(temp, "/");
+				strcat(temp, new_path);
+			}
 
-    if(!temp[i]temp[i]==current_url[i]))
+			if(strlen(temp) + (new_query ? 1 + strlen(new_query) : 0) <
+			    strlen(new_url)) {
+				strcpy(new_url, temp);
+				if(new_query) {
+					strcat(new_url, "?");
+					strcat(new_url, new_query);
+				}
+			}
 
-    for(j=0;temp[i];)
-        new_url[j++] = temp[i++];
-
-    new_url[j] = 0;
- */
+			break;
+		}
+	}
 }

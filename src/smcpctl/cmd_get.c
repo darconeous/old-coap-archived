@@ -22,8 +22,9 @@
 #include <sys/sysctl.h>
 
 static arg_list_item_t option_list[] = {
-	{ 'h', "help",			  NULL, "Print Help"				},
-	{ 'i', "include-headers", NULL, "include headers in output" },
+	{ 'h', "help",	  NULL, "Print Help"				},
+	{ 'i', "include", NULL, "include headers in output" },
+	{ 'f', "follow",  NULL, "follow redirects"			},
 	{ 0 }
 };
 
@@ -48,6 +49,7 @@ static char *url_data;
 static char next_data[128];
 static size_t next_len = ((size_t)(-1));
 static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
+static int redirect_count;
 
 static int calc_retransmit_timeout(int retries_) {
 	int ret = smcp_rtt;
@@ -71,12 +73,10 @@ bool resend_get_request(smcp_daemon_t smcp);
 
 static void
 get_response_handler(
-	smcp_daemon_t	self,
-	int				statuscode,
-	char*			content,
-	size_t			content_length,
-	void*			context
+	int statuscode, char* content, size_t content_length, void* context
 ) {
+	smcp_daemon_t self = smcp_get_current_daemon();
+
 	if(statuscode == SMCP_STATUS_TIMEOUT &&
 	        (++retries < COAP_MAX_RETRANSMIT)) {
 		resend_get_request(self);
@@ -89,51 +89,63 @@ get_response_handler(
 		coap_dump_headers(stdout,
 			NULL,
 			statuscode,
-			smcp_daemon_get_current_request_headers(self),
-			smcp_daemon_get_current_request_header_count(self));
-	} else if(((statuscode < 200) ||
-	            (statuscode >= 300)) &&
-	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
-	        (statuscode != COAP_RESULT_CODE_PARTIAL_CONTENT)) {
-		fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
-			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : coap_code_to_cstr(statuscode));
+			smcp_daemon_get_current_request_headers(),
+			smcp_daemon_get_current_request_header_count());
 	}
 
-	if(content && content_length) {
-		coap_content_type_t content_type = 0;
+	if((statuscode >= 300) && (statuscode < 400) && redirect_count) {
+		// Redirect.
 		char location[256] = "";
-		const coap_header_item_t *next = NULL;
 		const coap_header_item_t *iter =
-		    smcp_daemon_get_current_request_headers(self);
+		    smcp_daemon_get_current_request_headers();
 		const coap_header_item_t *end = iter +
-		    smcp_daemon_get_current_request_header_count(self);
+		    smcp_daemon_get_current_request_header_count();
 		for(; iter != end; ++iter) {
-			if(iter->key == COAP_HEADER_CONTENT_TYPE) {
-				content_type = (unsigned char)iter->value[0];
-			} else if(iter->key == COAP_HEADER_NEXT) {
-				next = iter;
-			} else if(iter->key == COAP_HEADER_LOCATION) {
+			if(iter->key == COAP_HEADER_LOCATION) {
 				memcpy(location, iter->value, iter->value_len);
 				location[iter->value_len] = 0;
 			}
+		}
+		if(location[0] && (0 != strcmp(location, (const char*)context))) {
+			static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
+			strncpy(redirect_url,
+				    (const char*)context,
+				SMCP_MAX_URI_LENGTH);
+			url_change(redirect_url, location);
+			retries = 0;
+			require(send_get_request(self, redirect_url, 0, 0), bail);
+			fflush(stdout);
+			redirect_count--;
+			return;
+		}
+	}
+
+	if(((statuscode < 200) ||
+	            (statuscode >= 300)) &&
+	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
+	        (statuscode != COAP_RESULT_CODE_PARTIAL_CONTENT))
+		fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
+			    (statuscode < 0) ? smcp_status_to_cstr(
+				statuscode) : coap_code_to_cstr(statuscode));
+
+	if(content && content_length) {
+		coap_content_type_t content_type = 0;
+		const coap_header_item_t *next = NULL;
+		const coap_header_item_t *iter =
+		    smcp_daemon_get_current_request_headers();
+		const coap_header_item_t *end = iter +
+		    smcp_daemon_get_current_request_header_count();
+		for(; iter != end; ++iter) {
+			if(iter->key == COAP_HEADER_CONTENT_TYPE)
+				content_type = (unsigned char)iter->value[0];
+			else if(iter->key == COAP_HEADER_NEXT)
+				next = iter;
 		}
 
 		fwrite(content, content_length, 1, stdout);
 		if(next) {
 			require(send_get_request(self, (const char*)context,
 					next->value, next->value_len), bail);
-			fflush(stdout);
-			return;
-		}
-		if(location[0] &&
-		        (0 !=
-		        strcmp(location,
-					    (const char*)context)) && (statuscode >= 300) &&
-		        (statuscode < 400)) {
-			// Redirect.
-			retries = 0;
-			require(send_get_request(self, location, 0, 0), bail);
 			fflush(stdout);
 			return;
 		} else {
@@ -240,9 +252,13 @@ tool_cmd_get(
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 	get_show_headers = false;
 	next_len = ((size_t)(-1));
+	get_show_headers = false;
+	redirect_count = 0;
 
 	BEGIN_LONG_ARGUMENTS(gRet)
-	HANDLE_LONG_ARGUMENT("include-headers") get_show_headers = true;
+	HANDLE_LONG_ARGUMENT("include") get_show_headers = true;
+	HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
+	HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
 
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");
@@ -251,6 +267,7 @@ tool_cmd_get(
 	}
 	BEGIN_SHORT_ARGUMENTS(gRet)
 	HANDLE_SHORT_ARGUMENT('i') get_show_headers = true;
+	HANDLE_SHORT_ARGUMENT('f') redirect_count = 10;
 
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");
@@ -285,7 +302,7 @@ tool_cmd_get(
 	require(send_get_request(smcp, url, NULL, 0), bail);
 
 	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_daemon_process(smcp, -1);
+		smcp_daemon_process(smcp, 50);
 
 bail:
 	smcp_invalidate_response_handler(smcp, tid);

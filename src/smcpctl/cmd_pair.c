@@ -42,19 +42,19 @@ bool send_pair_request(
 
 static void
 pair_response_handler(
-	smcp_daemon_t	self,
-	int				statuscode,
-	const char*		content,
-	size_t			content_length,
-	void*			context
+	int			statuscode,
+	const char* content,
+	size_t		content_length,
+	void*		context
 ) {
+//	smcp_daemon_t self = smcp_get_current_daemon();
 	if((statuscode >= 100) && show_headers) {
 		fprintf(stdout, "\n");
 		coap_dump_headers(stdout,
 			NULL,
 			statuscode,
-			smcp_daemon_get_current_request_headers(self),
-			smcp_daemon_get_current_request_header_count(self));
+			smcp_daemon_get_current_request_headers(),
+			smcp_daemon_get_current_request_header_count());
 	}
 	if(((statuscode < 200) ||
 	            (statuscode >= 300)) &&
@@ -140,6 +140,7 @@ tool_cmd_pair(
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
 	char url[1000];
+	url[0] = 0;
 
 	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
 		printf("Help not yet implemented for this command.\n");

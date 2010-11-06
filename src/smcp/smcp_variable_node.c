@@ -22,7 +22,6 @@ smcp_variable_node_alloc() {
 
 smcp_status_t
 smcp_variable_request_handler(
-	smcp_daemon_t	self,
 	smcp_node_t		node,
 	smcp_method_t	method,
 	const char*		path,
@@ -47,7 +46,7 @@ smcp_variable_request_handler(
 		coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 
 		const coap_header_item_t *next_header =
-		    smcp_daemon_get_current_request_headers(self);
+		    smcp_daemon_get_current_request_headers();
 		for(;
 		    smcp_header_item_get_key(next_header);
 		    next_header = smcp_header_item_next(next_header)) {
@@ -85,15 +84,13 @@ smcp_variable_request_handler(
 		if(ret == SMCP_STATUS_OK) {
 			util_add_header(replyHeaders, 1, COAP_HEADER_CONTENT_TYPE,
 				    (const void*)&replyContentType, 1);
-			smcp_daemon_send_response(self,
-				COAP_RESULT_CODE_OK,
+			smcp_daemon_send_response(COAP_RESULT_CODE_OK,
 				replyHeaders,
 				replyContent,
 				replyContentLength);
 		}
 	} else {
-		ret = smcp_default_request_handler(self,
-			node,
+		ret = smcp_default_request_handler(node,
 			method,
 			path,
 			content,

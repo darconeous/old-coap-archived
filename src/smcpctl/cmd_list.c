@@ -23,7 +23,8 @@
 #include "smcpctl.h"
 
 static arg_list_item_t option_list[] = {
-	{ 'h', "help", NULL, "Print Help" },
+	{ 'h', "help",	  NULL, "Print Help"				},
+	{ 'i', "include", NULL, "include headers in output" },
 	{ 0 }
 };
 
@@ -45,6 +46,9 @@ static const char* url_data;
 static char next_data[256];
 static size_t next_len = ((size_t)(-1));
 static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
+static bool list_show_headers = false;
+static int redirect_count = 0;
+static const char* original_url;
 
 static int calc_retransmit_timeout(int retries_) {
 	int ret = smcp_rtt;
@@ -65,27 +69,54 @@ static int calc_retransmit_timeout(int retries_) {
 
 bool resend_list_request(smcp_daemon_t smcp);
 
+static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
+
 static void
 list_response_handler(
-	smcp_daemon_t	self,
-	int				statuscode,
-	char*			content,
-	size_t			content_length,
-	void*			context
+	int statuscode, char* content, size_t content_length, void* context
 ) {
+	smcp_daemon_t self = smcp_get_current_daemon();
+
 	if(statuscode == SMCP_STATUS_TIMEOUT &&
 	        (++retries < COAP_MAX_RETRANSMIT)) {
 		resend_list_request(self);
 		return;
 	}
 
-	if((statuscode >= 100) && show_headers) {
-		fprintf(stdout, "\n");
+	if((statuscode >= 100) && list_show_headers) {
+		if(next_len != ((size_t)(-1)))
+			fprintf(stdout, "\n");
 		coap_dump_headers(stdout,
 			NULL,
 			statuscode,
-			smcp_daemon_get_current_request_headers(self),
-			smcp_daemon_get_current_request_header_count(self));
+			smcp_daemon_get_current_request_headers(),
+			smcp_daemon_get_current_request_header_count());
+	}
+
+	if((statuscode >= 300) && (statuscode < 400) && redirect_count) {
+		// Redirect.
+		char location[256] = "";
+		const coap_header_item_t *iter =
+		    smcp_daemon_get_current_request_headers();
+		const coap_header_item_t *end = iter +
+		    smcp_daemon_get_current_request_header_count();
+		for(; iter != end; ++iter) {
+			if(iter->key == COAP_HEADER_LOCATION) {
+				memcpy(location, iter->value, iter->value_len);
+				location[iter->value_len] = 0;
+			}
+		}
+		if(location[0] && (0 != strcmp(location, (const char*)context))) {
+			strncpy(redirect_url,
+				    (const char*)context,
+				SMCP_MAX_URI_LENGTH);
+			url_change(redirect_url, location);
+			retries = 0;
+			require(send_list_request(self, redirect_url, 0, 0), bail);
+			fflush(stdout);
+			redirect_count--;
+			return;
+		}
 	}
 
 	if(((statuscode < 200) ||
@@ -100,15 +131,16 @@ list_response_handler(
 	// Chunked encoding could cause single records to be distributed across multiple transactions.
 	// This case must eventually be handled.
 
+	// TODO: When redirected, we should adjust the URI's to be relative to the original url!
+
 	if(content && content_length) {
-		char contentBuffer[500];
 		coap_content_type_t content_type = 0;
 		const coap_header_item_t *next = NULL;
 		{
 			const coap_header_item_t *iter =
-			    smcp_daemon_get_current_request_headers(self);
+			    smcp_daemon_get_current_request_headers();
 			const coap_header_item_t *end = iter +
-			    smcp_daemon_get_current_request_header_count(self);
+			    smcp_daemon_get_current_request_header_count();
 			for(; iter != end; ++iter) {
 				if(iter->key == COAP_HEADER_CONTENT_TYPE)
 					content_type = (unsigned char)iter->value[0];
@@ -118,7 +150,13 @@ list_response_handler(
 		}
 
 		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
-			fprintf(stderr, " *** Not a directory\n");
+			if(statuscode >= 300) {
+				fwrite(content, content_length, 1, stdout);
+				if((content[content_length - 1] != '\n'))
+					printf("\n");
+			} else {
+				fprintf(stderr, " *** Not a directory\n");
+			}
 		} else {
 			char *iter = content;
 			char *end = content + content_length;
@@ -173,9 +211,17 @@ list_response_handler(
 						}
 					}
 
-					url_shorten_reference((const char*)context, uri);
+					char adjusted_uri[SMCP_MAX_URI_LENGTH + 1];
 
-					printf("%s ", uri);
+					if(redirect_url[0] && !url_is_absolute(uri)) {
+						strcpy(adjusted_uri, redirect_url);
+						url_change(adjusted_uri, uri);
+						uri = adjusted_uri;
+					}
+					url_shorten_reference((const char*)original_url, uri);
+
+
+					uri_len = printf("%s ", uri) - 1;
 					if(uri_len < col_width) {
 						if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {
 							uri_len = col_width - uri_len;
@@ -188,8 +234,11 @@ list_response_handler(
 						printf("\t");
 						col_width = uri_len;
 					}
-					if(name) printf("\"%s\" ", name);
-					if(sh_url) printf("<%s> ", sh_url);
+					if(name && (0 != strcmp(name, uri))) printf("\"%s\" ",
+							name);
+					if(sh_url && (0 != strcmp(sh_url, uri))) printf(
+							"<%s> ",
+							sh_url);
 					if(type != COAP_CONTENT_TYPE_UNKNOWN) printf("(%s) ",
 							coap_content_type_to_cstr(type));
 					printf("\n");
@@ -197,10 +246,6 @@ list_response_handler(
 					iter++;
 				}
 			}
-
-			content_length =
-			    ((content_length > sizeof(contentBuffer) -
-			        2) ? sizeof(contentBuffer) - 2 : content_length);
 
 			if(content[content_length - 1] == '\n')
 				content[--content_length] = 0;
@@ -213,7 +258,7 @@ list_response_handler(
 				return;
 		}
 	}
-
+bail:
 	if(gRet == ERRORCODE_INPROGRESS)
 		gRet = 0;
 }
@@ -308,9 +353,15 @@ tool_cmd_list(
 	gRet = ERRORCODE_INPROGRESS;
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 	next_len = ((size_t)(-1));
+	url[0] = 0;
+	list_show_headers = false;
+	redirect_count = 10;
+	redirect_url[0] = 0;
 
 	BEGIN_LONG_ARGUMENTS(gRet)
-//		HANDLE_LONG_ARGUMENT("include-headers") get_show_headers = true;
+	HANDLE_LONG_ARGUMENT("include") list_show_headers = true;
+	HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
+	HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
 
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");
@@ -318,7 +369,8 @@ tool_cmd_list(
 		goto bail;
 	}
 	BEGIN_SHORT_ARGUMENTS(gRet)
-//		HANDLE_SHORT_ARGUMENT('i') get_show_headers = true;
+	HANDLE_SHORT_ARGUMENT('i') list_show_headers = true;
+	HANDLE_SHORT_ARGUMENT('f') redirect_count = 10;
 
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");
@@ -350,10 +402,12 @@ tool_cmd_list(
 		goto bail;
 	}
 
+	original_url = url;
+
 	require(send_list_request(smcp, url, NULL, 0), bail);
 
 	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_daemon_process(smcp, -1);
+		smcp_daemon_process(smcp, 50);
 
 bail:
 	smcp_invalidate_response_handler(smcp, tid);

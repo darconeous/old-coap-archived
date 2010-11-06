@@ -309,8 +309,8 @@ main(
 	}
 	END_ARGUMENTS
 
-
-	    istty = isatty(fileno(stdin));
+	    show_headers = debug_mode;
+	istty = isatty(fileno(stdin));
 
 
 	smcp_daemon = smcp_daemon_create(port);

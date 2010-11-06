@@ -17,7 +17,7 @@ typedef struct {
 	const char* desc;
 } arg_list_item_t;
 
-static void
+static inline void
 print_arg_list_help(
 	const arg_list_item_t	arg_list[],
 	const char*				command_name,

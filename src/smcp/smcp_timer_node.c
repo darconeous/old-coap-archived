@@ -172,13 +172,13 @@ void smcp_timer_node_set_autorestart(
 
 static smcp_status_t
 smcp_timer_request_handler(
-	smcp_daemon_t	self,
 	smcp_node_t		node,
 	smcp_method_t	method,
 	const char*		path,
 	const char*		content,
 	size_t			content_length
 ) {
+	smcp_daemon_t self = smcp_get_current_daemon();
 	smcp_status_t ret = 0;
 	coap_header_item_t reply_headers[5] = {};
 	coap_content_type_t content_type =
@@ -191,9 +191,9 @@ smcp_timer_request_handler(
 	char* query = NULL;
 
 	const coap_header_item_t *iter =
-	    smcp_daemon_get_current_request_headers(self);
+	    smcp_daemon_get_current_request_headers();
 	const coap_header_item_t *end = iter +
-	    smcp_daemon_get_current_request_header_count(self);
+	    smcp_daemon_get_current_request_header_count();
 
 	for(; iter != end; ++iter) {
 		if(iter->key == COAP_HEADER_CONTENT_TYPE) {
@@ -252,7 +252,7 @@ smcp_timer_request_handler(
 		if((method == COAP_METHOD_GET)) {
 			reply_code = COAP_RESULT_CODE_OK;
 			reply_content_len = 3;
-			if(smcp_daemon_timer_is_scheduled(self,
+			if(smcp_daemon_timer_is_scheduled(smcp_get_current_daemon(),
 					&((smcp_timer_node_t)node)->timer))
 				reply_content = "v=1";
 			else
@@ -280,7 +280,6 @@ smcp_timer_request_handler(
 			}
 		} else if(method == COAP_METHOD_PAIR) {
 			ret = smcp_default_request_handler(
-				self,
 				node,
 				method,
 				path,
@@ -294,7 +293,6 @@ smcp_timer_request_handler(
 	} else if(strequal_const(path, "!fire")) {
 		if((method == COAP_METHOD_PAIR)) {
 			ret = smcp_default_request_handler(
-				self,
 				node,
 				method,
 				path,
@@ -393,7 +391,6 @@ smcp_timer_request_handler(
 			}
 		} else if((method == COAP_METHOD_PAIR)) {
 			ret = smcp_default_request_handler(
-				self,
 				node,
 				method,
 				path,
@@ -406,7 +403,6 @@ smcp_timer_request_handler(
 		}
 	} else {
 		ret = smcp_default_request_handler(
-			self,
 			node,
 			method,
 			path,
@@ -417,8 +413,7 @@ smcp_timer_request_handler(
 	}
 
 	if(reply_code) {
-		smcp_daemon_send_response(self,
-			reply_code,
+		smcp_daemon_send_response(reply_code,
 			reply_headers,
 			reply_content,
 			reply_content_len);

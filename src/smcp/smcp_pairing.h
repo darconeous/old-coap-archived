@@ -8,6 +8,11 @@
 #ifndef __SMCP_PAIRING_HEADER__
 #define __SMCP_PAIRING_HEADER__ 1
 
+#include <stdbool.h>
+#include "smcp.h"
+#include "smcp_node.h"
+#include "smcp_timer.h"
+
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
 #define __BEGIN_DECLS   extern "C" {
@@ -19,12 +24,6 @@
 #endif
 #endif
 
-#include <stdbool.h>
-
-#include "smcp.h"
-
-#include "smcp_node.h"
-
 #define PAIRING_STATE   struct smcp_pairing_s* pairings
 
 #ifndef SMCP_CONF_PAIRING_STATS
@@ -32,7 +31,56 @@
 #endif
 
 __BEGIN_DECLS
+
+
+struct smcp_pairing_s;
+typedef struct smcp_pairing_s *smcp_pairing_t;
+
+enum {
+	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_MASK
+	**	@abstract Bitmask for obtaining the reliability from
+	**	          pairing flags.
+	*/
+	SMCP_PARING_FLAG_RELIABILITY_MASK = (3 << 0),
+
+	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_NONE
+	**	@abstract Events are transmitted unreliably.
+	*/
+	SMCP_PARING_FLAG_RELIABILITY_NONE = (0 << 0),
+
+	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_ASAP
+	**	@abstract Events are transmitted reliably out-of-order.
+	**	          Order-of-events is maintained per-pairing.
+	**	          NOTE: Currently unimplemented!
+	*/
+	SMCP_PARING_FLAG_RELIABILITY_ASAP = (1 << 0),
+
+	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_PART
+	**	@abstract Events transmitted and will be retransmitted
+	**	          until either the event is ACKed or the event
+	**	          is superceded by a more recent event.
+	**	          NOTE: Currently unimplemented!
+	*/
+	SMCP_PARING_FLAG_RELIABILITY_PART = (2 << 0),
+
+	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_FULL
+	**	@abstract Events are transmitted reliably and in-order.
+	**	          Order-of-events is maintained per-pairing.
+	**	          NOTE: Currently unimplemented!
+	*/
+	SMCP_PARING_FLAG_RELIABILITY_FULL = (3 << 0),
+
+	/*!	@enum SMCP_PARING_FLAG_TEMPORARY
+	**	@abstract Pairing is not to be comitted to
+	**	          non-volatile storage.
+	*/
+	SMCP_PARING_FLAG_TEMPORARY = (1 << 2),
+};
+
+
 typedef uint32_t smcp_pairing_seq_t;
+
+#define SMCP_PAIRING_EXPIRATION_INFINITE    (0x7FFFFFFF)
 
 struct smcp_pairing_s {
 	struct bt_item_s	bt_item;
@@ -40,6 +88,9 @@ struct smcp_pairing_s {
 	uint32_t			idVal;
 	smcp_pairing_seq_t	seq;
 	smcp_pairing_seq_t	ack;
+
+	time_t				expiration;
+
 #if SMCP_CONF_PAIRING_STATS
 	uint16_t			fire_count;
 	uint16_t			errors;
@@ -87,7 +138,6 @@ extern smcp_pairing_t smcp_daemon_next_pairing(
 	smcp_daemon_t self, smcp_pairing_t pairing);
 
 extern smcp_status_t smcp_daemon_handle_pair(
-	smcp_daemon_t	self,
 	smcp_node_t		node,
 	smcp_method_t	method,
 	const char*		path,
