@@ -210,6 +210,32 @@ extern smcp_status_t smcp_daemon_send_response(
 	size_t				content_length);
 
 #pragma mark -
+#pragma mark Constrained sending API
+//// New API for sending messages. This API should be more efficient for constrained devices.
+
+extern smcp_status_t smcp_message_begin(
+	smcp_daemon_t self, coap_transaction_type_t tt);
+extern smcp_status_t smcp_message_set_tid(coap_transaction_id_t tid);
+extern smcp_status_t smcp_message_set_code(coap_code_t code);
+#if SMCP_USE_BSD_SOCKETS
+extern smcp_status_t smcp_message_set_destaddr(
+	struct sockaddr *sockaddr, socklen_t socklen);
+#elif defined(__CONTIKI__)
+extern smcp_status_t smcp_message_set_destaddr(
+	const uip_ipaddr_t *toaddr, uint16_t toport);
+#endif
+extern smcp_status_t smcp_message_set_uri(
+	const char* uri, bool include_authority);
+extern smcp_status_t smcp_message_add_header(
+	coap_header_key_t key, const char* value, size_t len);
+
+/*!	After the following function is called you cannot add any more headers
+**	without loosing the content. */
+extern char* smcp_message_get_content_ptr(size_t* max_len);
+extern smcp_status_t smcp_message_set_content_len(size_t len);
+extern smcp_status_t smcp_message_send();
+
+#pragma mark -
 #pragma mark Network Interface
 
 #if SMCP_USE_BSD_SOCKETS
@@ -264,6 +290,7 @@ extern const uint16_t smcp_daemon_get_current_request_ipport();
 extern const coap_header_item_t* smcp_daemon_get_current_request_headers();
 extern uint8_t smcp_daemon_get_current_request_header_count();
 extern smcp_daemon_t smcp_get_current_daemon(); // Used from callbacks
+
 
 __END_DECLS
 

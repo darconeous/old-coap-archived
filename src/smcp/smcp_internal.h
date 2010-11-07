@@ -66,4 +66,10 @@ struct smcp_daemon_s {
 
 	coap_header_item_t		current_inbound_headers[SMCP_MAX_HEADERS + 1];
 	uint8_t					current_inbound_header_count;
+
+#pragma mark -
+#pragma mark Constrained sending state
+	// TODO: writeme!
+
+	coap_header_item_t		current_outbound_headers[SMCP_MAX_HEADERS + 1];
 };

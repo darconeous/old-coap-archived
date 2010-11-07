@@ -23,8 +23,11 @@
 #include "smcpctl.h"
 
 static arg_list_item_t option_list[] = {
-	{ 'h', "help",	  NULL, "Print Help"				},
-	{ 'i', "include", NULL, "include headers in output" },
+	{ 'h', "help",		 NULL,	 "Print Help"				 },
+	{ 'i', "include",	 NULL,	 "include headers in output" },
+	{ 0,   "slice-size", "size", "writeme"					 },
+	{ 0,   "follow",	 NULL,	 "writeme"					 },
+	{ 0,   "no-follow",	 NULL,	 "writeme"					 },
 	{ 0 }
 };
 

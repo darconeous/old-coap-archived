@@ -13,8 +13,6 @@
 #define DEBUG VERBOSE_DEBUG
 #endif
 
-#define SMCP_VERSION_STRING "SMCP/0.1"
-
 #if __CONTIKI__
 #include "contiki.h"
 #include "net/uip-udp-packet.h"
@@ -1011,6 +1009,71 @@ smcp_daemon_process(
 
 bail:
 	return ret;
+}
+
+#pragma mark -
+#pragma mark Constrained sending API
+
+smcp_status_t
+smcp_message_begin(
+	smcp_daemon_t self, coap_transaction_type_t tt
+) {
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+
+smcp_status_t
+smcp_message_set_tid(coap_transaction_id_t tid) {
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+
+smcp_status_t
+smcp_message_set_code(coap_code_t code) {
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+
+#if SMCP_USE_BSD_SOCKETS
+smcp_status_t
+smcp_message_set_destaddr(
+	struct sockaddr *sockaddr, socklen_t socklen
+) {
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+#elif defined(__CONTIKI__)
+smcp_status_t
+smcp_message_set_destaddr(
+	const uip_ipaddr_t *toaddr, uint16_t toport
+) {
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+#endif
+
+smcp_status_t
+smcp_message_set_uri(
+	const char* uri, bool include_authority
+) {
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+
+smcp_status_t
+smcp_message_add_header(
+	coap_header_key_t key, const char* value, size_t len
+) {
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+
+char*
+smcp_message_get_content_ptr(size_t* max_len) {
+	return NULL;
+}
+
+smcp_status_t
+smcp_message_set_content_len(size_t len) {
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+
+smcp_status_t
+smcp_message_send() {
+	return SMCP_STATUS_NOT_IMPLEMENTED;
 }
 
 #pragma mark -
