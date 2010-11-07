@@ -121,6 +121,17 @@ list_response_handler(
 	}
 }
 
+smcp_status_t
+sliced_post_request_handler(
+	smcp_node_t		node,
+	smcp_method_t	method,
+	const char*		path,
+	const char*		content,
+	size_t			content_length
+) {
+	return SMCP_STATUS_OK;
+}
+
 int
 tool_cmd_test(
 	smcp_daemon_t smcp, int argc, char* argv[]
@@ -137,6 +148,7 @@ tool_cmd_test(
 	struct smcp_timer_node_s timer_node = {};
 	struct smcp_variable_node_s var_node = {};
 	struct smcp_variable_node_s action_node = {};
+	struct smcp_node_s sliced_post_node = {};
 
 	smcp_daemon2 = smcp_daemon_create(12345);
 	if(smcp_daemon_get_port(smcp) == SMCP_DEFAULT_PORT)
@@ -156,6 +168,11 @@ tool_cmd_test(
 		smcp_daemon,
 		smcp_daemon_get_root_node(smcp_daemon),
 		"timer");
+
+	smcp_node_init((smcp_node_t)&sliced_post_node,
+		&device_node,
+		"sliced_post");
+	sliced_post_node.request_handler = &sliced_post_request_handler;
 
 	smcp_node_init_variable(&var_node,
 		    (smcp_node_t)&device_node,

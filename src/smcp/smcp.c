@@ -1350,11 +1350,11 @@ smcp_daemon_handle_list(
 	smcp_status_t ret = 0;
 	char* next_node = NULL;
 	coap_header_item_t replyHeaders[5] = {};
-	char replyContent[128];
+	char replyContent[SMCP_MAX_PATH_LENGTH + 32 + 1];
 	coap_code_t response_code = COAP_RESULT_CODE_OK;
 
 	memset(replyContent, 0, sizeof(replyContent));
-	size_t content_break_threshold = 60;
+	size_t content_break_threshold = 120;
 	size_t content_offset = 0;
 
 	const coap_header_item_t *iter =
@@ -1362,16 +1362,24 @@ smcp_daemon_handle_list(
 	const coap_header_item_t *end = iter +
 	    smcp_daemon_get_current_request_header_count();
 	for(; iter != end; ++iter) {
-		if(iter->key == COAP_HEADER_NEXT) {
+		if(iter->key == COAP_HEADER_CONTINUATION_RESPONSE) {
 			next_node = alloca(iter->value_len + 1);
 			memcpy(next_node, iter->value, iter->value_len);
 			next_node[iter->value_len] = 0;
+		} else if(iter->key == COAP_HEADER_SIZE_REQUEST) {
+			uint8_t i;
+			content_break_threshold = 0;
+			for(i = 0; i < iter->value_len; i++)
+				content_break_threshold =
+				    (content_break_threshold << 8) + iter->value[i];
+			if(content_break_threshold >= sizeof(replyContent)) {
+				DEBUG_PRINTF(CSTR(
+						"Requested size (%d) is too large, trimming to %d."),
+					content_break_threshold, sizeof(replyContent) - 1);
+				content_break_threshold = sizeof(replyContent) - 1;
+			}
 		}
 	}
-
-	if(content_break_threshold >= sizeof(replyContent) - 1)
-		// Trim the content break threshold to something we support.
-		content_break_threshold = sizeof(replyContent) - 2;
 
 	// We only support this method on direct queries.
 	require_action(path[0] == 0, bail, ret = SMCP_STATUS_NOT_FOUND);
@@ -1405,6 +1413,7 @@ smcp_daemon_handle_list(
 		else
 			node = NULL;
 	}
+	next_node = NULL;
 
 	while(node) {
 		smcp_node_t next;
@@ -1413,9 +1422,16 @@ smcp_daemon_handle_list(
 		if(!node_name)
 			break;
 
-		if((strlen(node_name) + 4) >
-		        (content_break_threshold - strlen(replyContent) - 2))
-			break;
+		if(next_node) {
+			if(((int)strlen(node_name) + 4) >
+			        (int)((int)content_break_threshold -
+			            (int)strlen(replyContent) - 2))
+				break;
+		} else {
+			if((strlen(node_name) + 4) >
+			        (sizeof(replyContent) - strlen(replyContent) - 3))
+				break;
+		}
 
 		strlcat(replyContent, "<", sizeof(replyContent));
 
@@ -1438,21 +1454,13 @@ smcp_daemon_handle_list(
 	}
 
 	// If there are more nodes, indicate as such in the headers.
-	if(node) {
+	if(node && next_node) {
 		response_code = COAP_RESULT_CODE_PARTIAL_CONTENT;
-#if SUPPORT_USING_LAST_LINE_FOR_EMPTY_NEXT_HEADER
 		util_add_header(replyHeaders,
 			SMCP_MAX_HEADERS,
-			COAP_HEADER_NEXT,
-			"",
-			HEADER_CSTR_LEN);
-#else
-		util_add_header(replyHeaders,
-			SMCP_MAX_HEADERS,
-			COAP_HEADER_NEXT,
+			COAP_HEADER_CONTINUATION_REQUEST,
 			next_node,
 			HEADER_CSTR_LEN);
-#endif
 	}
 
 	coap_content_type_t content_type =

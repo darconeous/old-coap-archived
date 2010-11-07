@@ -436,10 +436,22 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 		const coap_header_item_t *end = iter +
 		    smcp_daemon_get_current_request_header_count();
 		for(; iter != end; ++iter) {
-			if((iter->key == COAP_HEADER_NEXT) &&
+			if((iter->key == COAP_HEADER_CONTINUATION_RESPONSE) &&
 			        (iter->value_len == sizeof(start_index))) {
 				memcpy(&start_index, iter->value, sizeof(start_index));
 				start_index = ntohs(start_index);
+			} else if(iter->key == COAP_HEADER_SIZE_REQUEST) {
+				uint8_t i;
+				content_break_threshold = 0;
+				for(i = 0; i < iter->value_len; i++)
+					content_break_threshold =
+					    (content_break_threshold << 8) + iter->value[i];
+				if(content_break_threshold >= sizeof(replyContent)) {
+					DEBUG_PRINTF(CSTR(
+							"Requested size (%d) is too large, trimming to %d."),
+						content_break_threshold, sizeof(replyContent) - 1);
+					content_break_threshold = sizeof(replyContent) - 1;
+				}
 			}
 		}
 	}
@@ -520,8 +532,11 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 	if(pairing_iter) {
 		response_code = COAP_RESULT_CODE_PARTIAL_CONTENT;
 		start_index = htons(start_index);
-		util_add_header(replyHeaders, SMCP_MAX_HEADERS, COAP_HEADER_NEXT,
-			    (void*)&start_index, sizeof(start_index));
+		util_add_header(replyHeaders,
+			SMCP_MAX_HEADERS,
+			COAP_HEADER_CONTINUATION_REQUEST,
+			    (void*)&start_index,
+			sizeof(start_index));
 	}
 
 	coap_content_type_t content_type =
@@ -624,7 +639,7 @@ smcp_pairing_node_request_handler(
 					coap_header_item_t rheaders[2] = {
 						{
 							.key = COAP_HEADER_CONTENT_TYPE,
-							.value = &ct,
+							.value = (char*)&ct,
 							.value_len = 1,
 						}
 					};
@@ -652,8 +667,35 @@ smcp_pairing_node_request_handler(
 				} else if(strequal_const(path, "ack")) {
 #if SMCP_CONF_PAIRING_STATS
 				} else if(strequal_const(path, "fc")) {
+					char rcontent[10];
+					snprintf(rcontent,
+						sizeof(rcontent),
+						"%u",
+						pairing->fire_count);
+					smcp_daemon_send_response(COAP_RESULT_CODE_OK,
+						NULL,
+						rcontent,
+						sizeof(rcontent) - 1);
 				} else if(strequal_const(path, "ec")) {
+					char rcontent[10];
+					snprintf(rcontent,
+						sizeof(rcontent),
+						"%u",
+						pairing->errors);
+					smcp_daemon_send_response(COAP_RESULT_CODE_OK,
+						NULL,
+						rcontent,
+						sizeof(rcontent) - 1);
 				} else if(strequal_const(path, "err")) {
+					char rcontent[10];
+					snprintf(rcontent,
+						sizeof(rcontent),
+						"%d",
+						pairing->last_error);
+					smcp_daemon_send_response(COAP_RESULT_CODE_OK,
+						NULL,
+						rcontent,
+						sizeof(rcontent) - 1);
 #endif
 				} else {
 					ret = SMCP_STATUS_NOT_FOUND;

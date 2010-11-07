@@ -114,17 +114,37 @@ typedef enum {
 	COAP_HEADER_URI_PATH = 9,
 	COAP_HEADER_SUBSCRIPTION_LIFETIME = 10, //!< draft-ietf-core-observe
 	COAP_HEADER_TOKEN = 11,
-	COAP_HEADER_BLOCK = 13,                 //!< draft-bormann-core-coap-block-00
 	COAP_HEADER_URI_QUERY = 15,
 
 	COAP_HEADER_FENCEPOST_1 = 14,
 	COAP_HEADER_FENCEPOST_2 = 28,
 
+	COAP_HEADER_BLOCK = 13,         //!< draft-bormann-core-coap-block-00
+
+#define USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT    0
+
+#if USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
+	COAP_HEADER_MESSAGE_SIZE = 16,
+	COAP_HEADER_CONTINUATION_REQUEST = 17,
+	COAP_HEADER_SIZE_REQUEST = 16,
+	COAP_HEADER_CONTINUATION_RESPONSE = 17,
+
+	COAP_HEADER_NEXT = 17,                          //!< Experimental alternative to draft-bormann-core-coap-block-00
+#else
+	COAP_HEADER_MESSAGE_SIZE = 16,                  //!< draft-bormann-core-coap-block-01
+	COAP_HEADER_CONTINUATION_REQUEST = 17,          //!< draft-bormann-core-coap-block-01
+	COAP_HEADER_SIZE_REQUEST = 18,                  //!< draft-bormann-core-coap-block-01
+	COAP_HEADER_CONTINUATION_RESPONSE = 19,         //!< draft-bormann-core-coap-block-01
+	COAP_HEADER_CONTINUATION_REQUIRED = 21,         //!< draft-bormann-core-coap-block-01
+
+	COAP_HEADER_NEXT = COAP_HEADER_FENCEPOST_2 + 3, //!< Experimental alternative to draft-bormann-core-coap-block-00
+#endif
+
+	COAP_HEADER_RANGE = COAP_HEADER_FENCEPOST_2 + 2, //!< Experimental alternative to draft-bormann-core-coap-block-00
+
 	// Experimental after this point
 
 	COAP_HEADER_CASCADE_COUNT = COAP_HEADER_FENCEPOST_2 + 1,    //!< Used for preventing pairing loops.
-	COAP_HEADER_RANGE = COAP_HEADER_FENCEPOST_2 + 2,            //!< Experimental alternative to draft-bormann-core-coap-block-00
-	COAP_HEADER_NEXT = COAP_HEADER_FENCEPOST_2 + 3,             //!< Experimental alternative to draft-bormann-core-coap-block-00
 	SMCP_HEADER_ORIGIN = COAP_HEADER_FENCEPOST_2 + 4,           //!< Used for SMCP Pairing.
 	SMCP_HEADER_CSEQ = COAP_HEADER_FENCEPOST_2 + 6,             //!< Used for SMCP Pairing.
 	COAP_HEADER_ALLOW = COAP_HEADER_FENCEPOST_2 + 8,
@@ -196,7 +216,9 @@ extern size_t coap_decode_header(
 
 extern const char* coap_content_type_to_cstr(
 	coap_content_type_t content_type);
-extern const char* coap_header_key_to_cstr(coap_header_key_t key);
+extern coap_content_type_t coap_content_type_from_cstr(const char* x);
+extern const char* coap_header_key_to_cstr(
+	coap_header_key_t key, bool for_response);
 extern coap_header_key_t coap_header_key_from_cstr(const char* key);
 extern const char* coap_code_to_cstr(int x);
 extern void coap_dump_headers(

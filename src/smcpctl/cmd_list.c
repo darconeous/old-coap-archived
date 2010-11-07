@@ -31,6 +31,7 @@ static arg_list_item_t option_list[] = {
 static int gRet;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
+static uint16_t size_request;
 
 static void
 signal_interrupt(int sig) {
@@ -144,7 +145,7 @@ list_response_handler(
 			for(; iter != end; ++iter) {
 				if(iter->key == COAP_HEADER_CONTENT_TYPE)
 					content_type = (unsigned char)iter->value[0];
-				else if(iter->key == COAP_HEADER_NEXT)
+				else if(iter->key == COAP_HEADER_CONTINUATION_REQUEST)
 					next = iter;
 			}
 		}
@@ -162,7 +163,7 @@ list_response_handler(
 			char *end = content + content_length;
 			int col_width = 16;
 
-			while(iter < end) {
+			while(iter && (iter < end)) {
 				if(*iter == '<') {
 					char* uri = 0;
 					char* name = 0;
@@ -176,7 +177,7 @@ list_response_handler(
 					uri_len = iter - uri - 1;
 
 					// Skip past any arguments
-					if(*iter == ';') {
+					if(iter && *iter == ';') {
 						while((iter < end)) {
 							char* key;
 							char* value;
@@ -272,9 +273,16 @@ resend_list_request(smcp_daemon_t smcp) {
 	if(next_len != ((size_t)(-1))) {
 		util_add_header(headers,
 			SMCP_MAX_HEADERS,
-			COAP_HEADER_NEXT,
+			COAP_HEADER_CONTINUATION_RESPONSE,
 			next_data,
 			next_len);
+	}
+	if(size_request) {
+		util_add_header(headers,
+			SMCP_MAX_HEADERS,
+			COAP_HEADER_SIZE_REQUEST,
+			    (void*)&size_request,
+			sizeof(size_request));
 	}
 
 	status = smcp_daemon_add_response_handler(
@@ -357,11 +365,14 @@ tool_cmd_list(
 	list_show_headers = false;
 	redirect_count = 10;
 	redirect_url[0] = 0;
+	size_request = 0;
 
 	BEGIN_LONG_ARGUMENTS(gRet)
 	HANDLE_LONG_ARGUMENT("include") list_show_headers = true;
 	HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
 	HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
+	HANDLE_LONG_ARGUMENT("slice-size") size_request =
+	    htons(strtol(argv[++i], NULL, 0));
 
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");

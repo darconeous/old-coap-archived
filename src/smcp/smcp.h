@@ -136,9 +136,7 @@ extern const char* smcp_status_to_cstr(smcp_status_t x);
 #define smcp_header_item_set_key(item, x)        ((item)->key = (x))
 #define smcp_header_item_get_value_len(item)        ((item)->value_len)
 #define smcp_header_item_key_equal(item, k)      ((item)->key == (k))
-#define smcp_header_item_get_key_cstr(item) \
-    coap_header_key_to_cstr( \
-	    smcp_header_item_get_key(item))
+//#define smcp_header_item_get_key_cstr(item)	coap_header_key_to_cstr(smcp_header_item_get_key(item))
 
 
 struct smcp_daemon_s;

@@ -34,6 +34,7 @@ static int gRet;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
 static bool get_show_headers;
+static uint16_t size_request;
 
 static void
 signal_interrupt(int sig) {
@@ -138,7 +139,7 @@ get_response_handler(
 		for(; iter != end; ++iter) {
 			if(iter->key == COAP_HEADER_CONTENT_TYPE)
 				content_type = (unsigned char)iter->value[0];
-			else if(iter->key == COAP_HEADER_NEXT)
+			else if(iter->key == COAP_HEADER_CONTINUATION_REQUEST)
 				next = iter;
 		}
 
@@ -169,9 +170,16 @@ resend_get_request(smcp_daemon_t smcp) {
 	if(next_len != ((size_t)(-1))) {
 		util_add_header(headers,
 			SMCP_MAX_HEADERS,
-			COAP_HEADER_NEXT,
+			COAP_HEADER_CONTINUATION_RESPONSE,
 			next_data,
 			next_len);
+	}
+	if(size_request) {
+		util_add_header(headers,
+			SMCP_MAX_HEADERS,
+			COAP_HEADER_SIZE_REQUEST,
+			    (void*)&size_request,
+			sizeof(size_request));
 	}
 
 	status = smcp_daemon_add_response_handler(
@@ -254,11 +262,14 @@ tool_cmd_get(
 	next_len = ((size_t)(-1));
 	get_show_headers = false;
 	redirect_count = 0;
+	size_request = 0;
 
 	BEGIN_LONG_ARGUMENTS(gRet)
 	HANDLE_LONG_ARGUMENT("include") get_show_headers = true;
 	HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
 	HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
+	HANDLE_LONG_ARGUMENT("slice-size") size_request =
+	    htons(strtol(argv[++i], NULL, 0));
 
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");

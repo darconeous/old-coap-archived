@@ -20,24 +20,20 @@
 #include <signal.h>
 #include "smcpctl.h"
 
-/*
-   static arg_list_item_t option_list[] = {
-    { 'h', "help",NULL,"Print Help" },
-    { 0 }
-   };
- */
+static arg_list_item_t option_list[] = {
+	{ 'h', "help",				  NULL, "Print Help" },
+//	{ 'c', "content-file",NULL,"Use content from the specified input source" },
+	{ 0,   "outbound-slice-size", NULL, "writeme"	 },
+	{ 0,   "content-type",		  NULL, "writeme"	 },
+	{ 0 }
+};
 
 static int gRet;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
+static coap_content_type_t content_type;
+static int outbound_slice_size;
 
-/*
-   static arg_list_item_t option_list[] = {
-    { 'h', "help",NULL,"Print Help" },
-    { 'c', "content-file",NULL,"Use content from the specified input source" },
-    { 0 }
-   };
- */
 static void
 signal_interrupt(int sig) {
 	gRet = ERRORCODE_INTERRUPT;
@@ -106,6 +102,14 @@ send_post_request(
 
 	gRet = ERRORCODE_INPROGRESS;
 
+	if(content_type) {
+		util_add_header(headers,
+			SMCP_MAX_HEADERS,
+			COAP_HEADER_CONTENT_TYPE,
+			    (void*)&content_type,
+			1);
+	}
+
 	require_noerr(smcp_daemon_add_response_handler(
 			smcp,
 			tid,
@@ -136,38 +140,73 @@ tool_cmd_post(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
-
+	int i;
 	char url[1000];
 	url[0] = 0;
+	char content[10000];
+	content[0] = 0;
+	content_type = 0;
 
-	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
-		printf("Help not yet implemented for this command.\n");
-		return ERRORCODE_HELP;
+	outbound_slice_size = 100;
+
+	BEGIN_LONG_ARGUMENTS(gRet)
+//		HANDLE_LONG_ARGUMENT("include") get_show_headers = true;
+//		HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
+//		HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
+	HANDLE_LONG_ARGUMENT("outbound-slice-size") outbound_slice_size =
+	    strtol(argv[++i], NULL, 0);
+	HANDLE_LONG_ARGUMENT("content-type") content_type =
+	    coap_content_type_from_cstr(argv[++i]);
+	HANDLE_LONG_ARGUMENT("help") {
+		print_arg_list_help(option_list,
+			argv[0],
+			"[args] <uri> <POST-Data>");
+		gRet = ERRORCODE_HELP;
+		goto bail;
 	}
+	BEGIN_SHORT_ARGUMENTS(gRet)
+//		HANDLE_SHORT_ARGUMENT('i') get_show_headers = true;
+//		HANDLE_SHORT_ARGUMENT('f') redirect_count = 10;
 
-	gRet = ERRORCODE_UNKNOWN;
-
-	if(getenv("SMCP_CURRENT_PATH")) {
-		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
-		if(argc >= 2)
-			url_change(url, argv[1]);
-	} else {
-		if(argc >= 2) {
-			strncpy(url, argv[1], sizeof(url));
+	HANDLE_SHORT_ARGUMENT2('h', '?') {
+		print_arg_list_help(option_list,
+			argv[0],
+			"[args] <uri> <POST-Data>");
+		gRet = ERRORCODE_HELP;
+		goto bail;
+	}
+	HANDLE_OTHER_ARGUMENT() {
+		if(url[0] == 0) {
+			if(getenv("SMCP_CURRENT_PATH")) {
+				strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+				url_change(url, argv[i]);
+			} else {
+				strncpy(url, argv[i], sizeof(url));
+			}
 		} else {
-			fprintf(stderr, "Bad args.\n");
-			gRet = ERRORCODE_BADARG;
-			goto bail;
+			if(content[0] == 0) {
+				strncpy(content, argv[i], sizeof(content));
+			} else {
+				strncat(content, " ", sizeof(content));
+				strncat(content, argv[i], sizeof(content));
+			}
 		}
 	}
+	END_ARGUMENTS
 
-	if(argc >= 3)
-		require(send_post_request(smcp, url, argv[2], strlen(
-					argv[2])), bail);
-	else
-		require(send_post_request(smcp, url, NULL, 0), bail);
+	if((url[0] == 0) && getenv("SMCP_CURRENT_PATH"))
+		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+
+	if(url[0] == 0) {
+		fprintf(stderr, "Missing path argument.\n");
+		gRet = ERRORCODE_BADARG;
+		goto bail;
+	}
+
 
 	gRet = ERRORCODE_INPROGRESS;
+
+	require(send_post_request(smcp, url, content, strlen(content)), bail);
 
 	while(ERRORCODE_INPROGRESS == gRet)
 		smcp_daemon_process(smcp, -1);

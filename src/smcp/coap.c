@@ -1,6 +1,7 @@
 #include "assert_macros.h"
 #include "coap.h"
 #include <stdlib.h>
+#include "ctype.h"
 
 // Used by qsort
 static int
@@ -231,75 +232,130 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 		if(content_type < 20)
 			snprintf(ret,
 				sizeof(ret),
-				"text/x-coap-%02x",
+				"text/x-coap-%u",
 				    (unsigned char)content_type);
 		else if(content_type < 40)
 			snprintf(ret,
 				sizeof(ret),
-				"image/x-coap-%02x",
+				"image/x-coap-%u",
 				    (unsigned char)content_type);
 		else if(content_type < 60)
-			snprintf(ret, sizeof(ret), "application/x-coap-%02x",
+			snprintf(ret, sizeof(ret), "application/x-coap-%u",
 				    (unsigned char)content_type);
 		else if(content_type < 201)
-			snprintf(ret, sizeof(ret), "application/x-coap-%02x",
+			snprintf(ret, sizeof(ret), "application/x-coap-%u",
 				    (unsigned char)content_type);
 		else
 			// Experimental
-			snprintf(ret, sizeof(ret), "application/x-coap-%02x",
+			snprintf(ret, sizeof(ret), "application/x-coap-%u",
 				    (unsigned char)content_type);
 		content_type_string = ret;
 	}
 	return content_type_string;
 }
 
+coap_content_type_t
+coap_content_type_from_cstr(const char* x) {
+	if(!x)
+		return 0;
+
+	if(0 ==
+	    strncmp(x, "application/x-coap-", sizeof("application/x-coap-") -
+			1))
+		x += sizeof("application/x-coap-") - 1;
+	else if(0 == strncmp(x, "text/x-coap-", sizeof("text/x-coap-") - 1))
+		x += sizeof("text/x-coap-") - 1;
+	else if(0 == strncmp(x, "image/x-coap-", sizeof("image/x-coap-") - 1))
+		x += sizeof("image/x-coap-") - 1;
+
+	if(isdigit(x[0]))
+		return strtol(x, NULL, 0);
+
+	if(0 == strcmp(x, "text/plain"))
+		return COAP_CONTENT_TYPE_TEXT_PLAIN;
+	if(0 == strcmp(x, "text/xml"))
+		return COAP_CONTENT_TYPE_TEXT_XML;
+	if(0 == strcmp(x, "application/x-www-form-urlencoded"))
+		return SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
+	if(0 == strcmp(x, "application/link-format"))
+		return COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
+	if(0 == strcmp(x, "application/octet-stream"))
+		return COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+
+	// TODO: Add the others!
+
+	return COAP_CONTENT_TYPE_UNKNOWN;
+}
+
 const char*
-coap_header_key_to_cstr(coap_header_key_t key) {
+coap_header_key_to_cstr(
+	coap_header_key_t key, bool for_response
+) {
 	const char* ret = NULL;
 
-	switch(key) {
-	case COAP_HEADER_CONTENT_TYPE: ret = "Content-type"; break;
-	case COAP_HEADER_MAX_AGE: ret = "Max-age"; break;
-	case COAP_HEADER_ETAG: ret = "Etag"; break;
-	case COAP_HEADER_URI_AUTHORITY: ret = "URI-authority"; break;
-	case COAP_HEADER_LOCATION: ret = "Location"; break;
-	case COAP_HEADER_URI_PATH: ret = "URI-path"; break;
+	if(for_response) switch(key) {
+#if USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
+		case COAP_HEADER_MESSAGE_SIZE: ret = "Message-size"; break;
+		case COAP_HEADER_CONTINUATION_REQUEST: ret =
+			    "Continuation-request"; break;
+#endif
+		default: break;
+		}
+	if(!ret) switch(key) {
+		case COAP_HEADER_CONTENT_TYPE: ret = "Content-type"; break;
+		case COAP_HEADER_MAX_AGE: ret = "Max-age"; break;
+		case COAP_HEADER_ETAG: ret = "Etag"; break;
+		case COAP_HEADER_URI_AUTHORITY: ret = "URI-authority"; break;
+		case COAP_HEADER_LOCATION: ret = "Location"; break;
+		case COAP_HEADER_URI_PATH: ret = "URI-path"; break;
 
-	case COAP_HEADER_URI_SCHEME: ret = "URI-scheme"; break;
-	case COAP_HEADER_URI_AUTHORITY_BINARY: ret = "URI-authority-binary";
-		break;
-	case COAP_HEADER_ACCEPT: ret = "Accept"; break;
-	case COAP_HEADER_SUBSCRIPTION_LIFETIME: ret = "Subscription-lifetime";
-		break;
+		case COAP_HEADER_URI_SCHEME: ret = "URI-scheme"; break;
+		case COAP_HEADER_URI_AUTHORITY_BINARY: ret =
+			    "URI-authority-binary"; break;
+		case COAP_HEADER_ACCEPT: ret = "Accept"; break;
+		case COAP_HEADER_SUBSCRIPTION_LIFETIME: ret =
+			    "Subscription-lifetime"; break;
 //		case COAP_HEADER_DATE: ret = "Date"; break;
-	case COAP_HEADER_TOKEN: ret = "Token"; break;
-	case COAP_HEADER_BLOCK: ret = "Block"; break;
-	case COAP_HEADER_URI_QUERY: ret = "URI-query"; break;
+		case COAP_HEADER_TOKEN: ret = "Token"; break;
+		case COAP_HEADER_BLOCK: ret = "Block"; break;
+		case COAP_HEADER_URI_QUERY: ret = "URI-query"; break;
 //		case COAP_HEADER_PAYLOAD_LENGTH: ret = "Payload-length"; break;
 
-	case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
-	case COAP_HEADER_NEXT: ret = "Next"; break;
-	case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
-	case COAP_HEADER_ALLOW: ret = "Allow"; break;
+		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
+		case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
+		case COAP_HEADER_ALLOW: ret = "Allow"; break;
 
-	case COAP_HEADER_RANGE: ret = "Range"; break;
-	case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
+		case COAP_HEADER_RANGE: ret = "Range"; break;
+		case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
 
-	default:
-	{
-		static char x[30];
-		if(key % 14) {
-			if(key & 1)
-				sprintf(x, "X-Critical-CoAP-%u", key);
-			else
-				sprintf(x, "X-Elective-CoAP-%u", key);
-		} else {
-			sprintf(x, "Ignore-%u", key);
+#if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
+		case COAP_HEADER_MESSAGE_SIZE: ret = "Message-size"; break;
+		case COAP_HEADER_CONTINUATION_REQUEST: ret =
+			    "Continuation-request"; break;
+		case COAP_HEADER_CONTINUATION_REQUIRED: ret =
+			    "Continuation-required"; break;
+		case COAP_HEADER_NEXT: ret = "Next"; break;
+#endif
+
+		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
+		case COAP_HEADER_CONTINUATION_RESPONSE: ret =
+			    "Continuation-response"; break;
+
+		default:
+		{
+			static char x[30];
+			if(key % 14) {
+				if(key & 1)
+					sprintf(x, "X-Critical-CoAP-%u", key);
+				else
+					sprintf(x, "X-Elective-CoAP-%u", key);
+			} else {
+				sprintf(x, "Ignore-%u", key);
+			}
+			ret = x;
 		}
-		ret = x;
-	}
-	break;
-	}
+		break;
+		}
 	return ret;
 }
 
@@ -426,7 +482,8 @@ coap_dump_headers(
 
 	for(iter = headers; iter != end; ++iter) {
 		fputs(prefix, outstream);
-		fprintf(outstream, "%s: ", coap_header_key_to_cstr(iter->key));
+		fprintf(outstream, "%s: ",
+			coap_header_key_to_cstr(iter->key, statuscode > 100));
 		switch(iter->key) {
 		case COAP_HEADER_CONTENT_TYPE:
 			fprintf(outstream, "%s",
@@ -444,6 +501,18 @@ coap_dump_headers(
 			fprintf(outstream, "%lu", age);
 		}
 		break;
+		case COAP_HEADER_MESSAGE_SIZE:
+#if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
+		case COAP_HEADER_SIZE_REQUEST:
+#endif
+			{
+				unsigned long age = 0;
+				uint8_t i;
+				for(i = 0; i < iter->value_len; i++)
+					age = (age << 8) + iter->value[i];
+				fprintf(outstream, "%lu", age);
+			}
+			break;
 		case COAP_HEADER_ACCEPT:
 		{
 			size_t i;
