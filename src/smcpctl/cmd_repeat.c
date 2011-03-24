@@ -21,10 +21,11 @@
 #include "smcpctl.h"
 
 static arg_list_item_t option_list[] = {
-	{ 'h', "help",	   NULL,   "Print Help"			  },
+	{ 'h', "help",	   NULL,				 "Print Help"			},
 	{ 'i', "interval", "msec",
 	  "Milliseconds to wait between executions." },
-	{ 'c', "count",	   "i",	   "Number of iterations" },
+	{ 'c', "count",	   "i",					 "Number of iterations" },
+	{ 0,   "prefix",   "[formatted string]", "writeme"				},
 	{ 0 }
 };
 
@@ -45,12 +46,14 @@ tool_cmd_repeat(
 	int i = 0;
 	cms_t interval = 5 * MSEC_PER_SEC;
 	uint32_t count = 0xFFFFFFFF;
+	const char* prefix_string;
 
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
 	BEGIN_LONG_ARGUMENTS(ret)
 	HANDLE_LONG_ARGUMENT("interval") interval = strtol(argv[++i], NULL, 0);
 	HANDLE_LONG_ARGUMENT("count") count = strtol(argv[++i], NULL, 0);
+	HANDLE_LONG_ARGUMENT("prefix") prefix_string = argv[++i];
 
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list, argv[0], "[args] command [...]");
@@ -79,6 +82,8 @@ tool_cmd_repeat(
 	if((0 == strcmp(argv[i], "repeat"))
 	    || (0 == strcmp(argv[i], "cd"))
 	    || (0 == strcmp(argv[i], "quit"))
+	    || (0 == strcmp(argv[i], "q"))
+	    || (0 == strcmp(argv[i], "exit"))
 	    || (0 == strcmp(argv[i], "test"))
 	    || (0 == strcmp(argv[i], "help"))
 	) {
@@ -91,6 +96,16 @@ tool_cmd_repeat(
 	}
 
 	while(count-- && (ret == 0)) {
+		if(prefix_string) {
+			char prefix_buffer[1000];
+			struct timeval tv;
+			gettimeofday(&tv, NULL);
+			strftime(prefix_buffer,
+				sizeof(prefix_buffer),
+				prefix_string,
+				localtime(&tv.tv_sec));
+			fputs(prefix_buffer, stdout);
+		}
 		ret = exec_command(smcp, argc - i, argv + i);
 
 		struct timeval continue_time;

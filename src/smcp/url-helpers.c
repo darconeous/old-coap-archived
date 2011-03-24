@@ -358,6 +358,8 @@ string_contains_colons(const char* str) {
 extern bool url_change(
 	char* url, const char* new_url_
 ) {
+	// TODO: This function is inefficient. Optimize it!
+
 	bool ret = false;
 
 	if(url_is_absolute(new_url_)) {

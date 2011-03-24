@@ -72,4 +72,15 @@ struct smcp_daemon_s {
 	// TODO: writeme!
 
 	coap_header_item_t		current_outbound_headers[SMCP_MAX_HEADERS + 1];
+	uint8_t					current_outbound_header_count;
+	coap_transaction_type_t current_outbound_tt;
+	coap_code_t				current_outbound_code;
+	coap_transaction_id_t	current_outbound_tid;
+
+#if SMCP_USE_BSD_SOCKETS
+	char					current_outbound_packet[SMCP_MAX_PACKET_LENGTH
+	    + 1];
+	struct sockaddr*		current_outbound_saddr;
+	socklen_t				current_outbound_socklen;
+#endif
 };

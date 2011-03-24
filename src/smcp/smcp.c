@@ -1018,16 +1018,22 @@ smcp_status_t
 smcp_message_begin(
 	smcp_daemon_t self, coap_transaction_type_t tt
 ) {
-	return SMCP_STATUS_NOT_IMPLEMENTED;
+	self->current_outbound_header_count = 0;
+	self->current_outbound_tt = tt;
+	self->current_outbound_code = 0;
+
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
 smcp_message_set_tid(coap_transaction_id_t tid) {
-	return SMCP_STATUS_NOT_IMPLEMENTED;
+	smcp_get_current_daemon()->current_outbound_tid = tid;
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
 smcp_message_set_code(coap_code_t code) {
+	smcp_get_current_daemon()->current_outbound_code = code;
 	return SMCP_STATUS_NOT_IMPLEMENTED;
 }
 
@@ -1043,22 +1049,88 @@ smcp_status_t
 smcp_message_set_destaddr(
 	const uip_ipaddr_t *toaddr, uint16_t toport
 ) {
-	return SMCP_STATUS_NOT_IMPLEMENTED;
+	uip_ipaddr_copy(&smcp_get_current_daemon()->udp_conn->ripaddr, toaddr);
+	smcp_get_current_daemon()->udp_conn->rport = toport;
+
+	return SMCP_STATUS_OK;
 }
 #endif
-
-smcp_status_t
-smcp_message_set_uri(
-	const char* uri, bool include_authority
-) {
-	return SMCP_STATUS_NOT_IMPLEMENTED;
-}
 
 smcp_status_t
 smcp_message_add_header(
 	coap_header_key_t key, const char* value, size_t len
 ) {
-	return SMCP_STATUS_NOT_IMPLEMENTED;
+	smcp_get_current_daemon()->current_outbound_headers[
+	    smcp_get_current_daemon()->current_outbound_header_count].key =
+	    key;
+	smcp_get_current_daemon()->current_outbound_headers[
+	    smcp_get_current_daemon()->current_outbound_header_count].value =
+	    (char*)value;
+	smcp_get_current_daemon()->current_outbound_headers[
+	    smcp_get_current_daemon()->current_outbound_header_count++].
+	value_len =
+	    len;
+
+	return SMCP_STATUS_OK;
+}
+
+smcp_status_t
+smcp_message_set_uri(
+	const char* uri, bool include_authority
+) {
+	const char* start;
+
+	if(url_is_absolute(uri)) {
+		// Skip past scheme.
+		while((*uri != ':'))
+			if(!*uri++)
+				goto bail;
+
+		uri++;
+
+		if((uri[0] != '/') || (uri[1] != '/'))
+			goto bail;
+
+		uri += 2;
+
+		start = uri;
+
+		// Skip past authority.
+		while((*uri != '/') && *uri)
+			uri++;
+
+		if(include_authority)
+			smcp_message_add_header(COAP_HEADER_URI_AUTHORITY,
+				start,
+				uri - start);
+	}
+
+	if(!*uri)
+		goto bail;
+
+	start = uri;
+
+	// Skip past path.
+	while((*uri != '?') && *uri)
+		uri++;
+
+	smcp_message_add_header(COAP_HEADER_URI_PATH, start, uri - start);
+
+	if(!*uri++)
+		goto bail;
+
+	start = uri;
+
+	if(!*uri)
+		goto bail;
+
+	// Skip to the end
+	while(*uri++) ;
+
+	smcp_message_add_header(COAP_HEADER_URI_QUERY, start, uri - start);
+
+bail:
+	return SMCP_STATUS_OK;
 }
 
 char*
@@ -1073,6 +1145,13 @@ smcp_message_set_content_len(size_t len) {
 
 smcp_status_t
 smcp_message_send() {
+#if SMCP_USE_BSD_SOCKETS
+#elif defined(__CONTIKI__)
+	memset(&smcp_get_current_daemon()->udp_conn->ripaddr, 0,
+		sizeof(uip_ipaddr_t));
+	smcp_get_current_daemon()->udp_conn->rport = 0;
+	// TODO: Writeme!
+#endif
 	return SMCP_STATUS_NOT_IMPLEMENTED;
 }
 

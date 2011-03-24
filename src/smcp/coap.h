@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdint.h>
-//#include <sys/types.h>
 
 #if __CONTIKI__
 #include "net/uip.h"
@@ -18,7 +17,7 @@
 #define COAP_RESPONSE_TIMEOUT   (1000)  // In ms, defined in http://tools.ietf.org/html/draft-ietf-core-coap-03#section-4.2
 #define COAP_MAX_RETRANSMIT     (5)     // Defined in http://tools.ietf.org/html/draft-ietf-core-coap-03#section-4.2
 
-#define COAP_DEFAULT_PORT   (61616)
+#define COAP_DEFAULT_PORT   (61616)     // Not yet defined. Just guessing here.
 
 #define COAP_VERSION    (1)
 #define COAP_TRANS_TYPE_CONFIRMABLE     (0)
