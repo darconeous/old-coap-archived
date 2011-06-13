@@ -9,6 +9,8 @@
 #include "btree.h"
 #include <assert.h>
 
+// TODO: Add some sort of tree-balancing algorithm, like <http://en.wikipedia.org/wiki/Scapegoat_tree>
+
 int
 bt_insert(
 	void**				bt,
@@ -20,8 +22,6 @@ bt_insert(
 	int depth = 0;
 	bt_item_t const item_ = item;
 	bt_item_t location_;
-
-	// TODO: Add some sort of tree-balancing algorithm, like <http://en.wikipedia.org/wiki/Scapegoat_tree>
 
 again:
 
@@ -313,13 +313,34 @@ bail:
 	return ret;
 }
 
+int
+bt_get_balance(void* node) {
+	int ret = 0;
+	int root_index = 0;
+
+	bt_item_t iter = bt_first(node);
+	bt_item_t end = bt_next(bt_last(node));
+
+	for(;iter!=end;iter=bt_next(iter)) {
+		if(iter==node)
+			root_index = ret;
+		ret++;
+	}
+
+	ret /= 2;
+	ret -= root_index;
+
+bail:
+	return ret;
+}
+
 unsigned int
 bt_rebalance(void** bt) {
 	unsigned int ret = 0;
 
 	bt_item_t iter = bt_first(*bt);
 	bt_item_t median = iter;
-	bt_item_t end = bt_last(*bt);
+	bt_item_t end = bt_next(bt_last(*bt));
 
 	if(!iter)
 		goto bail;
@@ -433,15 +454,16 @@ main(
 	int argc, char* argv[]
 ) {
 	self_test_node_t root = NULL;
-	unsigned char i = 0;
+	int i;
+	unsigned char c;
 
 	// Insert in pseudo random order.
 	printf("Inserting nodes in pseudo random order.\n");
-	for(i = i * 97 + 101; i; i = i * 97 + 101) {
+	for(c = 0 * 97 + 101; c; c = c * 97 + 101) {
 		self_test_node_t new_node = calloc(sizeof(struct self_test_node_s),
 			1);
 
-		asprintf(&new_node->name, "item_%d", i);
+		asprintf(&new_node->name, "item_%d", c);
 
 		nodes_alive++;
 
@@ -461,29 +483,23 @@ main(
 		return -1;
 	}
 
-	forward_traversal_test(root);
-	reverse_traversal_test(root);
-
-
-/*
-    {
-        unsigned int i = bt_unbalance((void**)&root);
-        printf("Unbalance operation took %u rotations\n",i);
-    }
- */
-
-	{
-		unsigned int i = bt_rebalance((void**)&root);
-		printf("First balance operation took %u rotations\n", i);
-	}
+	printf(" * balance = %d\n",bt_get_balance(root));
 
 	forward_traversal_test(root);
 	reverse_traversal_test(root);
 
-	{
-		unsigned int i = bt_rebalance((void**)&root);
-		printf("Second balance operation took %u rotations\n", i);
-	}
+	i = bt_rebalance((void**)&root);
+	printf("Rebalance operation took %u rotations\n", i);
+
+	printf(" * balance = %d\n",bt_get_balance(root));
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	i = bt_rebalance((void**)&root);
+	printf("Rebalance operation took %u rotations\n", i);
+
+	printf(" * balance = %d\n",bt_get_balance(root));
 
 	forward_traversal_test(root);
 	reverse_traversal_test(root);
@@ -507,36 +523,38 @@ main(
 		);
 	}
 
-	forward_traversal_test(root);
-	reverse_traversal_test(root);
-
-	{
-		unsigned int i = bt_rebalance((void**)&root);
-		printf("Third balance operation took %u rotations\n", i);
-	}
+	printf(" * balance = %d\n",bt_get_balance(root));
 
 	forward_traversal_test(root);
 	reverse_traversal_test(root);
 
-	{
-		unsigned int i = bt_rebalance((void**)&root);
-		printf("Fourth balance operation took %u rotations\n", i);
-	}
+	i = bt_rebalance((void**)&root);
+	printf("Rebalance operation took %u rotations\n", i);
 
-	{
-		unsigned int i = bt_unbalance((void**)&root);
-		printf("Unbalance operation took %u rotations\n", i);
-	}
+	printf(" * balance = %d\n",bt_get_balance(root));
 
-	{
-		unsigned int i = bt_rebalance((void**)&root);
-		printf("Fifth balance operation took %u rotations\n", i);
-	}
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
 
-	{
-		unsigned int i = bt_rebalance((void**)&root);
-		printf("Sixth balance operation took %u rotations\n", i);
-	}
+	i = bt_rebalance((void**)&root);
+	printf("Rebalance operation took %u rotations\n", i);
+
+	printf(" * balance = %d\n",bt_get_balance(root));
+
+	i = bt_unbalance((void**)&root);
+	printf("Unbalance operation took %u rotations\n", i);
+
+	printf(" * balance = %d\n",bt_get_balance(root));
+
+	i = bt_rebalance((void**)&root);
+	printf("Rebalance operation took %u rotations\n", i);
+
+	printf(" * balance = %d\n",bt_get_balance(root));
+
+	i = bt_rebalance((void**)&root);
+	printf("Rebalance operation took %u rotations\n", i);
+
+	printf(" * balance = %d\n",bt_get_balance(root));
 
 	forward_traversal_test(root);
 	reverse_traversal_test(root);

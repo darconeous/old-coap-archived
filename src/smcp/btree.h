@@ -70,18 +70,25 @@ extern void* bt_first(void* item);
 extern void* bt_last(void* item);
 
 //!	Returns the next node in the tree, or NULL the given item is the last (right-most) node in the tree.
+//! Performs an in-order depth-first traversal.
 extern void* bt_next(void* item);
 
 //!	Returns the previous node in the tree, or NULL the given item is the first (left-most) node in the tree.
+//! Performs a reverse-order depth-first traversal.
 extern void* bt_prev(void* item);
 
 //!	Traverses the given tree to determine the number of nodes it contains.
 extern size_t bt_count(void*const* bt);
 
-extern void bt_rotate_left(void** bt);
-extern void bt_rotate_right(void** bt);
+extern int bt_get_balance(void* node);
+
+extern void bt_rotate_left(void** pivot);
+
+extern void bt_rotate_right(void** pivot);
+
 extern unsigned int bt_rebalance(void** bt);
-unsigned int bt_splay(void** bt, void* root);
+
+extern unsigned int bt_splay(void** bt, void* root);
 
 __END_DECLS
 
