@@ -41,7 +41,7 @@ typedef bt_compare_result_t (*bt_compare_func_t)(const void* lhs,
 typedef void (*bt_delete_func_t)(void* item, void* context);
 
 //! Inserts the given item into the tree.
-extern void bt_insert(
+extern int bt_insert(
 	void**				bt,
 	void*				item,
 	bt_compare_func_t	compare_func,
@@ -81,7 +81,7 @@ extern size_t bt_count(void*const* bt);
 extern void bt_rotate_left(void** bt);
 extern void bt_rotate_right(void** bt);
 extern unsigned int bt_rebalance(void** bt);
-extern int bt_get_balance(void* item);
+unsigned int bt_splay(void** bt, void* root);
 
 __END_DECLS
 

@@ -9,7 +9,7 @@
 #include "btree.h"
 #include <assert.h>
 
-void
+int
 bt_insert(
 	void**				bt,
 	void*				item,
@@ -17,6 +17,7 @@ bt_insert(
 	bt_delete_func_t	delete_func,
 	void*				context
 ) {
+	int depth = 0;
 	bt_item_t const item_ = item;
 	bt_item_t location_;
 
@@ -36,6 +37,7 @@ again:
 			bt =
 			    (result <
 			    0) ? (void**)&location_->rhs : (void**)&location_->lhs;
+			depth++;
 			goto again;
 		} else if(item_ != location_) {
 			// Item already exists, so we replace.
@@ -53,12 +55,14 @@ again:
 			if(location_->rhs)
 				location_->rhs->parent = item_;
 			*bt = item_;
-			    (*delete_func)(location_, context);
+			(*delete_func)(location_, context);
 		}
 	} else {
 		// Found outselves a good spot. Put the item here.
 		*bt = item_;
 	}
+
+	return depth;
 }
 
 void*
@@ -251,21 +255,6 @@ bt_rotate_left(void** bt) {
 	}
 }
 
-int
-bt_get_balance(void* item_) {
-	int imbalance = 0;
-	bt_item_t item;
-
-	for(item = item_; item; item = item->lhs)
-		imbalance++;
-
-	for(item = item_; item; item = item->rhs)
-		imbalance--;
-
-bail:
-	return imbalance;
-}
-
 unsigned int
 bt_unbalance(void** bt) {
 	unsigned int ret = 0;
@@ -287,6 +276,128 @@ bail:
 }
 
 unsigned int
+bt_splay(void** bt, void* root) {
+	unsigned int ret = 0;
+	bt_item_t item = root;
+
+	if(*bt==root)
+		goto bail;
+
+	while((item!=*bt) && item->parent&& item->parent->parent) {
+		void** pivot;
+
+		if(item->parent->parent->lhs==item->parent)
+			pivot=(void**)&item->parent->parent->lhs;
+		else
+			pivot=(void**)&item->parent->parent->rhs;
+
+		if(item->parent->lhs==item)
+			bt_rotate_right(pivot);
+		else
+			bt_rotate_left(pivot);
+
+		ret++;
+	}
+
+	if(*bt!=root) {
+		if(((bt_item_t)*bt)->lhs==root)
+			bt_rotate_right(bt);
+		else
+			bt_rotate_left(bt);
+		ret++;
+	}
+
+/*
+	bt_item_t item = root;
+	bt_item_t last = item;
+	bool is_lhs;
+
+	for(;(item!=*bt) && item->parent;item=item->parent) {
+		if(item->parent->lhs==item) {
+			if(!is_lhs) {
+				is_lhs = 1;
+				last = item->parent;
+			}
+		} else {
+			if(is_lhs) {
+				is_lhs = 0;
+				last = item->parent;
+			}
+		}
+	}
+
+	if(is_lhs) {
+		if((last != root) && ((bt_item_t)*bt)->lhs)
+			ret += bt_splay((void**)&((bt_item_t)*bt)->lhs,root);
+		while(*bt!=root) {
+			bt_rotate_right(bt);
+			ret++;
+		}
+	} else {
+		if((last != root) && ((bt_item_t)*bt)->rhs)
+			ret += bt_splay((void**)&((bt_item_t)*bt)->rhs,root);
+		while(*bt!=root) {
+			bt_rotate_left(bt);
+			ret++;
+		}
+	}
+
+
+*/
+
+	assert(*bt==root);
+
+bail:
+	return ret;
+}
+
+unsigned int
+bt_rebalance(void** bt) {
+	unsigned int ret = 0;
+
+	bt_item_t iter = bt_first(*bt);
+	bt_item_t median = iter;
+	bt_item_t end = bt_last(*bt);
+
+	if(!iter)
+		goto bail;
+
+	while(iter!=end) {
+		iter = bt_next(iter);
+		if(iter==end)
+			break;
+		iter = bt_next(iter);
+		median = bt_next(median);
+	}
+
+	ret += bt_splay(bt,median);
+
+	iter = *bt;
+
+	ret += bt_rebalance((void**)&iter->lhs);
+	ret += bt_rebalance((void**)&iter->rhs);
+
+bail:
+	return ret;
+}
+
+/*
+int
+bt_get_naive_balance(void* item_) {
+	int imbalance = 0;
+	bt_item_t item;
+
+	for(item = item_; item; item = item->lhs)
+		imbalance++;
+
+	for(item = item_; item; item = item->rhs)
+		imbalance--;
+
+bail:
+	return imbalance;
+}
+
+unsigned int
 bt_rebalance(void** bt) {
 	unsigned int ret = 0;
 	bt_item_t item = *bt;
@@ -300,7 +411,7 @@ bt_rebalance(void** bt) {
 		int imbalance;
 		const int slack = 1;
 
-		imbalance = bt_get_balance((void*)item);
+		imbalance = bt_get_naive_balance((void*)item);
 
 		while(imbalance > slack) {
 			bt_rotate_right(bt);
@@ -325,7 +436,7 @@ bt_rebalance(void** bt) {
 bail:
 	return ret;
 }
-
+*/
 
 //////////////////////////////////////////////////////////////////////////////////
 // SELF TEST CODE
@@ -483,10 +594,10 @@ main(
 		nodes_alive++;
 
 		bt_insert(
-			    (void**)&root,
+			(void**)&root,
 			new_node,
-			    (bt_compare_func_t)&self_test_node_compare,
-			    (bt_delete_func_t)&self_test_node_delete,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
 			&nodes_alive
 		);
 	}
