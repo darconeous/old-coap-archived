@@ -307,44 +307,6 @@ bt_splay(void** bt, void* root) {
 		ret++;
 	}
 
-/*
-	bt_item_t item = root;
-	bt_item_t last = item;
-	bool is_lhs;
-
-	for(;(item!=*bt) && item->parent;item=item->parent) {
-		if(item->parent->lhs==item) {
-			if(!is_lhs) {
-				is_lhs = 1;
-				last = item->parent;
-			}
-		} else {
-			if(is_lhs) {
-				is_lhs = 0;
-				last = item->parent;
-			}
-		}
-	}
-
-	if(is_lhs) {
-		if((last != root) && ((bt_item_t)*bt)->lhs)
-			ret += bt_splay((void**)&((bt_item_t)*bt)->lhs,root);
-		while(*bt!=root) {
-			bt_rotate_right(bt);
-			ret++;
-		}
-	} else {
-		if((last != root) && ((bt_item_t)*bt)->rhs)
-			ret += bt_splay((void**)&((bt_item_t)*bt)->rhs,root);
-		while(*bt!=root) {
-			bt_rotate_left(bt);
-			ret++;
-		}
-	}
-
-
-*/
-
 	assert(*bt==root);
 
 bail:
@@ -381,63 +343,6 @@ bail:
 	return ret;
 }
 
-/*
-int
-bt_get_naive_balance(void* item_) {
-	int imbalance = 0;
-	bt_item_t item;
-
-	for(item = item_; item; item = item->lhs)
-		imbalance++;
-
-	for(item = item_; item; item = item->rhs)
-		imbalance--;
-
-bail:
-	return imbalance;
-}
-
-unsigned int
-bt_rebalance(void** bt) {
-	unsigned int ret = 0;
-	bt_item_t item = *bt;
-
-	// WARNING: This is a quick-n-dirty naive tree balancing implementation.
-
-	if(!item)
-		goto bail;
-
-	{
-		int imbalance;
-		const int slack = 1;
-
-		imbalance = bt_get_naive_balance((void*)item);
-
-		while(imbalance > slack) {
-			bt_rotate_right(bt);
-			imbalance--;
-			ret++;
-		}
-
-		imbalance = -imbalance;
-
-		while(imbalance > slack) {
-			bt_rotate_left(bt);
-			imbalance--;
-			ret++;
-		}
-	}
-
-	item = *bt;
-
-	ret += bt_rebalance((void**)&item->lhs);
-	ret += bt_rebalance((void**)&item->rhs);
-
-bail:
-	return ret;
-}
-*/
-
 //////////////////////////////////////////////////////////////////////////////////
 // SELF TEST CODE
 
@@ -464,7 +369,7 @@ self_test_node_delete(
 	free(item);
 
 	// Decrement total node count.
-	    (*(int*)context)--;
+	(*(int*)context)--;
 }
 
 bt_compare_result_t
