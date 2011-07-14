@@ -283,6 +283,45 @@ bt_splay(void** bt, void* root) {
 	if(*bt==root)
 		goto bail;
 
+#if 0
+	if(item->parent==*bt) {
+		if(((bt_item_t)*bt)->lhs==item)
+			bt_rotate_right(bt);
+		else
+			bt_rotate_left(bt);
+		ret += 1;
+	} else {
+		bt_item_t p=item->parent;
+		bt_item_t g=p->parent;
+		if(item==p->lhs && p==g->lhs) {
+			if(g->parent->lhs==g)
+				bt_rotate_right((void**)&g->parent->lhs);
+			else
+				bt_rotate_right((void**)&g->parent->rhs);
+			bt_rotate_right((void**)&g->lhs);
+		} else if(item==p->rhs && p==g->rhs) {
+			if(g->parent->lhs==g)
+				bt_rotate_left((void**)&g->parent->lhs);
+			else
+				bt_rotate_left((void**)&g->parent->rhs);
+			bt_rotate_left((void**)&g->rhs);			
+		} else if(item==p->rhs && p==g->lhs) {
+			bt_rotate_left((void**)&g->rhs);
+			if(g->parent->lhs==g)
+				bt_rotate_right((void**)&g->parent->lhs);
+			else
+				bt_rotate_right((void**)&g->parent->rhs);
+		} else if(item==p->lhs && p==g->rhs) {
+			bt_rotate_right((void**)&g->lhs);
+			if(g->parent->lhs==g)
+				bt_rotate_left((void**)&g->parent->lhs);
+			else
+				bt_rotate_left((void**)&g->parent->rhs);
+		}
+		ret += 2;
+		ret += bt_splay(bt, root);
+	}
+#else
 	while((item!=*bt) && item->parent&& item->parent->parent) {
 		void** pivot;
 
@@ -306,6 +345,7 @@ bt_splay(void** bt, void* root) {
 			bt_rotate_left(bt);
 		ret++;
 	}
+#endif
 
 	assert(*bt==root);
 
@@ -549,12 +589,26 @@ main(
 	i = bt_rebalance((void**)&root);
 	printf("Rebalance operation took %u rotations\n", i);
 
-	printf(" * balance = %d\n",bt_get_balance(root));
+	if(bt_get_balance(root)) {
+		fprintf(
+			stderr,
+			"error: Tree doesn't seem balanced even after rebalancing. "
+			"balance = %d\n",
+			bt_get_balance(root)
+		);
+	}
 
 	i = bt_rebalance((void**)&root);
 	printf("Rebalance operation took %u rotations\n", i);
 
-	printf(" * balance = %d\n",bt_get_balance(root));
+	if(i == 0) {
+		fprintf(
+			stderr,
+			"error: Rebalance operation should have been trivial, "
+			"but did %d rotations anyway.\n",
+			i
+		);
+	}
 
 	forward_traversal_test(root);
 	reverse_traversal_test(root);
@@ -569,7 +623,7 @@ main(
 
 	// Should have no leaks at this point.
 	if(nodes_alive != 0) {
-		printf("nodes_alive = %d, when it should be 0\n", nodes_alive);
+		printf("error: nodes_alive = %d, when it should be 0\n", nodes_alive);
 		return -1;
 	}
 
