@@ -138,6 +138,9 @@ extern smcp_status_t smcp_daemon_schedule_timer(
 
 	ret = SMCP_STATUS_OK;
 
+	DEBUG_PRINTF(CSTR("%p: Timers in play = %d"), self,
+		    (int)ll_count(self->timers));
+
 bail:
 	return ret;
 }

@@ -44,6 +44,38 @@ smcp_timer_node_alloc() {
 	return ret;
 }
 
+smcp_status_t smcp_static_content_fetcher(
+	void* context,
+	char* content,
+	size_t* content_length,
+	coap_content_type_t* content_type
+) {
+
+	if(content_length && content) {
+		*content_length = snprintf(content, *content_length, "v=%s", context);
+	}
+	if(content_type)
+		*content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
+
+	return SMCP_STATUS_OK;
+}
+
+
+smcp_status_t smcp_timer_node_content_fetcher(
+	smcp_timer_node_t self,
+	char* content,
+	size_t* content_length,
+	coap_content_type_t* content_type
+) {
+
+	if(content_length && content) {
+		*content_length = snprintf(content, *content_length, "count=%d", ++self->count);
+	}
+	if(content_type)
+		*content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
+
+	return SMCP_STATUS_OK;
+}
 
 void smcp_timer_node_fired(
 	smcp_daemon_t smcp, void* context
@@ -56,31 +88,34 @@ void smcp_timer_node_fired(
 	smcp_daemon_trigger_event_with_node(smcp,
 		&self->node,
 		"!fire",
-		content,
-		strlen(content),
-		SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+		(void*)&smcp_timer_node_content_fetcher,
+		self
+	);
 #else
 	smcp_daemon_trigger_event_with_node(smcp,
 		&self->node,
 		"!fire",
 		NULL,
-		0,
-		0);
+		NULL
+	);
 #endif
 
 	if(self->autorestart) {
 		smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);
-		smcp_daemon_schedule_timer(self->smcpd_instance,
+		smcp_daemon_schedule_timer(
+			self->smcpd_instance,
 			&self->timer,
-			self->period);
+			self->period
+		);
 	} else {
 		self->remaining = 0;
-		smcp_daemon_trigger_event_with_node(self->smcpd_instance,
+		smcp_daemon_trigger_event_with_node(
+			self->smcpd_instance,
 			&self->node,
 			"running",
-			"v=0",
-			3,
-			SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+			(void*)&smcp_static_content_fetcher,
+			(void*)"0"
+		);
 	}
 }
 
@@ -96,12 +131,13 @@ void smcp_timer_node_start(smcp_timer_node_t self) {
 			smcp_daemon_schedule_timer(self->smcpd_instance,
 				&self->timer,
 				self->period);
-		smcp_daemon_trigger_event_with_node(self->smcpd_instance,
+		smcp_daemon_trigger_event_with_node(
+			self->smcpd_instance,
 			&self->node,
 			"running",
-			"v=1",
-			3,
-			SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+			(void*)&smcp_static_content_fetcher,
+			(void*)"1"
+		);
 	}
 }
 
@@ -110,12 +146,13 @@ void smcp_timer_node_stop(smcp_timer_node_t self) {
 			&self->timer)) {
 		self->remaining = convert_timeval_to_cms(&self->timer.fire_date);
 		smcp_daemon_invalidate_timer(self->smcpd_instance, &self->timer);
-		smcp_daemon_trigger_event_with_node(self->smcpd_instance,
+		smcp_daemon_trigger_event_with_node(
+			self->smcpd_instance,
 			&self->node,
 			"running",
-			"v=0",
-			3,
-			SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+			(void*)&smcp_static_content_fetcher,
+			(void*)"0"
+		);
 	}
 }
 

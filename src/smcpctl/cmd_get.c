@@ -182,11 +182,12 @@ resend_get_request(smcp_daemon_t smcp) {
 			sizeof(size_request));
 	}
 
-	status = smcp_daemon_add_response_handler(
+	status = smcp_begin_transaction(
 		smcp,
 		tid,
 		calc_retransmit_timeout(retries),
 		0, // Flags
+		NULL,
 		    (void*)&get_response_handler,
 		    (void*)url_data
 	    );
@@ -194,7 +195,7 @@ resend_get_request(smcp_daemon_t smcp) {
 	if(status) {
 		check(!status);
 		fprintf(stderr,
-			"smcp_daemon_add_response_handler() returned %d(%s).\n",
+			"smcp_begin_transaction() returned %d(%s).\n",
 			status,
 			smcp_status_to_cstr(status));
 		goto bail;
@@ -316,7 +317,7 @@ tool_cmd_get(
 		smcp_daemon_process(smcp, 50);
 
 bail:
-	smcp_invalidate_response_handler(smcp, tid);
+	smcp_invalidate_transaction(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

@@ -264,11 +264,12 @@ tool_cmd_test(
 			smcp_daemon_get_port(smcp_daemon));
 #endif
 
-		smcp_daemon_add_response_handler(
+		smcp_begin_transaction(
 			smcp_daemon2,
 			tid,
 			5 * MSEC_PER_SEC,
 			0, // Flags
+			NULL,
 			&list_response_handler,
 			NULL
 		);

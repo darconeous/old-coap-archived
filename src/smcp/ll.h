@@ -83,7 +83,10 @@ ll_sorted_insert(
 				return;
 			}
 		}
-		ll_insert(location_, item);
+		if(location_->prev)
+			ll_insert(location_, item);
+		else
+			ll_prepend(list,item);
 	} else {
 		*list = item;
 	}
@@ -101,6 +104,37 @@ ll_remove(
 		item_->next->prev = item_->prev;
 	if(*list == item_)
 		*list = item_->next;
+}
+
+static inline void*
+ll_pop(
+	void** list
+) {
+	void* item = *list;
+	ll_remove(list,item);
+	return item;
+}
+
+static inline void*
+ll_last(
+	void* item
+) {
+	ll_item_t iter = item;
+	if(iter)
+	while(iter->next) {
+		iter = iter->next;
+	}
+	return iter;
+}
+
+static inline void
+ll_push(
+	void** list, void* item
+) {
+	if(*list)
+		ll_insert_after(ll_last(*list),item);
+	else
+		*list = item;
 }
 
 static inline size_t

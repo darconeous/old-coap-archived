@@ -110,11 +110,12 @@ send_post_request(
 			1);
 	}
 
-	require_noerr(smcp_daemon_add_response_handler(
+	require_noerr(smcp_begin_transaction(
 			smcp,
 			tid,
 			5000,
 			0, // Flags
+			NULL,
 			&post_response_handler,
 			    (void*)url
 		), bail);
@@ -212,7 +213,7 @@ tool_cmd_post(
 		smcp_daemon_process(smcp, -1);
 
 bail:
-	smcp_invalidate_response_handler(smcp, tid);
+	smcp_invalidate_transaction(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

@@ -6,7 +6,7 @@
 */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
 #endif
 
 #ifndef DEBUG
@@ -124,11 +124,11 @@ const char* smcp_status_to_cstr(int x) {
 
 
 static bt_compare_result_t
-smcp_response_handler_compare(
+smcp_transaction_compare(
 	const void* lhs_, const void* rhs_, void* context
 ) {
-	const smcp_response_handler_t lhs = (smcp_response_handler_t)lhs_;
-	const smcp_response_handler_t rhs = (smcp_response_handler_t)rhs_;
+	const smcp_transaction_t lhs = (smcp_transaction_t)lhs_;
+	const smcp_transaction_t rhs = (smcp_transaction_t)rhs_;
 
 	if(lhs->tid > rhs->tid)
 		return 1;
@@ -137,24 +137,11 @@ smcp_response_handler_compare(
 	return 0;
 }
 
-/*
-   static bt_compare_result_t
-   smcp_response_handler_compare_str(const void* lhs_, const void* rhs_,void* context) {
-    const smcp_response_handler_t lhs = (smcp_response_handler_t)lhs_;
-    coap_transaction_id_t rhs = strtol((const char*)rhs_,NULL,10);
-
-    if(lhs->tid>rhs)
-        return 1;
-    if(lhs->tid<rhs)
-        return -1;
-    return 0;
-   }
- */
 static bt_compare_result_t
-smcp_response_handler_compare_tid(
+smcp_transaction_compare_tid(
 	const void* lhs_, const void* rhs_, void* context
 ) {
-	const smcp_response_handler_t lhs = (smcp_response_handler_t)lhs_;
+	const smcp_transaction_t lhs = (smcp_transaction_t)lhs_;
 	coap_transaction_id_t rhs = *(coap_transaction_id_t*)rhs_;
 
 	if(lhs->tid > rhs)
@@ -163,7 +150,6 @@ smcp_response_handler_compare_tid(
 		return -1;
 	return 0;
 }
-
 
 #pragma mark -
 #pragma mark Declarations
@@ -176,15 +162,8 @@ smcp_status_t smcp_daemon_handle_list(
 	const char*		content,
 	size_t			content_length);
 
-smcp_status_t smcp_invalidate_response_handler(
+smcp_status_t smcp_invalidate_transaction(
 	smcp_daemon_t self, coap_transaction_id_t tid);
-smcp_status_t smcp_daemon_add_response_handler(
-	smcp_daemon_t				self,
-	coap_transaction_id_t		tid,
-	cms_t						cmsExpiration,
-	int							flags,
-	smcp_response_handler_func	callback,
-	void*						context);
 
 smcp_status_t smcp_daemon_handle_request(
 	smcp_daemon_t	self,
@@ -307,7 +286,7 @@ smcp_daemon_release(smcp_daemon_t self) {
 
 	// Delete all response handlers
 	while(self->handlers) {
-		smcp_invalidate_response_handler(self, self->handlers->tid);
+		smcp_invalidate_transaction(self, self->handlers->tid);
 	}
 
 	// Delete all timers
@@ -1011,6 +990,8 @@ smcp_status_t
 smcp_message_begin(
 	smcp_daemon_t self, coap_code_t code, coap_transaction_type_t tt
 ) {
+	if(!self)
+		self = smcp_get_current_daemon();
 	check(!smcp_get_current_daemon() || smcp_get_current_daemon()==self);
 	smcp_set_current_daemon(self);
 
@@ -1439,7 +1420,7 @@ bail:
 
 void
 smcp_internal_delete_handler_(
-	smcp_response_handler_t handler,
+	smcp_transaction_t handler,
 	smcp_daemon_t			self
 ) {
 	DEBUG_PRINTF(CSTR(
@@ -1461,61 +1442,101 @@ smcp_internal_delete_handler_(
 	free(handler);
 }
 
+static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
+
+static int calc_retransmit_timeout(int retries_) {
+	int ret = smcp_rtt;
+	int i;
+
+	for(i = 0; i < retries_; i++)
+		ret *= 2;
+
+	ret *= (1000 - 150) + (SMCP_FUNC_RANDOM_UINT32() % 300);
+	ret /= 1000;
+
+	if(ret > 2500)
+		ret = 2500;
+//	if(ret!=smcp_rtt)
+//		fprintf(stderr,"(retransmit in %dms)\n",ret);
+	return ret;
+}
+
 void
 smcp_internal_handler_timeout_(
 	smcp_daemon_t			self,
-	smcp_response_handler_t handler
+	smcp_transaction_t handler
 ) {
 	smcp_response_handler_func callback = handler->callback;
 	void* context = handler->context;
 
-	if(callback) {
+	if(handler->resendCallback && (convert_timeval_to_cms(&handler->expiration) > 0)) {
+		// Resend and try another day.
+		self->current_outbound_tid = handler->tid;
+		handler->resendCallback(context);
+		int retryAfter = calc_retransmit_timeout(handler->attemptCount++);
+
+		smcp_daemon_schedule_timer(
+			self,
+			&handler->timer,
+			retryAfter
+		);
+
+	} else if(callback) {
 		handler->callback = NULL;
-		smcp_invalidate_response_handler(self, handler->tid);
-		    (*callback)(
+		smcp_invalidate_transaction(self, handler->tid);
+		(*callback)(
 		    SMCP_STATUS_TIMEOUT,
 		    NULL,
 		    0,
 		    context
 		);
 	} else {
-		smcp_invalidate_response_handler(self, handler->tid);
+		smcp_invalidate_transaction(self, handler->tid);
 	}
 }
 
 smcp_status_t
-smcp_daemon_add_response_handler(
+smcp_begin_transaction(
 	smcp_daemon_t				self,
 	coap_transaction_id_t		tid,
 	cms_t						cmsExpiration,
 	int							flags,
+	smcp_request_resend_func resendCallback,
 	smcp_response_handler_func	callback,
 	void*						context
 ) {
 	smcp_status_t ret = 0;
-	smcp_response_handler_t handler;
+	smcp_transaction_t handler;
 
 	require_action(callback != NULL,
 		bail,
 		ret = SMCP_STATUS_INVALID_ARGUMENT);
 
-	handler = (smcp_response_handler_t)calloc(sizeof(*handler), 1);
+	handler = (smcp_transaction_t)calloc(sizeof(*handler), 1);
 
 	require_action(handler, bail, ret = SMCP_STATUS_MALLOC_FAILURE);
 
 	DEBUG_PRINTF(CSTR("%p: Adding response handler w/tid=%d"), self, tid);
 
 	handler->tid = tid;
+	handler->resendCallback = resendCallback;
 	handler->callback = callback;
 	handler->context = context;
 	handler->flags = flags;
 	convert_cms_to_timeval(&handler->expiration, cmsExpiration);
+	handler->attemptCount = 0;
+
+	if(resendCallback) {
+		// In this case we will be reattempting for a given duration.
+		// The first attempt should happen pretty much immediately.
+		cmsExpiration = 0;
+	}
 
 	smcp_daemon_schedule_timer(
 		self,
 		smcp_timer_init(
 			&handler->timer,
-			    (smcp_timer_callback_t)&smcp_internal_handler_timeout_,
+			(smcp_timer_callback_t)&smcp_internal_handler_timeout_,
 			NULL,
 			handler
 		),
@@ -1525,7 +1546,7 @@ smcp_daemon_add_response_handler(
 	bt_insert(
 		    (void**)&self->handlers,
 		handler,
-		    (bt_compare_func_t)smcp_response_handler_compare,
+		    (bt_compare_func_t)smcp_transaction_compare,
 		    (bt_delete_func_t)smcp_internal_delete_handler_,
 		self
 	);
@@ -1538,14 +1559,14 @@ bail:
 }
 
 smcp_status_t
-smcp_invalidate_response_handler(
+smcp_invalidate_transaction(
 	smcp_daemon_t			self,
 	coap_transaction_id_t	tid
 ) {
 	bt_remove(
 		    (void**)&self->handlers,
 		    (void*)&tid,
-		    (bt_compare_func_t)smcp_response_handler_compare_tid,
+		    (bt_compare_func_t)smcp_transaction_compare_tid,
 		    (bt_delete_func_t)smcp_internal_delete_handler_,
 		self
 	);
@@ -1560,7 +1581,7 @@ smcp_daemon_handle_response(
 	size_t			content_length
 ) {
 	smcp_status_t ret = 0;
-	smcp_response_handler_t handler = NULL;
+	smcp_transaction_t handler = NULL;
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
@@ -1588,10 +1609,10 @@ smcp_daemon_handle_response(
 
 	coap_transaction_id_t tid = smcp_daemon_get_current_tid();
 
-	handler = (smcp_response_handler_t)bt_find(
+	handler = (smcp_transaction_t)bt_find(
 		    (void**)&self->handlers,
 		    (void*)&tid,
-		    (bt_compare_func_t)smcp_response_handler_compare_tid,
+		    (bt_compare_func_t)smcp_transaction_compare_tid,
 		self
 	    );
 
@@ -1603,7 +1624,8 @@ smcp_daemon_handle_response(
 
 	if(handler->callback) {
 		if(handler->flags & SMCP_RESPONSE_HANDLER_ALWAYS_TIMEOUT) {
-			    (*handler->callback)(
+			handler->resendCallback = NULL;
+			(*handler->callback)(
 				statuscode,
 				content,
 				content_length,
@@ -1611,15 +1633,16 @@ smcp_daemon_handle_response(
 			);
 		} else {
 			smcp_response_handler_func callback = handler->callback;
+			handler->resendCallback = NULL;
 			handler->callback = NULL;
-			    (*callback)(
+			(*callback)(
 			    statuscode,
 			    content,
 			    content_length,
 			    handler->context
 			);
-			smcp_invalidate_response_handler(self, tid);
 		}
+		smcp_invalidate_transaction(self, tid);
 	}
 
 bail:

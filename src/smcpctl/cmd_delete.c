@@ -29,7 +29,7 @@
 
 static int gRet;
 static sig_t previous_sigint_handler;
-static coap_transaction_id_t tid;
+
 
 /*
    static arg_list_item_t option_list[] = {
@@ -76,34 +76,13 @@ delete_response_handler(
 		gRet = 0;
 }
 
-
 bool
-send_delete_request(
-	smcp_daemon_t smcp, const char* url
-) {
+resend_delete_request(const char* url) {
 	bool ret = false;
-	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
 
-	tid = SMCP_FUNC_RANDOM_UINT32();
-
-	require_noerr(smcp_daemon_add_response_handler(
-			smcp,
-			tid,
-			5000,
-			0, // Flags
-			&delete_response_handler,
-			    (void*)url
-		), bail);
-
-	require_noerr(smcp_daemon_send_request_to_url(
-			smcp,
-			tid,
-			COAP_METHOD_DELETE,
-			url,
-			headers,
-			NULL,
-			0
-		), bail);
+	smcp_message_begin(smcp_get_current_daemon(), COAP_METHOD_DELETE, COAP_TRANS_TYPE_CONFIRMABLE);
+	smcp_message_set_uri(url, 0);
+	require_noerr(smcp_message_send(),bail);
 
 	ret = true;
 	gRet = ERRORCODE_INPROGRESS;
@@ -112,11 +91,35 @@ bail:
 	return ret;
 }
 
+
+coap_transaction_id_t
+send_delete_request(
+	smcp_daemon_t smcp, const char* url
+) {
+	coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
+
+	require_noerr(smcp_begin_transaction(
+			smcp,
+			tid,
+			5000,
+			0, // Flags
+			(void*)&resend_delete_request,
+			&delete_response_handler,
+			    (void*)url
+		), bail);
+
+	gRet = ERRORCODE_INPROGRESS;
+
+bail:
+	return tid;
+}
+
 int
 tool_cmd_delete(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
+	coap_transaction_id_t tid = 0;
 
 	char url[1000] = "";
 
@@ -138,7 +141,7 @@ tool_cmd_delete(
 		goto bail;
 	}
 
-	require(send_delete_request(smcp, url), bail);
+	require((tid=send_delete_request(smcp, url)), bail);
 
 	gRet = ERRORCODE_INPROGRESS;
 
@@ -146,7 +149,7 @@ tool_cmd_delete(
 		smcp_daemon_process(smcp, -1);
 
 bail:
-	smcp_invalidate_response_handler(smcp, tid);
+	smcp_invalidate_transaction(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

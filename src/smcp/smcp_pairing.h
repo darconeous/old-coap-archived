@@ -80,7 +80,22 @@ enum {
 
 typedef uint32_t smcp_pairing_seq_t;
 
+typedef smcp_status_t (*smcp_content_fetcher_func)(
+	void* context,
+	char* content,
+	size_t* content_length,
+	coap_content_type_t* content_type
+);
+
 #define SMCP_PAIRING_EXPIRATION_INFINITE    (0x7FFFFFFF)
+
+struct smcp_event_tracker_s {
+	int refCount;
+	smcp_content_fetcher_func contentFetcher;
+	void* contentFetcherContext;
+};
+
+typedef struct smcp_event_tracker_s* smcp_event_tracker_t;
 
 struct smcp_pairing_s {
 	struct bt_item_s	bt_item;
@@ -88,6 +103,7 @@ struct smcp_pairing_s {
 	uint32_t			idVal;
 	smcp_pairing_seq_t	seq;
 	smcp_pairing_seq_t	ack;
+	coap_transaction_id_t last_tid;
 
 	time_t				expiration;
 
@@ -98,7 +114,10 @@ struct smcp_pairing_s {
 #endif
 	const char*			dest_uri;
 	uint8_t				flags;
+
+	smcp_event_tracker_t currentEvent;
 };
+
 
 #pragma mark -
 #pragma mark Pairing Functions
@@ -109,19 +128,20 @@ extern smcp_status_t smcp_daemon_pair_with_uri(
 	const char*		uri,
 	int				flags,
 	uintptr_t*		idVal);
+
 extern smcp_status_t smcp_daemon_trigger_event(
 	smcp_daemon_t		self,
 	const char*			path,
-	const char*			content,
-	size_t				content_length,
-	coap_content_type_t content_type);
+	smcp_content_fetcher_func contentFetcher,
+	void* context
+);
 extern smcp_status_t smcp_daemon_trigger_event_with_node(
 	smcp_daemon_t		self,
 	smcp_node_t			node,
 	const char*			subpath,
-	const char*			content,
-	size_t				content_length,
-	coap_content_type_t content_type);
+	smcp_content_fetcher_func contentFetcher,
+	void* context
+);
 
 extern smcp_status_t smcp_daemon_delete_pairing(
 	smcp_daemon_t self, smcp_pairing_t pairing);

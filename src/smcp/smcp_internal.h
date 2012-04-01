@@ -24,18 +24,19 @@ struct timeval {
 #pragma mark -
 #pragma mark Class Definitions
 
-struct smcp_response_handler_s {
+struct smcp_transaction_s {
 	struct bt_item_s			bt_item;
 	coap_transaction_id_t		tid;
 	struct timeval				expiration;
 	int							flags;
+	char						attemptCount;
 	struct smcp_timer_s			timer;
+	smcp_request_resend_func	resendCallback;
 	smcp_response_handler_func	callback;
 	void*						context;
 };
 
-typedef struct smcp_response_handler_s *smcp_response_handler_t;
-
+typedef struct smcp_transaction_s *smcp_transaction_t;
 
 // Consider members of this struct to be private!
 struct smcp_daemon_s {
@@ -54,7 +55,7 @@ struct smcp_daemon_s {
 
 	struct smcp_node_s		root_node;
 	smcp_timer_t			timers;
-	smcp_response_handler_t handlers;
+	smcp_transaction_t handlers;
 	PAIRING_STATE;
 
 	coap_transaction_id_t	current_inbound_request_tid;

@@ -164,42 +164,21 @@ extern cms_t smcp_daemon_get_timeout(smcp_daemon_t self);
 
 extern smcp_node_t smcp_daemon_get_root_node(smcp_daemon_t self);
 
-extern smcp_status_t smcp_daemon_add_response_handler(
-	smcp_daemon_t				self,
-	coap_transaction_id_t		tid,
-	cms_t						cmsExpiration,
-	int							flags,
-	smcp_response_handler_func	callback,
-	void*						context);
+typedef bool (*smcp_request_resend_func)(void* context);
 
-extern smcp_status_t smcp_invalidate_response_handler(
+extern smcp_status_t smcp_begin_transaction(
+	smcp_daemon_t self,
+	coap_transaction_id_t tid,
+	cms_t cmsExpiration,
+	int	flags,
+	smcp_request_resend_func requestResend,
+	smcp_response_handler_func responseHandler,
+	void* context
+);
+
+extern smcp_status_t smcp_invalidate_transaction(
 	smcp_daemon_t self, coap_transaction_id_t tid);
 
-extern smcp_status_t smcp_daemon_send_request(
-	smcp_daemon_t			self,
-	coap_transaction_id_t	tid,
-	smcp_method_t			method,
-	const char*				path,
-	const char*				query,
-	coap_header_item_t		headers[],
-	const char*				content,
-	size_t					content_length,
-	SMCP_SOCKET_ARGS);
-
-extern smcp_status_t smcp_daemon_send_request_to_url(
-	smcp_daemon_t			self,
-	coap_transaction_id_t	tid,
-	smcp_method_t			method,
-	const char*				url,
-	coap_header_item_t		headers[],
-	const char*				content,
-	size_t					content_length);
-
-extern smcp_status_t smcp_daemon_send_response(
-	int					statuscode,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length);
 
 #pragma mark -
 #pragma mark Constrained sending API
@@ -301,6 +280,37 @@ extern const uint16_t smcp_daemon_get_current_request_ipport();
 extern const coap_header_item_t* smcp_daemon_get_current_request_headers();
 extern uint8_t smcp_daemon_get_current_request_header_count();
 extern smcp_daemon_t smcp_get_current_daemon(); // Used from callbacks
+
+
+///////////////// DEPRECATED ///////////////////////
+
+// Use the "constrained" sending API instead!
+
+extern smcp_status_t smcp_daemon_send_request(
+	smcp_daemon_t			self,
+	coap_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				path,
+	const char*				query,
+	coap_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length,
+	SMCP_SOCKET_ARGS);
+
+extern smcp_status_t smcp_daemon_send_request_to_url(
+	smcp_daemon_t			self,
+	coap_transaction_id_t	tid,
+	smcp_method_t			method,
+	const char*				url,
+	coap_header_item_t		headers[],
+	const char*				content,
+	size_t					content_length);
+
+extern smcp_status_t smcp_daemon_send_response(
+	int					statuscode,
+	coap_header_item_t	headers[],
+	const char*			content,
+	size_t				content_length);
 
 
 __END_DECLS

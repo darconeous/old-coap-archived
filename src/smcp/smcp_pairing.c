@@ -184,6 +184,249 @@ bail:
 	return ret;
 }
 
+static bool
+smcp_retry_event(smcp_pairing_t pairing) {
+	bool ret = true;
+	const smcp_daemon_t self = smcp_get_current_daemon();
+	smcp_event_tracker_t event = pairing->currentEvent;
+
+	coap_content_type_t content_type;
+
+	smcp_message_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
+
+	smcp_message_set_uri(pairing->dest_uri,0);
+	smcp_message_add_header(SMCP_HEADER_ORIGIN, pairing->path, COAP_HEADER_CSTR_LEN);
+
+	char cseq[24];
+#if __AVR__
+	snprintf_P(
+		cseq,
+		sizeof(cseq),
+		PSTR("%lX POST"),
+		(long unsigned int)pairing->seq
+	);
+#else
+	snprintf(cseq,
+		sizeof(cseq),
+		"%lX POST",
+		(long unsigned int)pairing->seq
+	);
+#endif
+	smcp_message_add_header(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
+
+	if(event->contentFetcher) {
+		(*event->contentFetcher)(
+			event->contentFetcherContext,
+			NULL,
+			NULL,
+			&content_type
+		);
+		smcp_message_add_header(COAP_HEADER_CONTENT_TYPE, (void*)&content_type, 1);
+
+		size_t len = 0;
+		char* ptr = smcp_message_get_content_ptr(&len);
+		event->contentFetcher(
+			event->contentFetcherContext,
+			ptr,
+			&len,
+			&content_type
+		);
+		smcp_message_set_content_len(len);
+	}
+
+	smcp_message_send();
+
+	return ret;
+}
+
+static void
+smcp_event_tracker_release(smcp_event_tracker_t event) {
+	if(0==--event->refCount) {
+		if(event->contentFetcher)
+			(*event->contentFetcher)(
+				event->contentFetcherContext,
+				NULL,
+				NULL,
+				NULL
+			);
+		free(event);
+	}
+}
+
+static void
+smcp_event_response_handler(
+	int statuscode, char* content, size_t content_length, smcp_pairing_t pairing
+) {
+
+	// expire the event.
+	smcp_event_tracker_t event = pairing->currentEvent;
+	pairing->currentEvent = NULL;
+	smcp_event_tracker_release(event);
+}
+
+smcp_status_t
+smcp_daemon_trigger_event(
+	smcp_daemon_t		self,
+	const char*			path,
+	smcp_content_fetcher_func contentFetcher,
+	void* context
+) {
+	smcp_status_t ret = 0;
+	smcp_pairing_t iter;
+	smcp_event_tracker_t event = NULL;
+
+	if(!path) path = "";
+
+	// Move past any preceding slashes.
+	while(path && *path == '/') path++;
+
+	for(iter = smcp_daemon_get_first_pairing_for_path(self, path);
+	    iter;
+	    iter = smcp_daemon_next_pairing(self, iter)
+	) {
+		coap_transaction_id_t tid = (coap_transaction_id_t)SMCP_FUNC_RANDOM_UINT32();
+		smcp_status_t status;
+		if(!event) {
+			// Allocate this lazily.
+			event = calloc(1,sizeof(*event));
+
+			require_action(event!=NULL, bail, ret=SMCP_STATUS_MALLOC_FAILURE);
+
+			event->contentFetcher = contentFetcher;
+			event->contentFetcherContext = context;
+			event->refCount = 1;
+		}
+		smcp_invalidate_transaction(self, iter->last_tid);
+
+		if(iter->currentEvent)
+			smcp_event_tracker_release(iter->currentEvent);
+
+		iter->currentEvent = event;
+
+		status = smcp_begin_transaction(
+			self,
+			tid,
+			10000,
+			0, // Flags
+			(void*)&smcp_retry_event,
+			(void*)&smcp_event_response_handler,
+			(void*)iter
+		);
+		if(status)
+			continue;
+
+		iter->last_tid = tid;
+		event->refCount++;
+
+#if SMCP_CONF_PAIRING_STATS
+		iter->fire_count++;
+#endif
+	}
+
+bail:
+	if(event)
+		smcp_event_tracker_release(event);
+	return ret;
+}
+
+smcp_status_t
+smcp_daemon_trigger_event_with_node(
+	smcp_daemon_t		self,
+	smcp_node_t			node,
+	const char*			subpath,
+	smcp_content_fetcher_func contentFetcher,
+	void* context
+) {
+	char path[SMCP_MAX_PATH_LENGTH + 1];
+
+	path[sizeof(path) - 1] = 0;
+
+	smcp_node_get_path(node, path, sizeof(path));
+
+	if(subpath) {
+		if(path[0])
+			strncat(path, "/", sizeof(path) - 1);
+		strncat(path, subpath, sizeof(path) - 1);
+	}
+
+	{   // Remove trailing slashes.
+		size_t len = strlen(path);
+		while(len && path[len - 1] == '/')
+			path[--len] = 0;
+	}
+
+	return smcp_daemon_trigger_event(
+		self,
+		path,
+		contentFetcher,
+		context
+	);
+}
+
+smcp_status_t
+smcp_daemon_refresh_variable(
+	smcp_daemon_t self, smcp_variable_node_t node
+) {
+	smcp_status_t ret = 0;
+
+	require_action(self != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+
+	ret = smcp_daemon_trigger_event_with_node(
+		self,
+		(smcp_node_t)node,
+		NULL,
+		(void*)node->get_func,
+		node
+	);
+
+bail:
+	return ret;
+}
+
+#if 0
+
+smcp_status_t
+smcp_daemon_refresh_variable(
+	smcp_daemon_t self, smcp_variable_node_t node
+) {
+	smcp_status_t ret = 0;
+	char *content = NULL;
+	size_t content_length = 0;
+	coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
+
+	require_action(self != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+
+	if(node->get_func) {
+		char tmp_content[SMCP_MAX_CONTENT_LENGTH]; // TODO: This is really hard on the stack! Investigate alternatives.
+		content_length = sizeof(tmp_content);
+		ret =
+		    (*node->get_func)(node, tmp_content, &content_length,
+			&content_type);
+		require(ret == 0, bail);
+		if(content_length) {
+			content = (char*)malloc(content_length);
+			memcpy(content, tmp_content, content_length);
+		}
+	}
+
+	ret = smcp_daemon_trigger_event_with_node(
+		self,
+		    (smcp_node_t)node,
+		NULL,
+		content,
+		content_length,
+		content_type
+	    );
+
+bail:
+	if(content)
+		free(content);
+
+	return ret;
+}
+
 
 smcp_status_t
 smcp_daemon_trigger_event(
@@ -292,47 +535,7 @@ smcp_daemon_trigger_event_with_node(
 		content_type);
 }
 
-
-smcp_status_t
-smcp_daemon_refresh_variable(
-	smcp_daemon_t self, smcp_variable_node_t node
-) {
-	smcp_status_t ret = 0;
-	char *content = NULL;
-	size_t content_length = 0;
-	coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
-
-	require_action(self != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-
-	if(node->get_func) {
-		char tmp_content[SMCP_MAX_CONTENT_LENGTH]; // TODO: This is really hard on the stack! Investigate alternatives.
-		content_length = sizeof(tmp_content);
-		ret =
-		    (*node->get_func)(node, tmp_content, &content_length,
-			&content_type);
-		require(ret == 0, bail);
-		if(content_length) {
-			content = (char*)malloc(content_length);
-			memcpy(content, tmp_content, content_length);
-		}
-	}
-
-	ret = smcp_daemon_trigger_event_with_node(
-		self,
-		    (smcp_node_t)node,
-		NULL,
-		content,
-		content_length,
-		content_type
-	    );
-
-bail:
-	if(content)
-		free(content);
-
-	return ret;
-}
+#endif
 
 
 smcp_status_t

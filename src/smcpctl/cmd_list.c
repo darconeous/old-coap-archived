@@ -49,29 +49,10 @@ static int retries = 0;
 static const char* url_data;
 static char next_data[256];
 static size_t next_len = ((size_t)(-1));
-static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
 static bool list_show_headers = false;
 static int redirect_count = 0;
 static const char* original_url;
 
-static int calc_retransmit_timeout(int retries_) {
-	int ret = smcp_rtt;
-	int i;
-
-	for(i = 0; i < retries_; i++)
-		ret *= 2;
-
-	ret *= (1000 - 150) + (SMCP_FUNC_RANDOM_UINT32() % 300);
-	ret /= 1000;
-
-	if(ret > 4000)
-		ret = 4000;
-//	if(ret!=smcp_rtt)
-//		fprintf(stderr,"(retransmit in %dms)\n",ret);
-	return ret;
-}
-
-bool resend_list_request(smcp_daemon_t smcp);
 
 static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
 
@@ -80,12 +61,6 @@ list_response_handler(
 	int statuscode, char* content, size_t content_length, void* context
 ) {
 	smcp_daemon_t self = smcp_get_current_daemon();
-
-	if(statuscode == SMCP_STATUS_TIMEOUT &&
-	        (++retries < COAP_MAX_RETRANSMIT)) {
-		resend_list_request(self);
-		return;
-	}
 
 	if((statuscode >= 100) && list_show_headers) {
 		if(next_len != ((size_t)(-1)))
@@ -268,12 +243,11 @@ bail:
 }
 
 bool
-resend_list_request(smcp_daemon_t smcp) {
+resend_list_request(void* context) {
 	bool ret = false;
 	smcp_status_t status = 0;
 
-	smcp_message_begin(smcp,COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
-	smcp_message_set_tid(tid);
+	smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
 	smcp_message_set_uri(url_data, 0);
 
 	if(next_len != ((size_t)(-1))) {
@@ -290,23 +264,6 @@ resend_list_request(smcp_daemon_t smcp) {
 			sizeof(size_request));
 	}
 
-	status = smcp_daemon_add_response_handler(
-		smcp,
-		tid,
-		calc_retransmit_timeout(retries),
-		0, // Flags
-		(void*)&list_response_handler,
-		(void*)url_data
-	);
-
-	if(status) {
-		check(!status);
-		fprintf(stderr,
-			"smcp_daemon_add_response_handler() returned %d(%s).\n",
-			status,
-			smcp_status_to_cstr(status));
-		goto bail;
-	}
 
 	status = smcp_message_send();
 
@@ -329,6 +286,7 @@ send_list_request(
 	smcp_daemon_t smcp, const char* url, const char* next, size_t nextlen
 ) {
 	bool ret = false;
+	smcp_status_t status = 0;
 
 	tid = SMCP_FUNC_RANDOM_UINT32();
 	gRet = ERRORCODE_INPROGRESS;
@@ -342,7 +300,26 @@ send_list_request(
 		next_len = ((size_t)(-1));
 	}
 
-	ret = resend_list_request(smcp);
+	status = smcp_begin_transaction(
+		smcp,
+		tid,
+		5000,
+		0, // Flags
+		(void*)&resend_list_request,
+		(void*)&list_response_handler,
+		(void*)url_data
+	);
+
+	if(status) {
+		check(!status);
+		fprintf(stderr,
+			"smcp_begin_transaction() returned %d(%s).\n",
+			status,
+			smcp_status_to_cstr(status));
+		goto bail;
+	}
+
+	ret = true;
 
 bail:
 	return ret;
@@ -418,7 +395,7 @@ tool_cmd_list(
 		smcp_daemon_process(smcp, 50);
 
 bail:
-	smcp_invalidate_response_handler(smcp, tid);
+	smcp_invalidate_transaction(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }
