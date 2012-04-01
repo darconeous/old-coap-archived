@@ -219,7 +219,7 @@ extern coap_content_type_t coap_content_type_from_cstr(const char* x);
 extern const char* coap_header_key_to_cstr(
 	coap_header_key_t key, bool for_response);
 extern coap_header_key_t coap_header_key_from_cstr(const char* key);
-extern const char* coap_code_to_cstr(int x);
+extern const char* http_code_to_cstr(int x);
 extern void coap_dump_headers(
 	FILE*						outstream,
 	const char*					prefix,

@@ -6,7 +6,7 @@
 */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 0
+#define VERBOSE_DEBUG 1
 #endif
 
 #ifndef DEBUG
@@ -1743,7 +1743,7 @@ smcp_default_request_handler(
 	}
 	if(!path || (path[0] == 0)) {
 		DEBUG_PRINTF(CSTR(
-				"Unknown method in request: %s"), coap_code_to_cstr(method));
+				"Unknown method in request: %s"), http_code_to_cstr(method));
 		return SMCP_STATUS_NOT_IMPLEMENTED;
 	}
 	return SMCP_STATUS_NOT_FOUND;
@@ -1881,6 +1881,8 @@ smcp_daemon_handle_list(
 	smcp_message_set_content(replyContent, COAP_HEADER_CSTR_LEN);
 
 bail:
+	if(ret)
+		smcp_message_set_code(HTTP_TO_COAP_CODE(smcp_convert_status_to_result_code(ret)));
 	smcp_message_send();
 	return ret;
 }

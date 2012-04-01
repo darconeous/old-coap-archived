@@ -391,7 +391,7 @@ coap_header_key_from_cstr(const char* key) {
 
 
 const char*
-coap_code_to_cstr(int x) {
+http_code_to_cstr(int x) {
 	switch(x) {
 	case COAP_METHOD_GET: return "GET"; break;
 	case COAP_METHOD_POST: return "POST"; break;
@@ -468,10 +468,10 @@ coap_dump_headers(
 		fprintf(outstream,
 			"CoAP/1.0 %d %s\n",
 			statuscode,
-			coap_code_to_cstr(statuscode));
+			http_code_to_cstr(statuscode));
 	} else {
 		fputs(prefix, outstream);
-		fprintf(outstream, "%s(%d) /", coap_code_to_cstr(statuscode),statuscode);
+		fprintf(outstream, "%s(%d) /", http_code_to_cstr(statuscode),statuscode);
 
 		for(iter = headers; iter != end; ++iter) {
 			if(iter->key == COAP_HEADER_URI_PATH) {

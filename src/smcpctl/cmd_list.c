@@ -92,7 +92,7 @@ list_response_handler(
 			fprintf(stdout, "\n");
 		coap_dump_headers(stdout,
 			NULL,
-			statuscode,
+			http_to_coap_code(statuscode),
 			smcp_daemon_get_current_request_headers(),
 			smcp_daemon_get_current_request_header_count());
 	}
@@ -129,7 +129,7 @@ list_response_handler(
 	        (statuscode != HTTP_RESULT_CODE_PARTIAL_CONTENT))
 		fprintf(stderr, "list: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : coap_code_to_cstr(statuscode));
+				statuscode) : http_code_to_cstr(statuscode));
 
 	// TODO: This implementation currently only works when the content only includes entire records.
 	// Chunked encoding could cause single records to be distributed across multiple transactions.

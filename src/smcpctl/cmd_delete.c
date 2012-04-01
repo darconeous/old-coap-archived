@@ -55,7 +55,7 @@ delete_response_handler(
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
 		fprintf(stderr, "delete: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : coap_code_to_cstr(statuscode));
+				statuscode) : http_code_to_cstr(statuscode));
 	if(content && (statuscode != HTTP_RESULT_CODE_NO_CONTENT) &&
 	    content_length) {
 		char contentBuffer[500];

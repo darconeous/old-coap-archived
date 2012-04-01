@@ -127,7 +127,7 @@ get_response_handler(
 	        (statuscode != HTTP_RESULT_CODE_PARTIAL_CONTENT))
 		fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : coap_code_to_cstr(statuscode));
+				statuscode) : http_code_to_cstr(statuscode));
 
 	if(content && content_length) {
 		coap_content_type_t content_type = 0;
