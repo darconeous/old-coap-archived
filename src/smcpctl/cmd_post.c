@@ -62,12 +62,12 @@ post_response_handler(
 			smcp_daemon_get_current_request_headers(),
 			smcp_daemon_get_current_request_header_count());
 	}
-	if((statuscode != COAP_RESULT_CODE_OK) &&
+	if((statuscode != HTTP_RESULT_CODE_OK) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
 		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
-	if(content && (statuscode != COAP_RESULT_CODE_NO_CONTENT) &&
+	if(content && (statuscode != HTTP_RESULT_CODE_NO_CONTENT) &&
 	    content_length) {
 		char contentBuffer[500];
 

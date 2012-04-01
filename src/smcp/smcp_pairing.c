@@ -204,57 +204,43 @@ smcp_daemon_trigger_event(
 	// Move past any preceding slashes.
 	while(path && *path == '/') path++;
 
-	coap_header_item_t headers[] = {
-		{
-			.key = COAP_HEADER_CONTENT_TYPE,
-			.value = (void*)&content_type,
-			.value_len = 1
-		},
-		{
-			.key = SMCP_HEADER_ORIGIN,
-			.value = (void*)path,
-			.value_len = strlen(path)
-		},
-		{
-			.key = SMCP_HEADER_CSEQ,
-			.value = cseq,
-			.value_len = COAP_HEADER_CSTR_LEN
-		},
-		{ }
-	};
-
 	memset(cseq, 0, sizeof(cseq));
 
 	for(iter = smcp_daemon_get_first_pairing_for_path(self, path);
 	    iter;
-	    iter = smcp_daemon_next_pairing(self, iter)) {
-		smcp_pairing_seq_t seq = smcp_pairing_get_next_seq(iter);
+	    iter = smcp_daemon_next_pairing(self, iter)
+	) {
 		smcp_status_t status;
+		smcp_pairing_seq_t seq = smcp_pairing_get_next_seq(iter);
+
+		smcp_message_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
+		smcp_message_set_tid(tid);
+		smcp_message_add_header(COAP_HEADER_CONTENT_TYPE, (void*)&content_type, 1);
+		smcp_message_add_header(SMCP_HEADER_ORIGIN, path, COAP_HEADER_CSTR_LEN);
+
+#if __AVR__
+		snprintf_P(
+			cseq,
+			sizeof(cseq),
+			PSTR("%lX POST"),
+			(long unsigned int)seq
+		);
+#else
+		snprintf(cseq,
+			sizeof(cseq),
+			"%lX POST",
+			(long unsigned int)seq
+		);
+#endif
+
+		smcp_message_add_header(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
+		smcp_message_set_uri(iter->dest_uri,0);
+		smcp_message_set_content(content,content_length);
 
 		DEBUG_PRINTF(CSTR(
 				"%p: sending stuff for pairing \"%p\"..."), self, iter);
 
-#if __AVR__
-		headers[2].value_len =
-		    snprintf_P(cseq, sizeof(cseq), PSTR(
-				"%lX POST"), (long unsigned int)seq);
-#else
-		headers[2].value_len =
-		    snprintf(cseq,
-			sizeof(cseq),
-			"%lX POST",
-			    (long unsigned int)seq);
-#endif
-
-		status = smcp_daemon_send_request_to_url(
-			self,
-			tid,
-			COAP_METHOD_POST,
-			iter->dest_uri,
-			headers,
-			content,
-			content_length
-		    );
+		status = smcp_message_send();
 
 		check_string(status == SMCP_STATUS_OK, smcp_status_to_cstr(status));
 #if SMCP_CONF_PAIRING_STATS
@@ -384,14 +370,14 @@ smcp_daemon_handle_pair(
 	snprintf(reply, sizeof(reply), "%p", (void*)idVal);
 
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
-	ret = smcp_daemon_send_response(
-		smcp_convert_status_to_result_code(
-			ret
-		),
-		NULL,
-		reply,
-		ret ? 0 : strlen(reply)
-	    );
+
+	smcp_message_begin_response(HTTP_TO_COAP_CODE(smcp_convert_status_to_result_code(ret)));
+
+	if(!ret)
+		smcp_message_set_content(reply, COAP_HEADER_CSTR_LEN);
+
+	smcp_message_send();
+
 bail:
 	return ret;
 }
@@ -416,14 +402,13 @@ smcp_daemon_delete_pairing(
 static smcp_status_t
 smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 	smcp_status_t ret = 0;
-	coap_header_item_t replyHeaders[5] = {};
-	char replyContent[160];
-	coap_code_t response_code = COAP_RESULT_CODE_OK;
-
-	memset(replyContent, 0, sizeof(replyContent));
 	size_t content_break_threshold = 60;
 	uint16_t start_index = 0, i = 0;
+	char replyContent[160];
 
+	memset(replyContent, 0, sizeof(replyContent));
+
+	smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
 
 	smcp_pairing_t
 	    pairing_iter = first_pairing ? first_pairing : bt_first(
@@ -530,30 +515,25 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 
 	// If there are more nodes, indicate as such in the headers.
 	if(pairing_iter) {
-		response_code = COAP_RESULT_CODE_PARTIAL_CONTENT;
+		smcp_message_set_code(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_PARTIAL_CONTENT));
 		start_index = htons(start_index);
-		util_add_header(replyHeaders,
-			SMCP_MAX_HEADERS,
+		smcp_message_add_header(
 			COAP_HEADER_CONTINUATION_REQUEST,
-			    (void*)&start_index,
-			sizeof(start_index));
+			(void*)&start_index,
+			sizeof(start_index)
+		);
 	}
 
 	coap_content_type_t content_type =
 	    COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
 
-	util_add_header(
-		replyHeaders,
-		SMCP_MAX_HEADERS,
+	smcp_message_add_header(
 		COAP_HEADER_CONTENT_TYPE,
 		    (const void*)&content_type,
 		1
 	);
-
-	smcp_daemon_send_response(response_code,
-		replyHeaders,
-		replyContent,
-		strlen(replyContent));
+	smcp_message_set_content(replyContent,COAP_HEADER_CSTR_LEN);
+	smcp_message_send();
 bail:
 	return ret;
 }
@@ -573,10 +553,8 @@ smcp_pairing_node_request_handler(
 		if(method == COAP_METHOD_GET) {
 			ret = smcp_pairing_node_list(NULL);
 		} else {
-			smcp_daemon_send_response(COAP_RESULT_CODE_METHOD_NOT_ALLOWED,
-				NULL,
-				NULL,
-				0);
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_METHOD_NOT_ALLOWED));
+			smcp_message_send();
 		}
 	} else {
 		char* name = strsep((char**)&path, "/");
@@ -597,15 +575,12 @@ smcp_pairing_node_request_handler(
                 require_action(content_length,bail,ret=SMCP_STATUS_UNSUPPORTED_URI);
                 ret = smcp_daemon_pair_with_uri(self,name,content,0,NULL);
                 if((ret==SMCP_STATUS_OK)) {
-                    smcp_daemon_send_response( COAP_RESULT_CODE_CREATED, NULL, NULL, 0);
+                    smcp_daemon_send_response( HTTP_RESULT_CODE_CREATED, NULL, NULL, 0);
                 }
  */
 			else {
-				smcp_daemon_send_response(
-					COAP_RESULT_CODE_METHOD_NOT_ALLOWED,
-					NULL,
-					NULL,
-					0);
+				smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_METHOD_NOT_ALLOWED));
+				smcp_message_send();
 			}
 		} else {
 			char* uri = strsep((char**)&path, "/");
@@ -634,68 +609,68 @@ smcp_pairing_node_request_handler(
 					    "<fc>,<ec>,<err>,"
 #endif
 					    "<seq>,<ack>";
+					smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
 					coap_content_type_t ct =
 					    COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
-					coap_header_item_t rheaders[2] = {
-						{
-							.key = COAP_HEADER_CONTENT_TYPE,
-							.value = (char*)&ct,
-							.value_len = 1,
-						}
-					};
 
-					smcp_daemon_send_response(COAP_RESULT_CODE_OK,
-						rheaders,
-						rcontent,
-						sizeof(rcontent));
+					smcp_message_add_header(COAP_HEADER_CONTENT_TYPE, (char*)&ct, 1);
+					smcp_message_set_content(rcontent, COAP_HEADER_CSTR_LEN);
+					smcp_message_send();
 				} else if(strequal_const(path, "d")) {
-					smcp_daemon_send_response(COAP_RESULT_CODE_OK,
-						NULL,
-						pairing->dest_uri,
-						strlen(pairing->dest_uri));
+					smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+					smcp_message_set_content(pairing->dest_uri, COAP_HEADER_CSTR_LEN);
+					smcp_message_send();
 				} else if(strequal_const(path, "f")) {
-					char rcontent[5];
-					snprintf(rcontent,
-						sizeof(rcontent),
+					char *rcontent;
+					size_t len=0;
+					smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+					rcontent = smcp_message_get_content_ptr(&len);
+					len = snprintf(rcontent,
+						len,
 						"0x%02X",
-						pairing->flags);
-					smcp_daemon_send_response(COAP_RESULT_CODE_OK,
-						NULL,
-						rcontent,
-						sizeof(rcontent) - 1);
+						pairing->flags
+					);
+					smcp_message_set_content_len(len);
+					smcp_message_send();
 				} else if(strequal_const(path, "seq")) {
 				} else if(strequal_const(path, "ack")) {
 #if SMCP_CONF_PAIRING_STATS
 				} else if(strequal_const(path, "fc")) {
-					char rcontent[10];
-					snprintf(rcontent,
-						sizeof(rcontent),
+					char *rcontent;
+					size_t len=0;
+					smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+					rcontent = smcp_message_get_content_ptr(&len);
+					len = snprintf(rcontent,
+						len,
 						"%u",
-						pairing->fire_count);
-					smcp_daemon_send_response(COAP_RESULT_CODE_OK,
-						NULL,
-						rcontent,
-						sizeof(rcontent) - 1);
+						pairing->fire_count
+					);
+					smcp_message_set_content_len(len);
+					smcp_message_send();
 				} else if(strequal_const(path, "ec")) {
-					char rcontent[10];
-					snprintf(rcontent,
-						sizeof(rcontent),
+					char *rcontent;
+					size_t len=0;
+					smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+					rcontent = smcp_message_get_content_ptr(&len);
+					len = snprintf(rcontent,
+						len,
 						"%u",
-						pairing->errors);
-					smcp_daemon_send_response(COAP_RESULT_CODE_OK,
-						NULL,
-						rcontent,
-						sizeof(rcontent) - 1);
+						pairing->errors
+					);
+					smcp_message_set_content_len(len);
+					smcp_message_send();
 				} else if(strequal_const(path, "err")) {
-					char rcontent[10];
-					snprintf(rcontent,
-						sizeof(rcontent),
+					char *rcontent;
+					size_t len=0;
+					smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+					rcontent = smcp_message_get_content_ptr(&len);
+					len = snprintf(rcontent,
+						len,
 						"%d",
-						pairing->last_error);
-					smcp_daemon_send_response(COAP_RESULT_CODE_OK,
-						NULL,
-						rcontent,
-						sizeof(rcontent) - 1);
+						pairing->last_error
+					);
+					smcp_message_set_content_len(len);
+					smcp_message_send();
 #endif
 				} else {
 					ret = SMCP_STATUS_NOT_FOUND;
@@ -710,7 +685,7 @@ smcp_pairing_node_request_handler(
 				                smcp_daemon_pair_with_uri(self, name, uri,
 								0,
 								NULL)) == SMCP_STATUS_OK)) {
-					smcp_daemon_send_response(COAP_RESULT_CODE_CREATED,
+					smcp_daemon_send_response(HTTP_RESULT_CODE_CREATED,
 						NULL,
 						NULL,
 						0);
@@ -721,11 +696,8 @@ smcp_pairing_node_request_handler(
 					ret = SMCP_STATUS_NOT_IMPLEMENTED);
 				ret = smcp_daemon_delete_pairing(self, pairing);
 			} else {
-				smcp_daemon_send_response(
-					COAP_RESULT_CODE_METHOD_NOT_ALLOWED,
-					NULL,
-					NULL,
-					0);
+				smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_METHOD_NOT_ALLOWED));
+				smcp_message_send();
 			}
 		}
 	}

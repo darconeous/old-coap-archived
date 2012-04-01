@@ -45,15 +45,14 @@ smcp_variable_request_handler(
 	if(method == COAP_METHOD_POST) {
 		coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 
-		const coap_header_item_t *next_header =
+		const coap_header_item_t *iter =
 		    smcp_daemon_get_current_request_headers();
-		for(;
-		    smcp_header_item_get_key(next_header);
-		    next_header = smcp_header_item_next(next_header)) {
-			if(smcp_header_item_key_equal(next_header,
-					COAP_HEADER_CONTENT_TYPE))
-				content_type = *(unsigned char*)smcp_header_item_get_value(
-					next_header);
+		const coap_header_item_t *end = iter +
+		    smcp_daemon_get_current_request_header_count();
+
+		for(;iter!=end;++iter) {
+			if(iter->key==COAP_HEADER_CONTENT_TYPE)
+				content_type = *(unsigned char*)iter->value;
 		}
 		ret = SMCP_STATUS_NOT_IMPLEMENTED;
 		if(((smcp_variable_node_t)node)->post_func) {
@@ -84,7 +83,7 @@ smcp_variable_request_handler(
 		if(ret == SMCP_STATUS_OK) {
 			util_add_header(replyHeaders, 1, COAP_HEADER_CONTENT_TYPE,
 				    (const void*)&replyContentType, 1);
-			smcp_daemon_send_response(COAP_RESULT_CODE_OK,
+			smcp_daemon_send_response(HTTP_RESULT_CODE_OK,
 				replyHeaders,
 				replyContent,
 				replyContentLength);

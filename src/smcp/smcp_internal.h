@@ -76,11 +76,13 @@ struct smcp_daemon_s {
 	coap_transaction_type_t current_outbound_tt;
 	coap_code_t				current_outbound_code;
 	coap_transaction_id_t	current_outbound_tid;
+	size_t					current_outbound_header_len;
+	size_t					current_outbound_content_len;
 
 #if SMCP_USE_BSD_SOCKETS
 	char					current_outbound_packet[SMCP_MAX_PACKET_LENGTH
 	    + 1];
-	struct sockaddr*		current_outbound_saddr;
+	struct sockaddr_in6		current_outbound_saddr;
 	socklen_t				current_outbound_socklen;
 #endif
 };

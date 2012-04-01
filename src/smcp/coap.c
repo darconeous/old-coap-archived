@@ -401,42 +401,42 @@ coap_code_to_cstr(int x) {
 	case COAP_METHOD_PAIR: return "PAIR"; break;
 	case COAP_METHOD_UNPAIR: return "UNPAIR"; break;
 
-	case COAP_RESULT_CODE_CONTINUE: return "CONTINUE"; break;
-	case COAP_RESULT_CODE_OK: return "OK"; break;
-	case COAP_RESULT_CODE_CREATED: return "CREATED"; break;
-	case COAP_RESULT_CODE_NO_CONTENT: return "NO_CONTENT"; break;
-	case COAP_RESULT_CODE_PARTIAL_CONTENT: return "PARTIAL_CONTENT"; break;
+	case HTTP_RESULT_CODE_CONTINUE: return "CONTINUE"; break;
+	case HTTP_RESULT_CODE_OK: return "OK"; break;
+	case HTTP_RESULT_CODE_CREATED: return "CREATED"; break;
+	case HTTP_RESULT_CODE_NO_CONTENT: return "NO_CONTENT"; break;
+	case HTTP_RESULT_CODE_PARTIAL_CONTENT: return "PARTIAL_CONTENT"; break;
 
-	case COAP_RESULT_CODE_NOT_MODIFIED: return "NOT_MODIFIED"; break;
-	case COAP_RESULT_CODE_SEE_OTHER: return "SEE_OTHER"; break;
-	case COAP_RESULT_CODE_TEMPORARY_REDIRECT: return "TEMPORARY_REDIRECT";
+	case HTTP_RESULT_CODE_NOT_MODIFIED: return "NOT_MODIFIED"; break;
+	case HTTP_RESULT_CODE_SEE_OTHER: return "SEE_OTHER"; break;
+	case HTTP_RESULT_CODE_TEMPORARY_REDIRECT: return "TEMPORARY_REDIRECT";
 		break;
 
 
-	case COAP_RESULT_CODE_BAD_REQUEST: return "BAD_REQUEST"; break;
-	case COAP_RESULT_CODE_UNAUTHORIZED: return "UNAUTHORIZED"; break;
-	case COAP_RESULT_CODE_FORBIDDEN: return "FORBIDDEN"; break;
-	case COAP_RESULT_CODE_NOT_FOUND: return "NOT_FOUND"; break;
-	case COAP_RESULT_CODE_METHOD_NOT_ALLOWED: return "METHOD_NOT_ALLOWED";
+	case HTTP_RESULT_CODE_BAD_REQUEST: return "BAD_REQUEST"; break;
+	case HTTP_RESULT_CODE_UNAUTHORIZED: return "UNAUTHORIZED"; break;
+	case HTTP_RESULT_CODE_FORBIDDEN: return "FORBIDDEN"; break;
+	case HTTP_RESULT_CODE_NOT_FOUND: return "NOT_FOUND"; break;
+	case HTTP_RESULT_CODE_METHOD_NOT_ALLOWED: return "METHOD_NOT_ALLOWED";
 		break;
-	case COAP_RESULT_CODE_CONFLICT: return "CONFLICT"; break;
-	case COAP_RESULT_CODE_GONE: return "GONE"; break;
-	case COAP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE: return
+	case HTTP_RESULT_CODE_CONFLICT: return "CONFLICT"; break;
+	case HTTP_RESULT_CODE_GONE: return "GONE"; break;
+	case HTTP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE: return
 		    "UNSUPPORTED_MEDIA_TYPE"; break;
 
-	case COAP_RESULT_CODE_INTERNAL_SERVER_ERROR: return
+	case HTTP_RESULT_CODE_INTERNAL_SERVER_ERROR: return
 		    "INTERNAL_SERVER_ERROR"; break;
-	case COAP_RESULT_CODE_NOT_IMPLEMENTED: return "NOT_IMPLEMENTED"; break;
-	case COAP_RESULT_CODE_BAD_GATEWAY: return "BAD_GATEWAY"; break;
-	case COAP_RESULT_CODE_SERVICE_UNAVAILABLE: return "UNAVAILABLE"; break;
-	case COAP_RESULT_CODE_GATEWAY_TIMEOUT: return "TIMEOUT"; break;
-	case COAP_RESULT_CODE_PROTOCOL_VERSION_NOT_SUPPORTED: return
+	case HTTP_RESULT_CODE_NOT_IMPLEMENTED: return "NOT_IMPLEMENTED"; break;
+	case HTTP_RESULT_CODE_BAD_GATEWAY: return "BAD_GATEWAY"; break;
+	case HTTP_RESULT_CODE_SERVICE_UNAVAILABLE: return "UNAVAILABLE"; break;
+	case HTTP_RESULT_CODE_GATEWAY_TIMEOUT: return "TIMEOUT"; break;
+	case HTTP_RESULT_CODE_PROTOCOL_VERSION_NOT_SUPPORTED: return
 		    "PROTOCOL_VERSION_NOT_SUPPORTED"; break;
 
-	case COAP_RESULT_CODE_TOKEN_REQUIRED: return "TOKEN_REQUIRED"; break;
-	case COAP_RESULT_CODE_URI_AUTHORITY_REQUIRED: return
+	case HTTP_RESULT_CODE_TOKEN_REQUIRED: return "TOKEN_REQUIRED"; break;
+	case HTTP_RESULT_CODE_URI_AUTHORITY_REQUIRED: return
 		    "URI_AUTHORITY_REQUIRED"; break;
-	case COAP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION: return
+	case HTTP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION: return
 		    "UNSUPPORTED_CRITICAL_OPTION"; break;
 
 	default:  break;
@@ -460,6 +460,9 @@ coap_dump_headers(
 	if(!prefix)
 		prefix = "";
 
+	// Hack until this stuff gets cleaned up.
+	statuscode = coap_to_http_code(statuscode);
+
 	if(statuscode > 100) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
@@ -468,7 +471,7 @@ coap_dump_headers(
 			coap_code_to_cstr(statuscode));
 	} else {
 		fputs(prefix, outstream);
-		fprintf(outstream, "%s /", coap_code_to_cstr(statuscode));
+		fprintf(outstream, "%s(%d) /", coap_code_to_cstr(statuscode),statuscode);
 
 		for(iter = headers; iter != end; ++iter) {
 			if(iter->key == COAP_HEADER_URI_PATH) {
@@ -530,15 +533,26 @@ coap_dump_headers(
 		case COAP_HEADER_URI_QUERY:
 		case COAP_HEADER_URI_SCHEME:
 		case COAP_HEADER_LOCATION:
+		case COAP_HEADER_CONTINUATION_REQUEST:
 
 		case SMCP_HEADER_ORIGIN:
 		case SMCP_HEADER_CSEQ:
 
-			fwrite(iter->value, iter->value_len, 1, outstream);
+			fprintf(outstream, "\"");
+			if(iter->value_len > 270)
+				fprintf(outstream, "%s",iter->value);
+			else
+				fwrite(iter->value, iter->value_len, 1, outstream);
+			fprintf(outstream, "\"");
 			break;
 		default:
-		{
+		if(iter->value_len == COAP_HEADER_CSTR_LEN) {
+			fprintf(outstream, "\"%s\"",iter->value);
+		} else {
 			size_t i;
+			if(iter->value_len > 270) {
+				fprintf(outstream, "***VALUE LENGTH OVERFLOW***");
+			} else
 			for(i = 0; i < iter->value_len; i++) {
 				fprintf(outstream, "%02X ", (uint8_t)iter->value[i]);
 			}

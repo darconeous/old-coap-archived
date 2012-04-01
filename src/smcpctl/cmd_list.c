@@ -126,7 +126,7 @@ list_response_handler(
 	if(((statuscode < 200) ||
 	            (statuscode >= 300)) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
-	        (statuscode != COAP_RESULT_CODE_PARTIAL_CONTENT))
+	        (statuscode != HTTP_RESULT_CODE_PARTIAL_CONTENT))
 		fprintf(stderr, "list: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
@@ -271,18 +271,20 @@ bool
 resend_list_request(smcp_daemon_t smcp) {
 	bool ret = false;
 	smcp_status_t status = 0;
-	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
+
+	smcp_message_begin(smcp,COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
+	smcp_message_set_tid(tid);
+	smcp_message_set_uri(url_data, 0);
 
 	if(next_len != ((size_t)(-1))) {
-		util_add_header(headers,
-			SMCP_MAX_HEADERS,
+		smcp_message_add_header(
 			COAP_HEADER_CONTINUATION_RESPONSE,
 			next_data,
 			next_len);
 	}
+
 	if(size_request) {
-		util_add_header(headers,
-			SMCP_MAX_HEADERS,
+		smcp_message_add_header(
 			COAP_HEADER_SIZE_REQUEST,
 			    (void*)&size_request,
 			sizeof(size_request));
@@ -293,9 +295,9 @@ resend_list_request(smcp_daemon_t smcp) {
 		tid,
 		calc_retransmit_timeout(retries),
 		0, // Flags
-		    (void*)&list_response_handler,
-		    (void*)url_data
-	    );
+		(void*)&list_response_handler,
+		(void*)url_data
+	);
 
 	if(status) {
 		check(!status);
@@ -306,20 +308,12 @@ resend_list_request(smcp_daemon_t smcp) {
 		goto bail;
 	}
 
-	status = smcp_daemon_send_request_to_url(
-		smcp,
-		tid,
-		COAP_METHOD_GET,
-		url_data,
-		headers,
-		NULL,
-		0
-	    );
+	status = smcp_message_send();
 
 	if(status) {
 		check(!status);
 		fprintf(stderr,
-			"smcp_daemon_send_request_to_url() returned error %d(%s).\n",
+			"smcp_message_send() returned error %d(%s).\n",
 			status,
 			smcp_status_to_cstr(status));
 		goto bail;

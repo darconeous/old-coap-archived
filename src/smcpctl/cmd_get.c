@@ -124,7 +124,7 @@ get_response_handler(
 	if(((statuscode < 200) ||
 	            (statuscode >= 300)) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
-	        (statuscode != COAP_RESULT_CODE_PARTIAL_CONTENT))
+	        (statuscode != HTTP_RESULT_CODE_PARTIAL_CONTENT))
 		fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));

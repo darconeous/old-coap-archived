@@ -273,7 +273,7 @@ url_parse(
 		        (addr_end >= addr_begin) && (*addr_end != '@') &&
 		        (*addr_end != '[');
 		    addr_end--) {
-			if((*addr_end == ']')) {
+			if(*addr_end == ']') {
 				*addr_end = 0;
 				got_port = true;
 			} else if(!got_port && (*addr_end == ':')) {

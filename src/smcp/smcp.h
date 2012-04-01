@@ -126,18 +126,7 @@ typedef int smcp_status_t;
 extern const char* smcp_status_to_cstr(smcp_status_t x);
 
 
-// Avoid using the following preprocessor macros. They were used for a transition period which is now over.
-// They are all DEPRECATED.
 #define HEADER_CSTR_LEN     ((size_t)-1)
-#define smcp_header_item_next(item)         ((item) + 1)
-#define smcp_header_item_get_value(item)    ((item)->value)
-#define smcp_header_item_get_key(item)      ((item)->key)
-#define smcp_header_item_set_value(item, x)  ((item)->value = (x))
-#define smcp_header_item_set_key(item, x)        ((item)->key = (x))
-#define smcp_header_item_get_value_len(item)        ((item)->value_len)
-#define smcp_header_item_key_equal(item, k)      ((item)->key == (k))
-//#define smcp_header_item_get_key_cstr(item)	coap_header_key_to_cstr(smcp_header_item_get_key(item))
-
 
 struct smcp_daemon_s;
 typedef struct smcp_daemon_s *smcp_daemon_t;
@@ -168,8 +157,9 @@ extern void smcp_daemon_release(smcp_daemon_t self);
 
 extern uint16_t smcp_daemon_get_port(smcp_daemon_t self);
 
-extern smcp_status_t smcp_daemon_process(
-	smcp_daemon_t self, cms_t cms);                                     // Returns nonzero on error
+//! Returns nonzero on error
+extern smcp_status_t smcp_daemon_process(smcp_daemon_t self, cms_t cms);
+
 extern cms_t smcp_daemon_get_timeout(smcp_daemon_t self);
 
 extern smcp_node_t smcp_daemon_get_root_node(smcp_daemon_t self);
@@ -181,6 +171,7 @@ extern smcp_status_t smcp_daemon_add_response_handler(
 	int							flags,
 	smcp_response_handler_func	callback,
 	void*						context);
+
 extern smcp_status_t smcp_invalidate_response_handler(
 	smcp_daemon_t self, coap_transaction_id_t tid);
 
@@ -194,6 +185,7 @@ extern smcp_status_t smcp_daemon_send_request(
 	const char*				content,
 	size_t					content_length,
 	SMCP_SOCKET_ARGS);
+
 extern smcp_status_t smcp_daemon_send_request_to_url(
 	smcp_daemon_t			self,
 	coap_transaction_id_t	tid,
@@ -214,9 +206,17 @@ extern smcp_status_t smcp_daemon_send_response(
 //// New API for sending messages. This API should be more efficient for constrained devices.
 
 extern smcp_status_t smcp_message_begin(
-	smcp_daemon_t self, coap_transaction_type_t tt);
+	smcp_daemon_t self,
+	coap_code_t code,
+	coap_transaction_type_t tt
+);
+
+extern smcp_status_t smcp_message_begin_response(coap_code_t code);
+
 extern smcp_status_t smcp_message_set_tid(coap_transaction_id_t tid);
+
 extern smcp_status_t smcp_message_set_code(coap_code_t code);
+
 #if SMCP_USE_BSD_SOCKETS
 extern smcp_status_t smcp_message_set_destaddr(
 	struct sockaddr *sockaddr, socklen_t socklen);
@@ -224,15 +224,26 @@ extern smcp_status_t smcp_message_set_destaddr(
 extern smcp_status_t smcp_message_set_destaddr(
 	const uip_ipaddr_t *toaddr, uint16_t toport);
 #endif
+
+#define SMCP_MSG_SKIP_DESTADDR		(1<<0)
+#define SMCP_MSG_SKIP_AUTHORITY		(1<<1)
 extern smcp_status_t smcp_message_set_uri(
-	const char* uri, bool include_authority);
+	const char* uri,
+	char flags
+);
+
 extern smcp_status_t smcp_message_add_header(
-	coap_header_key_t key, const char* value, size_t len);
+	coap_header_key_t key,
+	const char* value,
+	size_t len
+);
 
 /*!	After the following function is called you cannot add any more headers
 **	without loosing the content. */
 extern char* smcp_message_get_content_ptr(size_t* max_len);
 extern smcp_status_t smcp_message_set_content_len(size_t len);
+
+extern smcp_status_t smcp_message_set_content(const char* value,size_t len);
 extern smcp_status_t smcp_message_send();
 
 #pragma mark -

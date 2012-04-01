@@ -273,15 +273,11 @@ tool_cmd_test(
 			NULL
 		);
 
-		smcp_daemon_send_request_to_url(
-			smcp_daemon2,
-			tid,
-			COAP_METHOD_GET,
-			url,
-			NULL, // headers
-			NULL,
-			0
-		);
+		smcp_message_begin(smcp_daemon2,COAP_METHOD_GET,COAP_TRANS_TYPE_CONFIRMABLE);
+			smcp_message_set_tid(tid);
+			smcp_message_set_uri(url, 0);
+		smcp_message_send();
+
 		fprintf(stderr, " *** Sent LIST request...\n");
 	}
 
