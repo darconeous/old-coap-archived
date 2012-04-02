@@ -110,6 +110,7 @@ struct smcp_pairing_s {
 #if SMCP_CONF_PAIRING_STATS
 	uint16_t			fire_count;
 	uint16_t			errors;
+	uint16_t			send_count;
 	smcp_status_t		last_error;
 #endif
 	const char*			dest_uri;

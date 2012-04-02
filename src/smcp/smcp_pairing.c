@@ -241,6 +241,10 @@ smcp_retry_event(smcp_pairing_t pairing) {
 
 	smcp_message_send();
 
+#if SMCP_CONF_PAIRING_STATS
+	pairing->send_count++;
+#endif
+
 	return ret;
 }
 
@@ -266,6 +270,14 @@ static void
 smcp_event_response_handler(
 	int statuscode, char* content, size_t content_length, smcp_pairing_t pairing
 ) {
+#if SMCP_CONF_PAIRING_STATS
+	pairing->last_error = statuscode;
+	if(statuscode && ((statuscode < 200) || (statuscode >= 300))) {
+		// Looks like we failed to live up to this pairing.
+		pairing->errors++;
+		// TODO: Trigger events based on these errors...!
+	}
+#endif
 	// expire the event.
 	smcp_event_tracker_t event = pairing->currentEvent;
 	assert_printf("Event:%p: smcp_event_response_handler(): statuscode=%d",event,statuscode);
@@ -823,9 +835,9 @@ smcp_pairing_node_request_handler(
 					bail,
 					ret = SMCP_STATUS_NOT_FOUND);
 				if(!path) {
-					const char rcontent[] = "<d>,<f>,"
+					const char rcontent[] = "<d>;n=\"Dest URI\",<f>;n=\"Flags\","
 #if SMCP_CONF_PAIRING_STATS
-					    "<fc>,<ec>,<err>,"
+					    "<fc>;n=\"Fire Count\",<tx>;n=\"Send Count\",<ec>;n=\"Error Count\",<err>;n=\"Last Error\","
 #endif
 					    "<seq>,<ack>";
 					smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
@@ -863,6 +875,18 @@ smcp_pairing_node_request_handler(
 						len,
 						"%u",
 						pairing->fire_count
+					);
+					smcp_message_set_content_len(len);
+					smcp_message_send();
+				} else if(strequal_const(path, "tx")) {
+					char *rcontent;
+					size_t len=0;
+					smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+					rcontent = smcp_message_get_content_ptr(&len);
+					len = snprintf(rcontent,
+						len,
+						"%u",
+						pairing->send_count
 					);
 					smcp_message_set_content_len(len);
 					smcp_message_send();
