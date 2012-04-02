@@ -26,7 +26,7 @@
 #include <string.h>
 //#include <sys/errno.h>
 
-#ifdef __CONTIKI__
+#ifdef CONTIKI
 #include "contiki.h"
 #include "net/uip.h"
 #define SMCP_USE_BSD_SOCKETS    0
@@ -52,7 +52,7 @@
 #define SMCP_SOCKET_ARGS        struct sockaddr* saddr, socklen_t socklen
 #endif
 
-#if !SMCP_USE_BSD_SOCKETS && defined(__CONTIKI__)
+#if !SMCP_USE_BSD_SOCKETS && defined(CONTIKI)
 #define SMCP_SOCKET_ARGS \
     const uip_ipaddr_t *toaddr, \
     uint16_t toport
@@ -69,7 +69,7 @@
 
 #define SMCP_DEFAULT_PORT           (61616)
 #define SMCP_DEFAULT_PORT_CSTR      "61616"
-#if __CONTIKI__
+#if CONTIKI
 #define SMCP_MAX_PACKET_LENGTH \
         ((UIP_BUFSIZE - UIP_LLH_LEN - \
             UIP_IPUDPH_LEN))
@@ -199,7 +199,7 @@ extern smcp_status_t smcp_message_set_code(coap_code_t code);
 #if SMCP_USE_BSD_SOCKETS
 extern smcp_status_t smcp_message_set_destaddr(
 	struct sockaddr *sockaddr, socklen_t socklen);
-#elif defined(__CONTIKI__)
+#elif defined(CONTIKI)
 extern smcp_status_t smcp_message_set_destaddr(
 	const uip_ipaddr_t *toaddr, uint16_t toport);
 #endif
@@ -230,7 +230,7 @@ extern smcp_status_t smcp_message_send();
 
 #if SMCP_USE_BSD_SOCKETS
 extern int smcp_daemon_get_fd(smcp_daemon_t self);
-#elif defined(__CONTIKI__)
+#elif defined(CONTIKI)
 extern struct uip_udp_conn* smcp_daemon_get_udp_conn(smcp_daemon_t self);
 #endif
 
@@ -272,7 +272,7 @@ coap_transaction_id_t smcp_daemon_get_current_tid();
 #if SMCP_USE_BSD_SOCKETS
 extern struct sockaddr* smcp_daemon_get_current_request_saddr();
 extern socklen_t smcp_daemon_get_current_request_socklen();
-#elif defined(__CONTIKI__)
+#elif defined(CONTIKI)
 extern const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr();
 extern const uint16_t smcp_daemon_get_current_request_ipport();
 #endif

@@ -75,9 +75,15 @@ loadavg_get_func(
 	int ret = 0;
 	double loadavg[3] = { };
 
-	require_action(node, bail, ret = -1);
-	require_action(content, bail, ret = -1);
-	require_action(content_length, bail, ret = -1);
+	if(content_type)
+		*content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
+
+	if(!content_type || !content || !content_length)
+		goto bail; // Just an event saying that they are finished.
+
+	require_action(node!=NULL, bail, ret = -1);
+	require_action(content!=NULL, bail, ret = -1);
+	require_action(content_length!=0, bail, ret = -1);
 
 	require_action(0 <
 		getloadavg(loadavg,
@@ -94,7 +100,6 @@ loadavg_get_func(
 		loadavg[0]);
 
 	*content_length = strlen(content);
-	*content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
 
 
 bail:

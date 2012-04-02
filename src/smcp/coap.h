@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#if __CONTIKI__
+#if CONTIKI
 #include "net/uip.h"
 #define htons(x)    uip_htons(x)
 #define ntohs(x)    uip_ntohs(x)

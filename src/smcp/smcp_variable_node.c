@@ -37,7 +37,6 @@ smcp_variable_request_handler(
 		goto bail;
 	}
 
-
 	if(method == COAP_METHOD_PUT)
 		// TODO: Implement me!
 		method = COAP_METHOD_POST;
@@ -57,44 +56,49 @@ smcp_variable_request_handler(
 		ret = SMCP_STATUS_NOT_IMPLEMENTED;
 		if(((smcp_variable_node_t)node)->post_func) {
 			ret = (*((smcp_variable_node_t)node)->post_func)(
-				    ((smcp_variable_node_t)node),
-				    (char*)content,
+				((smcp_variable_node_t)node),
+				(char*)content,
 				content_length,
 				content_type
-			    );
+			);
 		}
 	} else if(method == COAP_METHOD_GET) {
-		char replyContent[SMCP_MAX_CONTENT_LENGTH];
-		size_t replyContentLength = sizeof(replyContent);
-		coap_content_type_t replyContentType =
-		    COAP_CONTENT_TYPE_TEXT_PLAIN;
-		coap_header_item_t replyHeaders[2] = {};
+		char *replyContent;
+		size_t replyContentLength = 0;
+		coap_content_type_t replyContentType = COAP_CONTENT_TYPE_TEXT_PLAIN;
 
 		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_NOT_IMPLEMENTED));
+
 		if(((smcp_variable_node_t)node)->get_func) {
 			ret = (*((smcp_variable_node_t)node)->get_func)(
-				    (smcp_variable_node_t)node,
-				replyContent,
+				(smcp_variable_node_t)node,
+				NULL,
 				&replyContentLength,
 				&replyContentType
-			    );
+			);
+			smcp_message_set_code(HTTP_TO_COAP_CODE(smcp_convert_status_to_result_code(ret)));
+			if(!ret) {
+				smcp_message_add_header(COAP_HEADER_CONTENT_TYPE, (char*)&replyContentType, 1);
+				replyContent = smcp_message_get_content_ptr(&replyContentLength);
+				ret = (*((smcp_variable_node_t)node)->get_func)(
+					(smcp_variable_node_t)node,
+					replyContent,
+					&replyContentLength,
+					&replyContentType
+				);
+				smcp_message_set_content_len(replyContentLength);
+			}
 		}
-
-		if(ret == SMCP_STATUS_OK) {
-			util_add_header(replyHeaders, 1, COAP_HEADER_CONTENT_TYPE,
-				    (const void*)&replyContentType, 1);
-			smcp_daemon_send_response(HTTP_RESULT_CODE_OK,
-				replyHeaders,
-				replyContent,
-				replyContentLength);
-		}
+		smcp_message_send();
 	} else {
-		ret = smcp_default_request_handler(node,
+		ret = smcp_default_request_handler(
+			node,
 			method,
 			path,
 			content,
-			content_length);
-		//ret = SMCP_STATUS_NOT_IMPLEMENTED;
+			content_length
+		);
 	}
 
 bail:

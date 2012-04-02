@@ -7,7 +7,7 @@
  *
  */
 
-#if __CONTIKI__ && !CONTIKI_TARGET_MINIMAL_NET
+#if CONTIKI && !CONTIKI_TARGET_MINIMAL_NET
 #if !defined(timeval)
 #define timeval timeval
 struct timeval {
@@ -45,7 +45,7 @@ struct smcp_daemon_s {
 	int						mcfd;
 	struct sockaddr*		current_inbound_saddr;
 	socklen_t				current_inbound_socklen;
-#elif defined(__CONTIKI__)
+#elif defined(CONTIKI)
 	struct uip_udp_conn*	udp_conn;
 	uip_ipaddr_t			current_inbound_toaddr;
 	uint16_t				current_inbound_toport;

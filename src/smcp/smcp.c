@@ -13,12 +13,13 @@
 #define DEBUG VERBOSE_DEBUG
 #endif
 
-#if __CONTIKI__
+#if CONTIKI
 #include "contiki.h"
 #include "net/uip-udp-packet.h"
 #include "net/uiplib.h"
 #include "net/tcpip.h"
 #include "net/resolv.h"
+extern u16_t uip_slen;
 #endif
 
 #include "assert_macros.h"
@@ -61,7 +62,7 @@
 #pragma mark -
 #pragma mark Private Functions
 
-#if __CONTIKI__
+#if CONTIKI
 struct smcp_daemon_s smcp_daemon_global_instance;
 smcp_daemon_t
 smcp_get_current_daemon() {
@@ -231,7 +232,7 @@ smcp_daemon_init(
 					ret); ret = NULL;
 			}, "Failed to bind socket to port zero");
 	}
-#elif __CONTIKI__
+#elif CONTIKI
 
 	ret->udp_conn = udp_new(NULL, 0, NULL);
 	uip_udp_bind(ret->udp_conn, htons(port));
@@ -303,7 +304,7 @@ smcp_daemon_release(smcp_daemon_t self) {
 #if SMCP_USE_BSD_SOCKETS
 	close(self->fd);
 	close(self->mcfd);
-#elif __CONTIKI__
+#elif CONTIKI
 	if(self->udp_conn)
 		uip_udp_remove(self->udp_conn);
 #endif
@@ -324,7 +325,7 @@ int
 smcp_daemon_get_fd(smcp_daemon_t self) {
 	return self->fd;
 }
-#elif defined(__CONTIKI__)
+#elif defined(CONTIKI)
 struct uip_udp_conn*
 smcp_daemon_get_udp_conn(smcp_daemon_t self) {
 	return self->udp_conn;
@@ -341,7 +342,7 @@ smcp_daemon_send_response(
 	smcp_daemon_t self = smcp_get_current_daemon();
 	smcp_status_t ret = 0;
 
-#if __CONTIKI__
+#if CONTIKI
 	char* const packet = (char*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
 	char packet[SMCP_MAX_PACKET_LENGTH + 1] = {};
@@ -437,7 +438,7 @@ smcp_daemon_send_response(
 		    DEBUG_PRINTF(CSTR("Unable to send: errno = %d (%s)"), errno,
 				strerror(errno));
 		});
-#elif __CONTIKI__
+#elif CONTIKI
 	uip_udp_packet_sendto(
 		self->udp_conn,
 		packet,
@@ -467,7 +468,7 @@ smcp_daemon_send_request(
 ) {
 	smcp_status_t ret = 0;
 
-#if __CONTIKI__
+#if CONTIKI
 	char* const packet = &uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
 	char packet[SMCP_MAX_PACKET_LENGTH + 1] = {};
@@ -582,7 +583,7 @@ smcp_daemon_send_request(
 			0,
 			saddr,
 			socklen), bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
-#elif __CONTIKI__
+#elif CONTIKI
 	uip_udp_packet_sendto(
 		self->udp_conn,
 		packet,
@@ -622,7 +623,7 @@ smcp_daemon_send_request_to_url(
 		.sin6_len		= sizeof(struct sockaddr_in6),
 #endif
 	};
-#elif __CONTIKI__
+#elif CONTIKI
 	uip_ipaddr_t toaddr;
 #endif
 
@@ -697,7 +698,7 @@ smcp_daemon_send_request_to_url(
 		memcpy(&saddr, results->ai_addr, results->ai_addrlen);
 	}
 	saddr.sin6_port = toport;
-#elif __CONTIKI__
+#elif CONTIKI
 	memset(&toaddr, 0, sizeof(toaddr));
 	ret =
 	    uiplib_ipaddrconv(addr_str,
@@ -735,7 +736,7 @@ smcp_daemon_send_request_to_url(
 #if SMCP_USE_BSD_SOCKETS
 		    (struct sockaddr*)&saddr,
 		sizeof(saddr)
-#elif __CONTIKI__
+#elif CONTIKI
 		&toaddr,
 		toport
 #else
@@ -774,7 +775,7 @@ struct sockaddr* smcp_daemon_get_current_request_saddr() {
 socklen_t smcp_daemon_get_current_request_socklen() {
 	return smcp_get_current_daemon()->current_inbound_socklen;
 }
-#elif defined(__CONTIKI__)
+#elif defined(CONTIKI)
 const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr() {
 	return &smcp_get_current_daemon()->current_inbound_toaddr;
 }
@@ -826,7 +827,7 @@ smcp_daemon_handle_inbound_packet(
 #if SMCP_USE_BSD_SOCKETS
 	self->current_inbound_saddr = saddr;
 	self->current_inbound_socklen = socklen;
-#elif __CONTIKI__
+#elif CONTIKI
 	self->current_inbound_toaddr = *toaddr;
 	self->current_inbound_toport = toport;
 #endif
@@ -1004,7 +1005,7 @@ smcp_message_begin(
 
 #if SMCP_USE_BSD_SOCKETS
 	self->current_outbound_socklen = 0;
-#elif defined(__CONTIKI__)
+#elif defined(CONTIKI)
 	// TODO: Writeme
 #endif
 	return SMCP_STATUS_OK;
@@ -1039,7 +1040,7 @@ smcp_status_t smcp_message_begin_response(coap_code_t code) {
 		self->current_inbound_saddr,
 		self->current_inbound_socklen
 	);
-#elif __CONTIKI__
+#elif CONTIKI
 	ret = smcp_message_set_destaddr(
 		&self->current_inbound_toaddr,
 		self->current_inbound_toport
@@ -1077,7 +1078,7 @@ smcp_message_set_destaddr(
 
 	return SMCP_STATUS_OK;
 }
-#elif defined(__CONTIKI__)
+#elif defined(CONTIKI)
 smcp_status_t
 smcp_message_set_destaddr(
 	const uip_ipaddr_t *toaddr, uint16_t toport
@@ -1126,7 +1127,7 @@ smcp_message_set_uri(
 		.sin6_len		= sizeof(struct sockaddr_in6),
 #endif
 	};
-#elif __CONTIKI__
+#elif CONTIKI
 	uip_ipaddr_t toaddr;
 #endif
 
@@ -1206,7 +1207,7 @@ smcp_message_set_uri(
 
 	smcp_message_set_destaddr((struct sockaddr *)&saddr,sizeof(struct sockaddr_in6));
 
-#elif __CONTIKI__
+#elif CONTIKI
 	memset(&toaddr, 0, sizeof(toaddr));
 	ret =
 	    uiplib_ipaddrconv(addr_str,
@@ -1335,9 +1336,19 @@ smcp_message_get_content_ptr(size_t* max_len) {
 	DEBUG_PRINTF(CSTR("Outbound: tt=%d"),smcp_get_current_daemon()->current_outbound_tt);
 #endif
 
+	char* buffer;
+
 #if SMCP_USE_BSD_SOCKETS
+	buffer = smcp_get_current_daemon()->current_outbound_packet;
+#elif CONTIKI
+	uip_udp_conn = smcp_get_current_daemon()->udp_conn;
+	buffer = (unsigned char*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+#else
+#error WRITEME!
+#endif
+
 	smcp_get_current_daemon()->current_outbound_header_len = coap_encode_header(
-		(unsigned char*)smcp_get_current_daemon()->current_outbound_packet,
+		(unsigned char*)buffer,
 		SMCP_MAX_PACKET_LENGTH,
 		smcp_get_current_daemon()->current_outbound_tt,
 		smcp_get_current_daemon()->current_outbound_code,
@@ -1349,13 +1360,7 @@ smcp_message_get_content_ptr(size_t* max_len) {
 	if(max_len)
 		*max_len = SMCP_MAX_PACKET_LENGTH-smcp_get_current_daemon()->current_outbound_header_len;
 
-	return smcp_get_current_daemon()->current_outbound_packet
-		+ smcp_get_current_daemon()->current_outbound_header_len;
-#elif defined(__CONTIKI__)
-#error writeme!
-#endif
-
-	return NULL;
+	return buffer + smcp_get_current_daemon()->current_outbound_header_len;
 }
 
 smcp_status_t
@@ -1396,15 +1401,21 @@ smcp_message_send() {
 		bail, ret = SMCP_STATUS_FAILURE, "sendto() returned zero."
 	);
 
-#elif __CONTIKI__
-	uip_udp_packet_sendto(
-		smcp_get_current_daemon()->udp_conn,
-		packet,
-		smcp_get_current_daemon()->current_outbound_header_len +
-		smcp_get_current_daemon()->current_outbound_content_len,
-		toaddr,
-		toport
-	);
+#elif CONTIKI
+	uip_udp_conn = smcp_get_current_daemon()->udp_conn;
+	uip_slen = smcp_get_current_daemon()->current_outbound_header_len +
+		smcp_get_current_daemon()->current_outbound_content_len;
+
+	uip_process(UIP_UDP_SEND_CONN);
+
+#if UIP_CONF_IPV6
+	tcpip_ipv6_output();
+#else
+	if(uip_len > 0)
+		tcpip_output();
+#endif
+	uip_slen = 0;
+
 	memset(&smcp_get_current_daemon()->udp_conn->ripaddr, 0,
 		sizeof(uip_ipaddr_t));
 	smcp_get_current_daemon()->udp_conn->rport = 0;

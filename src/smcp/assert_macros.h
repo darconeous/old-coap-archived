@@ -41,7 +41,7 @@
 #ifndef __DARC_ASSERT_MACROS__
 #define __DARC_ASSERT_MACROS__
 
-#if __CONTIKI__
+#if CONTIKI
 #define assert_error_stream     stdout
 #else
 #define assert_error_stream     stderr

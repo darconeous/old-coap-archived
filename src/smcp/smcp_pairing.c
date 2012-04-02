@@ -13,6 +13,11 @@
 
 #include "assert_macros.h"
 
+#if !SMCP_DEBUG_TIMERS && !VERBOSE_DEBUG
+#undef assert_printf
+#define assert_printf(fmt, ...) do { } while(0)
+#endif
+
 #include "smcp.h"
 #include "smcp_logging.h"
 
@@ -29,7 +34,7 @@
 #include <sys/errno.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#elif __CONTIKI__
+#elif CONTIKI
 #include "resolv.h"
 #endif
 

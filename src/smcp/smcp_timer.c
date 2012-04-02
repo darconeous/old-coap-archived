@@ -4,7 +4,7 @@
 
 #include "assert_macros.h"
 
-#if !SMCP_DEBUG_TIMERS
+#if !SMCP_DEBUG_TIMERS && !VERBOSE_DEBUG
 #undef assert_printf
 #define assert_printf(fmt, ...) do { } while(0)
 #endif
@@ -22,7 +22,7 @@
 #define SMCP_MAX_TIMEOUT    (30 * MSEC_PER_SEC)
 #endif
 
-#if defined(__CONTIKI__)
+#if defined(CONTIKI)
 #define gettimeofday gettimeofday_
 int
 gettimeofday(
