@@ -241,7 +241,11 @@ smcp_retry_event(smcp_pairing_t pairing) {
 
 static void
 smcp_event_tracker_release(smcp_event_tracker_t event) {
+	assert(event!=NULL);
+	assert_printf("Event:%p: release",event);
+	assert_printf("Event:%p: refCount = %d",event,event->refCount-1);
 	if(0==--event->refCount) {
+		assert_printf("Event:%p: dealloc\n",event);
 		if(event->contentFetcher)
 			(*event->contentFetcher)(
 				event->contentFetcherContext,
@@ -257,9 +261,9 @@ static void
 smcp_event_response_handler(
 	int statuscode, char* content, size_t content_length, smcp_pairing_t pairing
 ) {
-
 	// expire the event.
 	smcp_event_tracker_t event = pairing->currentEvent;
+	assert_printf("Event:%p: smcp_event_response_handler(): statuscode=%d",event,statuscode);
 	pairing->currentEvent = NULL;
 	smcp_event_tracker_release(event);
 }
@@ -295,11 +299,13 @@ smcp_daemon_trigger_event(
 			event->contentFetcher = contentFetcher;
 			event->contentFetcherContext = context;
 			event->refCount = 1;
+			assert_printf("Event:%p: alloc",event);
 		}
-		smcp_invalidate_transaction(self, iter->last_tid);
 
-		if(iter->currentEvent)
-			smcp_event_tracker_release(iter->currentEvent);
+		if(iter->currentEvent) {
+			assert_printf("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
+			smcp_invalidate_transaction(self, iter->last_tid);
+		}
 
 		iter->currentEvent = event;
 
@@ -317,6 +323,7 @@ smcp_daemon_trigger_event(
 
 		iter->last_tid = tid;
 		event->refCount++;
+		assert_printf("Event:%p: retain",event);
 
 #if SMCP_CONF_PAIRING_STATS
 		iter->fire_count++;
@@ -589,6 +596,10 @@ extern smcp_status_t
 smcp_daemon_delete_pairing(
 	smcp_daemon_t self, smcp_pairing_t pairing
 ) {
+	if(pairing->currentEvent) {
+		smcp_event_tracker_release(pairing->currentEvent);
+		smcp_invalidate_transaction(self, pairing->last_tid);
+	}
 	return bt_remove(
 		    (void**)&((smcp_daemon_t)self)->pairings,
 		pairing,
@@ -635,9 +646,9 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 					content_break_threshold =
 					    (content_break_threshold << 8) + iter->value[i];
 				if(content_break_threshold >= sizeof(replyContent)) {
-					DEBUG_PRINTF(CSTR(
-							"Requested size (%d) is too large, trimming to %d."),
-						content_break_threshold, sizeof(replyContent) - 1);
+					assert_printf(
+							"Requested size (%d) is too large, trimming to %d.",
+						(int)content_break_threshold, (int)(sizeof(replyContent) - 1));
 					content_break_threshold = sizeof(replyContent) - 1;
 				}
 			}
@@ -882,21 +893,16 @@ smcp_pairing_node_request_handler(
 			        (method == COAP_METHOD_POST)) {
 				require_action(path != NULL,
 					bail,
-					ret = SMCP_STATUS_NOT_IMPLEMENTED);
+					ret = SMCP_STATUS_FAILURE);
 				if(!pairing &&
 				        ((ret =
 				                smcp_daemon_pair_with_uri(self, name, uri,
 								0,
 								NULL)) == SMCP_STATUS_OK)) {
-					smcp_daemon_send_response(HTTP_RESULT_CODE_CREATED,
-						NULL,
-						NULL,
-						0);
+					smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CREATED));
+					smcp_message_send();
 				}
-			} else if(method == COAP_METHOD_DELETE) {
-				require_action(path != NULL,
-					bail,
-					ret = SMCP_STATUS_NOT_IMPLEMENTED);
+			} else if((method == COAP_METHOD_DELETE) && pairing) {
 				ret = smcp_daemon_delete_pairing(self, pairing);
 			} else {
 				smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_METHOD_NOT_ALLOWED));

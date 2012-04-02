@@ -1,6 +1,14 @@
-//#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
+
+#define SMCP_DEBUG_TIMERS	0
 
 #include "assert_macros.h"
+
+#if !SMCP_DEBUG_TIMERS
+#undef assert_printf
+#define assert_printf(fmt, ...) do { } while(0)
+#endif
+
 #include "smcp_timer.h"
 #include <stdio.h>
 #include "smcp.h"
@@ -119,13 +127,17 @@ extern smcp_status_t smcp_daemon_schedule_timer(
 ) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 
-	check(self);
-	check(timer);
+	assert(self!=NULL);
+	assert(timer!=NULL);
 
 	// Make sure we aren't already part of the list.
 	require(!timer->ll.next, bail);
 	require(!timer->ll.prev, bail);
 	require(self->timers != timer, bail);
+
+#if SMCP_DEBUG_TIMERS
+	size_t previousTimerCount = ll_count(self->timers);
+#endif
 
 	convert_cms_to_timeval(&timer->fire_date, cms);
 
@@ -138,8 +150,12 @@ extern smcp_status_t smcp_daemon_schedule_timer(
 
 	ret = SMCP_STATUS_OK;
 
-	DEBUG_PRINTF(CSTR("%p: Timers in play = %d"), self,
-		    (int)ll_count(self->timers));
+	assert_printf("Timer:%p(CTX=%p): Scheduled.",timer,timer->context);
+	assert_printf("%p: Timers in play = %d",self,(int)ll_count(self->timers));
+
+#if SMCP_DEBUG_TIMERS
+	assert((ll_count(self->timers)) == previousTimerCount+1);
+#endif
 
 bail:
 	return ret;
@@ -150,12 +166,25 @@ smcp_daemon_invalidate_timer(
 	smcp_daemon_t	self,
 	smcp_timer_t	timer
 ) {
+#if SMCP_DEBUG_TIMERS
+	size_t previousTimerCount = ll_count(self->timers);
+	assert(previousTimerCount>=1);
+#endif
+
+	assert_printf("Timer:%p: Invalidating...",timer);
+	assert_printf("Timer:%p: (CTX=%p)",timer,timer->context);
+
 	ll_remove((void**)&self->timers, (void*)timer);
+
+#if SMCP_DEBUG_TIMERS
+	assert((ll_count(self->timers)) == previousTimerCount-1);
+#endif
 	timer->ll.next = NULL;
 	timer->ll.prev = NULL;
-	DEBUG_PRINTF(CSTR("%p: invalidated timer %p"), self, timer);
-	DEBUG_PRINTF(CSTR("%p: Timers in play = %d"), self,
-		    (int)ll_count(self->timers));
+	if(timer->cancel)
+		(*timer->cancel)(self,timer->context);
+	assert_printf("Timer:%p: Invalidated.",timer);
+	assert_printf("%p: Timers in play = %d",self,(int)ll_count(self->timers));
 }
 
 cms_t
@@ -167,18 +196,21 @@ smcp_daemon_get_timeout(smcp_daemon_t self) {
 
 	ret = MAX(ret, 0);
 
-	if(ret != SMCP_MAX_TIMEOUT)
-		DEBUG_PRINTF(CSTR("%p: next timeout = %dms"), self, ret);
+//	if(ret != SMCP_MAX_TIMEOUT)
+//		DEBUG_PRINTF(CSTR("%p: next timeout = %dms"), self, ret);
 	return ret;
 }
 
 void
 smcp_daemon_handle_timers(smcp_daemon_t self) {
-	while(self->timers &&
+	if(self->timers &&
 	        (convert_timeval_to_cms(&self->timers->fire_date) <= 0)) {
 		smcp_timer_t timer = self->timers;
 		smcp_timer_callback_t callback = timer->callback;
 		void* context = timer->context;
+		assert_printf("Timer:%p(CTX=%p): Firing...",timer,timer->context);
+
+		timer->cancel = NULL;
 		smcp_daemon_invalidate_timer(self, timer);
 		if(callback)
 			callback(self, context);

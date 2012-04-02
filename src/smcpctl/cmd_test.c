@@ -24,7 +24,7 @@
 #include "smcpctl.h"
 #include "cmd_test.h"
 
-smcp_status_t
+static smcp_status_t
 action_func(
 	smcp_variable_node_t	node,
 	char*					content,
@@ -156,31 +156,48 @@ tool_cmd_test(
 	else
 		smcp_daemon = smcp_daemon_create(SMCP_DEFAULT_PORT);
 
-	smcp_pairing_node_init(NULL, smcp_daemon_get_root_node(
-			smcp_daemon), ".pairings");
-	smcp_pairing_node_init(NULL, smcp_daemon_get_root_node(
-			smcp_daemon2), ".pairings");
+	smcp_pairing_node_init(
+		NULL,
+		smcp_daemon_get_root_node(smcp_daemon),
+		".pairings"
+	);
 
-	smcp_node_init((smcp_node_t)&device_node,
-		smcp_daemon_get_root_node(smcp_daemon), "device");
+	smcp_pairing_node_init(
+		NULL,
+		smcp_daemon_get_root_node(smcp_daemon2),
+		".pairings"
+	);
+
+	smcp_node_init(
+		(smcp_node_t)&device_node,
+		smcp_daemon_get_root_node(smcp_daemon),
+		"device"
+	);
 
 	smcp_timer_node_init(&timer_node,
 		smcp_daemon,
 		smcp_daemon_get_root_node(smcp_daemon),
-		"timer");
+		"timer"
+	);
 
 	smcp_node_init((smcp_node_t)&sliced_post_node,
 		&device_node,
-		"sliced_post");
+		"sliced_post"
+	);
 	sliced_post_node.request_handler = &sliced_post_request_handler;
 
-	smcp_node_init_variable(&var_node,
-		    (smcp_node_t)&device_node,
-		"loadavg");
+	smcp_node_init_variable(
+		&var_node,
+		(smcp_node_t)&device_node,
+		"loadavg"
+	);
 	var_node.get_func = loadavg_get_func;
 
-	smcp_node_init_variable(&action_node,
-		smcp_daemon_get_root_node(smcp_daemon2), "action");
+	smcp_node_init_variable(
+		&action_node,
+		smcp_daemon_get_root_node(smcp_daemon2),
+		"action"
+	);
 	action_node.post_func = action_func;
 	action_node.node.context = smcp_daemon2;
 

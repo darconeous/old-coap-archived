@@ -31,11 +31,11 @@ static arg_list_item_t option_list[] = {
 	{ 0 }
 };
 
-static int gRet;
-static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
 static uint16_t size_request;
 
+static int gRet;
+static sig_t previous_sigint_handler;
 static void
 signal_interrupt(int sig) {
 	gRet = ERRORCODE_INTERRUPT;

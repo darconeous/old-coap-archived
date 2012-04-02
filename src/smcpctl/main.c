@@ -25,6 +25,7 @@
 #include "cmd_pair.h"
 #include "cmd_repeat.h"
 #include "cmd_delete.h"
+#include "cmd_monitor.h"
 
 #include "smcpctl.h"
 
@@ -129,6 +130,9 @@ struct {
 	{ "ls",	 NULL,
 	  &tool_cmd_list,
 	  1 },
+	{ "rm",	 NULL,
+	  &tool_cmd_delete,
+	  1 },
 	{
 		"test",
 		"Self test mode.",
@@ -139,7 +143,11 @@ struct {
 		"Repeat the specified command",
 		&tool_cmd_repeat
 	},
-
+	{
+		"monitor",
+		"Monitor a given URL for events and changes",
+		&tool_cmd_monitor
+	},
 	{
 		"help",
 		"Display this help.",
@@ -315,6 +323,7 @@ main(
 
 	smcp_daemon = smcp_daemon_create(port);
 	setenv("SMCP_CURRENT_PATH", "coap://localhost/", 0);
+	fprintf(stderr,"Listening on port %d.\n",smcp_daemon_get_port(smcp_daemon));
 
 	if(i < argc) {
 		if(((i + 1) == argc) && (0 == strcmp(argv[i], "help")))

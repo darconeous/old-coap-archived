@@ -60,7 +60,7 @@ smcp_status_t smcp_static_content_fetcher(
 	return SMCP_STATUS_OK;
 }
 
-
+#if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
 smcp_status_t smcp_timer_node_content_fetcher(
 	smcp_timer_node_t self,
 	char* content,
@@ -76,6 +76,7 @@ smcp_status_t smcp_timer_node_content_fetcher(
 
 	return SMCP_STATUS_OK;
 }
+#endif
 
 void smcp_timer_node_fired(
 	smcp_daemon_t smcp, void* context
@@ -83,8 +84,6 @@ void smcp_timer_node_fired(
 	smcp_timer_node_t const self = context;
 
 #if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-	char content[10];
-	snprintf(content, sizeof(content), "count=%d", ++self->count);
 	smcp_daemon_trigger_event_with_node(smcp,
 		&self->node,
 		"!fire",

@@ -29,16 +29,12 @@
 
 static int gRet;
 static sig_t previous_sigint_handler;
-static coap_transaction_id_t tid;
 
 static void
 signal_interrupt(int sig) {
 	gRet = ERRORCODE_INTERRUPT;
 	signal(SIGINT, previous_sigint_handler);
 }
-
-bool send_pair_request(
-	smcp_daemon_t smcp, const char* url, const char* content);
 
 static void
 pair_response_handler(
@@ -80,22 +76,40 @@ pair_response_handler(
 
 	if(gRet == ERRORCODE_INPROGRESS)
 		gRet = ERRORCODE_OK;
+	free(context);
 }
 
-
 bool
+resend_pair_request(char* url[2]) {
+	bool ret = false;
+
+	require_noerr(smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_PAIR, COAP_TRANS_TYPE_CONFIRMABLE),bail);
+	smcp_message_set_uri(url[0],0);
+	smcp_message_set_content(url[1], COAP_HEADER_CSTR_LEN);
+	require_noerr(smcp_message_send(),bail);
+
+	ret = true;
+
+bail:
+	return ret;
+}
+
+static coap_transaction_id_t
 send_pair_request(
 	smcp_daemon_t smcp, const char* url, const char* url2
 ) {
 	bool ret = false;
-	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
+	coap_transaction_id_t tid;
+	const char** url_ = calloc(2,sizeof(char*));
+
+	require(url_,bail);
+	url_[0] = url;
+	url_[1] = url2;
 
 	tid = SMCP_FUNC_RANDOM_UINT32();
 	//static char tid_str[30];
 
 	gRet = ERRORCODE_INPROGRESS;
-
-	fprintf(stderr, "Pairing \"%s\" to \"%s\"...\n", url, url2);
 
 	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
 
@@ -113,25 +127,19 @@ send_pair_request(
 			tid,
 			5000,
 			0, // Flags
-			NULL,
-			&pair_response_handler,
-			    (void*)url
-		), bail);
-
-	require_noerr(smcp_daemon_send_request_to_url(
-			smcp,
-			tid,
-			COAP_METHOD_PAIR,
-			url,
-			headers,
-			url2,
-			strlen(url2)
+			(void*)&resend_pair_request,
+			(void*)&pair_response_handler,
+			(void*)url_
 		), bail);
 
 	ret = true;
 
 bail:
-	return ret;
+	if(!ret) {
+		tid = 0;
+		free(url_);
+	}
+	return tid;
 }
 
 int
@@ -139,6 +147,7 @@ tool_cmd_pair(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
+	coap_transaction_id_t tid;
 
 	char url[1000];
 	url[0] = 0;
@@ -165,8 +174,8 @@ tool_cmd_pair(
 	}
 
 	if(argc == 2) {
-		require(send_pair_request(smcp, getenv(
-					"SMCP_CURRENT_PATH"), url), bail);
+		require((tid=send_pair_request(smcp, getenv(
+					"SMCP_CURRENT_PATH"), url)), bail);
 	} else if(argc == 3) {
 		char url2[1000];
 
@@ -177,7 +186,7 @@ tool_cmd_pair(
 			strncpy(url2, argv[2], sizeof(url2));
 		}
 
-		require(send_pair_request(smcp, url, url2), bail);
+		require((tid=send_pair_request(smcp, url, url2)), bail);
 	} else {
 		fprintf(stderr, "Bad args.\n");
 		gRet = ERRORCODE_BADARG;
