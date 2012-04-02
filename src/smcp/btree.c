@@ -137,7 +137,8 @@ bt_remove(
 		if(item_->parent) {
 			if(item_->parent->lhs == item_) {
 				item_->parent->lhs = item_->lhs;
-				item_->lhs->parent = item_->parent;
+				if(item_->lhs)
+					item_->lhs->parent = item_->parent;
 				if(item_->rhs) {
 					bt_insert(
 						(void**)&item_->parent->lhs,
@@ -149,7 +150,8 @@ bt_remove(
 				}
 			} else if(item_->parent->rhs == item_) {
 				item_->parent->rhs = item_->lhs;
-				item_->lhs->parent = item_->parent;
+				if(item_->lhs)
+					item_->lhs->parent = item_->parent;
 				if(item_->rhs) {
 					bt_insert(
 						(void**)&item_->parent->rhs,
