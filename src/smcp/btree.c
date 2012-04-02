@@ -1,23 +1,60 @@
-/*	Flexible Binary Tree Utilities
+/*	@file btree.c
+**	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Written by Robert Quattlebaum <darco@deepdarc.com>.
-**	PUBLIC DOMAIN.
+**	Originally published 2010-8-31.
 **
-**	Self test code at bottom of file.
+**	This file was written by Robert Quattlebaum <darco@deepdarc.com>.
+**
+**	This work is provided as-is. Unless otherwise provided in writing,
+**	Robert Quattlebaum makes no representations or warranties of any
+**	kind concerning this work, express, implied, statutory or otherwise,
+**	including without limitation warranties of title, merchantability,
+**	fitness for a particular purpose, non infringement, or the absence
+**	of latent or other defects, accuracy, or the present or absence of
+**	errors, whether or not discoverable, all to the greatest extent
+**	permissible under applicable law.
+**
+**	To the extent possible under law, Robert Quattlebaum has waived all
+**	copyright and related or neighboring rights to this work. This work
+**	is published from the United States.
+**
+**	I, Robert Quattlebaum, dedicate any and all copyright interest in
+**	this work to the public domain. I make this dedication for the
+**	benefit of the public at large and to the detriment of my heirs and
+**	successors. I intend this dedication to be an overt act of
+**	relinquishment in perpetuity of all present and future rights to
+**	this code under copyright law. In jurisdictions where this is not
+**	possible, I hereby release this code under the Creative Commons
+**	Zero (CC0) license.
+**
+**	 * <http://creativecommons.org/publicdomain/zero/1.0/>
+**
+**	-------------------------------------------------------------------
+**
+**	## Unit Test ##
+**
+**	This file includes its own unit test. To compile the unit test,
+**	simply compile this file with the macro BTREE_SELF_TEST set to 1.
+**	For example:
+**
+**	    cc btree.c -Wall -DBTREE_SELF_TEST=1 -o btree
+**
+**	## Todo ##
+**
+**	 * Add some sort of automatic tree-balancing algorithm,
+**	   like <http://en.wikipedia.org/wiki/Scapegoat_tree>.
 */
 
 #include "btree.h"
 #include <assert.h>
 
-// TODO: Add some sort of tree-balancing algorithm, like <http://en.wikipedia.org/wiki/Scapegoat_tree>
-
 int
 bt_insert(
-	void**				bt,
-	void*				item,
-	bt_compare_func_t	compare_func,
-	bt_delete_func_t	delete_func,
-	void*				context
+	void** bt,
+	void* item,
+	bt_compare_func_t compare_func,
+	bt_delete_func_t delete_func,
+	void* context
 ) {
 	int depth = 0;
 	bt_item_t const item_ = item;
@@ -34,9 +71,8 @@ again:
 		if(result) {
 			// One more step down the rabit hole...
 			item_->parent = location_;
-			bt =
-			    (result <
-			    0) ? (void**)&location_->rhs : (void**)&location_->lhs;
+			bt = (result < 0) ?
+				(void**)&location_->rhs : (void**)&location_->lhs;
 			depth++;
 			goto again;
 		} else if(item_ != location_) {
@@ -58,7 +94,7 @@ again:
 			(*delete_func)(location_, context);
 		}
 	} else {
-		// Found outselves a good spot. Put the item here.
+		// Found ourselves a good spot. Put the item here.
 		*bt = item_;
 	}
 
@@ -67,10 +103,10 @@ again:
 
 void*
 bt_find(
-	void*const*			bt,
-	const void*			item,
-	bt_compare_func_t	compare_func,
-	void*				context
+	void*const* bt,
+	const void* item,
+	bt_compare_func_t compare_func,
+	void* context
 ) {
 	bt_item_t location_ = *bt;
 	bt_compare_result_t result = -1;
@@ -89,11 +125,11 @@ bt_find(
 
 bool
 bt_remove(
-	void**				bt,
-	void*				item,
-	bt_compare_func_t	compare_func,
-	bt_delete_func_t	delete_func,
-	void*				context
+	void** bt,
+	void* item,
+	bt_compare_func_t compare_func,
+	bt_delete_func_t delete_func,
+	void* context
 ) {
 	bt_item_t const item_ = bt_find(bt, item, compare_func, context);
 
@@ -101,25 +137,27 @@ bt_remove(
 		if(item_->parent) {
 			if(item_->parent->lhs == item_) {
 				item_->parent->lhs = item_->lhs;
-				if(item_->lhs)
-					item_->lhs->parent = item_->parent;
+				item_->lhs->parent = item_->parent;
 				if(item_->rhs) {
-					bt_insert((void**)&item_->parent->lhs,
+					bt_insert(
+						(void**)&item_->parent->lhs,
 						item_->rhs,
 						compare_func,
 						delete_func,
-						context);
+						context
+					);
 				}
 			} else if(item_->parent->rhs == item_) {
 				item_->parent->rhs = item_->lhs;
-				if(item_->lhs)
-					item_->lhs->parent = item_->parent;
+				item_->lhs->parent = item_->parent;
 				if(item_->rhs) {
-					bt_insert((void**)&item_->parent->rhs,
+					bt_insert(
+						(void**)&item_->parent->rhs,
 						item_->rhs,
 						compare_func,
 						delete_func,
-						context);
+						context
+					);
 				}
 			}
 		} else if(*bt == item_) {
@@ -128,11 +166,13 @@ bt_remove(
 				*bt = item_->lhs;
 				if(item_->rhs) {
 					item_->rhs->parent = NULL;
-					bt_insert(bt,
+					bt_insert(
+						bt,
 						item_->rhs,
 						compare_func,
 						delete_func,
-						context);
+						context
+					);
 				}
 			} else if(item_->rhs) {
 				item_->rhs->parent = NULL;
@@ -141,6 +181,7 @@ bt_remove(
 				*bt = NULL;
 			}
 		}
+
 		item_->lhs = NULL;
 		item_->rhs = NULL;
 		item_->parent = NULL;
@@ -178,7 +219,6 @@ bt_next(void* item) {
 			item_ = item_->parent;
 		}
 	}
-bail:
 
 	return (void*)item_;
 }
@@ -208,7 +248,6 @@ bt_prev(void* item) {
 			item_ = item_->parent;
 		}
 	}
-bail:
 
 	return (void*)item_;
 }
@@ -219,8 +258,15 @@ bt_count(void*const* bt) {
 
 	if(*bt) {
 		bt_item_t iter = bt_first(*bt);
-		bt_item_t end = bt_last(*bt);
+		const bt_item_t end = bt_last(*bt);
+
+		// We start at 1 here because our end
+		// iterator is pointing at the last
+		// item instead of the end marker.
+		// Without this, this method will
+		// be off by 1.
 		ret = 1;
+
 		for(; iter != end; iter = bt_next(iter))
 			ret++;
 	}
@@ -238,7 +284,7 @@ bt_rotate_right(void** bt) {
 		if(item->lhs->rhs)
 			item->lhs->rhs->parent = item;
 		item->lhs = item->lhs->rhs;
-		    ((bt_item_t)*bt)->rhs = item;
+		((bt_item_t)*bt)->rhs = item;
 	}
 }
 
@@ -253,7 +299,7 @@ bt_rotate_left(void** bt) {
 		if(item->rhs->lhs)
 			item->rhs->lhs->parent = item;
 		item->rhs = item->rhs->lhs;
-		    ((bt_item_t)*bt)->lhs = item;
+		((bt_item_t)*bt)->lhs = item;
 	}
 }
 
@@ -285,45 +331,6 @@ bt_splay(void** bt, void* root) {
 	if(*bt==root)
 		goto bail;
 
-#if 0
-	if(item->parent==*bt) {
-		if(((bt_item_t)*bt)->lhs==item)
-			bt_rotate_right(bt);
-		else
-			bt_rotate_left(bt);
-		ret += 1;
-	} else {
-		bt_item_t p=item->parent;
-		bt_item_t g=p->parent;
-		if(item==p->lhs && p==g->lhs) {
-			if(g->parent->lhs==g)
-				bt_rotate_right((void**)&g->parent->lhs);
-			else
-				bt_rotate_right((void**)&g->parent->rhs);
-			bt_rotate_right((void**)&g->lhs);
-		} else if(item==p->rhs && p==g->rhs) {
-			if(g->parent->lhs==g)
-				bt_rotate_left((void**)&g->parent->lhs);
-			else
-				bt_rotate_left((void**)&g->parent->rhs);
-			bt_rotate_left((void**)&g->rhs);			
-		} else if(item==p->rhs && p==g->lhs) {
-			bt_rotate_left((void**)&g->rhs);
-			if(g->parent->lhs==g)
-				bt_rotate_right((void**)&g->parent->lhs);
-			else
-				bt_rotate_right((void**)&g->parent->rhs);
-		} else if(item==p->lhs && p==g->rhs) {
-			bt_rotate_right((void**)&g->lhs);
-			if(g->parent->lhs==g)
-				bt_rotate_left((void**)&g->parent->lhs);
-			else
-				bt_rotate_left((void**)&g->parent->rhs);
-		}
-		ret += 2;
-		ret += bt_splay(bt, root);
-	}
-#else
 	while((item!=*bt) && item->parent&& item->parent->parent) {
 		void** pivot;
 
@@ -347,7 +354,6 @@ bt_splay(void** bt, void* root) {
 			bt_rotate_left(bt);
 		ret++;
 	}
-#endif
 
 	assert(*bt==root);
 
@@ -361,7 +367,7 @@ bt_get_balance(void* node) {
 	int root_index = 0;
 
 	bt_item_t iter = bt_first(node);
-	bt_item_t end = bt_next(bt_last(node));
+	const bt_item_t end = bt_next(bt_last(node));
 
 	for(;iter!=end;iter=bt_next(iter)) {
 		if(iter==node)
@@ -372,7 +378,6 @@ bt_get_balance(void* node) {
 	ret /= 2;
 	ret -= root_index;
 
-bail:
 	return ret;
 }
 
@@ -382,11 +387,12 @@ bt_rebalance(void** bt) {
 
 	bt_item_t iter = bt_first(*bt);
 	bt_item_t median = iter;
-	bt_item_t end = bt_next(bt_last(*bt));
+	const bt_item_t end = bt_next(bt_last(*bt));
 
 	if(!iter)
 		goto bail;
 
+	// Find the median node.
 	while(iter!=end) {
 		iter = bt_next(iter);
 		if(iter==end)
@@ -395,10 +401,11 @@ bt_rebalance(void** bt) {
 		median = bt_next(median);
 	}
 
+	// Splay the tree so that the median node is at the root.
 	ret += bt_splay(bt,median);
 
+	// Rinse and repeat on both child branches.
 	iter = *bt;
-
 	ret += bt_rebalance((void**)&iter->lhs);
 	ret += bt_rebalance((void**)&iter->rhs);
 
@@ -406,8 +413,7 @@ bail:
 	return ret;
 }
 
-//////////////////////////////////////////////////////////////////////////////////
-// SELF TEST CODE
+/* -------------------------------------------------------------------------- */
 
 #if BTREE_SELF_TEST
 
@@ -417,16 +423,14 @@ bail:
 static int nodes_alive = 0;
 
 struct self_test_node_s {
-	struct bt_item_s	item;
-	char*				name;
+	struct bt_item_s item;
+	char* name;
 };
 
 typedef struct self_test_node_s *self_test_node_t;
 
 void
-self_test_node_delete(
-	self_test_node_t item, void* context
-) {
+self_test_node_delete(self_test_node_t item, void* context) {
 	free(item->name);
 	memset(item, 0, sizeof(*item));
 	free(item);
@@ -437,8 +441,12 @@ self_test_node_delete(
 
 bt_compare_result_t
 self_test_node_compare(
-	self_test_node_t lhs, self_test_node_t rhs, void* context
+	self_test_node_t lhs,
+	self_test_node_t rhs,
+	void* context
 ) {
+	(void)context; // This parameter is not used. Supress warning.
+
 	if(lhs->name == rhs->name)
 		return 0;
 	if(!lhs->name)
@@ -450,10 +458,13 @@ self_test_node_compare(
 
 void
 forward_traversal_test(self_test_node_t root) {
-	printf("Forward traversal test...");
-	fflush(stdout);
 	int j = 0;
 	self_test_node_t iter;
+
+	printf("Forward traversal test...");
+
+	fflush(stdout);
+
 	for(iter = bt_first(root); iter; iter = bt_next(iter)) {
 		j++;
 
@@ -472,10 +483,13 @@ forward_traversal_test(self_test_node_t root) {
 
 void
 reverse_traversal_test(self_test_node_t root) {
-	printf("Reverse traversal test...");
-	fflush(stdout);
 	int j = 0;
 	self_test_node_t iter;
+
+	printf("Reverse traversal test...");
+
+	fflush(stdout);
+
 	for(iter = bt_last(root); iter; iter = bt_prev(iter)) {
 		j++;
 		if(nodes_alive < j) {
@@ -492,16 +506,23 @@ reverse_traversal_test(self_test_node_t root) {
 }
 
 int
-main(
-	int argc, char* argv[]
-) {
+main(void) {
+	int ret = 0;
 	self_test_node_t root = NULL;
+	unsigned char c = 0;
 	int i;
-	unsigned char c;
 
-	// Insert in pseudo random order.
+	// Insert in pseudo random order. Here we are using a very simple
+	// linear congruential generator with a=97, c=101, and m=2^8. It
+	// will produce a somewhat randomish distribution of numbers between
+	// 0 and 255. If you would like to learn more about these types of
+	// pseudo random number generators, see wikipedia:
+	//
+	//  * <http://en.wikipedia.org/wiki/Linear_congruential_generator>
+	//
+
 	printf("Inserting nodes in pseudo random order.\n");
-	for(c = 0 * 97 + 101; c; c = c * 97 + 101) {
+	for(c = c * 97 + 101; c; c = c * 97 + 101) {
 		self_test_node_t new_node = calloc(sizeof(struct self_test_node_s),
 			1);
 
@@ -510,10 +531,10 @@ main(
 		nodes_alive++;
 
 		bt_insert(
-			    (void**)&root,
+			(void**)&root,
 			new_node,
-			    (bt_compare_func_t)&self_test_node_compare,
-			    (bt_delete_func_t)&self_test_node_delete,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
 			&nodes_alive
 		);
 	}
@@ -522,7 +543,7 @@ main(
 
 	if(nodes_alive != (int)bt_count((void**)&root)) {
 		printf("Bad node count.\n");
-		return -1;
+		ret++;
 	}
 
 	printf(" * balance = %d\n",bt_get_balance(root));
@@ -549,8 +570,8 @@ main(
 	// Insert in sequential order.
 	printf("Inserting nodes in sequential order.\n");
 	for(i = 0; i != 255; i++) {
-		self_test_node_t new_node = calloc(sizeof(struct self_test_node_s),
-			1);
+		self_test_node_t new_node =
+			calloc(sizeof(struct self_test_node_s),1);
 
 		asprintf(&new_node->name, "item_%d", i);
 
@@ -592,24 +613,24 @@ main(
 	printf("Rebalance operation took %u rotations\n", i);
 
 	if(bt_get_balance(root)) {
-		fprintf(
-			stderr,
+		printf(
 			"error: Tree doesn't seem balanced even after rebalancing. "
 			"balance = %d\n",
 			bt_get_balance(root)
 		);
+		ret++;
 	}
 
 	i = bt_rebalance((void**)&root);
 	printf("Rebalance operation took %u rotations\n", i);
 
-	if(i == 0) {
-		fprintf(
-			stderr,
+	if(i != 0) {
+		printf(
 			"error: Rebalance operation should have been trivial, "
 			"but did %d rotations anyway.\n",
 			i
 		);
+		ret++;
 	}
 
 	forward_traversal_test(root);
@@ -619,19 +640,23 @@ main(
 	while(root)
 		bt_remove((void**)&root,
 			root,
-			    (bt_compare_func_t)&self_test_node_compare,
-			    (bt_delete_func_t)&self_test_node_delete,
-			&nodes_alive);
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
 
 	// Should have no leaks at this point.
 	if(nodes_alive != 0) {
 		printf("error: nodes_alive = %d, when it should be 0\n", nodes_alive);
-		return -1;
+		ret++;
 	}
 
-	printf("OK\n");
-	return 0;
-}
+	if(ret)
+		printf("Failed.\n");
+	else
+		printf("OK\n");
 
+	return ret;
+}
 
 #endif
