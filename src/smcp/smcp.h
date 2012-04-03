@@ -59,6 +59,16 @@
 #include "net/uip.h"
 #endif
 
+#ifndef SMCP_EMBEDDED
+#define SMCP_EMBEDDED		defined(CONTIKI)
+#endif
+
+#if SMCP_EMBEDDED
+#define SMCP_NON_RECURSIVE	static
+#else
+#define SMCP_NON_RECURSIVE
+#endif
+
 #ifndef SMCP_DEPRECATED
 #if __GCC_VERSION__
 #define SMCP_DEPRECATED
