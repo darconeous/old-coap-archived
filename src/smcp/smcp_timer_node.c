@@ -393,10 +393,17 @@ smcp_timer_request_handler(
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
-					    ((smcp_timer_node_t)node)->autorestart = !!strtol(
-						value,
-						NULL,
-						10);
+					((smcp_timer_node_t)node)->autorestart =
+						!!strtol(value,NULL,10);
+
+					smcp_daemon_trigger_event_with_node(
+						smcp_get_current_daemon(),
+						node,
+						"autorestart",
+						(void*)smcp_static_content_fetcher,//smcp_content_fetcher_func contentFetcher,
+						((smcp_timer_node_t)node)->autorestart?"1":"0"//void *context
+					);
+
 					break;
 				}
 			}

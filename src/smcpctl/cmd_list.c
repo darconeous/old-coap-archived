@@ -303,7 +303,7 @@ send_list_request(
 	status = smcp_begin_transaction(
 		smcp,
 		tid,
-		5000,
+		30*1000,	// Retry for thirty seconds.
 		0, // Flags
 		(void*)&resend_list_request,
 		(void*)&list_response_handler,

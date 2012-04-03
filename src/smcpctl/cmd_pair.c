@@ -125,7 +125,7 @@ send_pair_request(
 	require_noerr(smcp_begin_transaction(
 			smcp,
 			tid,
-			5000,
+			30*1000,	// Retry for thirty seconds.
 			0, // Flags
 			(void*)&resend_pair_request,
 			(void*)&pair_response_handler,
