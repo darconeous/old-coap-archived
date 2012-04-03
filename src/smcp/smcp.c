@@ -332,6 +332,8 @@ smcp_daemon_get_udp_conn(smcp_daemon_t self) {
 }
 #endif
 
+/*
+
 smcp_status_t
 smcp_daemon_send_response(
 	int					statuscode,
@@ -362,10 +364,8 @@ smcp_daemon_send_response(
 	if(self->current_inbound_request_token)
 		extra_headers++;
 
-/*
-    if(self->has_cascade_count)
-        extra_headers++;
- */
+//    if(self->has_cascade_count)
+//        extra_headers++;
 
 	coap_header_item_t headers_[extra_headers ? header_count +
 	    extra_headers : 0];
@@ -388,14 +388,12 @@ smcp_daemon_send_response(
 		iter += header_count;
 		header_count += extra_headers;
 
-/*
-        if(self->has_cascade_count) {
-            iter->key = COAP_HEADER_CASCADE_COUNT;
-            iter->value = (char*)&self->cascade_count;
-            iter->value_len = 1;
-            iter++;
-        }
- */
+//        if(self->has_cascade_count) {
+//            iter->key = COAP_HEADER_CASCADE_COUNT;
+//            iter->value = (char*)&self->cascade_count;
+//            iter->value_len = 1;
+//            iter++;
+//        }
 
 		if(self->current_inbound_request_token) {
 			iter->key = COAP_HEADER_TOKEN;
@@ -453,7 +451,6 @@ smcp_daemon_send_response(
 bail:
 	return ret;
 }
-
 smcp_status_t
 smcp_daemon_send_request(
 	smcp_daemon_t			self,
@@ -747,6 +744,7 @@ smcp_daemon_send_request_to_url(
 bail:
 	return ret;
 }
+*/
 
 const coap_header_item_t*
 smcp_daemon_get_current_request_headers() {
@@ -996,6 +994,8 @@ smcp_message_begin(
 	check(!smcp_get_current_daemon() || smcp_get_current_daemon()==self);
 	smcp_set_current_daemon(self);
 
+	self->is_responding = false;
+
 	self->current_outbound_header_count = 0;
 	self->current_outbound_tt = tt;
 	self->current_outbound_code = code;
@@ -1021,8 +1021,7 @@ smcp_status_t smcp_message_begin_response(coap_code_t code) {
 		ret = SMCP_STATUS_RESPONSE_NOT_ALLOWED,
 		"Attempted to send more than one response!"
 	);
-
-	self->did_respond = true;
+	self->is_responding = true;
 
 	smcp_message_begin(self,code,COAP_TRANS_TYPE_ACK);
 	smcp_message_set_tid(self->current_inbound_request_tid);
@@ -1032,6 +1031,13 @@ smcp_status_t smcp_message_begin_response(coap_code_t code) {
 			COAP_HEADER_TOKEN,
 			self->current_inbound_request_token,
 			self->current_inbound_request_token_len
+		);
+	}
+	if(self->has_cascade_count) {
+		ret = smcp_message_add_header(
+			COAP_HEADER_CASCADE_COUNT,
+			(char*)&self->cascade_count,
+			1
 		);
 	}
 
@@ -1420,6 +1426,9 @@ smcp_message_send() {
 		sizeof(uip_ipaddr_t));
 	smcp_get_current_daemon()->udp_conn->rport = 0;
 #endif
+	if(smcp_get_current_daemon()->is_responding)
+		smcp_get_current_daemon()->did_respond = true;
+	smcp_get_current_daemon()->is_responding = false;
 
 	ret = SMCP_STATUS_OK;
 bail:
@@ -1673,6 +1682,9 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 		break;
 	case SMCP_STATUS_NOT_IMPLEMENTED:
 		ret = HTTP_RESULT_CODE_NOT_IMPLEMENTED;
+		break;
+	case SMCP_STATUS_NOT_ALLOWED:
+		ret = HTTP_RESULT_CODE_METHOD_NOT_ALLOWED;
 		break;
 	case SMCP_STATUS_BAD_NODE_TYPE:
 	case SMCP_STATUS_UNSUPPORTED_URI:

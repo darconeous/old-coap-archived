@@ -99,7 +99,6 @@ __BEGIN_DECLS
 
 typedef int smcp_method_t;
 
-
 enum {
 	SMCP_STATUS_OK                  = 0,
 	SMCP_STATUS_FAILURE             = -1,
@@ -119,6 +118,7 @@ enum {
 	SMCP_STATUS_BAD_ARGUMENT        = -15,
 	SMCP_STATUS_HOST_LOOKUP_FAILURE = -16,
 	SMCP_STATUS_MESSAGE_TOO_BIG     = -17,
+	SMCP_STATUS_NOT_ALLOWED			= -18,
 };
 
 typedef int smcp_status_t;
@@ -280,38 +280,6 @@ extern const uint16_t smcp_daemon_get_current_request_ipport();
 extern const coap_header_item_t* smcp_daemon_get_current_request_headers();
 extern uint8_t smcp_daemon_get_current_request_header_count();
 extern smcp_daemon_t smcp_get_current_daemon(); // Used from callbacks
-
-
-///////////////// DEPRECATED ///////////////////////
-
-// Use the "constrained" sending API instead!
-
-extern smcp_status_t smcp_daemon_send_request(
-	smcp_daemon_t			self,
-	coap_transaction_id_t	tid,
-	smcp_method_t			method,
-	const char*				path,
-	const char*				query,
-	coap_header_item_t		headers[],
-	const char*				content,
-	size_t					content_length,
-	SMCP_SOCKET_ARGS);
-
-extern smcp_status_t smcp_daemon_send_request_to_url(
-	smcp_daemon_t			self,
-	coap_transaction_id_t	tid,
-	smcp_method_t			method,
-	const char*				url,
-	coap_header_item_t		headers[],
-	const char*				content,
-	size_t					content_length);
-
-extern smcp_status_t smcp_daemon_send_response(
-	int					statuscode,
-	coap_header_item_t	headers[],
-	const char*			content,
-	size_t				content_length);
-
 
 __END_DECLS
 

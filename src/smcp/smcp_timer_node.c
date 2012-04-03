@@ -216,14 +216,11 @@ smcp_timer_request_handler(
 ) {
 	smcp_daemon_t self = smcp_get_current_daemon();
 	smcp_status_t ret = 0;
-	coap_header_item_t reply_headers[5] = {};
 	coap_content_type_t content_type =
 	    SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
 	char tmp_content[10];
 
-	int reply_code = 0;
-	const char* reply_content = NULL;
-	size_t reply_content_len = 0;
+	//int reply_code = 0;
 	char* query = NULL;
 
 	const coap_header_item_t *iter =
@@ -253,51 +250,37 @@ smcp_timer_request_handler(
 		if((method == COAP_METHOD_PUT) || (method == COAP_METHOD_POST)) {
 			if(strhasprefix_const(query, "reset")) {
 				smcp_timer_node_reset((smcp_timer_node_t)node);
-				reply_code = HTTP_RESULT_CODE_OK;
 			} else if(strequal_const(query, "restart")) {
 				smcp_timer_node_reset((smcp_timer_node_t)node);
-				reply_code = HTTP_RESULT_CODE_OK;
 			} else {
-				reply_code = HTTP_RESULT_CODE_METHOD_NOT_ALLOWED;
+				ret = SMCP_STATUS_NOT_ALLOWED;
 			}
 		} else if(method == COAP_METHOD_GET) {
 			content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
-			util_add_header(
-				reply_headers,
-				sizeof(reply_headers) / sizeof(*reply_headers) - 1,
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+			smcp_message_add_header(
 				COAP_HEADER_CONTENT_TYPE,
-				    (const void*)&content_type,
+				(const void*)&content_type,
 				1
 			);
-
-			reply_code = HTTP_RESULT_CODE_OK;
-
-#if __AVR__
-			// TODO: Make sure this actually works!
-			reply_content = alloca(sizeof(list_content));
-			assert(reply_content);
-			strcpy_P((char*)reply_content, list_content);
-#else
-			reply_content = list_content;
-#endif
-			reply_content_len = sizeof(list_content) - 1;
+			smcp_message_set_content(list_content, COAP_HEADER_CSTR_LEN);
+			smcp_message_send();
 		} else {
-			reply_code = HTTP_RESULT_CODE_METHOD_NOT_ALLOWED;
+			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else if(strhasprefix_const(path, "running")) {
 		if(method == COAP_METHOD_GET) {
-			reply_code = HTTP_RESULT_CODE_OK;
-			reply_content_len = 3;
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
 			if(smcp_daemon_timer_is_scheduled(smcp_get_current_daemon(),
 					&((smcp_timer_node_t)node)->timer))
-				reply_content = "v=1";
+				smcp_message_set_content("v=1", COAP_HEADER_CSTR_LEN);
 			else
-				reply_content = "v=0";
+				smcp_message_set_content("v=0", COAP_HEADER_CSTR_LEN);
+			smcp_message_send();
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			reply_code = HTTP_RESULT_CODE_OK;
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
@@ -306,10 +289,8 @@ smcp_timer_request_handler(
 							smcp_timer_node_start((smcp_timer_node_t)node);
 						else
 							smcp_timer_node_stop((smcp_timer_node_t)node);
-						reply_code = HTTP_RESULT_CODE_OK;
 					} else if(strequal_const(value, "!v")) {
 						smcp_timer_node_toggle((smcp_timer_node_t)node);
-						reply_code = HTTP_RESULT_CODE_OK;
 					}
 					break;
 				}
@@ -324,7 +305,7 @@ smcp_timer_request_handler(
 			    );
 			goto bail;
 		} else {
-			reply_code = HTTP_RESULT_CODE_METHOD_NOT_ALLOWED;
+			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else if(strequal_const(path, "!fire")) {
 		if(method == COAP_METHOD_PAIR) {
@@ -337,47 +318,44 @@ smcp_timer_request_handler(
 			    );
 			goto bail;
 		} else {
-			reply_code = HTTP_RESULT_CODE_METHOD_NOT_ALLOWED;
+			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else if(strhasprefix_const(path, "period")) {
 		if(method == COAP_METHOD_GET) {
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
 			snprintf(tmp_content, sizeof(tmp_content), "v=%lu",
 				    (long unsigned int)((smcp_timer_node_t)node)->period);
-			reply_code = HTTP_RESULT_CODE_OK;
-			reply_content = tmp_content;
-			reply_content_len = strlen(tmp_content);
+			smcp_message_set_content(tmp_content, COAP_HEADER_CSTR_LEN);
+			smcp_message_send();
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			reply_code = HTTP_RESULT_CODE_OK;
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
 					    ((smcp_timer_node_t)node)->period = strtol(value,
 						NULL,
 						0);
-					reply_code = HTTP_RESULT_CODE_OK;
 					break;
 				}
 			}
 		} else {
-			reply_code = HTTP_RESULT_CODE_METHOD_NOT_ALLOWED;
+			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else if(strhasprefix_const(path, "remaining")) {
 		if(method == COAP_METHOD_GET) {
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
 			snprintf(tmp_content,
 				sizeof(tmp_content),
 				"v=%d",
 				smcp_timer_node_get_remaining((smcp_timer_node_t)node));
-			reply_code = HTTP_RESULT_CODE_OK;
-			reply_content = tmp_content;
-			reply_content_len = strlen(tmp_content);
+			smcp_message_set_content(tmp_content, COAP_HEADER_CSTR_LEN);
+			smcp_message_send();
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			reply_code = HTTP_RESULT_CODE_OK;
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
@@ -393,27 +371,25 @@ smcp_timer_request_handler(
 							&((smcp_timer_node_t)node)->timer,
 							    ((smcp_timer_node_t)node)->remaining);
 					}
-					reply_code = HTTP_RESULT_CODE_OK;
 
 					break;
 				}
 			}
 		} else {
-			reply_code = HTTP_RESULT_CODE_METHOD_NOT_ALLOWED;
+			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else if(strhasprefix_const(path, "autorestart")) {
+		smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
 		if(method == COAP_METHOD_GET) {
-			reply_code = HTTP_RESULT_CODE_OK;
-			reply_content_len = 3;
 			if(((smcp_timer_node_t)node)->autorestart)
-				reply_content = "v=1";
+				smcp_message_set_content("v=1", COAP_HEADER_CSTR_LEN);
 			else
-				reply_content = "v=0";
+				smcp_message_set_content("v=0", COAP_HEADER_CSTR_LEN);
+			smcp_message_send();
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			reply_code = HTTP_RESULT_CODE_OK;
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
@@ -421,7 +397,6 @@ smcp_timer_request_handler(
 						value,
 						NULL,
 						10);
-					reply_code = HTTP_RESULT_CODE_OK;
 					break;
 				}
 			}
@@ -435,7 +410,7 @@ smcp_timer_request_handler(
 			    );
 			goto bail;
 		} else {
-			reply_code = HTTP_RESULT_CODE_METHOD_NOT_ALLOWED;
+			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else {
 		ret = smcp_default_request_handler(
@@ -446,13 +421,6 @@ smcp_timer_request_handler(
 			content_length
 		    );
 		goto bail;
-	}
-
-	if(reply_code) {
-		smcp_daemon_send_response(reply_code,
-			reply_headers,
-			reply_content,
-			reply_content_len);
 	}
 
 bail:

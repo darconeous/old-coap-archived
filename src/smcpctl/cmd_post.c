@@ -30,8 +30,6 @@ static arg_list_item_t option_list[] = {
 
 static int gRet;
 static sig_t previous_sigint_handler;
-static coap_transaction_id_t tid;
-static coap_content_type_t content_type;
 static int outbound_slice_size;
 
 static void
@@ -40,20 +38,21 @@ signal_interrupt(int sig) {
 	signal(SIGINT, previous_sigint_handler);
 }
 
-bool send_post_request(
-	smcp_daemon_t	smcp,
-	const char*		url,
-	const char*		content,
-	int				content_len);
+struct post_request_s {
+	char* url;
+	char* content;
+	size_t content_len;
+	coap_content_type_t content_type;
+};
+
 
 static void
 post_response_handler(
 	int			statuscode,
 	const char* content,
 	size_t		content_length,
-	void*		context
+	struct post_request_s *request
 ) {
-//	smcp_daemon_t self = smcp_get_current_daemon();
 	if((statuscode >= 100) && show_headers) {
 		fprintf(stdout, "\n");
 		coap_dump_headers(stdout,
@@ -85,62 +84,96 @@ post_response_handler(
 
 	if(gRet == ERRORCODE_INPROGRESS)
 		gRet = 0;
+	free(request->content);
+	free(request->url);
+	free(request);
 }
 
 
 bool
+resend_post_request(struct post_request_s *request) {
+	bool ret = false;
+	smcp_status_t status = 0;
+
+	smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_POST, COAP_TRANS_TYPE_CONFIRMABLE);
+	smcp_message_set_uri(request->url, 0);
+
+	if(request->content_type) {
+		smcp_message_add_header(
+			COAP_HEADER_CONTENT_TYPE,
+			(void*)&request->content_type,
+			1
+		);
+	}
+
+	smcp_message_set_content(request->content, request->content_len);
+
+	status = smcp_message_send();
+
+	if(status) {
+		check(!status);
+		fprintf(stderr,
+			"smcp_message_send() returned error %d(%s).\n",
+			status,
+			smcp_status_to_cstr(status));
+		goto bail;
+	}
+
+	ret = true;
+bail:
+	return ret;
+}
+
+
+static coap_transaction_id_t
 send_post_request(
 	smcp_daemon_t	smcp,
 	const char*		url,
 	const char*		content,
-	int				content_len
+	int				content_len,
+	coap_content_type_t content_type
 ) {
+	struct post_request_s *request;
+	coap_transaction_id_t tid;
 	bool ret = false;
-	coap_header_item_t headers[SMCP_MAX_HEADERS + 1] = {  };
+
+	request = calloc(1,sizeof(*request));
+	require(request!=NULL,bail);
+	request->url = strdup(url);
+	request->content = calloc(1,sizeof(content_len));
+	memcpy(request->content,content,content_len);
+	request->content_len = content_len;
+	request->content_type = content_type;
 
 	tid = SMCP_FUNC_RANDOM_UINT32();
 
 	gRet = ERRORCODE_INPROGRESS;
-
-	if(content_type) {
-		util_add_header(headers,
-			SMCP_MAX_HEADERS,
-			COAP_HEADER_CONTENT_TYPE,
-			    (void*)&content_type,
-			1);
-	}
 
 	require_noerr(smcp_begin_transaction(
 			smcp,
 			tid,
 			5000,
 			0, // Flags
-			NULL,
-			&post_response_handler,
-			    (void*)url
-		), bail);
-
-	require_noerr(smcp_daemon_send_request_to_url(
-			smcp,
-			tid,
-			COAP_METHOD_POST,
-			url,
-			headers,
-			content,
-			content_len
+			(void*)&resend_post_request,
+			(void*)&post_response_handler,
+			(void*)request
 		), bail);
 
 	ret = true;
 
 bail:
-	return ret;
+	if(!ret)
+		tid = 0;
+	return tid;
 }
 
 int
 tool_cmd_post(
 	smcp_daemon_t smcp, int argc, char* argv[]
 ) {
+	coap_transaction_id_t tid;
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
+	coap_content_type_t content_type = 0;
 	int i;
 	char url[1000];
 	url[0] = 0;
@@ -207,7 +240,7 @@ tool_cmd_post(
 
 	gRet = ERRORCODE_INPROGRESS;
 
-	require(send_post_request(smcp, url, content, strlen(content)), bail);
+	tid = send_post_request(smcp, url, content, strlen(content),content_type);
 
 	while(ERRORCODE_INPROGRESS == gRet)
 		smcp_daemon_process(smcp, -1);

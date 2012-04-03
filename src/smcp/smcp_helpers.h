@@ -31,6 +31,7 @@
 
 #include <string.h>
 
+/*
 // DEPRECATED.
 static inline bool
 util_add_header(
@@ -51,6 +52,7 @@ util_add_header(
 	}
 	return false;
 }
+*/
 
 #if defined(__GCC_VERSION__)
 #define SMCP_PURE_FUNC __attribute__((pure))
