@@ -214,26 +214,36 @@ smcp_daemon_init(
 
 	require(ret != NULL, bail);
 
+	ret->port = port;
+
 #if SMCP_USE_BSD_SOCKETS
 	ret->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
 	require_action_string(ret->fd > 0, bail, { smcp_daemon_release(
 				ret); ret = NULL; }, "Failed to create socket");
 
-	if(bind(ret->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
+	// Keep attempting to bind until we find a port that works.
+	while(bind(ret->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
+		// We should only continue trying if errno == EADDRINUSE.
 		require_action_string(errno == EADDRINUSE, bail,
 			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_daemon_release(
 				    ret); ret = NULL; }, "Failed to bind socket");
+		ret->port++;
 
-		saddr.sin6_port = 0;
-		require_action_string(bind(ret->fd, (struct sockaddr*)&saddr,
-				sizeof(saddr)) == 0, bail, { DEBUG_PRINTF(CSTR(
-						"errno=%d"), errno); smcp_daemon_release(
-					ret); ret = NULL;
-			}, "Failed to bind socket to port zero");
+		// Make sure we aren't in an infinite loop.
+		require_action_string(port!=ret->port, bail,
+			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_daemon_release(
+				    ret); ret = NULL; }, "Failed to bind socket (ran out of ports)");
+
+		saddr.sin6_port = htons(ret->port);
 	}
-#elif CONTIKI
 
+	// Now we need to figure out what port we actually bound to.
+	socklen_t socklen = sizeof(saddr);
+	getsockname(ret->fd, (struct sockaddr*)&saddr, &socklen);
+	ret->port = ntohs(saddr.sin6_port);
+
+#elif CONTIKI
 	ret->udp_conn = udp_new(NULL, 0, NULL);
 	uip_udp_bind(ret->udp_conn, htons(port));
 	ret->udp_conn->rport = 0;
@@ -271,7 +281,6 @@ smcp_daemon_init(
 	}
 #endif
 
-	ret->port = port;
 	ret->is_processing_message = false;
 	require_string(smcp_node_init(&ret->root_node,
 			NULL,
