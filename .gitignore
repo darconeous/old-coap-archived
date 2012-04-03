@@ -2,3 +2,6 @@
 *.swp
 *.o
 *~
+*.xcuserdatad
+/build
+/DerivedData
