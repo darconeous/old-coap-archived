@@ -57,7 +57,7 @@ post_response_handler(
 		fprintf(stdout, "\n");
 		coap_dump_headers(stdout,
 			NULL,
-			statuscode,
+			http_to_coap_code(statuscode),
 			smcp_daemon_get_current_request_headers(),
 			smcp_daemon_get_current_request_header_count());
 	}
