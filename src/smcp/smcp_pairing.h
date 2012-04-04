@@ -128,7 +128,8 @@ extern smcp_status_t smcp_daemon_pair_with_uri(
 	const char*		path,
 	const char*		uri,
 	int				flags,
-	uintptr_t*		idVal);
+	uintptr_t*		idVal
+);
 
 extern smcp_status_t smcp_daemon_trigger_event(
 	smcp_daemon_t		self,
@@ -145,35 +146,50 @@ extern smcp_status_t smcp_daemon_trigger_event_with_node(
 );
 
 extern smcp_status_t smcp_daemon_delete_pairing(
-	smcp_daemon_t self, smcp_pairing_t pairing);
+	smcp_daemon_t self,
+	smcp_pairing_t pairing
+);
 
-extern smcp_status_t smcp_daemon_pair_path_with_sockaddr(
-	smcp_daemon_t	self,
-	const char*		path,
-	const char*		dest_path,
-	SMCP_SOCKET_ARGS,
-	int				flags);
 extern smcp_pairing_t smcp_daemon_get_first_pairing_for_path(
-	smcp_daemon_t self, const char* path);
+	smcp_daemon_t self,
+	const char* path
+);
+
 extern smcp_pairing_t smcp_daemon_next_pairing(
-	smcp_daemon_t self, smcp_pairing_t pairing);
+	smcp_daemon_t self,
+	smcp_pairing_t pairing
+);
 
 extern smcp_status_t smcp_daemon_handle_pair(
 	smcp_node_t		node,
 	smcp_method_t	method,
 	const char*		path,
 	const char*		content,
-	size_t			content_length);
+	size_t			content_length
+);
 
 typedef smcp_node_t smcp_pairing_node_t;
 
 extern smcp_pairing_node_t smcp_pairing_node_init(
-	smcp_pairing_node_t self, smcp_node_t parent, const char* name);
+	smcp_pairing_node_t self,
+	smcp_node_t parent,
+	const char* name
+);
 
 static inline int
 smcp_pairing_get_next_seq(smcp_pairing_t pairing) {
 	return ++(pairing->seq);
 }
+
+
+// Not implemented
+extern smcp_status_t smcp_daemon_pair_path_with_sockaddr(
+	smcp_daemon_t	self,
+	const char*		path,
+	const char*		dest_path,
+	SMCP_SOCKET_ARGS,
+	int				flags);
+
 
 __END_DECLS
 

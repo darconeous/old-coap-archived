@@ -23,6 +23,7 @@ extern u16_t uip_slen;
 #endif
 
 #include "assert_macros.h"
+#include <stdarg.h>
 
 #include "smcp.h"
 #include <stdio.h>
@@ -1031,6 +1032,63 @@ bail:
 }
 
 #pragma mark -
+
+smcp_status_t
+smcp_message_set_content_type(coap_content_type_t t) {
+	static coap_content_type_t type;
+	type = t;
+	return smcp_message_add_header(COAP_HEADER_CONTENT_TYPE, (char*)&type, 1);
+}
+
+smcp_status_t
+smcp_message_set_content_formatted(const char* fmt, ...) {
+	smcp_status_t ret = SMCP_STATUS_FAILURE;
+	size_t len = 0;
+	va_list args;
+	va_start(args,fmt);
+
+	char* content = smcp_message_get_content_ptr(&len);
+
+	require(content!=NULL,bail);
+
+	len = vsnprintf(content,len,fmt,args);
+
+	require(len!=0,bail);
+
+	ret = smcp_message_set_content_len(len);
+
+bail:
+	va_end(args);
+	return ret;
+}
+
+smcp_status_t
+smcp_message_set_var_content_int(int v) {
+	smcp_message_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+	return smcp_message_set_content_formatted("v=%d",v);
+}
+
+smcp_status_t
+smcp_message_set_var_content_unsigned_int(unsigned int v) {
+	smcp_message_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+	return smcp_message_set_content_formatted("v=%u",v);
+}
+
+smcp_status_t
+smcp_message_set_var_content_unsigned_long_int(unsigned long int v) {
+	smcp_message_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+	return smcp_message_set_content_formatted("v=%ul",v);
+}
+
+
+
+
+
+
+
+
+
+#pragma mark -
 #pragma mark SMCP Response Handler
 
 void
@@ -1057,22 +1115,21 @@ smcp_internal_delete_handler_(
 	free(handler);
 }
 
-static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
+//static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
+static int smcp_rtt = 100;
 
 static int calc_retransmit_timeout(int retries_) {
 	int ret = smcp_rtt;
-	int i;
 
-	for(i = 0; i < retries_; i++)
-		ret *= 2;
+	ret = (ret<<retries_);
 
 	ret *= (1000 - 150) + (SMCP_FUNC_RANDOM_UINT32() % 300);
+
 	ret /= 1000;
 
 	if(ret > 2500)
 		ret = 2500;
-//	if(ret!=smcp_rtt)
-//		fprintf(stderr,"(retransmit in %dms)\n",ret);
+
 	return ret;
 }
 

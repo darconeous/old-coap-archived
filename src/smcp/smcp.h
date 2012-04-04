@@ -206,6 +206,13 @@ extern smcp_status_t smcp_message_set_tid(coap_transaction_id_t tid);
 
 extern smcp_status_t smcp_message_set_code(coap_code_t code);
 
+extern smcp_status_t smcp_message_set_content_type(coap_content_type_t t);
+
+extern smcp_status_t smcp_message_set_content_formatted(const char* fmt, ...);
+extern smcp_status_t smcp_message_set_var_content_int(int v);
+extern smcp_status_t smcp_message_set_var_content_unsigned_int(unsigned int v);
+extern smcp_status_t smcp_message_set_var_content_unsigned_long_int(unsigned long int v);
+
 #if SMCP_USE_BSD_SOCKETS
 extern smcp_status_t smcp_message_set_destaddr(
 	struct sockaddr *sockaddr, socklen_t socklen);

@@ -63,23 +63,21 @@ smcp_variable_request_handler(
 			);
 		}
 	} else if(method == COAP_METHOD_GET) {
-		char *replyContent;
-		size_t replyContentLength = 0;
-		coap_content_type_t replyContentType = COAP_CONTENT_TYPE_TEXT_PLAIN;
-
-		ret = SMCP_STATUS_NOT_IMPLEMENTED;
-		smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_NOT_IMPLEMENTED));
-
 		if(((smcp_variable_node_t)node)->get_func) {
+			size_t replyContentLength = 0;
+			char *replyContent;
+			coap_content_type_t replyContentType;
+
 			ret = (*((smcp_variable_node_t)node)->get_func)(
 				(smcp_variable_node_t)node,
 				NULL,
 				&replyContentLength,
 				&replyContentType
 			);
-			smcp_message_set_code(HTTP_TO_COAP_CODE(smcp_convert_status_to_result_code(ret)));
+
 			if(!ret) {
-				smcp_message_add_header(COAP_HEADER_CONTENT_TYPE, (char*)&replyContentType, 1);
+				smcp_message_set_code(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+				smcp_message_set_content_type(replyContentType);
 				replyContent = smcp_message_get_content_ptr(&replyContentLength);
 				ret = (*((smcp_variable_node_t)node)->get_func)(
 					(smcp_variable_node_t)node,
@@ -88,9 +86,11 @@ smcp_variable_request_handler(
 					&replyContentType
 				);
 				smcp_message_set_content_len(replyContentLength);
+				smcp_message_send();
 			}
+		} else {
+			ret = SMCP_STATUS_NOT_IMPLEMENTED;
 		}
-		smcp_message_send();
 	} else {
 		ret = smcp_default_request_handler(
 			node,

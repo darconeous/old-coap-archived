@@ -5,8 +5,8 @@
 #include "assert_macros.h"
 
 #if !SMCP_DEBUG_TIMERS && !VERBOSE_DEBUG
-#undef assert_printf
-#define assert_printf(fmt, ...) do { } while(0)
+#undef DEBUG_PRINTF
+#define DEBUG_PRINTF(fmt, ...) do { } while(0)
 #endif
 
 #include "smcp_timer.h"
@@ -150,8 +150,8 @@ extern smcp_status_t smcp_daemon_schedule_timer(
 
 	ret = SMCP_STATUS_OK;
 
-	assert_printf("Timer:%p(CTX=%p): Scheduled.",timer,timer->context);
-	assert_printf("%p: Timers in play = %d",self,(int)ll_count(self->timers));
+	DEBUG_PRINTF("Timer:%p(CTX=%p): Scheduled.",timer,timer->context);
+	DEBUG_PRINTF("%p: Timers in play = %d",self,(int)ll_count(self->timers));
 
 #if SMCP_DEBUG_TIMERS
 	assert((ll_count(self->timers)) == previousTimerCount+1);
@@ -171,8 +171,8 @@ smcp_daemon_invalidate_timer(
 	assert(previousTimerCount>=1);
 #endif
 
-	assert_printf("Timer:%p: Invalidating...",timer);
-	assert_printf("Timer:%p: (CTX=%p)",timer,timer->context);
+	DEBUG_PRINTF("Timer:%p: Invalidating...",timer);
+	DEBUG_PRINTF("Timer:%p: (CTX=%p)",timer,timer->context);
 
 	ll_remove((void**)&self->timers, (void*)timer);
 
@@ -183,8 +183,8 @@ smcp_daemon_invalidate_timer(
 	timer->ll.prev = NULL;
 	if(timer->cancel)
 		(*timer->cancel)(self,timer->context);
-	assert_printf("Timer:%p: Invalidated.",timer);
-	assert_printf("%p: Timers in play = %d",self,(int)ll_count(self->timers));
+	DEBUG_PRINTF("Timer:%p: Invalidated.",timer);
+	DEBUG_PRINTF("%p: Timers in play = %d",self,(int)ll_count(self->timers));
 }
 
 cms_t
@@ -208,7 +208,7 @@ smcp_daemon_handle_timers(smcp_daemon_t self) {
 		SMCP_NON_RECURSIVE smcp_timer_t timer = self->timers;
 		SMCP_NON_RECURSIVE smcp_timer_callback_t callback = timer->callback;
 		SMCP_NON_RECURSIVE void* context = timer->context;
-		assert_printf("Timer:%p(CTX=%p): Firing...",timer,timer->context);
+		DEBUG_PRINTF("Timer:%p(CTX=%p): Firing...",timer,timer->context);
 
 		timer->cancel = NULL;
 		smcp_daemon_invalidate_timer(self, timer);
