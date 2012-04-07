@@ -205,9 +205,14 @@ void
 smcp_daemon_handle_timers(smcp_daemon_t self) {
 	if(self->timers &&
 	        (convert_timeval_to_cms(&self->timers->fire_date) <= 0)) {
-		SMCP_NON_RECURSIVE smcp_timer_t timer = self->timers;
-		SMCP_NON_RECURSIVE smcp_timer_callback_t callback = timer->callback;
-		SMCP_NON_RECURSIVE void* context = timer->context;
+		SMCP_NON_RECURSIVE smcp_timer_t timer;
+		SMCP_NON_RECURSIVE smcp_timer_callback_t callback;
+		SMCP_NON_RECURSIVE void* context;
+
+		timer = self->timers;
+		callback = timer->callback;
+		context = timer->context;
+
 		DEBUG_PRINTF("Timer:%p(CTX=%p): Firing...",timer,timer->context);
 
 		timer->cancel = NULL;

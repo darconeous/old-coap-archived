@@ -6,14 +6,21 @@
 struct smcp_variable_node_s;
 typedef struct smcp_variable_node_s *smcp_variable_node_t;
 
+// Size = sizeof(struct smcp_node_s)+2*sizeof(void*) = 10*sizeof(void*)
 struct smcp_variable_node_s {
 	struct smcp_node_s	node;
 	smcp_status_t		(*get_func)(
-		smcp_variable_node_t node, char* content, size_t* content_length,
-		coap_content_type_t* content_type);
+		smcp_variable_node_t node,
+		char* content,
+		size_t* content_length,
+		coap_content_type_t* content_type
+	);
 	smcp_status_t		(*post_func)(
-		smcp_variable_node_t node, char* content, size_t content_length,
-		coap_content_type_t content_type);
+		smcp_variable_node_t node,
+		char* content,
+		size_t content_length,
+		coap_content_type_t content_type
+	);
 };
 
 

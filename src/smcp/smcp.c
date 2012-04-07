@@ -716,7 +716,7 @@ smcp_message_set_uri(
 	const char* start;
 
 	if(!(flags&SMCP_MSG_SKIP_DESTADDR))
-	{
+	do {
 	char* addr_str = NULL;
 	char* port_str = NULL;
 
@@ -764,6 +764,10 @@ smcp_message_set_uri(
 		if(port_str)
 			toport = htons(strtol(port_str, NULL, 10));
 	}
+
+	// If we don't have an address, skip this part.
+	if(!addr_str || addr_str[0]==0)
+		break;
 
 	DEBUG_PRINTF(
 		CSTR("URI Parse: \"%s\" -> host=\"%s\" port=\"%u\""),
@@ -835,7 +839,7 @@ smcp_message_set_uri(
 #else
 #error TODO: Implement me!
 #endif
-	}
+	} while(0);
 
 	if(url_is_absolute(uri)) {
 		// Skip past scheme.
@@ -1395,14 +1399,17 @@ smcp_daemon_handle_request(
 	if(node->request_handler)
 		request_handler = node->request_handler;
 
+	if(method == COAP_METHOD_PAIR) {
+		request_handler = &smcp_daemon_handle_pair;
+	}
+
 	ret = (*request_handler)(
 	    node,
 	    method,
 	    path,
 	    content,
 	    content_length
-	    );
-
+	);
 
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 

@@ -25,19 +25,20 @@
 
 __BEGIN_DECLS
 
+// Struct size: 8*sizeof(void*)
 struct smcp_node_s {
 	struct bt_item_s			bt_item;
 	const char*					name;
 	smcp_node_t					parent;
 	smcp_node_t					children;
 
-	void*						context;
 	void						(*finalize)(smcp_node_t node);
 	smcp_request_handler_func	request_handler;
+
+	void* context; // DEPRECATED, TO BE REMOVED!
 };
 
-extern bt_compare_result_t smcp_node_compare(
-	smcp_node_t lhs, smcp_node_t rhs);
+extern bt_compare_result_t smcp_node_compare(smcp_node_t lhs, smcp_node_t rhs);
 
 __END_DECLS
 

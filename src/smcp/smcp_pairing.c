@@ -88,10 +88,11 @@ smcp_pairing_finalize(smcp_pairing_t self) {
 }
 
 smcp_status_t
-smcp_daemon_pair_with_uri(
+smcp_daemon_pair_with_sockaddr(
 	smcp_daemon_t	self,
 	const char*		path,
 	const char*		uri,
+	SMCP_SOCKET_ARGS,
 	int				flags,
 	uintptr_t*		idVal
 ) {
@@ -111,7 +112,16 @@ smcp_daemon_pair_with_uri(
 	pairing->path = strdup(path);
 	pairing->dest_uri = strdup(uri);
 	pairing->flags = flags;
-	pairing->expiration = SMCP_PAIRING_EXPIRATION_INFINITE;
+
+#if SMCP_USE_BSD_SOCKETS
+	if(saddr)
+		memcpy(&pairing->saddr,saddr,sizeof(pairing->saddr));
+#elif CONTIKI
+	if(toaddr) {
+		memcpy(&pairing->toaddr,toaddr,sizeof(pairing->toaddr));
+		pairing->toport = toport;
+	}
+#endif
 
 	if(idVal)
 		*idVal = (uintptr_t)pairing;
@@ -130,11 +140,27 @@ smcp_daemon_pair_with_uri(
 	pairing->seq = pairing->ack = 0;
 #endif
 
-	if(pairing->seq != pairing->ack)
-		abort();
+	assert(pairing->seq == pairing->ack);
 
 bail:
 	return ret;
+}
+
+smcp_status_t
+smcp_daemon_pair_with_uri(
+	smcp_daemon_t	self,
+	const char*		path,
+	const char*		uri,
+	int				flags,
+	uintptr_t*		idVal
+) {
+#if SMCP_USE_BSD_SOCKETS
+	return smcp_daemon_pair_with_sockaddr(self, path, uri, NULL, 0, flags, idVal);
+#elif CONTIKI
+	return smcp_daemon_pair_with_sockaddr(self, path, uri, 0, 0, flags, idVal);
+#else
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 
@@ -159,7 +185,6 @@ smcp_daemon_get_first_pairing_for_path(
 		}
 	}
 
-bail:
 	return ret;
 }
 
@@ -188,6 +213,14 @@ smcp_retry_event(smcp_pairing_t pairing) {
 	coap_content_type_t content_type;
 
 	smcp_message_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
+
+#if SMCP_USE_BSD_SOCKETS
+	if(((struct sockaddr*)&pairing->saddr)->sa_family)
+		smcp_message_set_destaddr((struct sockaddr*)&pairing->saddr, sizeof(pairing->saddr));
+#elif CONTIKI
+	if(pairing->toport)
+		smcp_message_set_destaddr(&pairing->toaddr,pairing->toport);
+#endif
 
 	smcp_message_set_uri(pairing->dest_uri,0);
 	smcp_message_add_header(SMCP_HEADER_ORIGIN, pairing->path, COAP_HEADER_CSTR_LEN);
@@ -241,10 +274,10 @@ smcp_retry_event(smcp_pairing_t pairing) {
 static void
 smcp_event_tracker_release(smcp_event_tracker_t event) {
 	assert(event!=NULL);
-	assert_printf("Event:%p: release",event);
-	assert_printf("Event:%p: refCount = %d",event,event->refCount-1);
+	DEBUG_PRINTF("Event:%p: release",event);
+	DEBUG_PRINTF("Event:%p: refCount = %d",event,event->refCount-1);
 	if(0==--event->refCount) {
-		assert_printf("Event:%p: dealloc\n",event);
+		DEBUG_PRINTF("Event:%p: dealloc\n",event);
 		if(event->contentFetcher)
 			(*event->contentFetcher)(
 				event->contentFetcherContext,
@@ -261,16 +294,16 @@ smcp_event_response_handler(
 	int statuscode, char* content, size_t content_length, smcp_pairing_t pairing
 ) {
 #if SMCP_CONF_PAIRING_STATS
+	// TODO: Trigger events based on these errors...!
 	pairing->last_error = statuscode;
 	if(statuscode && ((statuscode < 200) || (statuscode >= 300))) {
 		// Looks like we failed to live up to this pairing.
 		pairing->errors++;
-		// TODO: Trigger events based on these errors...!
 	}
 #endif
 	// expire the event.
 	smcp_event_tracker_t event = pairing->currentEvent;
-	assert_printf("Event:%p: smcp_event_response_handler(): statuscode=%d",event,statuscode);
+	DEBUG_PRINTF("Event:%p: smcp_event_response_handler(): statuscode=%d",event,statuscode);
 	pairing->currentEvent = NULL;
 	smcp_event_tracker_release(event);
 }
@@ -306,11 +339,11 @@ smcp_daemon_trigger_event(
 			event->contentFetcher = contentFetcher;
 			event->contentFetcherContext = context;
 			event->refCount = 1;
-			assert_printf("Event:%p: alloc",event);
+			DEBUG_PRINTF("Event:%p: alloc",event);
 		}
 
 		if(iter->currentEvent) {
-			assert_printf("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
+			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
 			smcp_invalidate_transaction(self, iter->last_tid);
 		}
 
@@ -330,7 +363,7 @@ smcp_daemon_trigger_event(
 
 		iter->last_tid = tid;
 		event->refCount++;
-		assert_printf("Event:%p: retain",event);
+		DEBUG_PRINTF("Event:%p: retain",event);
 
 #if SMCP_CONF_PAIRING_STATS
 		iter->fire_count++;
@@ -422,6 +455,27 @@ smcp_daemon_handle_pair(
 			strncat(full_path, "/", sizeof(full_path) - 1);
 		strncat(full_path, path, sizeof(full_path) - 1);
 	}
+#if SMCP_USE_BSD_SOCKETS
+	ret = smcp_daemon_pair_with_sockaddr(
+		self,
+		full_path,
+		content,
+		smcp_daemon_get_current_request_saddr(),
+		smcp_daemon_get_current_request_socklen(),
+		SMCP_PARING_FLAG_RELIABILITY_PART,
+		&idVal
+	);
+#elif CONTIKI
+	ret = smcp_daemon_pair_with_sockaddr(
+		self,
+		full_path,
+		content,
+		smcp_daemon_get_current_request_ipaddr(),
+		smcp_daemon_get_current_request_ipport(),
+		SMCP_PARING_FLAG_RELIABILITY_PART,
+		&idVal
+	);
+#else
 	ret = smcp_daemon_pair_with_uri(
 		self,
 		full_path,
@@ -429,6 +483,7 @@ smcp_daemon_handle_pair(
 		SMCP_PARING_FLAG_RELIABILITY_PART,
 		&idVal
 	);
+#endif
 
 	snprintf(reply, sizeof(reply), "%p", (void*)idVal);
 
@@ -501,7 +556,7 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 					content_break_threshold =
 					    (content_break_threshold << 8) + iter->value[i];
 				if(content_break_threshold >= sizeof(replyContent)) {
-					assert_printf(
+					DEBUG_PRINTF(
 							"Requested size (%d) is too large, trimming to %d.",
 						(int)content_break_threshold, (int)(sizeof(replyContent) - 1));
 					content_break_threshold = sizeof(replyContent) - 1;

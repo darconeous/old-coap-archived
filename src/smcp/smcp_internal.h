@@ -42,7 +42,7 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 struct smcp_daemon_s {
 #if SMCP_USE_BSD_SOCKETS
 	int						fd;
-	int						mcfd;
+	int						mcfd;	// For multicast
 	struct sockaddr*		current_inbound_saddr;
 	socklen_t				current_inbound_socklen;
 #elif defined(CONTIKI)

@@ -37,10 +37,9 @@ action_func(
 
 	{
 		const coap_header_item_t *iter =
-		    smcp_daemon_get_current_request_headers(node->node.context);
+		    smcp_daemon_get_current_request_headers();
 		const coap_header_item_t *end = iter +
-		    smcp_daemon_get_current_request_header_count(
-			node->node.context);
+		    smcp_daemon_get_current_request_header_count();
 		for(; iter != end; ++iter) {
 			if(iter->key == COAP_HEADER_CONTENT_TYPE) {
 				fprintf(stdout,
@@ -204,7 +203,6 @@ tool_cmd_test(
 		"action"
 	);
 	action_node.post_func = action_func;
-	action_node.node.context = smcp_daemon2;
 
 #if 1
 	{

@@ -100,12 +100,21 @@ typedef struct smcp_event_tracker_s* smcp_event_tracker_t;
 struct smcp_pairing_s {
 	struct bt_item_s	bt_item;
 	const char*			path; // Local path
-	uint32_t			idVal;
+	const char*			dest_uri;
+	uint8_t				flags;
+
 	smcp_pairing_seq_t	seq;
 	smcp_pairing_seq_t	ack;
-	coap_transaction_id_t last_tid;
 
-	time_t				expiration;
+	coap_transaction_id_t last_tid;
+	smcp_event_tracker_t currentEvent;
+
+#if SMCP_USE_BSD_SOCKETS
+	struct sockaddr_in6 saddr;
+#elif CONTIKI
+    const uip_ipaddr_t toaddr;
+    uint16_t toport;
+#endif
 
 #if SMCP_CONF_PAIRING_STATS
 	uint16_t			fire_count;
@@ -113,10 +122,6 @@ struct smcp_pairing_s {
 	uint16_t			send_count;
 	smcp_status_t		last_error;
 #endif
-	const char*			dest_uri;
-	uint8_t				flags;
-
-	smcp_event_tracker_t currentEvent;
 };
 
 
@@ -126,7 +131,16 @@ struct smcp_pairing_s {
 extern smcp_status_t smcp_daemon_pair_with_uri(
 	smcp_daemon_t	self,
 	const char*		path,
-	const char*		uri,
+	const char*		dest_uri,
+	int				flags,
+	uintptr_t*		idVal
+);
+
+extern smcp_status_t smcp_daemon_pair_with_sockaddr(
+	smcp_daemon_t	self,
+	const char*		path,
+	const char*		dest_uri,
+	SMCP_SOCKET_ARGS,
 	int				flags,
 	uintptr_t*		idVal
 );
@@ -137,6 +151,7 @@ extern smcp_status_t smcp_daemon_trigger_event(
 	smcp_content_fetcher_func contentFetcher,
 	void* context
 );
+
 extern smcp_status_t smcp_daemon_trigger_event_with_node(
 	smcp_daemon_t		self,
 	smcp_node_t			node,
@@ -180,16 +195,6 @@ static inline int
 smcp_pairing_get_next_seq(smcp_pairing_t pairing) {
 	return ++(pairing->seq);
 }
-
-
-// Not implemented
-extern smcp_status_t smcp_daemon_pair_path_with_sockaddr(
-	smcp_daemon_t	self,
-	const char*		path,
-	const char*		dest_path,
-	SMCP_SOCKET_ARGS,
-	int				flags);
-
 
 __END_DECLS
 
