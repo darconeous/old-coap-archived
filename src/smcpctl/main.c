@@ -9,6 +9,9 @@
 #include "help.h"
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
+#include <ctype.h>
+#include <libgen.h>
 
 #if HAS_LIBREADLINE
 #include <readline/readline.h>
@@ -232,7 +235,7 @@ void process_input_line(char *l) {
 
 	if(!l[0])
 		goto bail;
-
+	l = strdup(l);
 	add_history(l);
 
 	inputstring = l;
@@ -267,8 +270,203 @@ bail:
 		rl_prep_terminal(0);
 		rl_callback_handler_install(prompt, &process_input_line);
 	}
+	free(l);
 	return;
 }
+
+
+#pragma mark -
+
+#if HAS_LIBREADLINE
+
+
+static int
+smcp_completion_entry_function (const char *text, int hmm) {
+	return 0;
+}
+
+static char **
+smcp_completion_matches (char *text, CPFunction *entry_func) {
+	return NULL;
+}
+
+char *
+smcp_command_generator(
+	const char *text,
+	int state
+) {
+	static int list_index, len;
+	const char *name;
+
+	/* If this is a new word to complete, initialize now.  This includes
+	 saving the length of TEXT for efficiency, and initializing the index
+	 variable to 0. */
+	if (!state)
+	{
+		list_index = 0;
+		len = strlen (text);
+	}
+
+	/* Return the next name which partially matches from the command list. */
+	while ((name = commandList[list_index].name))
+	{
+		list_index++;
+
+		if (strncmp (name, text, len) == 0)
+			return (strdup(name));
+	}
+
+	/* If no names matched, then return NULL. */
+	return ((char *)NULL);
+}
+
+char *
+smcp_directory_generator(
+	const char *text,
+	int state
+) {
+	char *ret = NULL;
+	static size_t len;
+	static FILE* temp_file = NULL;
+	const char *name;
+	static char* prefix;
+	static char* fragment;
+	size_t namelen = 0;
+
+	rl_filename_completion_desired = 1;
+
+	/* If this is a new word to complete, initialize now.  This includes
+	 saving the length of TEXT for efficiency, and initializing the index
+	 variable to 0. */
+	if (!state)
+	{
+		if(temp_file)
+			fclose(temp_file);
+		temp_file = tmpfile();
+
+		int i;
+		free(prefix);
+		free(fragment);
+
+		prefix = strdup(text);
+		for(i=strlen(prefix);i && prefix[i]!='/';i--);
+		if(prefix[i]=='/') {
+			prefix[i] = 0;
+			if(i==0) {
+				prefix = strdup("/");
+			}
+			fragment = strdup(prefix+i+1);
+		} else {
+			fragment = strdup(prefix);
+			free(prefix);
+			prefix = strdup(".");
+		}
+		char* cmdline = NULL;
+
+		asprintf(&cmdline, "list --filename-only --timeout 1000 %s",prefix);
+
+		require(cmdline,bail);
+
+		FILE* real_stdout = stdout;
+		stdout = temp_file;
+		if(strequal_const(fragment, "."))
+			fprintf(temp_file,"..\n");
+		process_input_line(cmdline);
+		stdout = real_stdout;
+
+		rewind(temp_file);
+		free(cmdline);
+		len = strlen(fragment);
+	}
+
+	if(!temp_file)
+		goto bail;
+
+	while ((name = fgetln(temp_file, &namelen)) && (namelen>len))
+	{
+		if (strncmp (name, fragment, len) == 0) {
+			while(namelen && isspace(name[namelen])) { namelen--; }
+			namelen--;
+			if(name[namelen-1]=='/')
+				rl_completion_append_character = 0;
+			if(strequal_const(prefix, "."))
+				ret = strndup(name,namelen);
+			else {
+				char* tmp = strndup(name,namelen);
+				asprintf(&ret, "%s/%s",prefix,tmp);
+				free(tmp);
+			}
+			break;
+		}
+	}
+
+
+bail:
+
+	return ret;
+}
+
+char **
+smcp_attempted_completion (
+	char *text,
+	int start,
+	int end
+) {
+	char **matches;
+
+	matches = (char **)NULL;
+
+	/* If this word is at the start of the line, then it is a command
+	 to complete.  Otherwise it is the name of a file in the current
+	 directory. */
+	if(start == 0) {
+		matches = completion_matches (text, &smcp_command_generator);
+	} else {
+		if(text[0]=='-') {
+			// Argument Completion.
+			// TODO: Writeme!
+			rl_attempted_completion_over = 1;
+			//fprintf(stderr,"\nrl_line_buffer=\"%s\"\n",rl_line_buffer);
+		}
+	}
+
+	return (matches);
+}
+
+static int
+initialize_readline() {
+	int ret = 0;
+
+	require_action(NULL != readline, bail, ret = ERRORCODE_NOREADLINE);
+	rl_initialize();
+
+	rl_readline_name = "smcp";
+
+	/* Tell the completer that we want a crack first. */
+	rl_attempted_completion_function = (CPPFunction *)smcp_attempted_completion;
+	rl_completion_entry_function = &smcp_directory_generator;
+
+	using_history();
+	read_history(getenv("SMCP_HISTORY_FILE"));
+	rl_instream = stdin;
+
+
+	char prompt[128] = {};
+	char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
+	snprintf(prompt,
+		sizeof(prompt),
+		"%s> ",
+		current_smcp_path ? current_smcp_path : "");
+
+	rl_callback_handler_install(prompt, &process_input_line);
+
+bail:
+	return ret;
+}
+#endif
+
+#pragma mark -
+
 
 int
 main(
@@ -353,22 +551,10 @@ main(
 		gRet = ERRORCODE_NOCOMMAND;
 		goto bail;
 #else   // HAS_LIBREADLINE
-		char prompt[128] = {};
-		char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
-		snprintf(prompt,
-			sizeof(prompt),
-			"%s> ",
-			current_smcp_path ? current_smcp_path : "");
-
-		require_action(NULL != readline, bail, gRet = ERRORCODE_NOREADLINE);
-
 		setenv("SMCP_HISTORY_FILE", tilde_expand("~/.smcp_history"), 0);
-		rl_initialize();
-		using_history();
-		read_history(getenv("SMCP_HISTORY_FILE"));
-		rl_instream = stdin;
 
-		rl_callback_handler_install(prompt, &process_input_line);
+		require_noerr(gRet = initialize_readline(),bail);
+
 #endif  // HAS_LIBREADLINE
 	}
 

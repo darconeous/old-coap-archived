@@ -28,6 +28,8 @@ static arg_list_item_t option_list[] = {
 	{ 0,   "slice-size", "size", "writeme"					 },
 	{ 0,   "follow",	 NULL,	 "writeme"					 },
 	{ 0,   "no-follow",	 NULL,	 "writeme"					 },
+	{ 0,   "filename-only",	NULL, "Only print out the resulting filenames." },
+	{ 't',   "timeout",	"cms", "Timeout value, in milliseconds" },
 	{ 0 }
 };
 
@@ -52,7 +54,8 @@ static size_t next_len = ((size_t)(-1));
 static bool list_show_headers = false;
 static int redirect_count = 0;
 static const char* original_url;
-
+static int timeout_cms;
+static bool list_filename_only;
 
 static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
 
@@ -101,10 +104,14 @@ list_response_handler(
 	if(((statuscode < 200) ||
 	            (statuscode >= 300)) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
-	        (statuscode != HTTP_RESULT_CODE_PARTIAL_CONTENT))
-		fprintf(stderr, "list: Result code = %d (%s)\n", statuscode,
-			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : http_code_to_cstr(statuscode));
+	        (statuscode != HTTP_RESULT_CODE_PARTIAL_CONTENT)
+	) {
+		if(!list_filename_only) {
+			fprintf(stderr, "list: Result code = %d (%s)\n", statuscode,
+					(statuscode < 0) ? smcp_status_to_cstr(
+					statuscode) : http_code_to_cstr(statuscode));
+		}
+	}
 
 	// TODO: This implementation currently only works when the content only includes entire records.
 	// Chunked encoding could cause single records to be distributed across multiple transactions.
@@ -133,7 +140,7 @@ list_response_handler(
 				fwrite(content, content_length, 1, stdout);
 				if((content[content_length - 1] != '\n'))
 					printf("\n");
-			} else {
+			} else if(!list_filename_only) {
 				fprintf(stderr, " *** Not a directory\n");
 			}
 		} else {
@@ -200,26 +207,32 @@ list_response_handler(
 					url_shorten_reference((const char*)original_url, uri);
 
 
-					uri_len = printf("%s ", uri) - 1;
-					if(uri_len < col_width) {
-						if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {
-							uri_len = col_width - uri_len;
-							while(uri_len--) {
-								printf(" ");
+					uri_len = printf("%s", uri) - 1;
+					if(type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
+						printf("/");
+					if(!list_filename_only) {
+						printf(" ");
+						if(uri_len < col_width) {
+							if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {
+								uri_len = col_width - uri_len;
+								while(uri_len--) {
+									printf(" ");
+								}
+								printf("\t");
 							}
+						} else {
 							printf("\t");
+							col_width = uri_len;
 						}
-					} else {
-						printf("\t");
-						col_width = uri_len;
+
+						if(name && (0 != strcmp(name, uri))) printf("\"%s\" ",
+								name);
+						if(sh_url && (0 != strcmp(sh_url, uri))) printf(
+								"<%s> ",
+								sh_url);
+						if(type != COAP_CONTENT_TYPE_UNKNOWN) printf("(%s) ",
+								coap_content_type_to_cstr(type));
 					}
-					if(name && (0 != strcmp(name, uri))) printf("\"%s\" ",
-							name);
-					if(sh_url && (0 != strcmp(sh_url, uri))) printf(
-							"<%s> ",
-							sh_url);
-					if(type != COAP_CONTENT_TYPE_UNKNOWN) printf("(%s) ",
-							coap_content_type_to_cstr(type));
 					printf("\n");
 				} else {
 					iter++;
@@ -242,7 +255,7 @@ bail:
 		gRet = 0;
 }
 
-bool
+static bool
 resend_list_request(void* context) {
 	bool ret = false;
 	smcp_status_t status = 0;
@@ -303,7 +316,7 @@ send_list_request(
 	status = smcp_begin_transaction(
 		smcp,
 		tid,
-		30*1000,	// Retry for thirty seconds.
+		timeout_cms,	// Retry for thirty seconds.
 		0, // Flags
 		(void*)&resend_list_request,
 		(void*)&list_response_handler,
@@ -341,12 +354,17 @@ tool_cmd_list(
 	redirect_url[0] = 0;
 	size_request = 0;
 
+	timeout_cms = 30*1000;
+	list_filename_only = false;
+
 	BEGIN_LONG_ARGUMENTS(gRet)
 	HANDLE_LONG_ARGUMENT("include") list_show_headers = true;
 	HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
 	HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
 	HANDLE_LONG_ARGUMENT("slice-size") size_request =
 	    htons(strtol(argv[++i], NULL, 0));
+	HANDLE_LONG_ARGUMENT("timeout") timeout_cms = strtol(argv[++i], NULL, 0);
+	HANDLE_LONG_ARGUMENT("filename-only") list_filename_only = true;
 
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");
@@ -356,6 +374,7 @@ tool_cmd_list(
 	BEGIN_SHORT_ARGUMENTS(gRet)
 	HANDLE_SHORT_ARGUMENT('i') list_show_headers = true;
 	HANDLE_SHORT_ARGUMENT('f') redirect_count = 10;
+	HANDLE_SHORT_ARGUMENT('t') timeout_cms = strtol(argv[++i], NULL, 0);
 
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");
