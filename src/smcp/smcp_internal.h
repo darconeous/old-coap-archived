@@ -62,8 +62,13 @@ struct smcp_daemon_s {
 	char*					current_inbound_request_token;
 	uint16_t				current_inbound_request_token_len;
 	uint8_t					cascade_count;
-	bool					is_responding, did_respond, is_processing_message,
-	    has_cascade_count;
+
+	// Operational Flags
+	bool					is_responding,
+							did_respond,
+							is_processing_message,
+							has_cascade_count,
+							force_current_outbound_code;
 
 	coap_header_item_t		current_inbound_headers[SMCP_MAX_HEADERS + 1];
 	uint8_t					current_inbound_header_count;
@@ -87,3 +92,13 @@ struct smcp_daemon_s {
 	socklen_t				current_outbound_socklen;
 #endif
 };
+
+
+extern smcp_status_t
+smcp_daemon_handle_request(
+	smcp_daemon_t	self,
+	smcp_method_t	method,
+	const char*		path,
+	const char*		content,
+	size_t			content_length
+);

@@ -146,13 +146,24 @@ extern smcp_status_t smcp_daemon_pair_with_sockaddr(
 );
 
 extern smcp_status_t smcp_daemon_trigger_event(
+	smcp_daemon_t self,
+	const char* path
+);
+
+extern smcp_status_t smcp_daemon_trigger_event_with_node(
+	smcp_daemon_t		self,
+	smcp_node_t			node,
+	const char*			subpath
+);
+
+extern smcp_status_t smcp_daemon_trigger_custom_event(
 	smcp_daemon_t		self,
 	const char*			path,
 	smcp_content_fetcher_func contentFetcher,
 	void* context
 );
 
-extern smcp_status_t smcp_daemon_trigger_event_with_node(
+extern smcp_status_t smcp_daemon_trigger_custom_event_with_node(
 	smcp_daemon_t		self,
 	smcp_node_t			node,
 	const char*			subpath,

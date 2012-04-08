@@ -57,18 +57,6 @@ smcp_node_compare(
 	return strcmp(lhs->name, rhs->name);
 }
 
-/*
-   static bt_compare_result_t
-   smcp_node_compare_cstr(smcp_node_t lhs,const char* rhs) {
-    if(lhs->name==rhs)
-        return 0;
-    if(!lhs->name)
-        return 1;
-    if(!rhs)
-        return -1;
-    return strcmp(lhs->name,rhs);
-   }
- */
 static bt_compare_result_t
 smcp_node_ncompare_cstr(
 	smcp_node_t lhs, const char* rhs, int*len
@@ -175,8 +163,11 @@ bail:
 	return ret;
 }
 
-extern int smcp_node_find_next_with_path(
-	smcp_node_t node, const char* orig_path, smcp_node_t* next
+int
+smcp_node_find_next_with_path(
+	smcp_node_t node,
+	const char* orig_path,
+	smcp_node_t* next
 ) {
 	const char* path = orig_path;
 
@@ -201,11 +192,11 @@ extern int smcp_node_find_next_with_path(
 		}
 
 		*next = bt_find(
-			    (void**)&((smcp_node_t)node)->children,
+			(void**)&((smcp_node_t)node)->children,
 			path,
-			    (bt_compare_func_t)smcp_node_ncompare_cstr,
+			(bt_compare_func_t)smcp_node_ncompare_cstr,
 			&namelen
-		    );
+		);
 
 		if(!*next) {
 			DEBUG_PRINTF(CSTR(

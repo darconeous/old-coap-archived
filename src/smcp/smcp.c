@@ -590,19 +590,20 @@ smcp_message_begin(
 	check(!smcp_get_current_daemon() || smcp_get_current_daemon()==self);
 	smcp_set_current_daemon(self);
 
-	self->is_responding = false;
-
 	self->current_outbound_header_count = 0;
 	self->current_outbound_tt = tt;
 	self->current_outbound_code = code;
 
 	self->current_outbound_header_len = 0;
 	self->current_outbound_content_len = 0;
+	self->force_current_outbound_code = false;
+	self->is_responding = false;
 
 #if SMCP_USE_BSD_SOCKETS
 	self->current_outbound_socklen = 0;
 #elif defined(CONTIKI)
-	// TODO: Writeme
+	self->toaddr = NULL;
+	self->toport = 0;
 #endif
 	return SMCP_STATUS_OK;
 }
@@ -617,6 +618,11 @@ smcp_status_t smcp_message_begin_response(coap_code_t code) {
 		ret = SMCP_STATUS_RESPONSE_NOT_ALLOWED,
 		"Attempted to send more than one response!"
 	);
+
+	// If we have already started responding, don't bother.
+	if(self->is_responding)
+		goto bail;
+
 	self->is_responding = true;
 
 	smcp_message_begin(self,code,COAP_TRANS_TYPE_ACK);
@@ -661,9 +667,10 @@ smcp_message_set_tid(coap_transaction_id_t tid) {
 
 smcp_status_t
 smcp_message_set_code(coap_code_t code) {
-	smcp_get_current_daemon()->current_outbound_code = code;
-	// TODO: More work required here?
-	return SMCP_STATUS_NOT_IMPLEMENTED;
+	const smcp_daemon_t self = smcp_get_current_daemon();
+	if(self->force_current_outbound_code)
+		self->current_outbound_code = code;
+	return SMCP_STATUS_OK;
 }
 
 #if SMCP_USE_BSD_SOCKETS

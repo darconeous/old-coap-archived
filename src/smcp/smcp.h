@@ -263,26 +263,42 @@ extern smcp_status_t smcp_daemon_handle_inbound_packet(
 
 extern smcp_node_t smcp_node_alloc();
 
+/*! Name parameter must be already URL escaped! */
 extern smcp_node_t smcp_node_init(
 	smcp_node_t self, smcp_node_t parent, const char* name);
 
 extern void smcp_node_delete(smcp_node_t node);
+
 extern smcp_status_t smcp_node_get_path(
-	smcp_node_t node, char* path, size_t max_path_len);
+	smcp_node_t node,
+	char* path,
+	size_t max_path_len
+);
+
 extern smcp_node_t smcp_node_find_with_path(
-	smcp_node_t node, const char* path);
+	smcp_node_t node,
+	const char* path
+);
+
 extern int smcp_node_find_closest_with_path(
-	smcp_node_t node, const char* path, smcp_node_t* closest);
+	smcp_node_t node,
+	const char* path,
+	smcp_node_t* closest
+);
+
 extern int smcp_node_find_next_with_path(
-	smcp_node_t node, const char* path, smcp_node_t* next);
+	smcp_node_t node,
+	const char* path,
+	smcp_node_t* next
+);
 
 extern smcp_status_t smcp_default_request_handler(
 	smcp_node_t		node,
 	smcp_method_t	method,
 	const char*		relative_path,
 	const char*		content,
-	size_t			content_length);
-
+	size_t			content_length
+);
 
 coap_transaction_id_t smcp_daemon_get_current_tid();
 

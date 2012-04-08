@@ -84,14 +84,14 @@ void smcp_timer_node_fired(
 	smcp_timer_node_t const self = context;
 
 #if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-	smcp_daemon_trigger_event_with_node(smcp,
+	smcp_daemon_trigger_custom_event_with_node(smcp,
 		&self->node,
 		"!fire",
 		(void*)&smcp_timer_node_content_fetcher,
 		self
 	);
 #else
-	smcp_daemon_trigger_event_with_node(smcp,
+	smcp_daemon_trigger_custom_event_with_node(smcp,
 		&self->node,
 		"!fire",
 		NULL,
@@ -108,7 +108,7 @@ void smcp_timer_node_fired(
 		);
 	} else {
 		self->remaining = 0;
-		smcp_daemon_trigger_event_with_node(
+		smcp_daemon_trigger_custom_event_with_node(
 			smcp,
 			&self->node,
 			"running",
@@ -130,7 +130,7 @@ void smcp_timer_node_start(smcp_timer_node_t self) {
 			smcp_daemon_schedule_timer(self->smcpd_instance,
 				&self->timer,
 				self->period);
-		smcp_daemon_trigger_event_with_node(
+		smcp_daemon_trigger_custom_event_with_node(
 			self->smcpd_instance,
 			&self->node,
 			"running",
@@ -145,7 +145,7 @@ void smcp_timer_node_stop(smcp_timer_node_t self) {
 			&self->timer)) {
 		self->remaining = convert_timeval_to_cms(&self->timer.fire_date);
 		smcp_daemon_invalidate_timer(self->smcpd_instance, &self->timer);
-		smcp_daemon_trigger_event_with_node(
+		smcp_daemon_trigger_custom_event_with_node(
 			self->smcpd_instance,
 			&self->node,
 			"running",
@@ -395,7 +395,7 @@ smcp_timer_request_handler(
 					((smcp_timer_node_t)node)->autorestart =
 						!!strtol(value,NULL,10);
 
-					smcp_daemon_trigger_event_with_node(
+					smcp_daemon_trigger_custom_event_with_node(
 						smcp_get_current_daemon(),
 						node,
 						"autorestart",

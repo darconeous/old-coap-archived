@@ -51,7 +51,6 @@
 #pragma mark -
 #pragma mark Macros
 
-
 #pragma mark -
 #pragma mark Paring
 
@@ -205,7 +204,7 @@ bail:
 }
 
 static bool
-smcp_retry_event(smcp_pairing_t pairing) {
+smcp_retry_custom_event(smcp_pairing_t pairing) {
 	bool ret = true;
 	const smcp_daemon_t self = smcp_get_current_daemon();
 	smcp_event_tracker_t event = pairing->currentEvent;
@@ -308,8 +307,156 @@ smcp_event_response_handler(
 	smcp_event_tracker_release(event);
 }
 
+static bool
+smcp_retry_event(smcp_pairing_t pairing) {
+	bool ret = true;
+	const smcp_daemon_t self = smcp_get_current_daemon();
+
+	smcp_message_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
+
+	self->is_responding = true;
+	self->force_current_outbound_code = true;
+
+#if SMCP_USE_BSD_SOCKETS
+	if(((struct sockaddr*)&pairing->saddr)->sa_family)
+		smcp_message_set_destaddr((struct sockaddr*)&pairing->saddr, sizeof(pairing->saddr));
+#elif CONTIKI
+	if(pairing->toport)
+		smcp_message_set_destaddr(&pairing->toaddr,pairing->toport);
+#endif
+
+	smcp_message_set_uri(pairing->dest_uri,0);
+	smcp_message_add_header(SMCP_HEADER_ORIGIN, pairing->path, COAP_HEADER_CSTR_LEN);
+
+	char cseq[24];
+#if __AVR__
+	snprintf_P(
+		cseq,
+		sizeof(cseq),
+		PSTR("%lX POST"),
+		(long unsigned int)pairing->seq
+	);
+#else
+	snprintf(cseq,
+		sizeof(cseq),
+		"%lX POST",
+		(long unsigned int)pairing->seq
+	);
+#endif
+	smcp_message_add_header(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
+
+	ret = smcp_daemon_handle_request(self, COAP_METHOD_GET, pairing->path, "", 0);
+
+#if SMCP_CONF_PAIRING_STATS
+	pairing->send_count++;
+#endif
+
+	return ret;
+}
+
 smcp_status_t
 smcp_daemon_trigger_event(
+	smcp_daemon_t self,
+	const char* path
+) {
+	smcp_status_t ret = 0;
+	smcp_pairing_t iter;
+	smcp_event_tracker_t event = NULL;
+
+	require_action(self!=NULL,bail,ret=SMCP_STATUS_BAD_ARGUMENT);
+
+	if(!path) path = "";
+
+	// Move past any preceding slashes.
+	while(path && *path == '/') path++;
+
+	for(iter = smcp_daemon_get_first_pairing_for_path(self, path);
+	    iter;
+	    iter = smcp_daemon_next_pairing(self, iter)
+	) {
+		coap_transaction_id_t tid = (coap_transaction_id_t)SMCP_FUNC_RANDOM_UINT32();
+		smcp_status_t status;
+
+		if(!event) {
+			// Allocate this lazily.
+			event = calloc(1,sizeof(*event));
+
+			require_action(event!=NULL, bail, ret=SMCP_STATUS_MALLOC_FAILURE);
+
+			// This is just a placeholder event.
+			event->contentFetcher = NULL;
+			event->contentFetcherContext = NULL;
+			event->refCount = 1;
+			DEBUG_PRINTF("Event:%p: alloc",event);
+		}
+
+		if(iter->currentEvent) {
+			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
+			smcp_invalidate_transaction(self, iter->last_tid);
+		}
+
+		iter->currentEvent = event;
+
+		status = smcp_begin_transaction(
+			self,
+			tid,
+			(iter->flags&SMCP_PARING_FLAG_RELIABILITY_MASK)?30000:10,
+			0, // Flags
+			(void*)&smcp_retry_event,
+			(void*)&smcp_event_response_handler,
+			(void*)iter
+		);
+		if(status)
+			continue;
+
+		iter->last_tid = tid;
+		event->refCount++;
+		DEBUG_PRINTF("Event:%p: retain",event);
+
+#if SMCP_CONF_PAIRING_STATS
+		iter->fire_count++;
+#endif
+	}
+
+bail:
+	if(event)
+		smcp_event_tracker_release(event);
+	return ret;
+}
+
+smcp_status_t
+smcp_daemon_trigger_event_with_node(
+	smcp_daemon_t		self,
+	smcp_node_t			node,
+	const char*			subpath
+) {
+	char path[SMCP_MAX_PATH_LENGTH + 1];
+
+	path[sizeof(path) - 1] = 0;
+
+	smcp_node_get_path(node, path, sizeof(path));
+
+	if(subpath) {
+		if(path[0])
+			strncat(path, "/", sizeof(path) - 1);
+		strncat(path, subpath, sizeof(path) - 1);
+	}
+
+	{   // Remove trailing slashes.
+		size_t len = strlen(path);
+		while(len && path[len - 1] == '/')
+			path[--len] = 0;
+	}
+
+	return smcp_daemon_trigger_event(
+		self,
+		path
+	);
+}
+
+
+smcp_status_t
+smcp_daemon_trigger_custom_event(
 	smcp_daemon_t		self,
 	const char*			path,
 	smcp_content_fetcher_func contentFetcher,
@@ -354,7 +501,7 @@ smcp_daemon_trigger_event(
 			tid,
 			(iter->flags&SMCP_PARING_FLAG_RELIABILITY_MASK)?30000:10,
 			0, // Flags
-			(void*)&smcp_retry_event,
+			(void*)&smcp_retry_custom_event,
 			(void*)&smcp_event_response_handler,
 			(void*)iter
 		);
@@ -377,7 +524,7 @@ bail:
 }
 
 smcp_status_t
-smcp_daemon_trigger_event_with_node(
+smcp_daemon_trigger_custom_event_with_node(
 	smcp_daemon_t		self,
 	smcp_node_t			node,
 	const char*			subpath,
@@ -402,7 +549,7 @@ smcp_daemon_trigger_event_with_node(
 			path[--len] = 0;
 	}
 
-	return smcp_daemon_trigger_event(
+	return smcp_daemon_trigger_custom_event(
 		self,
 		path,
 		contentFetcher,
@@ -419,13 +566,21 @@ smcp_daemon_refresh_variable(
 	require_action(self != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
+#if 1
 	ret = smcp_daemon_trigger_event_with_node(
+		self,
+		(smcp_node_t)node,
+		NULL
+	);
+#else
+	ret = smcp_daemon_trigger_custom_event_with_node(
 		self,
 		(smcp_node_t)node,
 		NULL,
 		(void*)node->get_func,
 		node
 	);
+#endif
 
 bail:
 	return ret;
