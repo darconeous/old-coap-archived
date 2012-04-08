@@ -362,7 +362,7 @@ smcp_directory_generator(
 			prefix = strdup(".");
 		}
 		char* cmdline = NULL;
-
+		
 		asprintf(&cmdline, "list --filename-only --timeout 1000 %s",prefix);
 
 		require(cmdline,bail);
@@ -373,7 +373,7 @@ smcp_directory_generator(
 			fprintf(temp_file,"..\n");
 		process_input_line(cmdline);
 		stdout = real_stdout;
-
+		
 		rewind(temp_file);
 		free(cmdline);
 		len = strlen(fragment);
@@ -441,7 +441,7 @@ initialize_readline() {
 	rl_initialize();
 
 	rl_readline_name = "smcp";
-
+	rl_completer_word_break_characters = " \t\n\"\\'`@$><|&{("; // Removed '=' ';'
 	/* Tell the completer that we want a crack first. */
 	rl_attempted_completion_function = (CPPFunction *)smcp_attempted_completion;
 	rl_completion_entry_function = &smcp_directory_generator;
