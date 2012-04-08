@@ -602,8 +602,7 @@ smcp_message_begin(
 #if SMCP_USE_BSD_SOCKETS
 	self->current_outbound_socklen = 0;
 #elif defined(CONTIKI)
-	self->toaddr = NULL;
-	self->toport = 0;
+	// Writeme!
 #endif
 	return SMCP_STATUS_OK;
 }
