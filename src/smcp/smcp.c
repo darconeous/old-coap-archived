@@ -1439,11 +1439,12 @@ smcp_default_request_handler(
 			smcp_message_set_content("Redirected to </>.\n",COAP_HEADER_CSTR_LEN);
 			smcp_message_send();
 		}
-		return smcp_daemon_handle_list(node,
-			method,
-			path,
-			content,
-			content_length);
+		if(!path || path[0]==0)
+			return smcp_daemon_handle_list(node,
+				method,
+				path,
+				content,
+				content_length);
 	}
 	if(method == COAP_METHOD_PAIR) {
 		return smcp_daemon_handle_pair(node,

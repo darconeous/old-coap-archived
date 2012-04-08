@@ -679,11 +679,11 @@ smcp_daemon_delete_pairing(
 static smcp_status_t
 smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 	smcp_status_t ret = 0;
-	size_t content_break_threshold = 60;
+	size_t content_break_threshold = 160;
 	uint16_t start_index = 0, i = 0;
 
 	// TODO: Rewrite using the constrained API so we don't use so much stack!
-	char replyContent[160];
+	char replyContent[160*2];
 
 	memset(replyContent, 0, sizeof(replyContent));
 
@@ -734,6 +734,7 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 
 	while(pairing_iter) {
 		const char* name;
+		size_t escapedLen;
 
 		if(first_pairing)
 			name = pairing_iter->dest_uri;
@@ -752,22 +753,23 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 		}
 
 		replyContent[i++] = '<';
+		escapedLen = -i;
 		i += url_encode_cstr(replyContent + i,
 			name,
 			sizeof(replyContent) - i - 2);
+		escapedLen += i;
 		replyContent[i++] = '>';
 
 		if(first_pairing) {
-			if(strlen(name) > (2 + sizeof(void*) * 2)) {
+			if(escapedLen > (2 + sizeof(void*) * 2)) {
 				i += snprintf(replyContent + i,
 					sizeof(replyContent) - i,
 					";sh=\"%p\"",
 					pairing_iter);
 			}
-		} else {
-			strncpy(replyContent + i, ";ct=40", sizeof(replyContent) - i);
-			i += 6;
 		}
+		strncpy(replyContent + i, ";ct=40", sizeof(replyContent) - i);
+		i += 6;
 
 		pairing_prev = pairing_iter;
 		pairing_iter = bt_next(pairing_iter);
@@ -811,7 +813,7 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 		    (const void*)&content_type,
 		1
 	);
-	smcp_message_set_content(replyContent,COAP_HEADER_CSTR_LEN);
+	smcp_message_set_content(replyContent,i);
 	smcp_message_send();
 bail:
 	return ret;
