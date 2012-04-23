@@ -45,7 +45,8 @@ coap_encode_header(
 		unsigned char option_delta;
 
 		// Headers must be in order.
-		qsort(
+//		qsort(		// qsort isn't stable!!!
+		mergesort(
 			headers,
 			header_count,
 			sizeof(*headers),
@@ -305,28 +306,20 @@ coap_header_key_to_cstr(
 		case COAP_HEADER_CONTENT_TYPE: ret = "Content-type"; break;
 		case COAP_HEADER_MAX_AGE: ret = "Max-age"; break;
 		case COAP_HEADER_ETAG: ret = "Etag"; break;
-		case COAP_HEADER_URI_AUTHORITY: ret = "URI-authority"; break;
-		case COAP_HEADER_LOCATION: ret = "Location"; break;
+		case COAP_HEADER_PROXY_URI: ret = "Proxy-uri"; break;
+		case COAP_HEADER_URI_HOST: ret = "URI-host"; break;
+		case COAP_HEADER_URI_PORT: ret = "URI-port"; break;
 		case COAP_HEADER_URI_PATH: ret = "URI-path"; break;
+		case COAP_HEADER_URI_QUERY: ret = "URI-query"; break;
+		case COAP_HEADER_LOCATION_PATH: ret = "Location-path"; break;
+		case COAP_HEADER_LOCATION_QUERY: ret = "Location-query"; break;
 
-		case COAP_HEADER_URI_SCHEME: ret = "URI-scheme"; break;
-		case COAP_HEADER_URI_AUTHORITY_BINARY: ret =
-			    "URI-authority-binary"; break;
 		case COAP_HEADER_ACCEPT: ret = "Accept"; break;
 		case COAP_HEADER_SUBSCRIPTION_LIFETIME: ret =
 			    "Subscription-lifetime"; break;
-//		case COAP_HEADER_DATE: ret = "Date"; break;
 		case COAP_HEADER_TOKEN: ret = "Token"; break;
-		case COAP_HEADER_BLOCK: ret = "Block"; break;
-		case COAP_HEADER_URI_QUERY: ret = "URI-query"; break;
-//		case COAP_HEADER_PAYLOAD_LENGTH: ret = "Payload-length"; break;
 
-		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
-		case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
-		case COAP_HEADER_ALLOW: ret = "Allow"; break;
-
-		case COAP_HEADER_RANGE: ret = "Range"; break;
-		case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
+/* -- EXPERIMENTAL AFTER THIS POINT -- */
 
 #if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
 		case COAP_HEADER_MESSAGE_SIZE: ret = "Message-size"; break;
@@ -337,9 +330,19 @@ coap_header_key_to_cstr(
 		case COAP_HEADER_NEXT: ret = "Next"; break;
 #endif
 
+
+
+		case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
+		case COAP_HEADER_RANGE: ret = "Range"; break;
+		case COAP_HEADER_BLOCK: ret = "Block"; break;
+		case COAP_HEADER_ALLOW: ret = "Allow"; break;
+
 		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
 		case COAP_HEADER_CONTINUATION_RESPONSE: ret =
 			    "Continuation-response"; break;
+
+		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
+		case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
 
 		default:
 		{
@@ -367,12 +370,21 @@ coap_header_key_from_cstr(const char* key) {
 		return COAP_HEADER_MAX_AGE;
 	else if(strcasecmp(key, "Etag") == 0)
 		return COAP_HEADER_ETAG;
-	else if(strcasecmp(key, "URI-authority") == 0)
-		return COAP_HEADER_URI_AUTHORITY;
-	else if(strcasecmp(key, "Location") == 0)
-		return COAP_HEADER_LOCATION;
+	else if(strcasecmp(key, "URI-host") == 0)
+		return COAP_HEADER_URI_HOST;
+	else if(strcasecmp(key, "Proxy-uri") == 0)
+		return COAP_HEADER_PROXY_URI;
+	else if(strcasecmp(key, "URI-port") == 0)
+		return COAP_HEADER_URI_PORT;
+	else if(strcasecmp(key, "Location-path") == 0)
+		return COAP_HEADER_LOCATION_PATH;
+	else if(strcasecmp(key, "Location-query") == 0)
+		return COAP_HEADER_LOCATION_QUERY;
 	else if(strcasecmp(key, "URI-path") == 0)
 		return COAP_HEADER_URI_PATH;
+	else if(strcasecmp(key, "Accept") == 0)
+		return COAP_HEADER_ACCEPT;
+
 	else if(strcasecmp(key, "Cseq") == 0)
 		return SMCP_HEADER_CSEQ;
 	else if(strcasecmp(key, "Next") == 0)
@@ -385,6 +397,7 @@ coap_header_key_from_cstr(const char* key) {
 		return SMCP_HEADER_ORIGIN;
 	else if(strcasecmp(key, "Allow") == 0)
 		return COAP_HEADER_ALLOW;
+
 
 	return 0;
 }
@@ -403,8 +416,10 @@ http_code_to_cstr(int x) {
 
 	case HTTP_RESULT_CODE_CONTINUE: return "CONTINUE"; break;
 	case HTTP_RESULT_CODE_OK: return "OK"; break;
+	case HTTP_RESULT_CODE_VALID: return "VALID"; break;
 	case HTTP_RESULT_CODE_CREATED: return "CREATED"; break;
-	case HTTP_RESULT_CODE_NO_CONTENT: return "NO_CONTENT"; break;
+	case HTTP_RESULT_CODE_CHANGED: return "CHANGED"; break;
+	case HTTP_RESULT_CODE_DELETED: return "DELETED"; break;
 	case HTTP_RESULT_CODE_PARTIAL_CONTENT: return "PARTIAL_CONTENT"; break;
 
 	case HTTP_RESULT_CODE_NOT_MODIFIED: return "NOT_MODIFIED"; break;
@@ -430,8 +445,8 @@ http_code_to_cstr(int x) {
 	case HTTP_RESULT_CODE_BAD_GATEWAY: return "BAD_GATEWAY"; break;
 	case HTTP_RESULT_CODE_SERVICE_UNAVAILABLE: return "UNAVAILABLE"; break;
 	case HTTP_RESULT_CODE_GATEWAY_TIMEOUT: return "TIMEOUT"; break;
-	case HTTP_RESULT_CODE_PROTOCOL_VERSION_NOT_SUPPORTED: return
-		    "PROTOCOL_VERSION_NOT_SUPPORTED"; break;
+	case HTTP_RESULT_CODE_PROXYING_NOT_SUPPORTED: return
+		    "PROXYING_NOT_SUPPORTED"; break;
 
 	case HTTP_RESULT_CODE_TOKEN_REQUIRED: return "TOKEN_REQUIRED"; break;
 	case HTTP_RESULT_CODE_URI_AUTHORITY_REQUIRED: return
@@ -493,9 +508,12 @@ coap_dump_headers(
 				coap_content_type_to_cstr((unsigned char)iter->value[0]));
 			break;
 		case COAP_HEADER_CASCADE_COUNT:
-			fprintf(outstream, "%u", (unsigned char)iter->value[0]);
-			break;
 		case COAP_HEADER_MAX_AGE:
+		case COAP_HEADER_URI_PORT:
+		case COAP_HEADER_MESSAGE_SIZE:
+#if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
+		case COAP_HEADER_SIZE_REQUEST:
+#endif
 		{
 			unsigned long age = 0;
 			uint8_t i;
@@ -504,18 +522,6 @@ coap_dump_headers(
 			fprintf(outstream, "%lu", age);
 		}
 		break;
-		case COAP_HEADER_MESSAGE_SIZE:
-#if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
-		case COAP_HEADER_SIZE_REQUEST:
-#endif
-			{
-				unsigned long age = 0;
-				uint8_t i;
-				for(i = 0; i < iter->value_len; i++)
-					age = (age << 8) + iter->value[i];
-				fprintf(outstream, "%lu", age);
-			}
-			break;
 		case COAP_HEADER_ACCEPT:
 		{
 			size_t i;
@@ -528,11 +534,14 @@ coap_dump_headers(
 		}
 		break;
 
-		case COAP_HEADER_URI_AUTHORITY:
+
 		case COAP_HEADER_URI_PATH:
+		case COAP_HEADER_URI_HOST:
 		case COAP_HEADER_URI_QUERY:
-		case COAP_HEADER_URI_SCHEME:
-		case COAP_HEADER_LOCATION:
+
+		case COAP_HEADER_LOCATION_PATH:
+		case COAP_HEADER_LOCATION_QUERY:
+
 		case COAP_HEADER_CONTINUATION_REQUEST:
 
 		case SMCP_HEADER_ORIGIN:

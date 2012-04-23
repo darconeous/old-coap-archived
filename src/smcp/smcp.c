@@ -173,6 +173,7 @@ smcp_status_t smcp_daemon_handle_request(
 	const char*		path,
 	const char*		content,
 	size_t			content_length);
+
 smcp_status_t smcp_daemon_handle_response(
 	smcp_daemon_t	self,
 	int				statuscode,
@@ -215,8 +216,6 @@ smcp_daemon_init(
 
 	require(ret != NULL, bail);
 
-	ret->port = port;
-
 #if SMCP_USE_BSD_SOCKETS
 	ret->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -229,21 +228,15 @@ smcp_daemon_init(
 		require_action_string(errno == EADDRINUSE, bail,
 			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_daemon_release(
 				    ret); ret = NULL; }, "Failed to bind socket");
-		ret->port++;
+		port++;
 
 		// Make sure we aren't in an infinite loop.
-		require_action_string(port!=ret->port, bail,
+		require_action_string(port!=port, bail,
 			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_daemon_release(
 				    ret); ret = NULL; }, "Failed to bind socket (ran out of ports)");
 
-		saddr.sin6_port = htons(ret->port);
+		saddr.sin6_port = htons(port);
 	}
-
-	// Now we need to figure out what port we actually bound to.
-	socklen_t socklen = sizeof(saddr);
-	getsockname(ret->fd, (struct sockaddr*)&saddr, &socklen);
-	ret->port = ntohs(saddr.sin6_port);
-
 #elif CONTIKI
 	ret->udp_conn = udp_new(NULL, 0, NULL);
 	uip_udp_bind(ret->udp_conn, htons(port));
@@ -295,9 +288,9 @@ void
 smcp_daemon_release(smcp_daemon_t self) {
 	require(self, bail);
 
-	// Delete all response handlers
-	while(self->handlers) {
-		smcp_invalidate_transaction(self, self->handlers->tid);
+	// Delete all pending transactions
+	while(self->transactions) {
+		smcp_invalidate_transaction(self, self->transactions->tid);
 	}
 
 	// Delete all timers
@@ -327,7 +320,14 @@ bail:
 
 uint16_t
 smcp_daemon_get_port(smcp_daemon_t self) {
-	return self->port;
+#if SMCP_USE_BSD_SOCKETS
+	struct sockaddr_in6 saddr;
+	socklen_t socklen = sizeof(saddr);
+	getsockname(self->fd, (struct sockaddr*)&saddr, &socklen);
+	return ntohs(saddr.sin6_port);
+#elif CONTIKI
+	return ntohs(ret->udp_conn->lport);
+#endif
 }
 
 #if SMCP_USE_BSD_SOCKETS
@@ -343,9 +343,18 @@ smcp_daemon_get_udp_conn(smcp_daemon_t self) {
 #endif
 
 const coap_header_item_t*
-smcp_daemon_get_current_request_headers() {
+smcp_daemon_get_first_header() {
 	if(smcp_get_current_daemon()->is_processing_message)
 		return smcp_get_current_daemon()->current_inbound_headers;
+	return NULL;
+}
+
+const coap_header_item_t*
+smcp_daemon_get_next_header(const coap_header_item_t* iter) {
+	if(smcp_get_current_daemon()->is_processing_message) {
+		if(iter!=smcp_get_current_daemon()->current_inbound_headers+smcp_get_current_daemon()->current_inbound_header_count)
+		return ++iter;
+	}
 	return NULL;
 }
 
@@ -397,19 +406,19 @@ smcp_daemon_handle_inbound_packet(
 
 	DEBUG_PRINTF(CSTR("%p: Inbound packet!"), self);
 	header_length = coap_decode_header(
-		    (unsigned char*)packet,
+		(unsigned char*)packet,
 		packet_length,
 		&tt,
 		&code,
 		&tid,
 		self->current_inbound_headers,
 		&self->current_inbound_header_count
-	    );
+	);
 
 	require(header_length > 0, bail);
 
 	DEBUG_PRINTF(CSTR("%p: tt=%d"), self,tt);
-	DEBUG_PRINTF(CSTR("%p: http.code=%d"), self,COAP_TO_HTTP_CODE(code));
+	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"), self,coap_to_http_code(code),code);
 
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
@@ -434,7 +443,7 @@ smcp_daemon_handle_inbound_packet(
 
 	if(COAP_CODE_IS_REQUEST(code)) {
 		// Need to extract the path.
-		char *path = "";
+		char *path = NULL;
 
 		self->current_inbound_request_token = 0;
 		self->current_inbound_request_token_len = 0;
@@ -462,6 +471,9 @@ smcp_daemon_handle_inbound_packet(
 				self->has_cascade_count = true;
 			}
 		}
+
+		if(!path)
+			path = "";
 
 		status = smcp_daemon_handle_request(
 			self,
@@ -714,19 +726,10 @@ smcp_message_add_header(
 }
 
 smcp_status_t
-smcp_message_set_uri(
-	const char* uri, char flags
-) {
+smcp_message_set_destaddr_from_host_and_port(const char* addr_str,uint16_t toport) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 
-	const char* start;
-
-	if(!(flags&SMCP_MSG_SKIP_DESTADDR))
-	do {
-	char* addr_str = NULL;
-	char* port_str = NULL;
-
-	uint16_t toport = htons(SMCP_DEFAULT_PORT);
+	toport = ntohl(toport);
 
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
@@ -735,128 +738,165 @@ smcp_message_set_uri(
 		.sin6_len		= sizeof(struct sockaddr_in6),
 #endif
 	};
-#elif CONTIKI
-	uip_ipaddr_t toaddr;
-#endif
 
-	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+	struct addrinfo hint = {
+		.ai_flags		= AI_ALL | AI_V4MAPPED,
+		.ai_family		= AF_INET6,
+		.ai_socktype	= SOCK_DGRAM,
+		.ai_protocol	= IPPROTO_UDP,
+	};
 
-	if(!url_is_absolute(uri)) {
-		// Pairing with ourselves
-		addr_str = "::1";
-		toport = htons(smcp_get_current_daemon()->port);
-	} else {
-		char* uri_copy = alloca(strlen(uri) + 1);
+	struct addrinfo *results = NULL;
 
-		strcpy(uri_copy, uri);
+	int error = getaddrinfo(addr_str, NULL, &hint, &results);
 
-		// Parse the URI.
-		require_action_string(
-			url_parse(
-				uri_copy,
-				NULL,
-				NULL,
-				NULL,
-				&addr_str,
-				&port_str,
-				NULL,
-				NULL
-			),
-			bail,
-			ret = SMCP_STATUS_UNSUPPORTED_URI,
-			"Unable to parse URL"
-		);
-
-		if(port_str)
-			toport = htons(strtol(port_str, NULL, 10));
+	if(error && (inet_addr(addr_str) != INADDR_NONE)) {
+		char addr_v4mapped_str[8 + strlen(addr_str)];
+		sprintf(addr_v4mapped_str, "::ffff:%s", addr_str);
+		error = getaddrinfo(addr_v4mapped_str,
+			NULL,
+			&hint,
+			&results);
 	}
 
-	// If we don't have an address, skip this part.
-	if(!addr_str || addr_str[0]==0)
-		break;
-
-	DEBUG_PRINTF(
-		CSTR("URI Parse: \"%s\" -> host=\"%s\" port=\"%u\""),
-		uri,
-		addr_str,
-		(int)ntohs(toport)
-	);
-
-	// Below is the code which looks up the hostnames.
-	// TODO: Invesitage if it would make sense to have a default
-	// forwarding rule when this fails.
-
-#if SMCP_USE_BSD_SOCKETS
-	{
-		struct addrinfo hint = {
-			.ai_flags		= AI_ALL | AI_V4MAPPED,
-			.ai_family		= AF_INET6,
-			.ai_socktype	= SOCK_DGRAM,
-			.ai_protocol	= IPPROTO_UDP,
-		};
-		struct addrinfo *results = NULL;
-		int error = getaddrinfo(addr_str, port_str, &hint, &results);
-
-		if(error && (inet_addr(addr_str) != INADDR_NONE)) {
-			char addr_v4mapped_str[8 + strlen(addr_str)];
-			sprintf(addr_v4mapped_str, "::ffff:%s", addr_str);
-			error = getaddrinfo(addr_v4mapped_str,
-				port_str,
-				&hint,
-				&results);
-		}
-		require_action_string(!error,
-			bail,
-			ret = SMCP_STATUS_HOST_LOOKUP_FAILURE,
-			gai_strerror(error));
-		require_action(results,
-			bail,
-			ret = SMCP_STATUS_HOST_LOOKUP_FAILURE);
-
-		memcpy(&saddr, results->ai_addr, results->ai_addrlen);
-	}
-	saddr.sin6_port = toport;
-
-	smcp_message_set_destaddr((struct sockaddr *)&saddr,sizeof(struct sockaddr_in6));
-
-#elif CONTIKI
-	memset(&toaddr, 0, sizeof(toaddr));
-	ret =
-	    uiplib_ipaddrconv(addr_str,
-		&toaddr) ? 0 : SMCP_STATUS_HOST_LOOKUP_FAILURE;
-	if(ret) {
-		uip_ipaddr_t *temp = resolv_lookup(addr_str);
-		if(temp) {
-			memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
-			ret = 0;
-		} else {
-			resolv_query(addr_str);
-			// TODO: We should be doing domain name resolution here too!
-		}
-	}
-//#define PRINT6ADDR(addr) DEBUG_PRINTF("smcp_daemon_send_request_to_url: %02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x ", ((u8_t *)addr)[0], ((u8_t *)addr)[1], ((u8_t *)addr)[2], ((u8_t *)addr)[3], ((u8_t *)addr)[4], ((u8_t *)addr)[5], ((u8_t *)addr)[6], ((u8_t *)addr)[7], ((u8_t *)addr)[8], ((u8_t *)addr)[9], ((u8_t *)addr)[10], ((u8_t *)addr)[11], ((u8_t *)addr)[12], ((u8_t *)addr)[13], ((u8_t *)addr)[14], ((u8_t *)addr)[15])
-//	PRINT6ADDR(&toaddr);
-	require_action_string(ret == SMCP_STATUS_OK,
+	require_action_string(
+		!error,
 		bail,
 		ret = SMCP_STATUS_HOST_LOOKUP_FAILURE,
-		"Unable to resolve hostname");
+		gai_strerror(error)
+	);
 
-	smcp_message_set_destaddr(&toaddr,toport);
+	require_action(
+		results,
+		bail,
+		ret = SMCP_STATUS_HOST_LOOKUP_FAILURE
+	);
+
+	memcpy(&saddr, results->ai_addr, results->ai_addrlen);
+
+	saddr.sin6_port = toport;
+
+	ret = smcp_message_set_destaddr((struct sockaddr *)&saddr,sizeof(struct sockaddr_in6));
+	require_noerr(ret, bail);
+
+#elif CONTIKI
+	uip_ipaddr_t toaddr;
+	memset(&toaddr, 0, sizeof(toaddr));
+
+	ret = uiplib_ipaddrconv(
+		addr_str,
+		&toaddr
+	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
+	
+	if(ret) {
+		uip_ipaddr_t *temp = NULL;
+		switch(resolv_lookup2(addr_str,&temp)) {
+			case RESOLV_STATUS_CACHED:
+				memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
+				ret = SMCP_STATUS_OK;
+				break;
+			case RESOLV_STATUS_UNCACHED:
+			case RESOLV_STATUS_EXIPRED:
+				resolv_query(addr_str);
+			case RESOLV_STATUS_RESOLVING:
+				ret = SMCP_STATUS_WAIT_FOR_DNS;
+				break;
+			default:
+			case RESOLV_STATUS_ERROR:
+			case RESOLV_STATUS_NOT_FOUND:
+				ret = SMCP_STATUS_HOST_LOOKUP_FAILURE;
+				break;
+		}
+	}
+	
+	require_noerr(ret,bail);
+
+	ret = smcp_message_set_destaddr(&toaddr,toport);
+
+	require_noerr(ret, bail);
 #else
 #error TODO: Implement me!
 #endif
+
+bail:
+	return ret;
+}
+
+smcp_status_t
+smcp_message_set_uri(
+	const char* uri, char flags
+) {
+	smcp_status_t ret = SMCP_STATUS_OK;
+
+	const char* start;
+
+	if(!(flags&SMCP_MSG_SKIP_DESTADDR)) do {
+		char* addr_str = NULL;
+		char* port_str = NULL;
+		char* uri_copy = NULL;
+		uint16_t toport = SMCP_DEFAULT_PORT;
+
+		require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+
+		if(!url_is_absolute(uri)) {
+			// Pairing with ourselves
+			addr_str = "::1";
+			toport = smcp_daemon_get_port(smcp_get_current_daemon());
+		} else {
+			uri_copy = alloca(strlen(uri) + 1);
+
+			strcpy(uri_copy, uri);
+
+			// Parse the URI.
+			require_action_string(
+				url_parse(
+					uri_copy,
+					NULL,
+					NULL,
+					NULL,
+					&addr_str,
+					&port_str,
+					NULL,
+					NULL
+				),
+				bail,
+				ret = SMCP_STATUS_URI_PARSE_FAILURE,
+				"Unable to parse URL"
+			);
+
+			if(port_str)
+				toport = strtol(port_str, NULL, 10);
+		}
+
+		// If we don't have an address, skip this part.
+		if(!addr_str || addr_str[0]==0)
+			break;
+
+		DEBUG_PRINTF(
+			CSTR("URI Parse: \"%s\" -> host=\"%s\" port=\"%u\""),
+			uri,
+			addr_str,
+			toport
+		);
+
+		ret = smcp_message_set_destaddr_from_host_and_port(addr_str,toport); // TODO: Handle port
+		require_noerr(ret, bail);
 	} while(0);
 
 	if(url_is_absolute(uri)) {
 		// Skip past scheme.
 		while((*uri != ':'))
-			if(!*uri++)
+			if(!*uri++) {
+				ret = SMCP_STATUS_URI_PARSE_FAILURE;
 				goto bail;
+			}
 
 		uri++;
 
-		if((uri[0] != '/') || (uri[1] != '/'))
+		if((uri[0] != '/') || (uri[1] != '/')) {
+			ret = SMCP_STATUS_URI_PARSE_FAILURE;
 			goto bail;
+		}
 
 		uri += 2;
 
@@ -866,10 +906,15 @@ smcp_message_set_uri(
 		while((*uri != '/') && *uri)
 			uri++;
 
-		if(!(flags&SMCP_MSG_SKIP_AUTHORITY))
-			smcp_message_add_header(COAP_HEADER_URI_AUTHORITY,
+		// TODO: Handle port
+		if(!(flags&SMCP_MSG_SKIP_AUTHORITY)) {
+			ret = smcp_message_add_header(
+				COAP_HEADER_URI_HOST,
 				start,
-				uri - start);
+				uri - start
+			);
+			require_noerr(ret,bail);
+		}
 	}
 
 	if(!*uri)
@@ -885,8 +930,10 @@ smcp_message_set_uri(
 	while((*uri != '?') && *uri)
 		uri++;
 
-	if(uri - start)
-		smcp_message_add_header(COAP_HEADER_URI_PATH, start, uri - start);
+	if(uri - start) {
+		ret = smcp_message_add_header(COAP_HEADER_URI_PATH, start, uri - start);
+		require_noerr(ret,bail);
+	}
 
 	if(!*uri++)
 		goto bail;
@@ -899,10 +946,8 @@ smcp_message_set_uri(
 	// Skip to the end
 	while(*uri++) ;
 
-	smcp_message_add_header(COAP_HEADER_URI_QUERY, start, uri - start);
-
-
-
+	ret = smcp_message_add_header(COAP_HEADER_URI_QUERY, start, uri - start);
+	require_noerr(ret,bail);
 
 bail:
 	return ret;
@@ -1148,32 +1193,44 @@ smcp_internal_handler_timeout_(
 	smcp_daemon_t			self,
 	smcp_transaction_t handler
 ) {
+	smcp_status_t status = SMCP_STATUS_TIMEOUT;
 	smcp_response_handler_func callback = handler->callback;
 	void* context = handler->context;
 
 	if(handler->resendCallback && (convert_timeval_to_cms(&handler->expiration) > 0)) {
-		// Resend and try another day.
+		// Resend.
 		self->current_outbound_tid = handler->tid;
-		handler->resendCallback(context);
-		int retryAfter = calc_retransmit_timeout(handler->attemptCount++);
 
-		smcp_daemon_schedule_timer(
-			self,
-			&handler->timer,
-			retryAfter
-		);
+		status = handler->resendCallback(context);
 
-	} else if(callback) {
-		handler->callback = NULL;
-		smcp_invalidate_transaction(self, handler->tid);
-		(*callback)(
-		    SMCP_STATUS_TIMEOUT,
-		    NULL,
-		    0,
-		    context
-		);
-	} else {
-		smcp_invalidate_transaction(self, handler->tid);
+		if(status == SMCP_STATUS_WAIT_FOR_DNS) {
+			smcp_daemon_schedule_timer(
+				self,
+				&handler->timer,
+				100
+			);
+		} else if(status == SMCP_STATUS_OK) {
+			smcp_daemon_schedule_timer(
+				self,
+				&handler->timer,
+				calc_retransmit_timeout(handler->attemptCount++)
+			);
+		}
+	}
+	
+	if(status) {
+		if(callback) {
+			handler->callback = NULL;
+			smcp_invalidate_transaction(self, handler->tid);
+			(*callback)(
+				status,
+				NULL,
+				0,
+				context
+			);
+		} else {
+			smcp_invalidate_transaction(self, handler->tid);
+		}
 	}
 }
 
@@ -1226,15 +1283,15 @@ smcp_begin_transaction(
 	);
 
 	bt_insert(
-		    (void**)&self->handlers,
+		    (void**)&self->transactions,
 		handler,
 		    (bt_compare_func_t)smcp_transaction_compare,
 		    (bt_delete_func_t)smcp_internal_delete_handler_,
 		self
 	);
 
-	DEBUG_PRINTF(CSTR("%p: Total Handlers: %d"), self,
-		(int)bt_count((void**)&self->handlers));
+	DEBUG_PRINTF(CSTR("%p: Total Pending Transactions: %d"), self,
+		(int)bt_count((void**)&self->transactions));
 
 bail:
 	return ret;
@@ -1246,7 +1303,7 @@ smcp_invalidate_transaction(
 	coap_transaction_id_t	tid
 ) {
 	bt_remove(
-		    (void**)&self->handlers,
+		    (void**)&self->transactions,
 		    (void*)&tid,
 		    (bt_compare_func_t)smcp_transaction_compare_tid,
 		    (bt_delete_func_t)smcp_internal_delete_handler_,
@@ -1274,7 +1331,7 @@ smcp_daemon_handle_response(
 			SMCP_DEBUG_OUT_FILE,
 			"    ",
 			(int)HTTP_TO_COAP_CODE(statuscode),
-			smcp_daemon_get_current_request_headers(),
+			smcp_daemon_get_first_header(),
 			smcp_daemon_get_current_request_header_count()
 		);
 
@@ -1286,13 +1343,13 @@ smcp_daemon_handle_response(
 	}
 #endif
 
-	DEBUG_PRINTF(CSTR("%p: Total Handlers: %d"), self,
-		(int)bt_count((void**)&self->handlers));
+	DEBUG_PRINTF(CSTR("%p: Total Pending Transactions: %d"), self,
+		(int)bt_count((void**)&self->transactions));
 
 	coap_transaction_id_t tid = smcp_daemon_get_current_tid();
 
 	handler = (smcp_transaction_t)bt_find(
-		    (void**)&self->handlers,
+		    (void**)&self->transactions,
 		    (void*)&tid,
 		    (bt_compare_func_t)smcp_transaction_compare_tid,
 		self
@@ -1381,7 +1438,7 @@ smcp_daemon_handle_request(
 			SMCP_DEBUG_OUT_FILE,
 			"    ",
 			    (int)method,
-			smcp_daemon_get_current_request_headers(),
+			smcp_daemon_get_first_header(),
 			smcp_daemon_get_current_request_header_count()
 		);
 	}
@@ -1435,7 +1492,7 @@ smcp_default_request_handler(
 		if(!node->parent && strequal_const(path, ".well-known/core")) {
 			// Redirect requests for .well-known/core to the root for now.
 			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_TEMPORARY_REDIRECT));
-			smcp_message_add_header(COAP_HEADER_LOCATION, "/", 1);
+			smcp_message_add_header(COAP_HEADER_LOCATION_PATH, "", 0);
 			smcp_message_set_content("Redirected to </>.\n",COAP_HEADER_CSTR_LEN);
 			smcp_message_send();
 		}
@@ -1480,10 +1537,8 @@ smcp_daemon_handle_list(
 	memset(replyContent, 0, sizeof(replyContent));
 
 	const coap_header_item_t *iter =
-	    smcp_daemon_get_current_request_headers();
-	const coap_header_item_t *end = iter +
-	    smcp_daemon_get_current_request_header_count();
-	for(; iter != end; ++iter) {
+	    smcp_daemon_get_first_header();
+	for(; iter; iter=smcp_daemon_get_next_header(iter)) {
 		if(iter->key == COAP_HEADER_CONTINUATION_RESPONSE) {
 			next_node = alloca(iter->value_len + 1);
 			memcpy(next_node, iter->value, iter->value_len);
@@ -1553,8 +1608,11 @@ smcp_daemon_handle_list(
 
 		strlcat(replyContent, "<", sizeof(replyContent));
 
-		if(node->name)
-			strlcat(replyContent, node_name, sizeof(replyContent));
+		{
+			size_t len = strlen(replyContent);
+			if(sizeof(replyContent)-1>len)
+				url_encode_cstr(replyContent+len, node_name, sizeof(replyContent) - len);
+		}
 
 		strlcat(replyContent, ">", sizeof(replyContent));
 

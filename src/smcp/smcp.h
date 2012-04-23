@@ -77,8 +77,10 @@
 #endif
 #endif
 
-#define SMCP_DEFAULT_PORT           (61616)
-#define SMCP_DEFAULT_PORT_CSTR      "61616"
+#include "coap.h"
+
+#define SMCP_DEFAULT_PORT           COAP_DEFAULT_PORT
+#define SMCP_DEFAULT_PORT_CSTR      #COAP_DEFAULT_PORT
 #if CONTIKI
 #define SMCP_MAX_PACKET_LENGTH \
         ((UIP_BUFSIZE - UIP_LLH_LEN - \
@@ -99,8 +101,6 @@
 #endif
 
 #define SMCP_MAX_CASCADE_COUNT      (128)
-
-#include "coap.h"
 
 __BEGIN_DECLS
 
@@ -129,6 +129,8 @@ enum {
 	SMCP_STATUS_HOST_LOOKUP_FAILURE = -16,
 	SMCP_STATUS_MESSAGE_TOO_BIG     = -17,
 	SMCP_STATUS_NOT_ALLOWED			= -18,
+	SMCP_STATUS_URI_PARSE_FAILURE	= -19,
+	SMCP_STATUS_WAIT_FOR_DNS        = -20,
 };
 
 typedef int smcp_status_t;
@@ -174,7 +176,7 @@ extern cms_t smcp_daemon_get_timeout(smcp_daemon_t self);
 
 extern smcp_node_t smcp_daemon_get_root_node(smcp_daemon_t self);
 
-typedef bool (*smcp_request_resend_func)(void* context);
+typedef smcp_status_t (*smcp_request_resend_func)(void* context);
 
 extern smcp_status_t smcp_begin_transaction(
 	smcp_daemon_t self,
@@ -263,9 +265,11 @@ extern smcp_status_t smcp_daemon_handle_inbound_packet(
 
 extern smcp_node_t smcp_node_alloc();
 
-/*! Name parameter must be already URL escaped! */
 extern smcp_node_t smcp_node_init(
-	smcp_node_t self, smcp_node_t parent, const char* name);
+	smcp_node_t self,
+	smcp_node_t parent,
+	const char* name		// Unescaped.
+);
 
 extern void smcp_node_delete(smcp_node_t node);
 
@@ -275,20 +279,26 @@ extern smcp_status_t smcp_node_get_path(
 	size_t max_path_len
 );
 
+extern smcp_node_t smcp_node_find(
+	smcp_node_t node,
+	const char* name,		// Unescaped.
+	int name_len
+);
+
 extern smcp_node_t smcp_node_find_with_path(
 	smcp_node_t node,
-	const char* path
+	const char* path		// Fully escaped path.
 );
 
 extern int smcp_node_find_closest_with_path(
 	smcp_node_t node,
-	const char* path,
+	const char* path,		// Fully escaped path.
 	smcp_node_t* closest
 );
 
 extern int smcp_node_find_next_with_path(
 	smcp_node_t node,
-	const char* path,
+	const char* path,		// Fully escaped path.
 	smcp_node_t* next
 );
 
@@ -310,8 +320,11 @@ extern const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr();
 extern const uint16_t smcp_daemon_get_current_request_ipport();
 #endif
 
-extern const coap_header_item_t* smcp_daemon_get_current_request_headers();
+extern const coap_header_item_t* smcp_daemon_get_first_header();
+extern const coap_header_item_t* smcp_daemon_get_next_header(const coap_header_item_t* iter);
+
 extern uint8_t smcp_daemon_get_current_request_header_count();
+
 extern smcp_daemon_t smcp_get_current_daemon(); // Used from callbacks
 
 __END_DECLS

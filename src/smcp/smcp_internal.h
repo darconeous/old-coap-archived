@@ -28,8 +28,8 @@ struct smcp_transaction_s {
 	struct bt_item_s			bt_item;
 	coap_transaction_id_t		tid;
 	struct timeval				expiration;
-	int							flags;
-	char						attemptCount;
+	uint8_t						flags;
+	uint8_t						attemptCount;
 	struct smcp_timer_s			timer;
 	smcp_request_resend_func	resendCallback;
 	smcp_response_handler_func	callback;
@@ -43,24 +43,16 @@ struct smcp_daemon_s {
 #if SMCP_USE_BSD_SOCKETS
 	int						fd;
 	int						mcfd;	// For multicast
-	struct sockaddr*		current_inbound_saddr;
-	socklen_t				current_inbound_socklen;
-#elif defined(CONTIKI)
+#elif CONTIKI
 	struct uip_udp_conn*	udp_conn;
-	uip_ipaddr_t			current_inbound_toaddr;
-	uint16_t				current_inbound_toport;
 #endif
 
-	uint16_t				port;
-
 	struct smcp_node_s		root_node;
-	smcp_timer_t			timers;
-	smcp_transaction_t handlers;
-	PAIRING_STATE;
 
-	coap_transaction_id_t	current_inbound_request_tid;
-	char*					current_inbound_request_token;
-	uint16_t				current_inbound_request_token_len;
+	smcp_timer_t			timers;
+
+	smcp_transaction_t		transactions;
+
 	uint8_t					cascade_count;
 
 	// Operational Flags
@@ -70,14 +62,23 @@ struct smcp_daemon_s {
 							has_cascade_count,
 							force_current_outbound_code;
 
-	coap_header_item_t		current_inbound_headers[SMCP_MAX_HEADERS + 1];
+	coap_transaction_id_t	current_inbound_request_tid;
+	char*					current_inbound_request_token;
+	uint16_t				current_inbound_request_token_len;
+	coap_header_item_t		current_inbound_headers[SMCP_MAX_HEADERS+1];
 	uint8_t					current_inbound_header_count;
+#if SMCP_USE_BSD_SOCKETS
+	struct sockaddr*		current_inbound_saddr;
+	socklen_t				current_inbound_socklen;
+#elif CONTIKI
+	uip_ipaddr_t			current_inbound_toaddr;
+	uint16_t				current_inbound_toport;	// Always in network order.
+#endif
 
 #pragma mark -
 #pragma mark Constrained sending state
-	// TODO: writeme!
 
-	coap_header_item_t		current_outbound_headers[SMCP_MAX_HEADERS + 1];
+	coap_header_item_t		current_outbound_headers[SMCP_MAX_HEADERS+1];
 	uint8_t					current_outbound_header_count;
 	coap_transaction_type_t current_outbound_tt;
 	coap_code_t				current_outbound_code;
@@ -86,11 +87,12 @@ struct smcp_daemon_s {
 	size_t					current_outbound_content_len;
 
 #if SMCP_USE_BSD_SOCKETS
-	char					current_outbound_packet[SMCP_MAX_PACKET_LENGTH
-	    + 1];
+	char					current_outbound_packet[SMCP_MAX_PACKET_LENGTH+1];
 	struct sockaddr_in6		current_outbound_saddr;
 	socklen_t				current_outbound_socklen;
 #endif
+
+	PAIRING_STATE;
 };
 
 

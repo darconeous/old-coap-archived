@@ -86,6 +86,7 @@
 #endif
 
  #define check(c)   check_string(c, # c)
+ #define check_noerr(c)   check((c) == 0)
  #define require_quiet(c, l)   do { if(!(c)) goto l; } while(0)
  #define require(c, l)   require_action_string(c, l, {}, # c)
 

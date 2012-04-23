@@ -12,13 +12,26 @@
 **	@returns	Number of bytes in encoded string
 */
 extern size_t url_encode_cstr(
-	char *dest, const char*src, size_t max_size);
+	char *dest,
+	const char* src,		// Must be zero-terminated.
+	size_t dest_max_size
+);
+
+extern size_t url_decode_str(
+	char *dest,
+	size_t dest_max_size,
+	const char* src,		// Length determined by src_len.
+	size_t src_len
+);
 
 /*!	Perfoms a URL decoding of the given string.
 **	@returns	Number of bytes in decoded string
 */
 extern size_t url_decode_cstr(
-	char *dest, const char*src, size_t max_size);
+	char *dest,
+	const char* src,		// Must be zero-terminated.
+	size_t dest_max_size
+);
 
 extern void url_decode_cstr_inplace(char *str);
 
@@ -38,8 +51,7 @@ extern int url_parse(
 extern bool url_is_absolute(const char* url);
 
 inline static bool path_is_absolute(const char* path) {
-	return path[0] ==
-	       '/';
+	return path[0] == '/';
 }
 
 // Transforms new_url into a shorter, possibly relative, path/url.

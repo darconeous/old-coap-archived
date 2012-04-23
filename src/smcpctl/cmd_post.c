@@ -58,7 +58,7 @@ post_response_handler(
 		coap_dump_headers(stdout,
 			NULL,
 			http_to_coap_code(statuscode),
-			smcp_daemon_get_current_request_headers(),
+			smcp_daemon_get_first_header(),
 			smcp_daemon_get_current_request_header_count());
 	}
 	if((statuscode != HTTP_RESULT_CODE_OK) &&
@@ -66,7 +66,7 @@ post_response_handler(
 		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : http_code_to_cstr(statuscode));
-	if(content && (statuscode != HTTP_RESULT_CODE_NO_CONTENT) &&
+	if(content && (statuscode != HTTP_RESULT_CODE_CHANGED) &&
 	    content_length) {
 		char contentBuffer[500];
 
@@ -90,25 +90,30 @@ post_response_handler(
 }
 
 
-bool
+smcp_status_t
 resend_post_request(struct post_request_s *request) {
-	bool ret = false;
 	smcp_status_t status = 0;
 
-	smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_POST, COAP_TRANS_TYPE_CONFIRMABLE);
-	smcp_message_set_uri(request->url, 0);
+	status = smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_POST, COAP_TRANS_TYPE_CONFIRMABLE);
+	require_noerr(status, bail);
+
+	status = smcp_message_set_uri(request->url, 0);
+	require_noerr(status, bail);
 
 	if(request->content_type) {
-		smcp_message_add_header(
+		status = smcp_message_add_header(
 			COAP_HEADER_CONTENT_TYPE,
 			(void*)&request->content_type,
 			1
 		);
+		require_noerr(status, bail);
 	}
 
-	smcp_message_set_content(request->content, request->content_len);
+	status = smcp_message_set_content(request->content, request->content_len);
+	require_noerr(status, bail);
 
 	status = smcp_message_send();
+	require_noerr(status, bail);
 
 	if(status) {
 		check(!status);
@@ -119,9 +124,8 @@ resend_post_request(struct post_request_s *request) {
 		goto bail;
 	}
 
-	ret = true;
 bail:
-	return ret;
+	return status;
 }
 
 

@@ -279,17 +279,6 @@ bail:
 
 #if HAS_LIBREADLINE
 
-
-static int
-smcp_completion_entry_function (const char *text, int hmm) {
-	return 0;
-}
-
-static char **
-smcp_completion_matches (char *text, CPFunction *entry_func) {
-	return NULL;
-}
-
 char *
 smcp_command_generator(
 	const char *text,
@@ -473,7 +462,7 @@ main(
 	int argc, char * argv[]
 ) {
 	int i, debug_mode = 0;
-	int port = SMCP_DEFAULT_PORT + 1;
+	int port = 61616;
 
 	BEGIN_LONG_ARGUMENTS(gRet)
 	HANDLE_LONG_ARGUMENT("port") port = strtol(argv[++i], NULL, 0);

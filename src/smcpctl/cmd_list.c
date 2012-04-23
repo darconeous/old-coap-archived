@@ -71,7 +71,7 @@ list_response_handler(
 		coap_dump_headers(stdout,
 			NULL,
 			http_to_coap_code(statuscode),
-			smcp_daemon_get_current_request_headers(),
+			smcp_daemon_get_first_header(),
 			smcp_daemon_get_current_request_header_count());
 	}
 
@@ -79,11 +79,9 @@ list_response_handler(
 		// Redirect.
 		char location[256] = "";
 		const coap_header_item_t *iter =
-		    smcp_daemon_get_current_request_headers();
-		const coap_header_item_t *end = iter +
-		    smcp_daemon_get_current_request_header_count();
-		for(; iter != end; ++iter) {
-			if(iter->key == COAP_HEADER_LOCATION) {
+		    smcp_daemon_get_first_header();
+		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
+			if(iter->key == COAP_HEADER_LOCATION_PATH) {
 				memcpy(location, iter->value, iter->value_len);
 				location[iter->value_len] = 0;
 			}
@@ -124,10 +122,8 @@ list_response_handler(
 		const coap_header_item_t *next = NULL;
 		{
 			const coap_header_item_t *iter =
-			    smcp_daemon_get_current_request_headers();
-			const coap_header_item_t *end = iter +
-			    smcp_daemon_get_current_request_header_count();
-			for(; iter != end; ++iter) {
+			    smcp_daemon_get_first_header();
+			for(; iter; iter=smcp_daemon_get_next_header(iter)) {
 				if(iter->key == COAP_HEADER_CONTENT_TYPE)
 					content_type = (unsigned char)iter->value[0];
 				else if(iter->key == COAP_HEADER_CONTINUATION_REQUEST)
@@ -136,12 +132,14 @@ list_response_handler(
 		}
 
 		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
-			if(statuscode >= 300) {
-				fwrite(content, content_length, 1, stdout);
-				if((content[content_length - 1] != '\n'))
-					printf("\n");
-			} else if(!list_filename_only) {
-				fprintf(stderr, " *** Not a directory\n");
+			if(!list_filename_only) {
+				if(statuscode >= 300) {
+					fwrite(content, content_length, 1, stdout);
+					if((content[content_length - 1] != '\n'))
+						printf("\n");
+				} else {
+					fprintf(stderr, " *** Not a directory\n");
+				}
 			}
 		} else {
 			char *iter = content;
@@ -255,33 +253,38 @@ bail:
 		gRet = 0;
 }
 
-static bool
+static smcp_status_t
 resend_list_request(void* context) {
-	bool ret = false;
 	smcp_status_t status = 0;
 
-	smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
-	smcp_message_set_uri(url_data, 0);
+	status = smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
+	require_noerr(status,bail);
+	
+	status = smcp_message_set_uri(url_data, 0);
+	require_noerr(status,bail);
 
 	if(next_len != ((size_t)(-1))) {
-		smcp_message_add_header(
+		status = smcp_message_add_header(
 			COAP_HEADER_CONTINUATION_RESPONSE,
 			next_data,
-			next_len);
+			next_len
+		);
+		require_noerr(status,bail);
 	}
 
 	if(size_request) {
 		smcp_message_add_header(
 			COAP_HEADER_SIZE_REQUEST,
-			    (void*)&size_request,
-			sizeof(size_request));
+			(void*)&size_request,
+			sizeof(size_request)
+		);
+		require_noerr(status,bail);
 	}
-
 
 	status = smcp_message_send();
 
 	if(status) {
-		check(!status);
+		check_noerr(status);
 		fprintf(stderr,
 			"smcp_message_send() returned error %d(%s).\n",
 			status,
@@ -289,9 +292,8 @@ resend_list_request(void* context) {
 		goto bail;
 	}
 
-	ret = true;
 bail:
-	return ret;
+	return status;
 }
 
 bool

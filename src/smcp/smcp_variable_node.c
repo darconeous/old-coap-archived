@@ -45,11 +45,8 @@ smcp_variable_request_handler(
 		coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 
 		const coap_header_item_t *iter =
-		    smcp_daemon_get_current_request_headers();
-		const coap_header_item_t *end = iter +
-		    smcp_daemon_get_current_request_header_count();
-
-		for(;iter!=end;++iter) {
+		    smcp_daemon_get_first_header();
+		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
 			if(iter->key==COAP_HEADER_CONTENT_TYPE)
 				content_type = *(unsigned char*)iter->value;
 		}

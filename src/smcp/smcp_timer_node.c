@@ -52,7 +52,7 @@ smcp_status_t smcp_static_content_fetcher(
 ) {
 
 	if(content_length && content) {
-		*content_length = snprintf(content, *content_length, "v=%s", context);
+		*content_length = snprintf(content, *content_length, "v=%s", (char*)context);
 	}
 	if(content_type)
 		*content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
@@ -225,11 +225,8 @@ smcp_timer_request_handler(
 
 	{	// Get the query and content type from the headers.
 		const coap_header_item_t *iter =
-			smcp_daemon_get_current_request_headers();
-		const coap_header_item_t *end = iter +
-			smcp_daemon_get_current_request_header_count();
-
-		for(; iter != end; ++iter) {
+			smcp_daemon_get_first_header();
+		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
 			if(iter->key == COAP_HEADER_CONTENT_TYPE) {
 				content_type = *(unsigned char*)iter->value;
 			} else if(iter->key == COAP_HEADER_URI_QUERY) {

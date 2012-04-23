@@ -49,7 +49,7 @@ pair_response_handler(
 		coap_dump_headers(stdout,
 			NULL,
 			statuscode,
-			smcp_daemon_get_current_request_headers(),
+			smcp_daemon_get_first_header(),
 			smcp_daemon_get_current_request_header_count());
 	}
 	if(((statuscode < 200) ||
@@ -58,7 +58,7 @@ pair_response_handler(
 		fprintf(stderr, "pair: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : http_code_to_cstr(statuscode));
-	if(content && (statuscode != HTTP_RESULT_CODE_NO_CONTENT) &&
+	if(content && (statuscode != HTTP_RESULT_CODE_CHANGED) &&
 	    content_length) {
 		char contentBuffer[500];
 
@@ -79,19 +79,24 @@ pair_response_handler(
 	free(context);
 }
 
-bool
+smcp_status_t
 resend_pair_request(char* url[2]) {
-	bool ret = false;
+	smcp_status_t status;
 
-	require_noerr(smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_PAIR, COAP_TRANS_TYPE_CONFIRMABLE),bail);
-	smcp_message_set_uri(url[0],0);
-	smcp_message_set_content(url[1], COAP_HEADER_CSTR_LEN);
-	require_noerr(smcp_message_send(),bail);
+	status = smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_PAIR, COAP_TRANS_TYPE_CONFIRMABLE);
+	require_noerr(status,bail);
 
-	ret = true;
+	status = smcp_message_set_uri(url[0],0);
+	require_noerr(status,bail);
+
+	status = smcp_message_set_content(url[1], COAP_HEADER_CSTR_LEN);
+	require_noerr(status,bail);
+
+	status = smcp_message_send();
+	require_noerr(status,bail);
 
 bail:
-	return ret;
+	return status;
 }
 
 static coap_transaction_id_t

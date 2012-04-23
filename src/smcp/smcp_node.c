@@ -18,6 +18,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "ll.h"
+#include "url-helpers.h"
 
 #include "smcp.h"
 #include "smcp_node.h"
@@ -156,17 +157,34 @@ smcp_node_get_path(
 
 	strlcat(path, "/", max_path_len);
 
-	if(node->name)
-		strlcat(path, node->name, max_path_len);
+	if(node->name) {
+		size_t len = strlen(path);
+		if(max_path_len>len)
+			url_encode_cstr(path+len, node->name, max_path_len - len);
+	}
 
 bail:
 	return ret;
 }
 
+smcp_node_t
+smcp_node_find(
+	smcp_node_t node,
+	const char* name,	// Unescaped.
+	int name_len
+) {
+	return (smcp_node_t)bt_find(
+		(void**)&((smcp_node_t)node)->children,
+		name,
+		(bt_compare_func_t)smcp_node_ncompare_cstr,
+		&name_len
+	);
+}
+
 int
 smcp_node_find_next_with_path(
 	smcp_node_t node,
-	const char* orig_path,
+	const char* orig_path,	// Escaped.
 	smcp_node_t* next
 ) {
 	const char* path = orig_path;
@@ -191,11 +209,20 @@ smcp_node_find_next_with_path(
 				break;
 		}
 
-		*next = bt_find(
-			(void**)&((smcp_node_t)node)->children,
-			path,
-			(bt_compare_func_t)smcp_node_ncompare_cstr,
-			&namelen
+		// Warning: This could be dangerous!
+		// We should evaluate the liklihood of blowing
+		// the stack here. TODO: Investigate potential oveflow!
+		char* unescaped_name = alloca(namelen+1);
+
+		*next = smcp_node_find(
+			node,
+			unescaped_name,
+			url_decode_str(
+				unescaped_name,
+				namelen+1,
+				path,
+				namelen
+			)
 		);
 
 		if(!*next) {

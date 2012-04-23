@@ -49,10 +49,8 @@ smcp_node_t node,
 
 	{
 		const coap_header_item_t *iter =
-		    smcp_daemon_get_current_request_headers();
-		const coap_header_item_t *end = iter +
-		    smcp_daemon_get_current_request_header_count();
-		for(; iter != end; ++iter) {
+		    smcp_daemon_get_first_header();
+		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
 			if(iter->key == COAP_HEADER_CONTENT_TYPE) {
 				fprintf(stdout,
 					" content_type=\"%s\"",

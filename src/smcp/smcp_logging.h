@@ -4,7 +4,10 @@
 #if !VERBOSE_DEBUG
 
 #define CSTR(x)     (x)
+
+#ifndef DEBUG_PRINTF
 #define DEBUG_PRINTF(...)   do { } while(0)
+#endif
 
 #elif defined(__AVR__)
 #define SMCP_DEBUG_OUT_FILE     stdout

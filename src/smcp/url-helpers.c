@@ -40,14 +40,15 @@ url_encode_cstr(
 ) {
 	size_t ret = 0;
 
-	max_size--;
+	if(!max_size--)
+		return 0;
 
 	while(true) {
 		const char src_char = *src++;
-		if(!src_char)
+		if(src_char==0)
 			break;
 
-		if(!max_size) {
+		if(max_size==0) {
 			ret++;
 			break;
 		}
@@ -108,12 +109,56 @@ hex_digit_to_int(char c) {
 }
 
 size_t
-url_decode_cstr(
-	char *dest, const char*src, size_t max_size
+url_decode_str(
+	char *dest,
+	size_t max_size,
+	const char* src,		// Length determined by src_len.
+	size_t src_len
 ) {
 	size_t ret = 0;
 
-	max_size--;
+	if(!max_size--)
+		return 0;
+
+	while(src_len--) {
+		const char src_char = *src++;
+		if(!src_char)
+			break;
+
+		if(!max_size) {
+			ret++;
+			break;
+		}
+
+		if((src_char == '%') && (src_len>=2) && src[0] && src[1]) {
+			*dest++ = (hex_digit_to_int(src[0]) << 4) + hex_digit_to_int(
+				src[1]);
+			src += 2;
+		} else if(src_char == '+') {
+			*dest++ = ' ';  // Stupid legacy space encoding.
+		} else {
+			*dest++ = src_char;
+		}
+
+		ret++;
+		max_size--;
+	}
+
+	*dest = 0;
+
+	return ret;
+}
+
+size_t
+url_decode_cstr(
+	char *dest,
+	const char*src,
+	size_t max_size
+) {
+	size_t ret = 0;
+
+	if(!max_size--)
+		return 0;
 
 	while(true) {
 		const char src_char = *src++;

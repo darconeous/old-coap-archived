@@ -203,26 +203,31 @@ bail:
 	return ret;
 }
 
-static bool
+static smcp_status_t
 smcp_retry_custom_event(smcp_pairing_t pairing) {
-	bool ret = true;
+	smcp_status_t status;
 	const smcp_daemon_t self = smcp_get_current_daemon();
 	smcp_event_tracker_t event = pairing->currentEvent;
 
 	coap_content_type_t content_type;
 
-	smcp_message_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_message_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
+	require_noerr(status,bail);
 
 #if SMCP_USE_BSD_SOCKETS
 	if(((struct sockaddr*)&pairing->saddr)->sa_family)
-		smcp_message_set_destaddr((struct sockaddr*)&pairing->saddr, sizeof(pairing->saddr));
+		status = smcp_message_set_destaddr((struct sockaddr*)&pairing->saddr, sizeof(pairing->saddr));
 #elif CONTIKI
 	if(pairing->toport)
-		smcp_message_set_destaddr(&pairing->toaddr,pairing->toport);
+		status = smcp_message_set_destaddr(&pairing->toaddr,pairing->toport);
 #endif
+	require_noerr(status,bail);
 
-	smcp_message_set_uri(pairing->dest_uri,0);
-	smcp_message_add_header(SMCP_HEADER_ORIGIN, pairing->path, COAP_HEADER_CSTR_LEN);
+	status = smcp_message_set_uri(pairing->dest_uri,0);
+	require_noerr(status,bail);
+
+	status = smcp_message_add_header(SMCP_HEADER_ORIGIN, pairing->path, COAP_HEADER_CSTR_LEN);
+	require_noerr(status,bail);
 
 	char cseq[24];
 #if __AVR__
@@ -239,7 +244,8 @@ smcp_retry_custom_event(smcp_pairing_t pairing) {
 		(long unsigned int)pairing->seq
 	);
 #endif
-	smcp_message_add_header(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
+	status = smcp_message_add_header(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
+	require_noerr(status,bail);
 
 	if(event->contentFetcher) {
 		(*event->contentFetcher)(
@@ -248,7 +254,8 @@ smcp_retry_custom_event(smcp_pairing_t pairing) {
 			NULL,
 			&content_type
 		);
-		smcp_message_add_header(COAP_HEADER_CONTENT_TYPE, (void*)&content_type, 1);
+		status = smcp_message_add_header(COAP_HEADER_CONTENT_TYPE, (void*)&content_type, 1);
+		require_noerr(status,bail);
 
 		size_t len = 0;
 		char* ptr = smcp_message_get_content_ptr(&len);
@@ -261,13 +268,15 @@ smcp_retry_custom_event(smcp_pairing_t pairing) {
 		smcp_message_set_content_len(len);
 	}
 
-	smcp_message_send();
+	status = smcp_message_send();
+	require_noerr(status,bail);
 
 #if SMCP_CONF_PAIRING_STATS
 	pairing->send_count++;
 #endif
 
-	return ret;
+bail:
+	return status;
 }
 
 static void
@@ -307,26 +316,31 @@ smcp_event_response_handler(
 	smcp_event_tracker_release(event);
 }
 
-static bool
+static smcp_status_t
 smcp_retry_event(smcp_pairing_t pairing) {
-	bool ret = true;
+	smcp_status_t status;
 	const smcp_daemon_t self = smcp_get_current_daemon();
 
-	smcp_message_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_message_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
+	require_noerr(status,bail);
 
 	self->is_responding = true;
 	self->force_current_outbound_code = true;
 
 #if SMCP_USE_BSD_SOCKETS
 	if(((struct sockaddr*)&pairing->saddr)->sa_family)
-		smcp_message_set_destaddr((struct sockaddr*)&pairing->saddr, sizeof(pairing->saddr));
+		status = smcp_message_set_destaddr((struct sockaddr*)&pairing->saddr, sizeof(pairing->saddr));
 #elif CONTIKI
 	if(pairing->toport)
-		smcp_message_set_destaddr(&pairing->toaddr,pairing->toport);
+		status = smcp_message_set_destaddr(&pairing->toaddr,pairing->toport);
 #endif
+	require_noerr(status,bail);
 
-	smcp_message_set_uri(pairing->dest_uri,0);
-	smcp_message_add_header(SMCP_HEADER_ORIGIN, pairing->path, COAP_HEADER_CSTR_LEN);
+	status = smcp_message_set_uri(pairing->dest_uri,0);
+	require_noerr(status,bail);
+
+	status = smcp_message_add_header(SMCP_HEADER_ORIGIN, pairing->path, COAP_HEADER_CSTR_LEN);
+	require_noerr(status,bail);
 
 	char cseq[24];
 #if __AVR__
@@ -343,15 +357,18 @@ smcp_retry_event(smcp_pairing_t pairing) {
 		(long unsigned int)pairing->seq
 	);
 #endif
-	smcp_message_add_header(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
+	status = smcp_message_add_header(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
+	require_noerr(status,bail);
 
-	ret = smcp_daemon_handle_request(self, COAP_METHOD_GET, pairing->path, "", 0);
+	status = smcp_daemon_handle_request(self, COAP_METHOD_GET, pairing->path, "", 0);
+	require_noerr(status,bail);
 
 #if SMCP_CONF_PAIRING_STATS
 	pairing->send_count++;
 #endif
 
-	return ret;
+bail:
+	return status;
 }
 
 smcp_status_t
@@ -696,10 +713,8 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 
 	{
 		const coap_header_item_t *iter =
-		    smcp_daemon_get_current_request_headers();
-		const coap_header_item_t *end = iter +
-		    smcp_daemon_get_current_request_header_count();
-		for(; iter != end; ++iter) {
+		    smcp_daemon_get_first_header();
+		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
 			if((iter->key == COAP_HEADER_CONTINUATION_RESPONSE) &&
 			        (iter->value_len == sizeof(start_index))) {
 				memcpy(&start_index, iter->value, sizeof(start_index));
@@ -735,7 +750,7 @@ smcp_pairing_node_list(smcp_pairing_t first_pairing) {
 	while(pairing_iter) {
 		const char* name;
 		size_t escapedLen;
-
+		
 		if(first_pairing)
 			name = pairing_iter->dest_uri;
 		else

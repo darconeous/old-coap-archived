@@ -56,7 +56,7 @@ delete_response_handler(
 		fprintf(stderr, "delete: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : http_code_to_cstr(statuscode));
-	if(content && (statuscode != HTTP_RESULT_CODE_NO_CONTENT) &&
+	if(content && (statuscode != HTTP_RESULT_CODE_CHANGED) &&
 	    content_length) {
 		char contentBuffer[500];
 
@@ -76,19 +76,23 @@ delete_response_handler(
 		gRet = 0;
 }
 
-bool
+smcp_status_t
 resend_delete_request(const char* url) {
-	bool ret = false;
+	smcp_status_t status = 0;
 
-	smcp_message_begin(smcp_get_current_daemon(), COAP_METHOD_DELETE, COAP_TRANS_TYPE_CONFIRMABLE);
-	smcp_message_set_uri(url, 0);
-	require_noerr(smcp_message_send(),bail);
+	status = smcp_message_begin(smcp_get_current_daemon(), COAP_METHOD_DELETE, COAP_TRANS_TYPE_CONFIRMABLE);
+	require_noerr(status,bail);
 
-	ret = true;
+	status = smcp_message_set_uri(url, 0);
+	require_noerr(status,bail);
+
+	status = smcp_message_send();
+	require_noerr(status,bail);
+
 	gRet = ERRORCODE_INPROGRESS;
 
 bail:
-	return ret;
+	return status;
 }
 
 
