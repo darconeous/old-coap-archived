@@ -135,20 +135,26 @@ enum {
 	HTTP_RESULT_CODE_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
 };
 
+#define COAP_HEADER_IS_REQUIRED(x)		(!((x)&1))
 
 typedef enum {
+	COAP_HEADER_INVALID = 255,
+
+
+	COAP_HEADER_TERI = 0,           //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
+	COAP_HEADER_CONTENT_TYPE = 1,
+	COAP_HEADER_MAX_AGE = 2,
 	COAP_HEADER_PROXY_URI = 3,     //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
+	COAP_HEADER_ETAG = 4,
 	COAP_HEADER_URI_HOST = 5,
 	COAP_HEADER_LOCATION_PATH = 6,
 	COAP_HEADER_URI_PORT = 7,   //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
 	COAP_HEADER_LOCATION_QUERY = 8,                 //!< draft-bormann-coap-misc-06
-
-	COAP_HEADER_TERI = 0,           //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
-
-	COAP_HEADER_CONTENT_TYPE = 1,
-	COAP_HEADER_MAX_AGE = 2,
-	COAP_HEADER_ETAG = 4,
 	COAP_HEADER_URI_PATH = 9,
+
+
+	COAP_HEADER_SUBSCRIPTION_LIFETIME = 10, //!< draft-ietf-core-observe
+
 	COAP_HEADER_TOKEN = 11,
 	COAP_HEADER_ACCEPT = 12,
 	COAP_HEADER_IF_MATCH = 13,
@@ -158,7 +164,6 @@ typedef enum {
 	COAP_HEADER_FENCEPOST_1 = 14,
 	COAP_HEADER_FENCEPOST_2 = 28,
 
-	COAP_HEADER_SUBSCRIPTION_LIFETIME = 10, //!< draft-ietf-core-observe
 	COAP_HEADER_BLOCK = 13,         //!< draft-bormann-core-coap-block-00
 
 #define USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT    0
@@ -197,6 +202,18 @@ typedef struct {
 	char*				value;
 	size_t				value_len;
 } coap_header_item_t;
+
+inline static bool
+coap_header_strequal(const coap_header_item_t* item,const char* cstr) {
+	size_t i;
+	for(i=0;i<item->value_len;i++) {
+		if(!cstr[i] || (item->value[i]!=cstr[i]))
+			return false;
+	}
+	return cstr[i]==0;
+}
+
+#define coap_header_strequal_const(item,cstr)	coap_header_strequal(item,cstr)
 
 enum {
 	COAP_CONTENT_TYPE_TEXT_PLAIN=0,

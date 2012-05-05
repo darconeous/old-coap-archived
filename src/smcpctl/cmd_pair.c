@@ -39,11 +39,11 @@ signal_interrupt(int sig) {
 static void
 pair_response_handler(
 	int			statuscode,
-	const char* content,
-	size_t		content_length,
 	void*		context
 ) {
 //	smcp_daemon_t self = smcp_get_current_daemon();
+	char* content = smcp_daemon_get_current_inbound_content_ptr();
+	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 	if((statuscode >= 100) && show_headers) {
 		fprintf(stdout, "\n");
 		coap_dump_headers(stdout,

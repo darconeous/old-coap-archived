@@ -98,6 +98,7 @@ struct smcp_event_tracker_s {
 typedef struct smcp_event_tracker_s* smcp_event_tracker_t;
 
 struct smcp_pairing_s {
+	//struct smcp_node_s	node;
 	struct bt_item_s	bt_item;
 	const char*			path; // Local path
 	const char*			dest_uri;
@@ -123,6 +124,8 @@ struct smcp_pairing_s {
 	smcp_status_t		last_error;
 #endif
 };
+
+typedef smcp_node_t smcp_pairing_node_t;
 
 
 #pragma mark -
@@ -188,13 +191,8 @@ extern smcp_pairing_t smcp_daemon_next_pairing(
 
 extern smcp_status_t smcp_daemon_handle_pair(
 	smcp_node_t		node,
-	smcp_method_t	method,
-	const char*		path,
-	const char*		content,
-	size_t			content_length
+	smcp_method_t	method
 );
-
-typedef smcp_node_t smcp_pairing_node_t;
 
 extern smcp_pairing_node_t smcp_pairing_node_init(
 	smcp_pairing_node_t self,

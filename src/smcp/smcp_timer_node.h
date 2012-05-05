@@ -25,14 +25,14 @@ smcp_timer_node_t smcp_timer_node_init(
 	smcp_timer_node_t	self,
 	smcp_daemon_t		smcp,
 	smcp_node_t			parent,
-	const char*			name);
+	const char*			name
+);
 
 
 void smcp_timer_node_start(smcp_timer_node_t self);
 void smcp_timer_node_stop(smcp_timer_node_t self);
 void smcp_timer_node_reset(smcp_timer_node_t self);
 void smcp_timer_node_restart(smcp_timer_node_t self);
-void smcp_timer_node_set_autorestart(
-	smcp_timer_node_t self, bool x);
+void smcp_timer_node_set_autorestart(smcp_timer_node_t self, bool x);
 
 #endif //__SMCP_TIMER_NODE_H__

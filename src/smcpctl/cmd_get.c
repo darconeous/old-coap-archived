@@ -54,10 +54,10 @@ static int redirect_count;
 
 
 static void
-get_response_handler(
-	int statuscode, char* content, size_t content_length, void* context
-) {
+get_response_handler(int statuscode, void* context) {
 	smcp_daemon_t self = smcp_get_current_daemon();
+	char* content = smcp_daemon_get_current_inbound_content_ptr();
+	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 
 	if((statuscode >= 100) && get_show_headers) {
 		if(next_len != ((size_t)(-1)))

@@ -61,9 +61,11 @@ static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
 
 static void
 list_response_handler(
-	int statuscode, char* content, size_t content_length, void* context
+	int statuscode, void* context
 ) {
 	smcp_daemon_t self = smcp_get_current_daemon();
+	char* content = smcp_daemon_get_current_inbound_content_ptr();
+	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 
 	if((statuscode >= 100) && list_show_headers) {
 		if(next_len != ((size_t)(-1)))

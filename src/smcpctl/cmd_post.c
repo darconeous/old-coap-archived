@@ -49,10 +49,10 @@ struct post_request_s {
 static void
 post_response_handler(
 	int			statuscode,
-	const char* content,
-	size_t		content_length,
 	struct post_request_s *request
 ) {
+	char* content = smcp_daemon_get_current_inbound_content_ptr();
+	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 	if((statuscode >= 100) && show_headers) {
 		fprintf(stdout, "\n");
 		coap_dump_headers(stdout,

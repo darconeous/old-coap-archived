@@ -56,17 +56,23 @@ struct smcp_daemon_s {
 	uint8_t					cascade_count;
 
 	// Operational Flags
-	bool					is_responding,
-							did_respond,
-							is_processing_message,
-							has_cascade_count,
-							force_current_outbound_code;
+	bool					is_responding:1,
+							did_respond:1,
+							is_processing_message:1,
+							has_cascade_count:1,
+							force_current_outbound_code:1;
 
+	coap_code_t				current_inbound_code;
 	coap_transaction_id_t	current_inbound_request_tid;
 	char*					current_inbound_request_token;
 	uint16_t				current_inbound_request_token_len;
 	coap_header_item_t		current_inbound_headers[SMCP_MAX_HEADERS+1];
 	uint8_t					current_inbound_header_count;
+	coap_header_item_t*		current_header;
+	char*					current_inbound_content_ptr;
+	size_t					current_inbound_content_len;
+	coap_content_type_t		current_inbound_content_type;
+
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr*		current_inbound_saddr;
 	socklen_t				current_inbound_socklen;
@@ -98,9 +104,5 @@ struct smcp_daemon_s {
 
 extern smcp_status_t
 smcp_daemon_handle_request(
-	smcp_daemon_t	self,
-	smcp_method_t	method,
-	const char*		path,
-	const char*		content,
-	size_t			content_length
+	smcp_daemon_t	self
 );

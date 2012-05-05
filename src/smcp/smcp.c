@@ -159,26 +159,17 @@ smcp_transaction_compare_tid(
 
 smcp_status_t smcp_daemon_handle_list(
 	smcp_node_t		node,
-	smcp_method_t	method,
-	const char*		path,
-	const char*		content,
-	size_t			content_length);
+	smcp_method_t	method
+);
 
 smcp_status_t smcp_invalidate_transaction(
-	smcp_daemon_t self, coap_transaction_id_t tid);
+	smcp_daemon_t self,
+	coap_transaction_id_t tid
+);
 
-smcp_status_t smcp_daemon_handle_request(
-	smcp_daemon_t	self,
-	smcp_method_t	method,
-	const char*		path,
-	const char*		content,
-	size_t			content_length);
+smcp_status_t smcp_daemon_handle_request(smcp_daemon_t	self);
 
-smcp_status_t smcp_daemon_handle_response(
-	smcp_daemon_t	self,
-	int				statuscode,
-	const char*		content,
-	size_t			content_length);
+smcp_status_t smcp_daemon_handle_response(smcp_daemon_t	self);
 
 #pragma mark -
 #pragma mark SMCP Implementation
@@ -358,6 +349,35 @@ smcp_daemon_get_next_header(const coap_header_item_t* iter) {
 	return NULL;
 }
 
+coap_header_key_t
+smcp_current_request_next_header(uint8_t** ptr, size_t* len) {
+	const coap_header_item_t* item = smcp_get_current_daemon()->current_header;
+	item = smcp_daemon_get_next_header(item);
+	if(item) {
+		smcp_get_current_daemon()->current_header = item;
+		if(ptr)
+			*ptr = (uint8_t*)item->value;
+		if(len)
+			*len = item->value_len;
+		return item->key;
+	}
+	return COAP_HEADER_INVALID;
+}
+
+void
+smcp_current_request_rewind_last_header() {
+	if(smcp_get_current_daemon()->current_header != smcp_get_current_daemon()->current_inbound_headers)
+		smcp_get_current_daemon()->current_header--;
+}
+
+bool
+smcp_current_request_header_strequal(coap_header_key_t key,const char* str) {
+	if(smcp_get_current_daemon()->current_header->key == key)
+		return coap_header_strequal(smcp_get_current_daemon()->current_header,str);
+	return false;
+}
+
+
 uint8_t
 smcp_daemon_get_current_request_header_count() {
 	if(smcp_get_current_daemon()->is_processing_message)
@@ -369,6 +389,22 @@ coap_transaction_id_t
 smcp_daemon_get_current_tid() {
 	return smcp_get_current_daemon()->current_inbound_request_tid;
 }
+
+char*
+smcp_daemon_get_current_inbound_content_ptr() {
+	return smcp_get_current_daemon()->current_inbound_content_ptr;
+}
+
+size_t
+smcp_daemon_get_current_inbound_content_len() {
+	return smcp_get_current_daemon()->current_inbound_content_len;
+}
+
+coap_content_type_t
+smcp_daemon_get_current_inbound_content_type() {
+	return smcp_get_current_daemon()->current_inbound_content_type;
+}
+
 
 #if SMCP_USE_BSD_SOCKETS
 struct sockaddr* smcp_daemon_get_current_request_saddr() {
@@ -440,73 +476,37 @@ smcp_daemon_handle_inbound_packet(
 	self->did_respond = (tt != COAP_TRANS_TYPE_CONFIRMABLE);
 	self->cascade_count = SMCP_MAX_CASCADE_COUNT;
 	self->has_cascade_count = false;
+	self->current_inbound_code = code;
+	self->current_inbound_request_token = 0;
+	self->current_inbound_request_token_len = 0;
+	self->current_inbound_content_ptr = packet + header_length;
+	self->current_inbound_content_len = packet_length - header_length;
+	self->current_header = self->current_inbound_headers - 1;
 
-	if(COAP_CODE_IS_REQUEST(code)) {
-		// Need to extract the path.
-		char *path = NULL;
-
-		self->current_inbound_request_token = 0;
-		self->current_inbound_request_token_len = 0;
-		self->cascade_count = SMCP_MAX_CASCADE_COUNT;
-
-		coap_header_item_t *iter = self->current_inbound_headers;
-		coap_header_item_t *end = iter +
-		    self->current_inbound_header_count;
-		for(; iter != end; ++iter) {
-			if(iter->key == COAP_HEADER_URI_PATH) {
-				path = alloca(iter->value_len + 1);
-				memcpy(path, iter->value, iter->value_len);
-				path[iter->value_len] = 0;
-			} else if(iter->key == COAP_HEADER_TOKEN) {
+	{
+		const coap_header_item_t *iter = smcp_daemon_get_first_header();
+		for(;iter;iter=smcp_daemon_get_next_header(iter)) {
+			if(iter->key == COAP_HEADER_TOKEN) {
 				self->current_inbound_request_token = iter->value;
 				self->current_inbound_request_token_len = iter->value_len;
 			} else if(iter->key == COAP_HEADER_CASCADE_COUNT) {
-				if(iter->value_len)
-					self->cascade_count = ((unsigned char)*iter->value) -
-					    1;
-				else
-					self->cascade_count = 128 - 1;
+				if(iter->value_len) {
+					self->cascade_count = (unsigned char)*iter->value;
+				}
 				if(self->cascade_count > SMCP_MAX_CASCADE_COUNT)
 					self->cascade_count = SMCP_MAX_CASCADE_COUNT;
 				self->has_cascade_count = true;
 			}
 		}
+	}
 
-		if(!path)
-			path = "";
+	self->cascade_count--;
 
-		status = smcp_daemon_handle_request(
-			self,
-			code,
-			path,
-			packet + header_length,
-			packet_length - header_length
-		    );
+	if(COAP_CODE_IS_REQUEST(code)) {
+		status = smcp_daemon_handle_request(self);
 	} else if(COAP_CODE_IS_RESULT(code)) {
-		coap_header_item_t *iter = self->current_inbound_headers;
-		coap_header_item_t *end = iter +
-		    self->current_inbound_header_count;
-
-		for(; iter != end; ++iter) {
-			if(iter->key == COAP_HEADER_CASCADE_COUNT) {
-				if(iter->value_len)
-					self->cascade_count = ((unsigned char)*iter->value) -
-					    1;
-				else
-					self->cascade_count = 128 - 1;
-				if(self->cascade_count > SMCP_MAX_CASCADE_COUNT)
-					self->cascade_count = SMCP_MAX_CASCADE_COUNT;
-				self->has_cascade_count = true;
-			}
-		}
-
-
-		status = smcp_daemon_handle_response(
-			self,
-			coap_to_http_code(code),
-			packet + header_length,
-			packet_length - header_length
-		    );
+		self->current_inbound_code = coap_to_http_code(code);
+		status = smcp_daemon_handle_response(self);
 	}
 
 	check_string(status == SMCP_STATUS_OK, smcp_status_to_cstr(status));
@@ -1161,8 +1161,6 @@ smcp_internal_delete_handler_(
 	if(handler->callback) {
 		    (*handler->callback)(
 			SMCP_STATUS_HANDLER_INVALIDATED,
-			NULL,
-			0,
 			handler->context
 		);
 	}
@@ -1224,8 +1222,6 @@ smcp_internal_handler_timeout_(
 			smcp_invalidate_transaction(self, handler->tid);
 			(*callback)(
 				status,
-				NULL,
-				0,
 				context
 			);
 		} else {
@@ -1314,32 +1310,25 @@ smcp_invalidate_transaction(
 
 smcp_status_t
 smcp_daemon_handle_response(
-	smcp_daemon_t	self,
-	int				statuscode,
-	const char*		content,
-	size_t			content_length
+	smcp_daemon_t	self
 ) {
 	smcp_status_t ret = 0;
 	smcp_transaction_t handler = NULL;
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
-		DEBUG_PRINTF(CSTR(
-				"smcp_daemon(%p): Incoming response! tid=%d"), self,
-			smcp_daemon_get_current_tid());
+		DEBUG_PRINTF(
+			"smcp_daemon(%p): Incoming response! tid=%d",
+			self,
+			smcp_daemon_get_current_tid()
+		);
 		coap_dump_headers(
 			SMCP_DEBUG_OUT_FILE,
 			"    ",
-			(int)HTTP_TO_COAP_CODE(statuscode),
+			(int)HTTP_TO_COAP_CODE(self->current_inbound_code),
 			smcp_daemon_get_first_header(),
 			smcp_daemon_get_current_request_header_count()
 		);
-
-/*
-        bool content_is_text;
-        if(content_is_text)
-            DEBUG_PRINTF(CSTR("CONTENT: \"%s\""),content);
- */
 	}
 #endif
 
@@ -1349,11 +1338,11 @@ smcp_daemon_handle_response(
 	coap_transaction_id_t tid = smcp_daemon_get_current_tid();
 
 	handler = (smcp_transaction_t)bt_find(
-		    (void**)&self->transactions,
-		    (void*)&tid,
-		    (bt_compare_func_t)smcp_transaction_compare_tid,
+		(void**)&self->transactions,
+		(void*)&tid,
+		(bt_compare_func_t)smcp_transaction_compare_tid,
 		self
-	    );
+	);
 
 #if VERBOSE_DEBUG
 	require_string(handler, bail, "Unable to find response handler");
@@ -1365,9 +1354,7 @@ smcp_daemon_handle_response(
 		if(handler->flags & SMCP_RESPONSE_HANDLER_ALWAYS_TIMEOUT) {
 			handler->resendCallback = NULL;
 			(*handler->callback)(
-				statuscode,
-				content,
-				content_length,
+				self->current_inbound_code,
 				handler->context
 			);
 		} else {
@@ -1375,9 +1362,7 @@ smcp_daemon_handle_response(
 			handler->resendCallback = NULL;
 			handler->callback = NULL;
 			(*callback)(
-			    statuscode,
-			    content,
-			    content_length,
+			    self->current_inbound_code,
 			    handler->context
 			);
 		}
@@ -1409,6 +1394,9 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 	case SMCP_STATUS_UNSUPPORTED_URI:
 		ret = HTTP_RESULT_CODE_BAD_REQUEST;
 		break;
+	case SMCP_STATUS_BAD_OPTION:
+		ret = HTTP_RESULT_CODE_BAD_OPTION;
+		break;
 	}
 
 	return ret;
@@ -1417,17 +1405,11 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 #pragma mark -
 #pragma mark SMCP Request Handlers
 
-
 smcp_status_t
 smcp_daemon_handle_request(
-	smcp_daemon_t	self,
-	smcp_method_t	method,
-	const char*		path,
-	const char*		content,
-	size_t			content_length
+	smcp_daemon_t	self
 ) {
 	smcp_status_t ret = 0;
-
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
@@ -1444,34 +1426,60 @@ smcp_daemon_handle_request(
 	}
 #endif
 
+	smcp_node_t node = smcp_daemon_get_root_node(self);
+	smcp_request_handler_func request_handler = &smcp_default_request_handler;
+
 	// TODO: Add authentication!
 
-	smcp_node_t node;
-	smcp_request_handler_func request_handler;
-
-	request_handler = &smcp_default_request_handler;
-
-	// Try to find the closest node and call the request_handler handler.
-	path +=
-	    smcp_node_find_closest_with_path(smcp_daemon_get_root_node(
-			self), path,
-		    (smcp_node_t*)&node);
-
-	require(node, bail);
+	{
+		coap_header_key_t key;
+		uint8_t* value;
+		size_t value_len;
+		while((key==smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+			if(key>COAP_HEADER_URI_PATH) {
+				smcp_current_request_rewind_last_header();
+				break;
+			} else if(key==COAP_HEADER_URI_PATH) {
+				smcp_node_t next = smcp_node_find(
+					node,
+					value,
+					value_len
+				);
+				if(next) {
+					node = next;
+				} else {
+					smcp_current_request_rewind_last_header();
+					break;
+				}
+			} else if(key==COAP_HEADER_URI_HOST) {
+				// Skip host at the moment,
+				// because we don't do virtual hosting yet.
+			} else if(key==COAP_HEADER_URI_PORT) {
+				// Skip port at the moment,
+				// because we don't do virtual hosting yet.
+			} else if(key==COAP_HEADER_CONTENT_TYPE) {
+				// Skip the content type for now,
+				// but we will need to keep track of this later.
+			} else {
+				require_action(
+					!COAP_HEADER_IS_REQUIRED(key),
+					bail,
+					ret=SMCP_STATUS_BAD_OPTION
+				);
+			}
+		}
+	}
 
 	if(node->request_handler)
 		request_handler = node->request_handler;
 
-	if(method == COAP_METHOD_PAIR) {
+	if(self->current_inbound_code == COAP_METHOD_PAIR) {
 		request_handler = &smcp_daemon_handle_pair;
 	}
 
 	ret = (*request_handler)(
 	    node,
-	    method,
-	    path,
-	    content,
-	    content_length
+	    self->current_inbound_code
 	);
 
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
@@ -1483,48 +1491,20 @@ bail:
 smcp_status_t
 smcp_default_request_handler(
 	smcp_node_t		node,
-	smcp_method_t	method,
-	const char*		path,
-	const char*		content,
-	size_t			content_length
+	smcp_method_t	method
 ) {
 	if(method == COAP_METHOD_GET) {
-		if(!node->parent && strequal_const(path, ".well-known/core")) {
-			// Redirect requests for .well-known/core to the root for now.
-			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_TEMPORARY_REDIRECT));
-			smcp_message_add_header(COAP_HEADER_LOCATION_PATH, "", 0);
-			smcp_message_set_content("Redirected to </>.\n",COAP_HEADER_CSTR_LEN);
-			smcp_message_send();
-		}
-		if(!path || path[0]==0)
-			return smcp_daemon_handle_list(node,
-				method,
-				path,
-				content,
-				content_length);
+		return smcp_daemon_handle_list(node,method);
+	} else if(method == COAP_METHOD_PAIR) {
+		return smcp_daemon_handle_pair(node,method);
 	}
-	if(method == COAP_METHOD_PAIR) {
-		return smcp_daemon_handle_pair(node,
-			method,
-			path,
-			content,
-			content_length);
-	}
-	if(!path || (path[0] == 0)) {
-		DEBUG_PRINTF(CSTR(
-				"Unknown method in request: %s"), http_code_to_cstr(method));
-		return SMCP_STATUS_NOT_IMPLEMENTED;
-	}
-	return SMCP_STATUS_NOT_FOUND;
+	return SMCP_STATUS_NOT_IMPLEMENTED;
 }
 
 smcp_status_t
 smcp_daemon_handle_list(
 	smcp_node_t		node,
-	smcp_method_t	method,
-	const char*		path,
-	const char*		content,
-	size_t			content_length
+	smcp_method_t	method
 ) {
 	smcp_status_t ret = 0;
 	char* next_node = NULL;
@@ -1536,30 +1516,60 @@ smcp_daemon_handle_list(
 
 	memset(replyContent, 0, sizeof(replyContent));
 
-	const coap_header_item_t *iter =
-	    smcp_daemon_get_first_header();
-	for(; iter; iter=smcp_daemon_get_next_header(iter)) {
-		if(iter->key == COAP_HEADER_CONTINUATION_RESPONSE) {
-			next_node = alloca(iter->value_len + 1);
-			memcpy(next_node, iter->value, iter->value_len);
-			next_node[iter->value_len] = 0;
-		} else if(iter->key == COAP_HEADER_SIZE_REQUEST) {
-			uint8_t i;
-			content_break_threshold = 0;
-			for(i = 0; i < iter->value_len; i++)
-				content_break_threshold =
-				    (content_break_threshold << 8) + iter->value[i];
-			if(content_break_threshold >= sizeof(replyContent)) {
-				DEBUG_PRINTF(CSTR(
-						"Requested size (%d) is too large, trimming to %d."),
-					(int)content_break_threshold, (int)sizeof(replyContent) - 1);
-				content_break_threshold = sizeof(replyContent) - 1;
+	if(!node->parent) {
+		if(smcp_current_request_header_strequal(COAP_HEADER_URI_PATH,".well-known")) {
+			smcp_current_request_next_header(NULL, NULL);
+			if(smcp_current_request_header_strequal(COAP_HEADER_URI_PATH,"core")) {
+				// Redirect requests for .well-known/core to the root for now.
+				// Note that redirections aren't really a part of COAP,
+				// so this isn't really compliant.
+				smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_TEMPORARY_REDIRECT));
+				smcp_message_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+				smcp_message_add_header(COAP_HEADER_LOCATION_PATH, "", 0);
+				smcp_message_set_content("Redirected to </>.\n",COAP_HEADER_CSTR_LEN);
+				smcp_message_send();
+				goto bail;
+			} else {
+				ret = SMCP_STATUS_NOT_ALLOWED;
+				goto bail;
 			}
 		}
 	}
 
-	// We only support this method on direct queries.
-	require_action(path[0] == 0, bail, ret = SMCP_STATUS_NOT_FOUND);
+	coap_header_key_t key;
+	uint8_t* value;
+	size_t value_len;
+	{
+		while((key==smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
+
+			if(key == COAP_HEADER_CONTINUATION_RESPONSE) {
+				next_node = alloca(value_len + 1);
+				memcpy(next_node, value, value_len);
+				next_node[value_len] = 0;
+			} else if(key == COAP_HEADER_SIZE_REQUEST) {
+				uint8_t i;
+				content_break_threshold = 0;
+				for(i = 0; i < value_len; i++)
+					content_break_threshold =
+						(content_break_threshold << 8) + value[i];
+				if(content_break_threshold >= sizeof(replyContent)) {
+					DEBUG_PRINTF(
+						"Requested size (%d) is too large, trimming to %d.",
+						(int)content_break_threshold,
+						(int)sizeof(replyContent) - 1
+					);
+					content_break_threshold = sizeof(replyContent) - 1;
+				}
+			} else {
+				require_action(
+					!COAP_HEADER_IS_REQUIRED(key),
+					bail,
+					ret=SMCP_STATUS_BAD_OPTION
+				);
+			}
+		}
+	}
 
 	if((content_break_threshold == 0) || (content_offset && !next_node)) {
 		// We don't support content offsets right now.
@@ -1665,3 +1675,22 @@ smcp_node_t
 smcp_daemon_get_root_node(smcp_daemon_t self) {
 	return &self->root_node;
 }
+
+const coap_header_item_t*
+smcp_get_path_item_for_node(smcp_node_t node,const coap_header_item_t* item) {
+	while(item && item->key!=COAP_HEADER_URI_PATH)
+		item = smcp_daemon_get_next_header(item);
+	if(!node)
+		item = NULL;
+
+	while(item && node->parent && item->key!=COAP_HEADER_URI_PATH) {
+		node = node->parent;
+		item = smcp_daemon_get_next_header(item);
+	}
+
+	if(item && item->key!=COAP_HEADER_URI_PATH)
+		item = NULL;
+
+	return item;
+}
+

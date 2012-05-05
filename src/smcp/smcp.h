@@ -131,6 +131,7 @@ enum {
 	SMCP_STATUS_NOT_ALLOWED			= -18,
 	SMCP_STATUS_URI_PARSE_FAILURE	= -19,
 	SMCP_STATUS_WAIT_FOR_DNS        = -20,
+	SMCP_STATUS_BAD_OPTION			= -21,
 };
 
 typedef int smcp_status_t;
@@ -153,11 +154,15 @@ enum {
 
 typedef int32_t cms_t;
 
-typedef void (*smcp_response_handler_func)(int statuscode,
-    const char* content, size_t content_length, void* context);
-typedef smcp_status_t (*smcp_request_handler_func)(smcp_node_t node,
-    smcp_method_t method, const char* relative_path, const char* content,
-    size_t content_length);
+typedef void (*smcp_response_handler_func)(
+	int statuscode,
+	void* context
+);
+
+typedef smcp_status_t (*smcp_request_handler_func)(
+	smcp_node_t node,
+    smcp_method_t method
+);
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 
@@ -189,8 +194,9 @@ extern smcp_status_t smcp_begin_transaction(
 );
 
 extern smcp_status_t smcp_invalidate_transaction(
-	smcp_daemon_t self, coap_transaction_id_t tid);
-
+	smcp_daemon_t self,
+	coap_transaction_id_t tid
+);
 
 #pragma mark -
 #pragma mark Constrained sending API
@@ -257,7 +263,8 @@ extern smcp_status_t smcp_daemon_handle_inbound_packet(
 	smcp_daemon_t	self,
 	char*			packet,
 	size_t			packet_length,
-	SMCP_SOCKET_ARGS);
+	SMCP_SOCKET_ARGS
+);
 
 
 #pragma mark -
@@ -304,13 +311,19 @@ extern int smcp_node_find_next_with_path(
 
 extern smcp_status_t smcp_default_request_handler(
 	smcp_node_t		node,
-	smcp_method_t	method,
-	const char*		relative_path,
-	const char*		content,
-	size_t			content_length
+	smcp_method_t	method
 );
 
 coap_transaction_id_t smcp_daemon_get_current_tid();
+
+
+/*! Guaranteed to be NUL-terminated */
+extern char* smcp_daemon_get_current_inbound_content_ptr();
+
+extern size_t smcp_daemon_get_current_inbound_content_len();
+extern coap_content_type_t smcp_daemon_get_current_inbound_content_type();
+
+//extern const coap_header_item_t* smcp_get_path_item_for_node(smcp_node_t node,const coap_header_item_t* item);
 
 #if SMCP_USE_BSD_SOCKETS
 extern struct sockaddr* smcp_daemon_get_current_request_saddr();
@@ -320,12 +333,16 @@ extern const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr();
 extern const uint16_t smcp_daemon_get_current_request_ipport();
 #endif
 
-extern const coap_header_item_t* smcp_daemon_get_first_header();
-extern const coap_header_item_t* smcp_daemon_get_next_header(const coap_header_item_t* iter);
+extern const coap_header_item_t* smcp_daemon_get_first_header()SMCP_DEPRECATED;
+extern const coap_header_item_t* smcp_daemon_get_next_header(const coap_header_item_t* iter)SMCP_DEPRECATED;
 
 extern uint8_t smcp_daemon_get_current_request_header_count();
 
 extern smcp_daemon_t smcp_get_current_daemon(); // Used from callbacks
+
+extern coap_header_key_t smcp_current_request_next_header(uint8_t** ptr, size_t* len);
+extern void smcp_current_request_rewind_last_header();
+extern bool smcp_current_request_header_strequal(coap_header_key_t key,const char* str);
 
 __END_DECLS
 

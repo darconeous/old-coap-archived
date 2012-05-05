@@ -47,10 +47,10 @@ signal_interrupt(int sig) {
 static void
 delete_response_handler(
 	int			statuscode,
-	const char* content,
-	size_t		content_length,
 	void*		context
 ) {
+	char* content = smcp_daemon_get_current_inbound_content_ptr();
+	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 	if((statuscode != HTTP_RESULT_CODE_OK) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
 		fprintf(stderr, "delete: Result code = %d (%s)\n", statuscode,

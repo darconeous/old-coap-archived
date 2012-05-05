@@ -37,12 +37,11 @@ signal_interrupt(int sig) {
 
 static smcp_status_t
 monitor_action_func(
-smcp_node_t node,
-    smcp_method_t method,
-	const char* relative_path,
-	const char* content,
-    size_t content_length
+	smcp_node_t node,
+    smcp_method_t method
 ) {
+	char* content = smcp_daemon_get_current_inbound_content_ptr();
+	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 	fprintf(stdout,
 		" *** Received Action! content_length=%d",
 		    (int)content_length);

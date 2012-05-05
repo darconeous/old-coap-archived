@@ -23,39 +23,39 @@ smcp_variable_node_alloc() {
 smcp_status_t
 smcp_variable_request_handler(
 	smcp_node_t		node,
-	smcp_method_t	method,
-	const char*		path,
-	const char*		content,
-	size_t			content_length
+	smcp_method_t	method
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
+	coap_content_type_t content_type = smcp_daemon_get_current_inbound_content_type();
 
 	require(node, bail);
 
-	if(path && path[0] != 0) {
-		ret = SMCP_STATUS_NOT_FOUND;
-		goto bail;
+	{
+		coap_header_key_t key;
+		uint8_t* value;
+		size_t value_len;
+		while((key==smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
+
+			require_action(
+				!COAP_HEADER_IS_REQUIRED(key),
+				bail,
+				ret=SMCP_STATUS_BAD_OPTION
+			);
+		}
 	}
 
+	// TODO: Implement me!
 	if(method == COAP_METHOD_PUT)
-		// TODO: Implement me!
 		method = COAP_METHOD_POST;
 
 	if(method == COAP_METHOD_POST) {
-		coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
-
-		const coap_header_item_t *iter =
-		    smcp_daemon_get_first_header();
-		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
-			if(iter->key==COAP_HEADER_CONTENT_TYPE)
-				content_type = *(unsigned char*)iter->value;
-		}
 		ret = SMCP_STATUS_NOT_IMPLEMENTED;
 		if(((smcp_variable_node_t)node)->post_func) {
 			ret = (*((smcp_variable_node_t)node)->post_func)(
 				((smcp_variable_node_t)node),
-				(char*)content,
-				content_length,
+				smcp_daemon_get_current_inbound_content_ptr(),
+				smcp_daemon_get_current_inbound_content_len(),
 				content_type
 			);
 			require_noerr(ret,bail);
@@ -92,10 +92,7 @@ smcp_variable_request_handler(
 	} else {
 		ret = smcp_default_request_handler(
 			node,
-			method,
-			path,
-			content,
-			content_length
+			method
 		);
 	}
 

@@ -106,11 +106,11 @@ bail:
 static void
 list_response_handler(
 	int			statuscode,
-	const char* content,
-	size_t		content_length,
 	void*		context
 ) {
 //	smcp_daemon_t self = smcp_get_current_daemon();
+	char* content = smcp_daemon_get_current_inbound_content_ptr();
+	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
 	printf("*** RESULT CODE = %d (%s)\n", statuscode,
 		http_code_to_cstr(statuscode));
@@ -126,10 +126,7 @@ list_response_handler(
 smcp_status_t
 sliced_post_request_handler(
 	smcp_node_t		node,
-	smcp_method_t	method,
-	const char*		path,
-	const char*		content,
-	size_t			content_length
+	smcp_method_t	method
 ) {
 	return SMCP_STATUS_OK;
 }

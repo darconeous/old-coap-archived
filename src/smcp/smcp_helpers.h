@@ -63,10 +63,12 @@ util_add_header(
 #if __AVR__
 #include <avr/pgmspace.h>
 #include <alloca.h>
+#define strnequal_const(a, const_b, len_a) (strncmp_P(a, PSTR(const_b),len_a) == 0)
 #define strequal_const(a, b) (strcmp_P(a, PSTR(b)) == 0)
 #define strhasprefix_const(a, \
         b) (strncmp_P(a, PSTR(b), sizeof(b) - 1) == 0)
 #else
+#define strnequal_const(a, const_b, len_a) (strncmp(a, const_b,len_a) == 0)
 #define strequal_const(a, b) (strcmp(a, b) == 0)
 #define strhasprefix_const(a, b) (strncmp(a, b, sizeof(b) - 1) == 0)
 #endif
