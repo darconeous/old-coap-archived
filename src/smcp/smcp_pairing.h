@@ -24,7 +24,7 @@
 #endif
 #endif
 
-#define PAIRING_STATE   struct smcp_pairing_s* pairings
+#define PAIRING_STATE   struct smcp_pairing_node_s* pairings; smcp_root_pairing_node_t root_pairing_node
 
 #ifndef SMCP_CONF_PAIRING_STATS
 #define SMCP_CONF_PAIRING_STATS 1
@@ -33,8 +33,8 @@
 __BEGIN_DECLS
 
 
-struct smcp_pairing_s;
-typedef struct smcp_pairing_s *smcp_pairing_t;
+struct smcp_pairing_node_s;
+typedef struct smcp_pairing_node_s *smcp_pairing_node_t;
 
 enum {
 	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_MASK
@@ -97,11 +97,14 @@ struct smcp_event_tracker_s {
 
 typedef struct smcp_event_tracker_s* smcp_event_tracker_t;
 
-struct smcp_pairing_s {
-	//struct smcp_node_s	node;
-	struct bt_item_s	bt_item;
-	const char*			path; // Local path
-	const char*			dest_uri;
+#define smcp_pairing_get_uri_cstr(pairing) (pairing)->node.name
+#define smcp_pairing_get_path_cstr(pairing) ((smcp_node_t)(pairing)->node.parent)->name
+
+struct smcp_pairing_node_s {
+	struct smcp_node_s	node;
+	// Local pairng path comes from parent node name.
+	// Remote pairing URI comes from this node's name.
+
 	uint8_t				flags;
 
 	smcp_pairing_seq_t	seq;
@@ -125,8 +128,7 @@ struct smcp_pairing_s {
 #endif
 };
 
-typedef smcp_node_t smcp_pairing_node_t;
-
+typedef smcp_node_t smcp_root_pairing_node_t;
 
 #pragma mark -
 #pragma mark Pairing Functions
@@ -176,17 +178,17 @@ extern smcp_status_t smcp_daemon_trigger_custom_event_with_node(
 
 extern smcp_status_t smcp_daemon_delete_pairing(
 	smcp_daemon_t self,
-	smcp_pairing_t pairing
+	smcp_pairing_node_t pairing
 );
 
-extern smcp_pairing_t smcp_daemon_get_first_pairing_for_path(
+extern smcp_pairing_node_t smcp_daemon_get_first_pairing_for_path(
 	smcp_daemon_t self,
 	const char* path
 );
 
-extern smcp_pairing_t smcp_daemon_next_pairing(
+extern smcp_pairing_node_t smcp_daemon_next_pairing(
 	smcp_daemon_t self,
-	smcp_pairing_t pairing
+	smcp_pairing_node_t pairing
 );
 
 extern smcp_status_t smcp_daemon_handle_pair(
@@ -194,14 +196,14 @@ extern smcp_status_t smcp_daemon_handle_pair(
 	smcp_method_t	method
 );
 
-extern smcp_pairing_node_t smcp_pairing_node_init(
-	smcp_pairing_node_t self,
+extern smcp_root_pairing_node_t smcp_pairing_init(
+	smcp_daemon_t self,
 	smcp_node_t parent,
 	const char* name
 );
 
 static inline int
-smcp_pairing_get_next_seq(smcp_pairing_t pairing) {
+smcp_pairing_get_next_seq(smcp_pairing_node_t pairing) {
 	return ++(pairing->seq);
 }
 

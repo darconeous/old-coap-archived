@@ -155,14 +155,14 @@ tool_cmd_test(
 	else
 		smcp_daemon = smcp_daemon_create(SMCP_DEFAULT_PORT);
 
-	smcp_pairing_node_init(
-		NULL,
+	smcp_pairing_init(
+		smcp_daemon,
 		smcp_daemon_get_root_node(smcp_daemon),
 		".pairings"
 	);
 
-	smcp_pairing_node_init(
-		NULL,
+	smcp_pairing_init(
+		smcp_daemon2,
 		smcp_daemon_get_root_node(smcp_daemon2),
 		".pairings"
 	);

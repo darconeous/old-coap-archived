@@ -366,14 +366,19 @@ smcp_current_request_next_header(uint8_t** ptr, size_t* len) {
 
 void
 smcp_current_request_rewind_last_header() {
-	if(smcp_get_current_daemon()->current_header != smcp_get_current_daemon()->current_inbound_headers)
+	if( smcp_get_current_daemon()->current_header
+		&& smcp_get_current_daemon()->current_header != smcp_get_current_daemon()->current_inbound_headers
+	)
 		smcp_get_current_daemon()->current_header--;
 }
 
 bool
 smcp_current_request_header_strequal(coap_header_key_t key,const char* str) {
-	if(smcp_get_current_daemon()->current_header->key == key)
+	if( smcp_get_current_daemon()->current_header
+		&& smcp_get_current_daemon()->current_header->key == key
+	) {
 		return coap_header_strequal(smcp_get_current_daemon()->current_header,str);
+	}
 	return false;
 }
 
@@ -472,6 +477,7 @@ smcp_daemon_handle_inbound_packet(
 #endif
 
 	smcp_set_current_daemon(self);
+
 	self->is_processing_message = true;
 	self->did_respond = (tt != COAP_TRANS_TYPE_CONFIRMABLE);
 	self->cascade_count = SMCP_MAX_CASCADE_COUNT;
@@ -481,7 +487,11 @@ smcp_daemon_handle_inbound_packet(
 	self->current_inbound_request_token_len = 0;
 	self->current_inbound_content_ptr = packet + header_length;
 	self->current_inbound_content_len = packet_length - header_length;
-	self->current_header = self->current_inbound_headers - 1;
+	self->current_header = self->current_inbound_headers;
+
+	assert(self->current_header);
+
+	self->current_header--;
 
 	{
 		const coap_header_item_t *iter = smcp_daemon_get_first_header();
