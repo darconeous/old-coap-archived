@@ -1071,6 +1071,8 @@ smcp_daemon_handle_request(
 				self->inbound.last_option_key = prev_key;
 				self->inbound.options_left++;
 				break;
+			} else if(key==COAP_HEADER_PROXY_URI) {
+				// Skip the proxy URI for now.
 			} else if(key==COAP_HEADER_URI_PATH) {
 				smcp_node_t next = smcp_node_find(
 					node,

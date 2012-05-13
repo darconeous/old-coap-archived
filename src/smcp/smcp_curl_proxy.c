@@ -1,10 +1,12 @@
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 0
+#define VERBOSE_DEBUG 1
 #endif
 
 #include "assert_macros.h"
 #include "smcp.h"
+#include "smcp_helpers.h"
+#include "smcp_logging.h"
 #include "coap.h"
 #include "smcp_curl_proxy.h"
 #include <stdio.h>
@@ -13,7 +15,9 @@
 typedef struct smcp_curl_request_s {
 	CURL* curl;
 	coap_transaction_id_t tid;
-	smcp_async_response_t async_response;
+	struct smcp_async_response_s async_response;
+	char* content;
+	size_t content_len;
 } *smcp_curl_request_t;
 
 void
@@ -33,6 +37,88 @@ smcp_curl_request_create(void) {
 		ret = NULL;
 	}
 	return ret;
+}
+
+static smcp_status_t
+resend_async_response(void* context) {
+	smcp_status_t ret = 0;
+	smcp_curl_request_t request = (smcp_curl_request_t)context;
+	struct smcp_async_response_s* async_response = &request->async_response;
+
+	size_t len = request->content_len;
+	if(len>512) {
+		len = 512;
+	}
+
+	ret = smcp_message_begin_response(COAP_RESULT_205_CONTENT);
+	require_noerr(ret,bail);
+
+	ret = smcp_message_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	require_noerr(ret,bail);
+
+	ret = smcp_message_set_async_response(async_response);
+	require_noerr(ret,bail);
+
+	ret = smcp_message_set_content(request->content, len);
+	require_noerr(ret,bail);
+
+	ret = smcp_message_send();
+	require_noerr(ret,bail);
+
+	if(ret) {
+		assert_printf(
+			"smcp_message_send() returned error %d(%s).\n",
+			ret,
+			smcp_status_to_cstr(ret)
+		);
+		goto bail;
+	}
+
+bail:
+	return ret;
+}
+
+static void
+async_response_ack_handler(int statuscode, void* context) {
+	smcp_curl_request_t request = (smcp_curl_request_t)context;
+	struct smcp_async_response_s* async_response = &request->async_response;
+
+	smcp_finish_async_response(async_response);
+	smcp_curl_request_release(request);
+}
+
+
+static size_t
+WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+	size_t realsize = size * nmemb;
+	smcp_curl_request_t request = (smcp_curl_request_t)userp;
+
+	require_action(realsize>0,bail,realsize=0);
+
+	// At the moment limit to one call.
+	require_action(request->content==NULL,bail,realsize=0);
+
+	request->content = realloc(request->content, request->content_len + realsize + 1);
+
+	require_action(request->content!=NULL,bail,realsize=0);
+
+	memcpy(&(request->content[request->content_len]), contents, realsize);
+	request->content_len += realsize;
+	request->content[request->content_len] = 0;
+	
+	smcp_begin_transaction(
+		smcp_get_current_daemon(),
+		request->tid,
+		10*1000,	// Retry for thirty seconds.
+		0, // Flags
+		(void*)&resend_async_response,
+		(void*)&async_response_ack_handler,
+		(void*)request
+	);
+
+bail:
+	return realsize;
 }
 
 static smcp_status_t
@@ -57,7 +143,6 @@ smcp_curl_proxy_node_request_handler(
 		const uint8_t* value;
 		size_t value_len;
 		while((key=smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
-			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key==COAP_HEADER_PROXY_URI) {
 				char uri[value_len+1];
 				memcpy(uri,value,value_len);
@@ -69,24 +154,39 @@ smcp_curl_proxy_node_request_handler(
 			} else if(key==COAP_HEADER_URI_QUERY) {
 			} else if(key==COAP_HEADER_TOKEN) {
 			} else {
+/*
 				const char* option_name = coap_option_key_to_cstr(key, false);
 				char header[strlen(option_name)+value_len+3];
 				strcpy(header,option_name);
 				strcat(header,": ");
 				strncat(header,(const char*)value,value_len);
 				headerlist = curl_slist_append(headerlist, header);
+*/
 			}
 		}
 	}
 
 	curl_easy_setopt(request->curl, CURLOPT_HTTPHEADER, headerlist);
+	curl_easy_setopt(request->curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+	curl_easy_setopt(request->curl, CURLOPT_WRITEDATA, (void *)request);
+	curl_easy_setopt(request->curl, CURLOPT_USERAGENT, "smcp-curl-proxy/1.0");
+ 
+	ret = smcp_start_async_response(&request->async_response);
+	require_noerr(ret,bail);
 
+#if 0
 	curl_multi_add_handle(node->curl_multi_handle, request->curl);
+#else
+	curl_easy_perform(request->curl);
+#endif
 
 bail:
-	if(ret && request) {
+	if(headerlist)
+		curl_slist_free_all(headerlist);
+
+ 	if(ret && request)
 		smcp_curl_request_release(request);
-	}
+
 	return ret;
 }
 

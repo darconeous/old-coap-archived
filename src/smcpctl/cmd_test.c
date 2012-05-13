@@ -23,6 +23,9 @@
 #include "help.h"
 #include "smcpctl.h"
 #include "cmd_test.h"
+#if HAS_LIBCURL
+#include <smcp/smcp_curl_proxy.h>
+#endif
 
 static smcp_status_t
 action_func(
@@ -219,6 +222,11 @@ tool_cmd_test(
 		smcp_daemon = smcp;
 	else
 		smcp_daemon = smcp_daemon_create(SMCP_DEFAULT_PORT);
+
+#if HAS_LIBCURL
+	struct smcp_curl_proxy_node_s proxy_node = {};
+	smcp_curl_proxy_node_init(&proxy_node, smcp_daemon, smcp_daemon_get_root_node(smcp_daemon), "proxy");
+#endif
 
 	smcp_pairing_init(
 		smcp_daemon,

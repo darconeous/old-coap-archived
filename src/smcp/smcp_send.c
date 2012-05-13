@@ -7,7 +7,7 @@
 //
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 0
+#define VERBOSE_DEBUG 1
 #endif
 
 #ifndef DEBUG

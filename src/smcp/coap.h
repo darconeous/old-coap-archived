@@ -291,6 +291,7 @@ extern coap_option_key_t coap_option_key_from_cstr(const char* key);
 extern const char* http_code_to_cstr(int x);
 extern const char* coap_code_to_cstr(int x);
 
+//extern const char* coap_option_
 extern void coap_dump_header(
 	FILE*			outstream,
 	const char*		prefix,
