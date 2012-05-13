@@ -67,50 +67,35 @@ list_response_handler(
 	char* content = smcp_daemon_get_current_inbound_content_ptr();
 	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 
-	if((statuscode >= 100) && list_show_headers) {
+	if((statuscode >= COAP_RESULT_100) && list_show_headers) {
 		if(next_len != ((size_t)(-1)))
 			fprintf(stdout, "\n");
-		coap_dump_headers(stdout,
+		coap_dump_header(
+			stdout,
 			NULL,
-			http_to_coap_code(statuscode),
-			smcp_daemon_get_first_header(),
-			smcp_daemon_get_current_request_header_count());
+			smcp_current_request_get_packet(),
+			0
+		);
 	}
 
-	if((statuscode >= 300) && (statuscode < 400) && redirect_count) {
-		// Redirect.
-		char location[256] = "";
-		const coap_header_item_t *iter =
-		    smcp_daemon_get_first_header();
-		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
-			if(iter->key == COAP_HEADER_LOCATION_PATH) {
-				memcpy(location, iter->value, iter->value_len);
-				location[iter->value_len] = 0;
-			}
-		}
-		if(location[0] && (0 != strcmp(location, (const char*)context))) {
-			strncpy(redirect_url,
-				    (const char*)context,
-				SMCP_MAX_URI_LENGTH);
-			url_change(redirect_url, location);
-			retries = 0;
-			require(send_list_request(self, redirect_url, 0, 0), bail);
-			fflush(stdout);
-			redirect_count--;
-			return;
-		}
-	}
-
-	if(((statuscode < 200) ||
-	            (statuscode >= 300)) &&
+	if(((statuscode < COAP_RESULT_200) ||
+	            (statuscode >= COAP_RESULT_400)) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
-	        (statuscode != HTTP_RESULT_CODE_PARTIAL_CONTENT)
+	        (statuscode != HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_PARTIAL_CONTENT))
 	) {
 		if(!list_filename_only) {
 			fprintf(stderr, "list: Result code = %d (%s)\n", statuscode,
 					(statuscode < 0) ? smcp_status_to_cstr(
-					statuscode) : http_code_to_cstr(statuscode));
+					statuscode) : coap_code_to_cstr(statuscode));
 		}
+		if(statuscode<0)
+			gRet = statuscode;
+		else if(content_length) {
+			printf("%s",content);
+			if((content[content_length - 1] != '\n'))
+				printf("\n");
+		}
+		goto bail;
 	}
 
 	// TODO: This implementation currently only works when the content only includes entire records.
@@ -120,16 +105,17 @@ list_response_handler(
 	// TODO: When redirected, we should adjust the URI's to be relative to the original url!
 
 	if(content && content_length) {
-		coap_content_type_t content_type = 0;
-		const coap_header_item_t *next = NULL;
-		{
-			const coap_header_item_t *iter =
-			    smcp_daemon_get_first_header();
-			for(; iter; iter=smcp_daemon_get_next_header(iter)) {
-				if(iter->key == COAP_HEADER_CONTENT_TYPE)
-					content_type = (unsigned char)iter->value[0];
-				else if(iter->key == COAP_HEADER_CONTINUATION_REQUEST)
-					next = iter;
+		coap_content_type_t content_type = smcp_daemon_get_current_inbound_content_type();
+		coap_option_key_t key;
+		const uint8_t* value;
+		size_t value_len;
+		const uint8_t* next_value = NULL;
+		size_t next_len;
+		while((key=smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+
+			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
+				next_value = value;
+				next_len = value_len;
 			}
 		}
 
@@ -152,6 +138,8 @@ list_response_handler(
 				if(*iter == '<') {
 					char* uri = 0;
 					char* name = 0;
+					char* desc = 0;
+					char* v = 0;
 					char* sh_url = 0;
 					int type = COAP_CONTENT_TYPE_UNKNOWN;
 					int uri_len = 0;
@@ -185,6 +173,12 @@ list_response_handler(
 							}
 							if(0 == strcmp(key, "n"))
 								name = value;
+							else if(!name && 0 == strcmp(key, "rt"))
+								name = value;
+							else if(0 == strcmp(key, "title"))
+								desc = value;
+							else if(0 == strcmp(key, "v"))
+								v = value;
 							else if(0 == strcmp(key, "ct"))
 								type = strtol(value, NULL, 0);
 							else if(0 == strcmp(key, "sh"))
@@ -211,6 +205,8 @@ list_response_handler(
 					if(type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
 						printf("/");
 					if(!list_filename_only) {
+						if(v)
+							printf("=%s",v);
 						printf(" ");
 						if(uri_len < col_width) {
 							if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {
@@ -230,8 +226,9 @@ list_response_handler(
 						if(sh_url && (0 != strcmp(sh_url, uri))) printf(
 								"<%s> ",
 								sh_url);
-						if(type != COAP_CONTENT_TYPE_UNKNOWN) printf("(%s) ",
+						if(type != COAP_CONTENT_TYPE_UNKNOWN) printf("[%s] ",
 								coap_content_type_to_cstr(type));
+						if(desc) printf("(%s) ",desc);
 					}
 					printf("\n");
 				} else {
@@ -244,9 +241,9 @@ list_response_handler(
 			else
 				content[content_length] = 0;
 
-			if(next &&
-			    send_list_request(self, (const char*)context, next->value,
-					next->value_len))
+			if(next_value &&
+			    send_list_request(self, (const char*)context, next_value,
+					next_len))
 				return;
 		}
 	}
@@ -265,6 +262,9 @@ resend_list_request(void* context) {
 	status = smcp_message_set_uri(url_data, 0);
 	require_noerr(status,bail);
 
+	char expected_content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
+	status = smcp_message_add_header(COAP_HEADER_ACCEPT,&expected_content_type,1);
+	
 	if(next_len != ((size_t)(-1))) {
 		status = smcp_message_add_header(
 			COAP_HEADER_CONTINUATION_RESPONSE,

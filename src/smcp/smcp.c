@@ -2,7 +2,6 @@
 **	Stack Implementation
 **
 **	Written by Robert Quattlebaum <darco@deepdarc.com>.
-**	PUBLIC DOMAIN.
 */
 
 #ifndef VERBOSE_DEBUG
@@ -13,6 +12,8 @@
 #define DEBUG VERBOSE_DEBUG
 #endif
 
+#include "assert_macros.h"
+
 #if CONTIKI
 #include "contiki.h"
 #include "net/uip-udp-packet.h"
@@ -22,7 +23,6 @@
 extern u16_t uip_slen;
 #endif
 
-#include "assert_macros.h"
 #include <stdarg.h>
 
 #include "smcp.h"
@@ -54,9 +54,6 @@ extern u16_t uip_slen;
 #include "smcp_timer.h"
 #include "smcp_internal.h"
 
-// Remove this when we get the node system cleaned up.
-//#include "smcp_variable_node.h"
-
 #pragma mark -
 #pragma mark Macros
 
@@ -69,8 +66,6 @@ smcp_daemon_t
 smcp_get_current_daemon() {
 	return &smcp_daemon_global_instance;
 }
-#define smcp_set_current_daemon(x)
-
 #else
 // TODO: Make thread safe!
 static smcp_daemon_t smcp_daemon_current_instance;
@@ -80,8 +75,10 @@ smcp_get_current_daemon() {
 	return smcp_daemon_current_instance;
 }
 
-#define smcp_set_current_daemon(x) \
-    do { smcp_daemon_current_instance = (x); } while(0)
+void
+smcp_set_current_daemon(smcp_daemon_t x) {
+	smcp_daemon_current_instance = (x);
+}
 #endif
 
 #pragma mark -
@@ -110,13 +107,21 @@ const char* smcp_status_to_cstr(int x) {
 	case SMCP_STATUS_BAD_ARGUMENT: return "Bad Argument"; break;
 	case SMCP_STATUS_MESSAGE_TOO_BIG: return "Message Too Big"; break;
 
+	case SMCP_STATUS_BAD_OPTION: return "Bad Option"; break;
+
 	case SMCP_STATUS_ERRNO:
-#if 1
-		return "ERRNO"; break;
-#else
+#if SMCP_USE_BSD_SOCKETS
 		return strerror(errno); break;
+#else
+		return "ERRNO"; break;
 #endif
-	default: return "Unknown error"; break;
+	default:
+		{
+			static char cstr[30];
+			sprintf(cstr, "Unknown Status (%d)", x);
+			return cstr;
+		}
+		break;
 	}
 	return NULL;
 }
@@ -192,6 +197,7 @@ smcp_daemon_t
 smcp_daemon_init(
 	smcp_daemon_t ret, uint16_t port
 ) {
+	uint16_t attempts = 0x7FFF;
 	if(port == 0)
 		port = SMCP_DEFAULT_PORT;
 
@@ -222,7 +228,7 @@ smcp_daemon_init(
 		port++;
 
 		// Make sure we aren't in an infinite loop.
-		require_action_string(port!=port, bail,
+		require_action_string(--attempts, bail,
 			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_daemon_release(
 				    ret); ret = NULL; }, "Failed to bind socket (ran out of ports)");
 
@@ -317,7 +323,7 @@ smcp_daemon_get_port(smcp_daemon_t self) {
 	getsockname(self->fd, (struct sockaddr*)&saddr, &socklen);
 	return ntohs(saddr.sin6_port);
 #elif CONTIKI
-	return ntohs(ret->udp_conn->lport);
+	return ntohs(self->udp_conn->lport);
 #endif
 }
 
@@ -333,201 +339,231 @@ smcp_daemon_get_udp_conn(smcp_daemon_t self) {
 }
 #endif
 
-const coap_header_item_t*
-smcp_daemon_get_first_header() {
-	if(smcp_get_current_daemon()->is_processing_message)
-		return smcp_get_current_daemon()->current_inbound_headers;
-	return NULL;
-}
-
-const coap_header_item_t*
-smcp_daemon_get_next_header(const coap_header_item_t* iter) {
-	if(smcp_get_current_daemon()->is_processing_message) {
-		if(iter!=smcp_get_current_daemon()->current_inbound_headers+smcp_get_current_daemon()->current_inbound_header_count)
-		return ++iter;
-	}
-	return NULL;
-}
-
-coap_header_key_t
-smcp_current_request_next_header(uint8_t** ptr, size_t* len) {
-	const coap_header_item_t* item = smcp_get_current_daemon()->current_header;
-	item = smcp_daemon_get_next_header(item);
-	if(item) {
-		smcp_get_current_daemon()->current_header = item;
-		if(ptr)
-			*ptr = (uint8_t*)item->value;
-		if(len)
-			*len = item->value_len;
-		return item->key;
-	}
-	return COAP_HEADER_INVALID;
+void
+smcp_daemon_set_proxy_url(smcp_daemon_t self,const char* url) {
+	DEBUG_PRINTF("CoAP Proxy URL set to %s",url);
+	self->proxy_url = url;
 }
 
 void
-smcp_current_request_rewind_last_header() {
-	if( smcp_get_current_daemon()->current_header
-		&& smcp_get_current_daemon()->current_header != smcp_get_current_daemon()->current_inbound_headers
-	)
-		smcp_get_current_daemon()->current_header--;
+smcp_current_request_reset_next_header() {
+	smcp_daemon_t self = smcp_get_current_daemon();
+	self->inbound.last_option_key = 0;
+	self->inbound.options_left = self->inbound.packet->option_count;
+	self->inbound.this_option = self->inbound.packet->options;
 }
+
+static coap_option_key_t
+smcp_current_request_next_header_(const uint8_t** value, size_t* len) {
+	smcp_daemon_t self = smcp_get_current_daemon();
+	if(self->inbound.options_left) {
+		self->inbound.this_option = coap_decode_option(
+			self->inbound.this_option,
+			&self->inbound.last_option_key,
+			value,
+			len
+		);
+
+		// TODO: Handle when this options are unlimited;
+		self->inbound.options_left--;
+	} else {
+		self->inbound.last_option_key = COAP_HEADER_INVALID;
+	}
+	return self->inbound.last_option_key;
+}
+
+coap_option_key_t
+smcp_current_request_next_header(const uint8_t** value, size_t* len) {
+	coap_option_key_t ret;
+	do {
+		ret = smcp_current_request_next_header_(value, len);
+	} while(ret==COAP_HEADER_TOKEN); // Skip tokens
+	return ret;
+}
+
+coap_option_key_t
+smcp_current_request_peek_header(const uint8_t** value, size_t* len) {
+	smcp_daemon_t self = smcp_get_current_daemon();
+	coap_option_key_t ret = self->inbound.last_option_key;
+	if(self->inbound.last_option_key!=COAP_HEADER_INVALID && self->inbound.options_left) {
+		coap_decode_option(
+			self->inbound.this_option,
+			&ret,
+			value,
+			len
+		);
+
+	} else {
+		ret = COAP_HEADER_INVALID;
+	}
+	return ret;
+}
+
+/*
+void
+smcp_current_request_rewind_last_header() {
+#warning TODO: Update to new direct-parsing mechanism.
+	// TODO: Update to new format
+	if( smcp_get_current_daemon()->current_option
+		&& smcp_get_current_daemon()->current_option != smcp_get_current_daemon()->inbound.options
+	)
+		smcp_get_current_daemon()->current_option--;
+}
+*/
 
 bool
-smcp_current_request_header_strequal(coap_header_key_t key,const char* str) {
-	if( smcp_get_current_daemon()->current_header
-		&& smcp_get_current_daemon()->current_header->key == key
-	) {
-		return coap_header_strequal(smcp_get_current_daemon()->current_header,str);
+smcp_current_request_header_strequal(coap_option_key_t key,const char* cstr) {
+	smcp_daemon_t self = smcp_get_current_daemon();
+	coap_option_key_t curr_key = self->inbound.last_option_key;
+	const uint8_t* next;
+	const char* value;
+	size_t value_len;
+
+	if(!self->inbound.this_option)
+		return false;
+
+	next = coap_decode_option(self->inbound.this_option, &curr_key, (const uint8_t**)&value, &value_len);
+
+	if(curr_key != key)
+		return false;
+
+	size_t i;
+	for(i=0;i<value_len;i++) {
+		if(!cstr[i] || (value[i]!=cstr[i]))
+			return false;
 	}
-	return false;
+	return cstr[i]==0;
 }
 
-
-uint8_t
-smcp_daemon_get_current_request_header_count() {
-	if(smcp_get_current_daemon()->is_processing_message)
-		return smcp_get_current_daemon()->current_inbound_header_count;
-	return 0;
+const struct coap_header_s*
+smcp_current_request_get_packet() {
+	return smcp_get_current_daemon()->inbound.packet;
 }
 
 coap_transaction_id_t
 smcp_daemon_get_current_tid() {
-	return smcp_get_current_daemon()->current_inbound_request_tid;
+	assert(smcp_get_current_daemon()->inbound.packet);
+	return smcp_get_current_daemon()->inbound.packet->tid;
 }
 
-char*
+const char*
 smcp_daemon_get_current_inbound_content_ptr() {
-	return smcp_get_current_daemon()->current_inbound_content_ptr;
+	return smcp_get_current_daemon()->inbound.content_ptr;
 }
 
 size_t
 smcp_daemon_get_current_inbound_content_len() {
-	return smcp_get_current_daemon()->current_inbound_content_len;
+	return smcp_get_current_daemon()->inbound.content_len;
 }
 
 coap_content_type_t
 smcp_daemon_get_current_inbound_content_type() {
-	return smcp_get_current_daemon()->current_inbound_content_type;
+	return smcp_get_current_daemon()->inbound.content_type;
 }
 
 
 #if SMCP_USE_BSD_SOCKETS
 struct sockaddr* smcp_daemon_get_current_request_saddr() {
-	return smcp_get_current_daemon()->current_inbound_saddr;
+	return smcp_get_current_daemon()->inbound.saddr;
 }
 
 socklen_t smcp_daemon_get_current_request_socklen() {
-	return smcp_get_current_daemon()->current_inbound_socklen;
+	return smcp_get_current_daemon()->inbound.socklen;
 }
 #elif defined(CONTIKI)
 const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr() {
-	return &smcp_get_current_daemon()->current_inbound_toaddr;
+	return &smcp_get_current_daemon()->inbound.toaddr;
 }
 
 const uint16_t smcp_daemon_get_current_request_ipport() {
-	return smcp_get_current_daemon()->current_inbound_toport;
+	return smcp_get_current_daemon()->inbound.toport;
 }
 #endif
 
 smcp_status_t
 smcp_daemon_handle_inbound_packet(
 	smcp_daemon_t	self,
-	char*			packet,
+	char*			buffer,
 	size_t			packet_length,
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	coap_transaction_id_t tid;
-	coap_transaction_type_t tt;
-	coap_code_t code;
-	size_t header_length;
-	smcp_status_t status = 0;
-
-	self->current_inbound_header_count = SMCP_MAX_HEADERS + 1;
+	struct coap_header_s* const packet = (void*)buffer;
+	const coap_code_t code = packet->code;
+	smcp_set_current_daemon(self);
 
 	DEBUG_PRINTF(CSTR("%p: Inbound packet!"), self);
-	header_length = coap_decode_header(
-		(unsigned char*)packet,
-		packet_length,
-		&tt,
-		&code,
-		&tid,
-		self->current_inbound_headers,
-		&self->current_inbound_header_count
-	);
 
-	require(header_length > 0, bail);
-
-	DEBUG_PRINTF(CSTR("%p: tt=%d"), self,tt);
-	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"), self,coap_to_http_code(code),code);
+	require_action(packet->version==COAP_VERSION,bail,ret=SMCP_STATUS_FAILURE);
 
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
 	// Kind of a hack.
-	packet[packet_length] = 0;
+	buffer[packet_length] = 0;
 
-	self->current_inbound_request_tid = tid;
+	self->inbound.packet = packet;
+	self->inbound.token_option = NULL;
+
+	DEBUG_PRINTF(CSTR("%p: tt=%d"), self,packet->tt);
+	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"),self,coap_to_http_code(code),code);
+
+	self->inbound.content_type = 0;
+	smcp_current_request_reset_next_header();
+
+	{	// Initial options scan.
+		coap_option_key_t key;
+		do {
+			key = smcp_current_request_peek_header(NULL,NULL);
+			if(key==COAP_HEADER_TOKEN) {
+				self->inbound.token_option = self->inbound.this_option;
+			} else if(key==COAP_HEADER_CONTENT_TYPE) {
+				self->inbound.content_type = self->inbound.this_option[1];
+			}
+		} while(smcp_current_request_next_header_(NULL,NULL)!=COAP_HEADER_INVALID);
+		self->inbound.content_ptr = (char*)self->inbound.this_option;
+		self->inbound.content_len = packet_length-(self->inbound.content_ptr-buffer);
+	}
 
 #if SMCP_USE_BSD_SOCKETS
-	self->current_inbound_saddr = saddr;
-	self->current_inbound_socklen = socklen;
+	self->inbound.saddr = saddr;
+	self->inbound.socklen = socklen;
 #elif CONTIKI
-	self->current_inbound_toaddr = *toaddr;
-	self->current_inbound_toport = toport;
+	self->inbound.toaddr = *toaddr;
+	self->inbound.toport = toport;
 #endif
 
-	smcp_set_current_daemon(self);
-
 	self->is_processing_message = true;
-	self->did_respond = (tt != COAP_TRANS_TYPE_CONFIRMABLE);
-	self->cascade_count = SMCP_MAX_CASCADE_COUNT;
-	self->has_cascade_count = false;
-	self->current_inbound_code = code;
-	self->current_inbound_request_token = 0;
-	self->current_inbound_request_token_len = 0;
-	self->current_inbound_content_ptr = packet + header_length;
-	self->current_inbound_content_len = packet_length - header_length;
-	self->current_header = self->current_inbound_headers;
+	self->did_respond = (packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
 
-	assert(self->current_header);
+	smcp_current_request_reset_next_header();
 
-	self->current_header--;
-
-	{
-		const coap_header_item_t *iter = smcp_daemon_get_first_header();
-		for(;iter;iter=smcp_daemon_get_next_header(iter)) {
-			if(iter->key == COAP_HEADER_TOKEN) {
-				self->current_inbound_request_token = iter->value;
-				self->current_inbound_request_token_len = iter->value_len;
-			} else if(iter->key == COAP_HEADER_CASCADE_COUNT) {
-				if(iter->value_len) {
-					self->cascade_count = (unsigned char)*iter->value;
-				}
-				if(self->cascade_count > SMCP_MAX_CASCADE_COUNT)
-					self->cascade_count = SMCP_MAX_CASCADE_COUNT;
-				self->has_cascade_count = true;
-			}
-		}
-	}
-
-	self->cascade_count--;
+//	self->cascade_count--;
 
 	if(COAP_CODE_IS_REQUEST(code)) {
-		status = smcp_daemon_handle_request(self);
+		ret = smcp_daemon_handle_request(self);
 	} else if(COAP_CODE_IS_RESULT(code)) {
-		self->current_inbound_code = coap_to_http_code(code);
-		status = smcp_daemon_handle_response(self);
+		ret = smcp_daemon_handle_response(self);
 	}
 
-	check_string(status == SMCP_STATUS_OK, smcp_status_to_cstr(status));
+	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 
 	// Check to make sure we have responded by now. If not, we need to.
-	if((tt==COAP_TRANS_TYPE_CONFIRMABLE) && !self->did_respond) {
+	if((packet->tt==COAP_TRANS_TYPE_CONFIRMABLE) && !self->did_respond) {
 		if(COAP_CODE_IS_REQUEST(code)) {
-			smcp_message_begin_response(HTTP_TO_COAP_CODE(smcp_convert_status_to_result_code(status)));
+			int result_code = smcp_convert_status_to_result_code(ret);
+			if(ret == SMCP_STATUS_OK) {
+				if(code==COAP_METHOD_GET)
+					result_code = COAP_RESULT_205_CONTENT;
+				else if(code==COAP_METHOD_POST || code==COAP_METHOD_PUT)
+					result_code = COAP_RESULT_204_CHANGED;
+			}
+			smcp_message_begin_response(result_code);
 		} else {
-			// TODO: Need a way to specify a reset response.
 			smcp_message_begin_response(0);
+			if(ret)
+				self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
+			else
+				self->outbound.packet->tt = COAP_TRANS_TYPE_ACK;
 		}
 		smcp_message_send();
 	}
@@ -535,6 +571,7 @@ smcp_daemon_handle_inbound_packet(
 bail:
 	smcp_set_current_daemon(NULL);
 	self->is_processing_message = false;
+	self->force_current_outbound_code = false;
 	return ret;
 }
 
@@ -561,7 +598,8 @@ smcp_daemon_process(
 	require_action_string(errno == 0,
 		bail,
 		ret = SMCP_STATUS_ERRNO,
-		strerror(errno));
+		strerror(errno)
+	);
 
 	if(tmp > 0) {
 		char packet[SMCP_MAX_PACKET_LENGTH];
@@ -571,12 +609,12 @@ smcp_daemon_process(
 
 		packet_length = recvfrom(
 			self->fd,
-			    (void*)packet,
+			(void*)packet,
 			packet_length,
 			0,
-			    (struct sockaddr*)&packet_saddr,
+			(struct sockaddr*)&packet_saddr,
 			&packet_saddr_len
-		    );
+		);
 
 		require_action(packet_length > 0, bail, ret = SMCP_STATUS_ERRNO);
 
@@ -586,564 +624,21 @@ smcp_daemon_process(
 			self,
 			packet,
 			packet_length,
-			    (struct sockaddr*)&packet_saddr,
+			(struct sockaddr*)&packet_saddr,
 			packet_saddr_len
-		    );
+		);
 	}
 #endif
 
 	smcp_set_current_daemon(self);
 	smcp_daemon_handle_timers(self);
+
+bail:
 	smcp_set_current_daemon(NULL);
-
-bail:
-	return ret;
-}
-
-#pragma mark -
-#pragma mark Constrained sending API
-
-smcp_status_t
-smcp_message_begin(
-	smcp_daemon_t self, coap_code_t code, coap_transaction_type_t tt
-) {
-	if(!self)
-		self = smcp_get_current_daemon();
-	check(!smcp_get_current_daemon() || smcp_get_current_daemon()==self);
-	smcp_set_current_daemon(self);
-
-	self->current_outbound_header_count = 0;
-	self->current_outbound_tt = tt;
-	self->current_outbound_code = code;
-
-	self->current_outbound_header_len = 0;
-	self->current_outbound_content_len = 0;
-	self->force_current_outbound_code = false;
 	self->is_responding = false;
-
-#if SMCP_USE_BSD_SOCKETS
-	self->current_outbound_socklen = 0;
-#elif defined(CONTIKI)
-	// Writeme!
-#endif
-	return SMCP_STATUS_OK;
-}
-
-smcp_status_t smcp_message_begin_response(coap_code_t code) {
-	smcp_status_t ret = SMCP_STATUS_OK;
-
-	const smcp_daemon_t self = smcp_get_current_daemon();
-
-	require_action_string(!self->did_respond,
-		bail,
-		ret = SMCP_STATUS_RESPONSE_NOT_ALLOWED,
-		"Attempted to send more than one response!"
-	);
-
-	// If we have already started responding, don't bother.
-	if(self->is_responding)
-		goto bail;
-
-	self->is_responding = true;
-
-	smcp_message_begin(self,code,COAP_TRANS_TYPE_ACK);
-	smcp_message_set_tid(self->current_inbound_request_tid);
-
-	if(self->current_inbound_request_token) {
-		ret = smcp_message_add_header(
-			COAP_HEADER_TOKEN,
-			self->current_inbound_request_token,
-			self->current_inbound_request_token_len
-		);
-	}
-	if(self->has_cascade_count) {
-		ret = smcp_message_add_header(
-			COAP_HEADER_CASCADE_COUNT,
-			(char*)&self->cascade_count,
-			1
-		);
-	}
-
-#if SMCP_USE_BSD_SOCKETS
-	ret = smcp_message_set_destaddr(
-		self->current_inbound_saddr,
-		self->current_inbound_socklen
-	);
-#elif CONTIKI
-	ret = smcp_message_set_destaddr(
-		&self->current_inbound_toaddr,
-		self->current_inbound_toport
-	);
-#endif
-
-bail:
 	return ret;
 }
 
-smcp_status_t
-smcp_message_set_tid(coap_transaction_id_t tid) {
-	smcp_get_current_daemon()->current_outbound_tid = tid;
-	return SMCP_STATUS_OK;
-}
-
-smcp_status_t
-smcp_message_set_code(coap_code_t code) {
-	const smcp_daemon_t self = smcp_get_current_daemon();
-	if(self->force_current_outbound_code)
-		self->current_outbound_code = code;
-	return SMCP_STATUS_OK;
-}
-
-#if SMCP_USE_BSD_SOCKETS
-smcp_status_t
-smcp_message_set_destaddr(
-	struct sockaddr *sockaddr, socklen_t socklen
-) {
-	memcpy(
-		&smcp_get_current_daemon()->current_outbound_saddr,
-		sockaddr,
-		socklen
-	);
-	smcp_get_current_daemon()->current_outbound_socklen = socklen;
-
-	return SMCP_STATUS_OK;
-}
-#elif defined(CONTIKI)
-smcp_status_t
-smcp_message_set_destaddr(
-	const uip_ipaddr_t *toaddr, uint16_t toport
-) {
-	uip_ipaddr_copy(&smcp_get_current_daemon()->udp_conn->ripaddr, toaddr);
-	smcp_get_current_daemon()->udp_conn->rport = toport;
-
-	return SMCP_STATUS_OK;
-}
-#endif
-
-smcp_status_t
-smcp_message_add_header(
-	coap_header_key_t key, const char* value, size_t len
-) {
-	// TODO: Make sure we don't overflow!
-	coap_header_item_t* item = &smcp_get_current_daemon()
-		->current_outbound_headers[smcp_get_current_daemon()->current_outbound_header_count++];
-
-	item->key = key;
-	item->value = (char*)value;
-	item->value_len = len;
-
-	return SMCP_STATUS_OK;
-}
-
-smcp_status_t
-smcp_message_set_destaddr_from_host_and_port(const char* addr_str,uint16_t toport) {
-	smcp_status_t ret = SMCP_STATUS_OK;
-
-	toport = ntohl(toport);
-
-#if SMCP_USE_BSD_SOCKETS
-	struct sockaddr_in6 saddr = {
-		.sin6_family	= AF_INET6,
-#if SOCKADDR_HAS_LENGTH_FIELD
-		.sin6_len		= sizeof(struct sockaddr_in6),
-#endif
-	};
-
-	struct addrinfo hint = {
-		.ai_flags		= AI_ALL | AI_V4MAPPED,
-		.ai_family		= AF_INET6,
-		.ai_socktype	= SOCK_DGRAM,
-		.ai_protocol	= IPPROTO_UDP,
-	};
-
-	struct addrinfo *results = NULL;
-
-	int error = getaddrinfo(addr_str, NULL, &hint, &results);
-
-	if(error && (inet_addr(addr_str) != INADDR_NONE)) {
-		char addr_v4mapped_str[8 + strlen(addr_str)];
-		sprintf(addr_v4mapped_str, "::ffff:%s", addr_str);
-		error = getaddrinfo(addr_v4mapped_str,
-			NULL,
-			&hint,
-			&results);
-	}
-
-	require_action_string(
-		!error,
-		bail,
-		ret = SMCP_STATUS_HOST_LOOKUP_FAILURE,
-		gai_strerror(error)
-	);
-
-	require_action(
-		results,
-		bail,
-		ret = SMCP_STATUS_HOST_LOOKUP_FAILURE
-	);
-
-	memcpy(&saddr, results->ai_addr, results->ai_addrlen);
-
-	saddr.sin6_port = toport;
-
-	ret = smcp_message_set_destaddr((struct sockaddr *)&saddr,sizeof(struct sockaddr_in6));
-	require_noerr(ret, bail);
-
-#elif CONTIKI
-	uip_ipaddr_t toaddr;
-	memset(&toaddr, 0, sizeof(toaddr));
-
-	ret = uiplib_ipaddrconv(
-		addr_str,
-		&toaddr
-	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
-	
-	if(ret) {
-		uip_ipaddr_t *temp = NULL;
-		switch(resolv_lookup2(addr_str,&temp)) {
-			case RESOLV_STATUS_CACHED:
-				memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
-				ret = SMCP_STATUS_OK;
-				break;
-			case RESOLV_STATUS_UNCACHED:
-			case RESOLV_STATUS_EXIPRED:
-				resolv_query(addr_str);
-			case RESOLV_STATUS_RESOLVING:
-				ret = SMCP_STATUS_WAIT_FOR_DNS;
-				break;
-			default:
-			case RESOLV_STATUS_ERROR:
-			case RESOLV_STATUS_NOT_FOUND:
-				ret = SMCP_STATUS_HOST_LOOKUP_FAILURE;
-				break;
-		}
-	}
-	
-	require_noerr(ret,bail);
-
-	ret = smcp_message_set_destaddr(&toaddr,toport);
-
-	require_noerr(ret, bail);
-#else
-#error TODO: Implement me!
-#endif
-
-bail:
-	return ret;
-}
-
-smcp_status_t
-smcp_message_set_uri(
-	const char* uri, char flags
-) {
-	smcp_status_t ret = SMCP_STATUS_OK;
-
-	const char* start;
-
-	if(!(flags&SMCP_MSG_SKIP_DESTADDR)) do {
-		char* addr_str = NULL;
-		char* port_str = NULL;
-		char* uri_copy = NULL;
-		uint16_t toport = SMCP_DEFAULT_PORT;
-
-		require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-
-		if(!url_is_absolute(uri)) {
-			// Pairing with ourselves
-			addr_str = "::1";
-			toport = smcp_daemon_get_port(smcp_get_current_daemon());
-		} else {
-			uri_copy = alloca(strlen(uri) + 1);
-
-			strcpy(uri_copy, uri);
-
-			// Parse the URI.
-			require_action_string(
-				url_parse(
-					uri_copy,
-					NULL,
-					NULL,
-					NULL,
-					&addr_str,
-					&port_str,
-					NULL,
-					NULL
-				),
-				bail,
-				ret = SMCP_STATUS_URI_PARSE_FAILURE,
-				"Unable to parse URL"
-			);
-
-			if(port_str)
-				toport = strtol(port_str, NULL, 10);
-		}
-
-		// If we don't have an address, skip this part.
-		if(!addr_str || addr_str[0]==0)
-			break;
-
-		DEBUG_PRINTF(
-			CSTR("URI Parse: \"%s\" -> host=\"%s\" port=\"%u\""),
-			uri,
-			addr_str,
-			toport
-		);
-
-		ret = smcp_message_set_destaddr_from_host_and_port(addr_str,toport); // TODO: Handle port
-		require_noerr(ret, bail);
-	} while(0);
-
-	if(url_is_absolute(uri)) {
-		// Skip past scheme.
-		while((*uri != ':'))
-			if(!*uri++) {
-				ret = SMCP_STATUS_URI_PARSE_FAILURE;
-				goto bail;
-			}
-
-		uri++;
-
-		if((uri[0] != '/') || (uri[1] != '/')) {
-			ret = SMCP_STATUS_URI_PARSE_FAILURE;
-			goto bail;
-		}
-
-		uri += 2;
-
-		start = uri;
-
-		// Skip past authority.
-		while((*uri != '/') && *uri)
-			uri++;
-
-		// TODO: Handle port
-		if(!(flags&SMCP_MSG_SKIP_AUTHORITY)) {
-			ret = smcp_message_add_header(
-				COAP_HEADER_URI_HOST,
-				start,
-				uri - start
-			);
-			require_noerr(ret,bail);
-		}
-	}
-
-	if(!*uri)
-		goto bail;
-
-	// Skip past first slashes.
-	while((*uri == '/') && *uri)
-		uri++;
-
-	start = uri;
-
-	// Skip past path.
-	while((*uri != '?') && *uri)
-		uri++;
-
-	if(uri - start) {
-		ret = smcp_message_add_header(COAP_HEADER_URI_PATH, start, uri - start);
-		require_noerr(ret,bail);
-	}
-
-	if(!*uri++)
-		goto bail;
-
-	start = uri;
-
-	if(!*uri)
-		goto bail;
-
-	// Skip to the end
-	while(*uri++) ;
-
-	ret = smcp_message_add_header(COAP_HEADER_URI_QUERY, start, uri - start);
-	require_noerr(ret,bail);
-
-bail:
-	return ret;
-}
-
-smcp_status_t
-smcp_message_set_content(const char* value,size_t len) {
-	smcp_status_t ret = SMCP_STATUS_FAILURE;
-
-	size_t max_len;
-	char* dest;
-
-	if(len==COAP_HEADER_CSTR_LEN)
-		len = strlen(value);
-
-	max_len = len;
-
-	dest = smcp_message_get_content_ptr(&max_len);
-
-	require(dest,bail);
-
-	require(max_len>=len,bail);
-
-	memcpy(dest, value, len);
-
-	smcp_message_set_content_len(len);
-
-	ret = SMCP_STATUS_OK;
-
-bail:
-	return ret;
-}
-
-char*
-smcp_message_get_content_ptr(size_t* max_len) {
-#if VERBOSE_DEBUG
-	coap_dump_headers(SMCP_DEBUG_OUT_FILE,
-		"Outbound: ",
-		smcp_get_current_daemon()->current_outbound_code,
-		smcp_get_current_daemon()->current_outbound_headers,
-		smcp_get_current_daemon()->current_outbound_header_count
-	);
-	DEBUG_PRINTF(CSTR("Outbound: tt=%d"),smcp_get_current_daemon()->current_outbound_tt);
-#endif
-
-	char* buffer;
-
-#if SMCP_USE_BSD_SOCKETS
-	buffer = smcp_get_current_daemon()->current_outbound_packet;
-#elif CONTIKI
-	uip_udp_conn = smcp_get_current_daemon()->udp_conn;
-	buffer = (unsigned char*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
-#else
-#error WRITEME!
-#endif
-
-	smcp_get_current_daemon()->current_outbound_header_len = coap_encode_header(
-		(unsigned char*)buffer,
-		SMCP_MAX_PACKET_LENGTH,
-		smcp_get_current_daemon()->current_outbound_tt,
-		smcp_get_current_daemon()->current_outbound_code,
-		smcp_get_current_daemon()->current_outbound_tid,
-		smcp_get_current_daemon()->current_outbound_headers,
-		smcp_get_current_daemon()->current_outbound_header_count
-	);
-
-	if(max_len)
-		*max_len = SMCP_MAX_PACKET_LENGTH-smcp_get_current_daemon()->current_outbound_header_len;
-
-	return buffer + smcp_get_current_daemon()->current_outbound_header_len;
-}
-
-smcp_status_t
-smcp_message_set_content_len(size_t len) {
-	smcp_get_current_daemon()->current_outbound_content_len = len;
-	return SMCP_STATUS_OK;
-}
-
-smcp_status_t
-smcp_message_send() {
-	smcp_status_t ret = SMCP_STATUS_FAILURE;
-
-	if(!smcp_get_current_daemon()->current_outbound_header_len) {
-		require(smcp_message_get_content_ptr(NULL)!=NULL,bail);
-	}
-
-#if SMCP_USE_BSD_SOCKETS
-
-	require_string(smcp_get_current_daemon()->current_outbound_socklen,bail,"Destaddr not set");
-
-	ssize_t sent_bytes = sendto(
-		smcp_get_current_daemon()->fd,
-		smcp_get_current_daemon()->current_outbound_packet,
-		smcp_get_current_daemon()->current_outbound_header_len +
-		smcp_get_current_daemon()->current_outbound_content_len,
-		0,
-		(struct sockaddr *)&smcp_get_current_daemon()->current_outbound_saddr,
-		smcp_get_current_daemon()->current_outbound_socklen
-	);
-
-	require_action_string(
-		(sent_bytes>=0),
-		bail, ret = SMCP_STATUS_ERRNO, strerror(errno)
-	);
-
-	require_action_string(
-		sent_bytes,
-		bail, ret = SMCP_STATUS_FAILURE, "sendto() returned zero."
-	);
-
-#elif CONTIKI
-	uip_udp_conn = smcp_get_current_daemon()->udp_conn;
-	uip_slen = smcp_get_current_daemon()->current_outbound_header_len +
-		smcp_get_current_daemon()->current_outbound_content_len;
-
-	uip_process(UIP_UDP_SEND_CONN);
-
-#if UIP_CONF_IPV6
-	tcpip_ipv6_output();
-#else
-	if(uip_len > 0)
-		tcpip_output();
-#endif
-	uip_slen = 0;
-
-	memset(&smcp_get_current_daemon()->udp_conn->ripaddr, 0,
-		sizeof(uip_ipaddr_t));
-	smcp_get_current_daemon()->udp_conn->rport = 0;
-#endif
-	if(smcp_get_current_daemon()->is_responding)
-		smcp_get_current_daemon()->did_respond = true;
-	smcp_get_current_daemon()->is_responding = false;
-
-	ret = SMCP_STATUS_OK;
-bail:
-	return ret;
-}
-
-#pragma mark -
-
-smcp_status_t
-smcp_message_set_content_type(coap_content_type_t t) {
-	static coap_content_type_t type;
-	type = t;
-	return smcp_message_add_header(COAP_HEADER_CONTENT_TYPE, (char*)&type, 1);
-}
-
-smcp_status_t
-smcp_message_set_content_formatted(const char* fmt, ...) {
-	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	size_t len = 0;
-	va_list args;
-	va_start(args,fmt);
-
-	char* content = smcp_message_get_content_ptr(&len);
-
-	require(content!=NULL,bail);
-
-	len = vsnprintf(content,len,fmt,args);
-
-	require(len!=0,bail);
-
-	ret = smcp_message_set_content_len(len);
-
-bail:
-	va_end(args);
-	return ret;
-}
-
-smcp_status_t
-smcp_message_set_var_content_int(int v) {
-	smcp_message_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-	return smcp_message_set_content_formatted("v=%d",v);
-}
-
-smcp_status_t
-smcp_message_set_var_content_unsigned_int(unsigned int v) {
-	smcp_message_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-	return smcp_message_set_content_formatted("v=%u",v);
-}
-
-smcp_status_t
-smcp_message_set_var_content_unsigned_long_int(unsigned long int v) {
-	smcp_message_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-	return smcp_message_set_content_formatted("v=%ul",v);
-}
 
 
 
@@ -1164,6 +659,11 @@ smcp_internal_delete_handler_(
 	DEBUG_PRINTF(CSTR(
 			"%p: Deleting response handler w/tid=%d"), self, handler->tid);
 
+	if(!smcp_get_current_daemon())
+		smcp_set_current_daemon(self);
+
+	check(self==smcp_get_current_daemon());
+
 	// Remove the timer associated with this handler.
 	smcp_daemon_invalidate_timer(self, &handler->timer);
 
@@ -1179,7 +679,7 @@ smcp_internal_delete_handler_(
 }
 
 //static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
-static int smcp_rtt = 100;
+static int smcp_rtt = 500;
 
 static int calc_retransmit_timeout(int retries_) {
 	int ret = smcp_rtt;
@@ -1190,8 +690,8 @@ static int calc_retransmit_timeout(int retries_) {
 
 	ret /= 1000;
 
-	if(ret > 2500)
-		ret = 2500;
+	if(ret > 5000)
+		ret = 5000;
 
 	return ret;
 }
@@ -1205,24 +705,36 @@ smcp_internal_handler_timeout_(
 	smcp_response_handler_func callback = handler->callback;
 	void* context = handler->context;
 
-	if(handler->resendCallback && (convert_timeval_to_cms(&handler->expiration) > 0)) {
-		// Resend.
-		self->current_outbound_tid = handler->tid;
-
-		status = handler->resendCallback(context);
-
-		if(status == SMCP_STATUS_WAIT_FOR_DNS) {
+	if((convert_timeval_to_cms(&handler->expiration) > 0)) {
+		if(handler->waiting_for_async_response) {
+			status = SMCP_STATUS_OK;
 			smcp_daemon_schedule_timer(
 				self,
 				&handler->timer,
-				100
+				convert_timeval_to_cms(&handler->expiration)
 			);
-		} else if(status == SMCP_STATUS_OK) {
-			smcp_daemon_schedule_timer(
-				self,
-				&handler->timer,
-				calc_retransmit_timeout(handler->attemptCount++)
-			);
+		} else if(handler->resendCallback) {
+			// Resend.
+			self->outbound.next_tid = handler->tid;
+			self->is_processing_message = false;
+			self->is_responding = false;
+			self->did_respond = false;
+
+			status = handler->resendCallback(context);
+
+			if(status == SMCP_STATUS_WAIT_FOR_DNS) {
+				smcp_daemon_schedule_timer(
+					self,
+					&handler->timer,
+					100
+				);
+			} else if(status == SMCP_STATUS_OK) {
+				smcp_daemon_schedule_timer(
+					self,
+					&handler->timer,
+					calc_retransmit_timeout(handler->attemptCount++)
+				);
+			}
 		}
 	}
 	
@@ -1268,6 +780,7 @@ smcp_begin_transaction(
 	handler->callback = callback;
 	handler->context = context;
 	handler->flags = flags;
+	handler->waiting_for_async_response = false;
 	convert_cms_to_timeval(&handler->expiration, cmsExpiration);
 	handler->attemptCount = 0;
 
@@ -1275,6 +788,11 @@ smcp_begin_transaction(
 		// In this case we will be reattempting for a given duration.
 		// The first attempt should happen pretty much immediately.
 		cmsExpiration = 0;
+
+		if(flags&SMCP_TRANSACTION_DELAY_START) {
+			// Unless this flag is set. Then we need to wait a moment.
+			cmsExpiration = 10 + (SMCP_FUNC_RANDOM_UINT32() % 290);
+		}
 	}
 
 	smcp_daemon_schedule_timer(
@@ -1289,10 +807,10 @@ smcp_begin_transaction(
 	);
 
 	bt_insert(
-		    (void**)&self->transactions,
+		(void**)&self->transactions,
 		handler,
-		    (bt_compare_func_t)smcp_transaction_compare,
-		    (bt_delete_func_t)smcp_internal_delete_handler_,
+		(bt_compare_func_t)smcp_transaction_compare,
+		(bt_delete_func_t)smcp_internal_delete_handler_,
 		self
 	);
 
@@ -1332,12 +850,11 @@ smcp_daemon_handle_response(
 			self,
 			smcp_daemon_get_current_tid()
 		);
-		coap_dump_headers(
+		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
 			"    ",
-			(int)HTTP_TO_COAP_CODE(self->current_inbound_code),
-			smcp_daemon_get_first_header(),
-			smcp_daemon_get_current_request_header_count()
+			self->inbound.packet,
+			0
 		);
 	}
 #endif
@@ -1354,17 +871,39 @@ smcp_daemon_handle_response(
 		self
 	);
 
-#if VERBOSE_DEBUG
-	require_string(handler, bail, "Unable to find response handler");
-#else
-	require_quiet(handler, bail);
-#endif
+	if(!handler && self->inbound.token_option) {
+		coap_transaction_id_t tid;
+		memcpy(&tid,self->inbound.token_option+1,sizeof(tid));
+		handler = (smcp_transaction_t)bt_find(
+			(void**)&self->transactions,
+			(void*)&tid,
+			(bt_compare_func_t)smcp_transaction_compare_tid,
+			self
+		);
+		if(handler && !handler->waiting_for_async_response)
+			handler = NULL;
+	}
 
-	if(handler->callback) {
-		if(handler->flags & SMCP_RESPONSE_HANDLER_ALWAYS_TIMEOUT) {
+	if(!handler) {
+		if(self->inbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
+			ret = smcp_message_begin_response(0);
+			require_noerr(ret,bail);
+			self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
+			ret = smcp_message_send();
+			require_noerr(ret,bail);
+		}
+	} else if(	(	self->inbound.packet->tt == COAP_TRANS_TYPE_ACK
+			|| self->inbound.packet->tt == COAP_TRANS_TYPE_NONCONFIRMABLE
+		)
+		&& !self->inbound.packet->code
+	) {
+		DEBUG_PRINTF("Inbound: Async Response");
+		handler->waiting_for_async_response = true;
+	} else if(handler->callback) {
+		if(handler->flags & SMCP_TRANSACTION_ALWAYS_TIMEOUT) {
 			handler->resendCallback = NULL;
 			(*handler->callback)(
-				self->current_inbound_code,
+				self->inbound.packet->code,
 				handler->context
 			);
 		} else {
@@ -1372,7 +911,7 @@ smcp_daemon_handle_response(
 			handler->resendCallback = NULL;
 			handler->callback = NULL;
 			(*callback)(
-			    self->current_inbound_code,
+			    self->inbound.packet->code,
 			    handler->context
 			);
 		}
@@ -1383,32 +922,110 @@ bail:
 	return ret;
 }
 
+#pragma mark -
 
 int smcp_convert_status_to_result_code(smcp_status_t status) {
-	int ret = HTTP_RESULT_CODE_INTERNAL_SERVER_ERROR;
+	int ret = COAP_RESULT_500_INTERNAL_SERVER_ERROR;
 
 	switch(status) {
 	case SMCP_STATUS_OK:
-		ret = HTTP_RESULT_CODE_OK;
+		ret = COAP_RESULT_200;
 		break;
 	case SMCP_STATUS_NOT_FOUND:
-		ret = HTTP_RESULT_CODE_NOT_FOUND;
+		ret = COAP_RESULT_404_NOT_FOUND;
 		break;
 	case SMCP_STATUS_NOT_IMPLEMENTED:
-		ret = HTTP_RESULT_CODE_NOT_IMPLEMENTED;
+		ret = COAP_RESULT_501_NOT_IMPLEMENTED;
 		break;
 	case SMCP_STATUS_NOT_ALLOWED:
-		ret = HTTP_RESULT_CODE_METHOD_NOT_ALLOWED;
+		ret = COAP_RESULT_405_METHOD_NOT_ALLOWED;
 		break;
 	case SMCP_STATUS_BAD_NODE_TYPE:
 	case SMCP_STATUS_UNSUPPORTED_URI:
-		ret = HTTP_RESULT_CODE_BAD_REQUEST;
+		ret = COAP_RESULT_400_BAD_REQUEST;
 		break;
 	case SMCP_STATUS_BAD_OPTION:
-		ret = HTTP_RESULT_CODE_BAD_OPTION;
+		ret = COAP_RESULT_402_BAD_OPTION;
 		break;
 	}
 
+	return ret;
+}
+
+smcp_status_t
+smcp_message_set_async_response(struct smcp_async_response_s* x) {
+	smcp_status_t ret = 0;
+	smcp_daemon_t const self = smcp_get_current_daemon();
+	self->outbound.packet->tt = x->tt;
+
+#if SMCP_USE_BSD_SOCKETS
+	ret = smcp_message_set_destaddr((void*)&x->saddr,x->socklen);
+#elif CONTIKI
+	ret = smcp_message_set_destaddr(&x->toaddr,x->toport);
+#endif
+
+	require_noerr(ret, bail);
+
+	ret = smcp_message_add_header(COAP_HEADER_TOKEN, x->token_value, x->token_len);
+	require_noerr(ret, bail);
+bail:
+	return ret;
+}
+
+smcp_status_t
+smcp_start_async_response(struct smcp_async_response_s* x) {
+	smcp_status_t ret = 0;
+	smcp_daemon_t const self = smcp_get_current_daemon();
+
+	require_action(x!=NULL,bail,ret=SMCP_STATUS_INVALID_ARGUMENT);
+
+	ret = smcp_message_begin_response(COAP_CODE_EMPTY);
+
+	require_noerr(ret, bail);
+
+	ret = smcp_message_send();
+
+	require_noerr(ret, bail);
+
+	// TODO: Make duplicate detection better!
+	if(x->original_tid && x->original_tid == self->inbound.packet->tid) {
+		ret = SMCP_STATUS_DUPE;
+		goto bail;
+	}
+
+	x->original_tid = self->inbound.packet->tid;
+	x->tt = self->inbound.packet->tt;
+
+	if(self->inbound.token_option) {
+		x->token_len = self->inbound.token_option[0] & 0x0F;
+		memcpy(x->token_value,self->inbound.token_option+1,x->token_len);
+	} else {
+		x->token_len = 0;
+	}
+
+#if SMCP_USE_BSD_SOCKETS
+	x->socklen = self->inbound.socklen;
+	memcpy(&x->saddr,self->inbound.saddr,sizeof(x->saddr));
+#elif CONTIKI
+	x->toaddr = self->inbound.toaddr;
+	x->toport = self->inbound.toport;
+#endif
+
+bail:
+	return ret;
+}
+
+smcp_status_t
+smcp_finish_async_response(struct smcp_async_response_s* x) {
+	smcp_status_t ret = 0;
+
+	// TODO: Add more stuff!
+
+	x->original_tid = 0;
+
+	require_noerr(ret, bail);
+
+bail:
 	return ret;
 }
 
@@ -1423,15 +1040,16 @@ smcp_daemon_handle_request(
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
-		DEBUG_PRINTF(CSTR(
-				"smcp_daemon(%p): Incoming request! tid=%d"), self,
-			smcp_daemon_get_current_tid());
-		coap_dump_headers(
+		DEBUG_PRINTF(
+			"smcp_daemon(%p): Incoming request! tid=%d",
+			self,
+			smcp_daemon_get_current_tid()
+		);
+		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
 			"    ",
-			    (int)method,
-			smcp_daemon_get_first_header(),
-			smcp_daemon_get_current_request_header_count()
+			self->inbound.packet,
+			0
 		);
 	}
 #endif
@@ -1442,12 +1060,16 @@ smcp_daemon_handle_request(
 	// TODO: Add authentication!
 
 	{
-		coap_header_key_t key;
+		uint8_t* prev_option_ptr = self->inbound.this_option;
+		coap_option_key_t prev_key = 0;
+		coap_option_key_t key;
 		uint8_t* value;
 		size_t value_len;
-		while((key==smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_current_request_next_header_(&value, &value_len))!=COAP_HEADER_INVALID) {
 			if(key>COAP_HEADER_URI_PATH) {
-				smcp_current_request_rewind_last_header();
+				self->inbound.this_option = prev_option_ptr;
+				self->inbound.last_option_key = prev_key;
+				self->inbound.options_left++;
 				break;
 			} else if(key==COAP_HEADER_URI_PATH) {
 				smcp_node_t next = smcp_node_find(
@@ -1458,7 +1080,9 @@ smcp_daemon_handle_request(
 				if(next) {
 					node = next;
 				} else {
-					smcp_current_request_rewind_last_header();
+					self->inbound.this_option = prev_option_ptr;
+					self->inbound.last_option_key = prev_key;
+					self->inbound.options_left++;
 					break;
 				}
 			} else if(key==COAP_HEADER_URI_HOST) {
@@ -1471,25 +1095,26 @@ smcp_daemon_handle_request(
 				// Skip the content type for now,
 				// but we will need to keep track of this later.
 			} else {
-				require_action(
-					!COAP_HEADER_IS_REQUIRED(key),
-					bail,
-					ret=SMCP_STATUS_BAD_OPTION
-				);
+				if(COAP_HEADER_IS_REQUIRED(key)) {
+					ret=SMCP_STATUS_BAD_OPTION;
+					assert_printf("Unrecognized option %d, \"%s\"",
+						key,
+						coap_option_key_to_cstr(key, false)
+					);
+					goto bail;
+				}
 			}
+			prev_option_ptr = self->inbound.this_option;
+			prev_key = self->inbound.last_option_key;
 		}
 	}
 
 	if(node->request_handler)
 		request_handler = node->request_handler;
 
-	if(self->current_inbound_code == COAP_METHOD_PAIR) {
-		request_handler = &smcp_daemon_handle_pair;
-	}
-
 	ret = (*request_handler)(
 	    node,
-	    self->current_inbound_code
+	    self->inbound.packet->code
 	);
 
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
@@ -1505,8 +1130,6 @@ smcp_default_request_handler(
 ) {
 	if(method == COAP_METHOD_GET) {
 		return smcp_daemon_handle_list(node,method);
-	} else if(method == COAP_METHOD_PAIR) {
-		return smcp_daemon_handle_pair(node,method);
 	}
 	return SMCP_STATUS_NOT_IMPLEMENTED;
 }
@@ -1521,24 +1144,15 @@ smcp_daemon_handle_list(
 	char replyContent[SMCP_MAX_PATH_LENGTH + 32 + 1];
 	size_t content_break_threshold = 120;
 	size_t content_offset = 0;
-
-	smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
-
+	const char* prefix = NULL;
 	memset(replyContent, 0, sizeof(replyContent));
 
 	if(!node->parent) {
 		if(smcp_current_request_header_strequal(COAP_HEADER_URI_PATH,".well-known")) {
 			smcp_current_request_next_header(NULL, NULL);
 			if(smcp_current_request_header_strequal(COAP_HEADER_URI_PATH,"core")) {
-				// Redirect requests for .well-known/core to the root for now.
-				// Note that redirections aren't really a part of COAP,
-				// so this isn't really compliant.
-				smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_TEMPORARY_REDIRECT));
-				smcp_message_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
-				smcp_message_add_header(COAP_HEADER_LOCATION_PATH, "", 0);
-				smcp_message_set_content("Redirected to </>.\n",COAP_HEADER_CSTR_LEN);
-				smcp_message_send();
-				goto bail;
+				smcp_current_request_next_header(NULL, NULL);
+				prefix = "/";
 			} else {
 				ret = SMCP_STATUS_NOT_ALLOWED;
 				goto bail;
@@ -1546,13 +1160,15 @@ smcp_daemon_handle_list(
 		}
 	}
 
-	coap_header_key_t key;
-	uint8_t* value;
+	coap_option_key_t key;
+	const uint8_t* value;
 	size_t value_len;
 	{
-		while((key==smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
-
+			if(key == COAP_HEADER_URI_QUERY) {
+				// Skip URI query components for now.
+			} else
 			if(key == COAP_HEADER_CONTINUATION_RESPONSE) {
 				next_node = alloca(value_len + 1);
 				memcpy(next_node, value, value_len);
@@ -1572,11 +1188,14 @@ smcp_daemon_handle_list(
 					content_break_threshold = sizeof(replyContent) - 1;
 				}
 			} else {
-				require_action(
-					!COAP_HEADER_IS_REQUIRED(key),
-					bail,
-					ret=SMCP_STATUS_BAD_OPTION
-				);
+				if(COAP_HEADER_IS_REQUIRED(key)) {
+					ret=SMCP_STATUS_BAD_OPTION;
+					assert_printf("Unrecognized option %d, \"%s\"",
+						key,
+						coap_option_key_to_cstr(key, false)
+					);
+					goto bail;
+				}
 			}
 		}
 	}
@@ -1584,12 +1203,15 @@ smcp_daemon_handle_list(
 	if((content_break_threshold == 0) || (content_offset && !next_node)) {
 		// We don't support content offsets right now.
 		// TODO: Think about the implications of content offsets.
-		smcp_message_set_code(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_REQUESTED_RANGE_NOT_SATISFIABLE));
+		smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_REQUESTED_RANGE_NOT_SATISFIABLE));
+		smcp_message_send();
 		goto bail;
 	}
 
 	// Node should always be set by the time we get here.
 	require_action(node, bail, ret = SMCP_STATUS_BAD_ARGUMENT);
+
+	smcp_message_begin_response(COAP_RESULT_205_CONTENT);
 
 	if(next_node && next_node[0]) {
 		smcp_node_t next;
@@ -1628,6 +1250,9 @@ smcp_daemon_handle_list(
 
 		strlcat(replyContent, "<", sizeof(replyContent));
 
+		if(prefix)
+			strlcat(replyContent, prefix, sizeof(replyContent));
+
 		{
 			size_t len = strlen(replyContent);
 			if(sizeof(replyContent)-1>len)
@@ -1649,6 +1274,8 @@ smcp_daemon_handle_list(
 #endif
 	}
 
+	smcp_message_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+
 	// If there are more nodes, indicate as such in the headers.
 	if(node && next_node) {
 		smcp_message_set_code(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_PARTIAL_CONTENT));
@@ -1659,21 +1286,11 @@ smcp_daemon_handle_list(
 		);
 	}
 
-	coap_content_type_t content_type =
-	    COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
-
-	smcp_message_add_header(
-		COAP_HEADER_CONTENT_TYPE,
-		    (const void*)&content_type,
-		1
-	);
-
 	smcp_message_set_content(replyContent, COAP_HEADER_CSTR_LEN);
 
-bail:
-	if(ret)
-		smcp_message_set_code(HTTP_TO_COAP_CODE(smcp_convert_status_to_result_code(ret)));
 	smcp_message_send();
+
+bail:
 	return ret;
 }
 
@@ -1685,22 +1302,3 @@ smcp_node_t
 smcp_daemon_get_root_node(smcp_daemon_t self) {
 	return &self->root_node;
 }
-
-const coap_header_item_t*
-smcp_get_path_item_for_node(smcp_node_t node,const coap_header_item_t* item) {
-	while(item && item->key!=COAP_HEADER_URI_PATH)
-		item = smcp_daemon_get_next_header(item);
-	if(!node)
-		item = NULL;
-
-	while(item && node->parent && item->key!=COAP_HEADER_URI_PATH) {
-		node = node->parent;
-		item = smcp_daemon_get_next_header(item);
-	}
-
-	if(item && item->key!=COAP_HEADER_URI_PATH)
-		item = NULL;
-
-	return item;
-}
-

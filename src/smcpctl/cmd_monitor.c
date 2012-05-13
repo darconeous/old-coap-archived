@@ -45,24 +45,10 @@ monitor_action_func(
 	fprintf(stdout,
 		" *** Received Action! content_length=%d",
 		    (int)content_length);
-
-	{
-		const coap_header_item_t *iter =
-		    smcp_daemon_get_first_header();
-		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
-			if(iter->key == COAP_HEADER_CONTENT_TYPE) {
-				fprintf(stdout,
-					" content_type=\"%s\"",
-					coap_content_type_to_cstr((unsigned char)iter->value[0
-						]));
-			} else if(iter->key == SMCP_HEADER_ORIGIN) {
-				char tmp[iter->value_len + 1];
-				memcpy(tmp, iter->value, iter->value_len);
-				tmp[iter->value_len] = 0;
-				fprintf(stdout, " origin=\"%s\"", tmp);
-			}
-		}
-	}
+	fprintf(stdout,
+		" content_type=\"%s\"",
+		coap_content_type_to_cstr(smcp_daemon_get_current_inbound_content_type())
+	);
 
 	if(content_length)
 		fprintf(stdout, " content=\"%s\"", content);

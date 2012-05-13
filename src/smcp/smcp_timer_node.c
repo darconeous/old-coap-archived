@@ -1,3 +1,8 @@
+
+#ifndef VERBOSE_DEBUG
+#define VERBOSE_DEBUG 0
+#endif
+
 #include "assert_macros.h"
 #include "smcp_timer.h"
 #include "smcp_timer_node.h"
@@ -218,8 +223,6 @@ smcp_timer_request_handler(
 	const smcp_daemon_t self = smcp_get_current_daemon();
 	coap_content_type_t content_type = smcp_daemon_get_current_inbound_content_type();
 	char* query = NULL;
-//	const coap_header_item_t *iter = smcp_daemon_get_first_header();
-//	const coap_header_item_t *path_iter = smcp_get_path_item_for_node(node,iter);
 
 	enum {
 		PATH_ROOT,
@@ -244,11 +247,11 @@ smcp_timer_request_handler(
 	if(path!=PATH_ROOT)
 		smcp_current_request_next_header(NULL,NULL);
 
-	coap_header_key_t key;
+	coap_option_key_t key;
 	uint8_t* value;
 	size_t value_len;
 	{
-		while((key==smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 
 			if(key == COAP_HEADER_URI_QUERY && ((value[0]=='v')||(value[0]=='r'))) {
@@ -256,18 +259,21 @@ smcp_timer_request_handler(
 				memcpy(query, value, value_len);
 				query[value_len] = 0;
 			} else {
-				require_action(
+				require_action_string(
 					!COAP_HEADER_IS_REQUIRED(key),
 					bail,
-					ret=SMCP_STATUS_BAD_OPTION
+					ret=SMCP_STATUS_BAD_OPTION,
+					coap_option_key_to_cstr(key, false)
 				);
 			}
 		}
 	}
 
-	if(!query &&
-	        (content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED))
-	query = (char*)smcp_daemon_get_current_inbound_content_ptr();
+	if(	!query
+		&& (content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED)
+	) {
+		query = (char*)smcp_daemon_get_current_inbound_content_ptr();
+	}
 
 	if(!query)
 		query = "";
@@ -277,13 +283,17 @@ smcp_timer_request_handler(
 		if((method == COAP_METHOD_PUT) || (method == COAP_METHOD_POST)) {
 			if(strhasprefix_const(query, "reset")) {
 				smcp_timer_node_reset((smcp_timer_node_t)node);
+				smcp_message_begin_response(COAP_RESULT_204_CHANGED);
+				smcp_message_send();
 			} else if(strequal_const(query, "restart")) {
 				smcp_timer_node_reset((smcp_timer_node_t)node);
+				smcp_message_begin_response(COAP_RESULT_204_CHANGED);
+				smcp_message_send();
 			} else {
 				ret = SMCP_STATUS_NOT_ALLOWED;
 			}
 		} else if(method == COAP_METHOD_GET) {
-			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
 			content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
 			smcp_message_add_header(
 				COAP_HEADER_CONTENT_TYPE,
@@ -297,7 +307,7 @@ smcp_timer_request_handler(
 		}
 	} else if(path==PATH_RUNNING) {
 		if(method == COAP_METHOD_GET) {
-			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
 			smcp_message_set_var_content_int(
 				smcp_daemon_timer_is_scheduled(
 					smcp_get_current_daemon(),
@@ -320,6 +330,8 @@ smcp_timer_request_handler(
 					} else if(strequal_const(value, "!v")) {
 						smcp_timer_node_toggle((smcp_timer_node_t)node);
 					}
+					smcp_message_begin_response(COAP_RESULT_204_CHANGED);
+					smcp_message_send();
 					break;
 				}
 			}
@@ -330,19 +342,30 @@ smcp_timer_request_handler(
 		ret = SMCP_STATUS_NOT_ALLOWED;
 	} else if(path==PATH_PERIOD) {
 		if(method == COAP_METHOD_GET) {
-			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
 			smcp_message_set_var_content_unsigned_long_int(((smcp_timer_node_t)node)->period);
 			smcp_message_send();
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
 			char* value = NULL;
-			while(url_form_next_value((char**)&query, &key,
-					&value) && key && value) {
+			while(
+				url_form_next_value(
+					(char**)&query,
+					&key,
+					&value
+				)
+				&& key
+				&& value
+			) {
 				if(strequal_const(key, "v")) {
-					    ((smcp_timer_node_t)node)->period = strtol(value,
+					((smcp_timer_node_t)node)->period = strtol(
+						value,
 						NULL,
-						0);
+						0
+					);
+					smcp_message_begin_response(COAP_RESULT_204_CHANGED);
+					smcp_message_send();
 					break;
 				}
 			}
@@ -351,7 +374,7 @@ smcp_timer_request_handler(
 		}
 	} else if(path==PATH_REMAINING) {
 		if(method == COAP_METHOD_GET) {
-			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
 			smcp_message_set_var_content_int(smcp_timer_node_get_remaining((smcp_timer_node_t)node));
 			smcp_message_send();
 		} else if((method == COAP_METHOD_PUT) ||
@@ -374,6 +397,9 @@ smcp_timer_request_handler(
 							    ((smcp_timer_node_t)node)->remaining);
 					}
 
+					smcp_message_begin_response(COAP_RESULT_204_CHANGED);
+					smcp_message_send();
+
 					break;
 				}
 			}
@@ -382,7 +408,7 @@ smcp_timer_request_handler(
 		}
 	} else if(path==PATH_AUTORESTART) {
 		if(method == COAP_METHOD_GET) {
-			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
+			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
 			smcp_message_set_var_content_int(((smcp_timer_node_t)node)->autorestart);
 			smcp_message_send();
 		} else if((method == COAP_METHOD_PUT) ||
@@ -395,13 +421,18 @@ smcp_timer_request_handler(
 					((smcp_timer_node_t)node)->autorestart =
 						!!strtol(value,NULL,10);
 
-					smcp_daemon_trigger_custom_event_with_node(
+					smcp_message_begin_response(COAP_RESULT_204_CHANGED);
+					smcp_message_send();
+
+					ret = smcp_daemon_trigger_custom_event_with_node(
 						smcp_get_current_daemon(),
 						node,
 						"autorestart",
 						(void*)smcp_static_content_fetcher,//smcp_content_fetcher_func contentFetcher,
 						((smcp_timer_node_t)node)->autorestart?"1":"0"//void *context
 					);
+
+					check_noerr(ret);
 
 					break;
 				}

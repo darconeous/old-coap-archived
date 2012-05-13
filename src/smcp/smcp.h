@@ -2,7 +2,6 @@
 **	Stack Implementation
 **
 **	Written by Robert Quattlebaum <darco@deepdarc.com>.
-**	PUBLIC DOMAIN.
 */
 
 
@@ -132,6 +131,7 @@ enum {
 	SMCP_STATUS_URI_PARSE_FAILURE	= -19,
 	SMCP_STATUS_WAIT_FOR_DNS        = -20,
 	SMCP_STATUS_BAD_OPTION			= -21,
+	SMCP_STATUS_DUPE				= -22,
 };
 
 typedef int smcp_status_t;
@@ -149,7 +149,8 @@ typedef struct smcp_node_s *smcp_node_t;
 
 
 enum {
-	SMCP_RESPONSE_HANDLER_ALWAYS_TIMEOUT = (1 << 0),
+	SMCP_TRANSACTION_ALWAYS_TIMEOUT = (1 << 0),
+	SMCP_TRANSACTION_DELAY_START = (1 << 8),
 };
 
 typedef int32_t cms_t;
@@ -231,13 +232,15 @@ extern smcp_status_t smcp_message_set_destaddr(
 
 #define SMCP_MSG_SKIP_DESTADDR		(1<<0)
 #define SMCP_MSG_SKIP_AUTHORITY		(1<<1)
+#define SMCP_MSG_SKIP_PATH			(1<<2)
+#define SMCP_MSG_SKIP_QUERY			(1<<3)
 extern smcp_status_t smcp_message_set_uri(
 	const char* uri,
 	char flags
 );
 
 extern smcp_status_t smcp_message_add_header(
-	coap_header_key_t key,
+	coap_option_key_t key,
 	const char* value,
 	size_t len
 );
@@ -280,6 +283,8 @@ extern smcp_node_t smcp_node_init(
 
 extern void smcp_node_delete(smcp_node_t node);
 
+extern smcp_node_t smcp_node_get_root(smcp_node_t node);
+
 extern smcp_status_t smcp_node_get_path(
 	smcp_node_t node,
 	char* path,
@@ -318,12 +323,10 @@ coap_transaction_id_t smcp_daemon_get_current_tid();
 
 
 /*! Guaranteed to be NUL-terminated */
-extern char* smcp_daemon_get_current_inbound_content_ptr();
+extern const char* smcp_daemon_get_current_inbound_content_ptr();
 
 extern size_t smcp_daemon_get_current_inbound_content_len();
 extern coap_content_type_t smcp_daemon_get_current_inbound_content_type();
-
-//extern const coap_header_item_t* smcp_get_path_item_for_node(smcp_node_t node,const coap_header_item_t* item);
 
 #if SMCP_USE_BSD_SOCKETS
 extern struct sockaddr* smcp_daemon_get_current_request_saddr();
@@ -333,16 +336,38 @@ extern const uip_ipaddr_t* smcp_daemon_get_current_request_ipaddr();
 extern const uint16_t smcp_daemon_get_current_request_ipport();
 #endif
 
-extern const coap_header_item_t* smcp_daemon_get_first_header()SMCP_DEPRECATED;
-extern const coap_header_item_t* smcp_daemon_get_next_header(const coap_header_item_t* iter)SMCP_DEPRECATED;
-
-extern uint8_t smcp_daemon_get_current_request_header_count();
-
 extern smcp_daemon_t smcp_get_current_daemon(); // Used from callbacks
 
-extern coap_header_key_t smcp_current_request_next_header(uint8_t** ptr, size_t* len);
-extern void smcp_current_request_rewind_last_header();
-extern bool smcp_current_request_header_strequal(coap_header_key_t key,const char* str);
+extern coap_option_key_t smcp_current_request_next_header(const uint8_t** ptr, size_t* len);
+extern coap_option_key_t smcp_current_request_peek_header(const uint8_t** ptr, size_t* len);
+//extern void smcp_current_request_rewind_last_header();
+extern bool smcp_current_request_header_strequal(coap_option_key_t key,const char* str);
+#define smcp_current_request_header_strequal_const(key,str)	smcp_current_request_header_strequal(key,str);
+extern const struct coap_header_s* smcp_current_request_get_packet();
+
+#pragma mark -
+
+struct smcp_async_response_s {
+	coap_transaction_id_t original_tid;
+	coap_transaction_type_t tt;
+	uint8_t token_len;
+	uint8_t token_value[COAP_MAX_TOKEN_SIZE];
+#if SMCP_USE_BSD_SOCKETS
+	struct sockaddr_in6		saddr;
+	socklen_t				socklen;
+#elif CONTIKI
+	uip_ipaddr_t			toaddr;
+	uint16_t				toport;	// Always in network order.
+#endif
+};
+typedef struct smcp_async_response_s* smcp_async_response_t;
+
+extern smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x);
+extern smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
+extern smcp_status_t smcp_message_set_async_response(struct smcp_async_response_s* x);
+
+extern void smcp_daemon_set_proxy_url(smcp_daemon_t self,const char* url);
+extern void smcp_current_request_reset_next_header();
 
 __END_DECLS
 

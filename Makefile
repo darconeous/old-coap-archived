@@ -1,23 +1,44 @@
 
 HAS_LIBREADLINE=1
+HAS_LIBCURL=1
+
 INSTALL=install
 
 PREFIX=/usr/local
+
+SMCP_SOURCE_PATH=src/smcp/
+SMCP_SOURCE_FILES=smcp.c smcp_send.c smcp_node.c smcp_pairing.c btree.c url-helpers.c coap.c smcp_timer.c smcp_timer_node.c smcp_variable_node.c
 
 ifdef HAS_LIBREADLINE
 CFLAGS+=-DHAS_LIBREADLINE=1
 LFLAGS+=-lreadline
 endif
 
+ifdef HAS_LIBCURL
+CFLAGS+=-DHAS_LIBREADLINE=1
+LFLAGS+=-lreadline
+SMCP_SOURCE_FILES=smcp_curl_proxy.c
+endif
+
+ifdef HAS_ASSERTMACROS_H
+CFLAGS+=-DHAS_ASSERTMACROS_H=$(HAS_ASSERTMACROS_H)
+endif
+
+ifdef VERBOSE_DEBUG
+CFLAGS+=-DVERBOSE_DEBUG=$(VERBOSE_DEBUG)
+endif
+
+ifdef DEBUG
+CFLAGS+=-DDEBUG=$(DEBUG)
+else
 CFLAGS+=-DDEBUG=1
-#CFLAGS+=-DHAS_ASSERTMACROS_H=1
+endif
+
 
 CFLAGS+=-O0 -g
 
 CFLAGS+=-Isrc
 
-SMCP_SOURCE_PATH=src/smcp/
-SMCP_SOURCE_FILES=smcp.c smcp_node.c smcp_pairing.c btree.c url-helpers.c coap.c smcp_timer.c smcp_timer_node.c smcp_variable_node.c
 SMCP_OBJECT_FILES=${addprefix $(SMCP_SOURCE_PATH),${subst .c,.o,$(SMCP_SOURCE_FILES)}}
 
 

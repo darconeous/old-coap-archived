@@ -19,6 +19,7 @@
 #include <smcp/url-helpers.h>
 #include <signal.h>
 #include "smcpctl.h"
+#include <smcp/smcp_pairing.h>
 
 /*
    static arg_list_item_t option_list[] = {
@@ -44,21 +45,22 @@ pair_response_handler(
 //	smcp_daemon_t self = smcp_get_current_daemon();
 	char* content = smcp_daemon_get_current_inbound_content_ptr();
 	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
-	if((statuscode >= 100) && show_headers) {
+	if((statuscode >= COAP_RESULT_100) && show_headers) {
 		fprintf(stdout, "\n");
-		coap_dump_headers(stdout,
-			NULL,
-			statuscode,
-			smcp_daemon_get_first_header(),
-			smcp_daemon_get_current_request_header_count());
+		coap_dump_header(
+			stdout,
+			"NULL",
+			smcp_current_request_get_packet(),
+			0
+		);
 	}
-	if(((statuscode < 200) ||
-	            (statuscode >= 300)) &&
+	if(((statuscode < COAP_RESULT_200) ||
+	            (statuscode >= COAP_RESULT_300)) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
 		fprintf(stderr, "pair: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : http_code_to_cstr(statuscode));
-	if(content && (statuscode != HTTP_RESULT_CODE_CHANGED) &&
+				statuscode) : coap_code_to_cstr(statuscode));
+	if(content &&
 	    content_length) {
 		char contentBuffer[500];
 
@@ -82,20 +84,43 @@ pair_response_handler(
 smcp_status_t
 resend_pair_request(char* url[2]) {
 	smcp_status_t status;
+	size_t len = 0;
+	bool did_mutate = false;
+	while(url[0][len] && url[0][len]!='/') {
+		len++;
+	}
 
-	status = smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_PAIR, COAP_TRANS_TYPE_CONFIRMABLE);
+	// Temporarily mutate the input url because I'm lazy.
+	if(url[0][len]) {
+		did_mutate = true;
+		url[0][len] = 0;
+	}
+
+	status = smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_PUT, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
 
 	status = smcp_message_set_uri(url[0],0);
 	require_noerr(status,bail);
 
-	status = smcp_message_set_content(url[1], COAP_HEADER_CSTR_LEN);
+	// Root pairings object path
+	status = smcp_message_add_header(COAP_HEADER_URI_PATH,SMCP_PAIRING_DEFAULT_ROOT_PATH,COAP_HEADER_CSTR_LEN);
+	require_noerr(status,bail);
+
+	// Path to pair with
+	status = smcp_message_add_header(COAP_HEADER_URI_PATH,url[0]+len+1,COAP_HEADER_CSTR_LEN);
+	require_noerr(status,bail);
+
+	// Remote target
+	status = smcp_message_add_header(COAP_HEADER_URI_PATH,url[1],COAP_HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 
 	status = smcp_message_send();
 	require_noerr(status,bail);
 
 bail:
+	if(did_mutate) {
+		url[0][len] = '/';
+	}
 	return status;
 }
 

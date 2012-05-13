@@ -1,3 +1,8 @@
+
+#ifndef VERBOSE_DEBUG
+#define VERBOSE_DEBUG 0
+#endif
+
 #include "assert_macros.h"
 #include "smcp_node.h"
 #include "smcp_variable_node.h"
@@ -27,21 +32,35 @@ smcp_variable_request_handler(
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
 	coap_content_type_t content_type = smcp_daemon_get_current_inbound_content_type();
-
+	const char* content_ptr = smcp_daemon_get_current_inbound_content_ptr();
+	size_t content_len = smcp_daemon_get_current_inbound_content_len();
 	require(node, bail);
 
 	{
-		coap_header_key_t key;
-		uint8_t* value;
+		coap_option_key_t key;
+		const uint8_t* value;
 		size_t value_len;
-		while((key==smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
-
-			require_action(
-				!COAP_HEADER_IS_REQUIRED(key),
-				bail,
-				ret=SMCP_STATUS_BAD_OPTION
-			);
+			if(key==COAP_HEADER_URI_QUERY) {
+				if(	method == COAP_METHOD_POST
+					&& value_len>=2
+					&& strhasprefix_const((const char*)value,"v=")
+				) {
+					content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
+					content_ptr = (const char*)value+2;
+					content_len = value_len-2;
+				}
+				continue;
+			}
+			if(COAP_HEADER_IS_REQUIRED(key)) {
+				ret=SMCP_STATUS_BAD_OPTION;
+				assert_printf("Unrecognized option %d, \"%s\"",
+					key,
+					coap_option_key_to_cstr(key, false)
+				);
+				goto bail;
+			}
 		}
 	}
 
@@ -50,18 +69,17 @@ smcp_variable_request_handler(
 		method = COAP_METHOD_POST;
 
 	if(method == COAP_METHOD_POST) {
-		ret = SMCP_STATUS_NOT_IMPLEMENTED;
-		if(((smcp_variable_node_t)node)->post_func) {
-			ret = (*((smcp_variable_node_t)node)->post_func)(
-				((smcp_variable_node_t)node),
-				smcp_daemon_get_current_inbound_content_ptr(),
-				smcp_daemon_get_current_inbound_content_len(),
-				content_type
-			);
-			require_noerr(ret,bail);
-		}
+		require_action(((smcp_variable_node_t)node)->post_func!=NULL,bail,ret=SMCP_STATUS_NOT_IMPLEMENTED);
+		ret = (*((smcp_variable_node_t)node)->post_func)(
+			((smcp_variable_node_t)node),
+			content_ptr,
+			content_len,
+			content_type
+		);
+		require_noerr(ret,bail);
 	} else if(method == COAP_METHOD_GET) {
-		if(((smcp_variable_node_t)node)->get_func) {
+		require_action(((smcp_variable_node_t)node)->get_func!=NULL,bail,ret=SMCP_STATUS_NOT_IMPLEMENTED);
+		{
 			size_t replyContentLength = 0;
 			char *replyContent;
 			coap_content_type_t replyContentType;
@@ -86,8 +104,6 @@ smcp_variable_request_handler(
 			);
 			smcp_message_set_content_len(replyContentLength);
 			smcp_message_send();
-		} else {
-			ret = SMCP_STATUS_NOT_IMPLEMENTED;
 		}
 	} else {
 		ret = smcp_default_request_handler(

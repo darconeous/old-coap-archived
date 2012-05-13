@@ -21,6 +21,13 @@ struct timeval {
 
 #include "smcp_pairing.h"
 
+#if CONTIKI
+#define smcp_set_current_daemon(x)
+#else
+extern void smcp_set_current_daemon(smcp_daemon_t x);
+#endif
+
+
 #pragma mark -
 #pragma mark Class Definitions
 
@@ -29,17 +36,21 @@ struct smcp_transaction_s {
 	coap_transaction_id_t		tid;
 	struct timeval				expiration;
 	uint8_t						flags;
+	bool waiting_for_async_response;
 	uint8_t						attemptCount;
 	struct smcp_timer_s			timer;
 	smcp_request_resend_func	resendCallback;
 	smcp_response_handler_func	callback;
 	void*						context;
+	uint16_t token;
 };
 
 typedef struct smcp_transaction_s *smcp_transaction_t;
 
 // Consider members of this struct to be private!
 struct smcp_daemon_s {
+	struct smcp_node_s		root_node;
+
 #if SMCP_USE_BSD_SOCKETS
 	int						fd;
 	int						mcfd;	// For multicast
@@ -47,12 +58,9 @@ struct smcp_daemon_s {
 	struct uip_udp_conn*	udp_conn;
 #endif
 
-	struct smcp_node_s		root_node;
-
 	smcp_timer_t			timers;
 
 	smcp_transaction_t		transactions;
-
 	uint8_t					cascade_count;
 
 	// Operational Flags
@@ -62,41 +70,51 @@ struct smcp_daemon_s {
 							has_cascade_count:1,
 							force_current_outbound_code:1;
 
-	coap_code_t				current_inbound_code;
-	coap_transaction_id_t	current_inbound_request_tid;
-	char*					current_inbound_request_token;
-	uint16_t				current_inbound_request_token_len;
-	coap_header_item_t		current_inbound_headers[SMCP_MAX_HEADERS+1];
-	uint8_t					current_inbound_header_count;
-	coap_header_item_t*		current_header;
-	char*					current_inbound_content_ptr;
-	size_t					current_inbound_content_len;
-	coap_content_type_t		current_inbound_content_type;
+	// Inbound packet variables.
+	struct {
+		const struct coap_header_s*	packet;
+
+		coap_option_key_t		last_option_key;
+		const uint8_t*			this_option;
+		uint8_t					options_left;
+
+		const uint8_t*			token_option;
+
+		const char*				content_ptr;
+		size_t					content_len;
+		coap_content_type_t		content_type;
+
+		coap_transaction_id_t	last_tid;
 
 #if SMCP_USE_BSD_SOCKETS
-	struct sockaddr*		current_inbound_saddr;
-	socklen_t				current_inbound_socklen;
+		struct sockaddr*		saddr;
+		socklen_t				socklen;
 #elif CONTIKI
-	uip_ipaddr_t			current_inbound_toaddr;
-	uint16_t				current_inbound_toport;	// Always in network order.
+		uip_ipaddr_t			toaddr;
+		uint16_t				toport;	// Always in network order.
 #endif
+	} inbound;
 
-#pragma mark -
-#pragma mark Constrained sending state
+	// Outbound packet variables.
+	struct {
+		struct coap_header_s*	packet;
 
-	coap_header_item_t		current_outbound_headers[SMCP_MAX_HEADERS+1];
-	uint8_t					current_outbound_header_count;
-	coap_transaction_type_t current_outbound_tt;
-	coap_code_t				current_outbound_code;
-	coap_transaction_id_t	current_outbound_tid;
-	size_t					current_outbound_header_len;
-	size_t					current_outbound_content_len;
+		char*					content_ptr;
+		size_t					content_len;
+
+		uint8_t					real_option_count;
+		coap_option_key_t		last_option_key;
+
+		coap_transaction_id_t	next_tid;
 
 #if SMCP_USE_BSD_SOCKETS
-	char					current_outbound_packet[SMCP_MAX_PACKET_LENGTH+1];
-	struct sockaddr_in6		current_outbound_saddr;
-	socklen_t				current_outbound_socklen;
+		char					packet_bytes[SMCP_MAX_PACKET_LENGTH+1];
+		struct sockaddr_in6		saddr;
+		socklen_t				socklen;
 #endif
+	} outbound;
+
+	const char* proxy_url;
 
 	PAIRING_STATE;
 };
@@ -106,3 +124,6 @@ extern smcp_status_t
 smcp_daemon_handle_request(
 	smcp_daemon_t	self
 );
+
+
+

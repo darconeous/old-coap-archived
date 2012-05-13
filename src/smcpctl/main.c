@@ -116,13 +116,18 @@ struct {
 		&tool_cmd_post
 	},
 	{
+		"put",
+		"Overwrites a resource.",
+		&tool_cmd_post
+	},
+	{
 		"pair",
-		"Pairs an event to an action",
+		"Pairs an event to an action.",
 		&tool_cmd_pair
 	},
 	{
 		"delete",
-		"writeme",
+		"Deletes a resource.",
 		&tool_cmd_delete
 	},
 	{
@@ -253,7 +258,7 @@ void process_input_line(char *l) {
 		if(gRet == ERRORCODE_QUIT)
 			return;
 		else if(gRet && (gRet != ERRORCODE_HELP))
-			printf("Error %d\n", gRet);
+			fprintf(stderr,"Error %d\n", gRet);
 
 		write_history(getenv("SMCP_HISTORY_FILE"));
 	}
@@ -351,38 +356,63 @@ smcp_directory_generator(
 			prefix = strdup(".");
 		}
 		char* cmdline = NULL;
+		FILE* real_stdout = stdout;
 		
 		asprintf(&cmdline, "list --filename-only --timeout 1000 %s",prefix);
-
 		require(cmdline,bail);
 
-		FILE* real_stdout = stdout;
 		stdout = temp_file;
 		if(strequal_const(fragment, "."))
-			fprintf(temp_file,"..\n");
+			fprintf(temp_file,"../\n");
 		process_input_line(cmdline);
 		stdout = real_stdout;
+		free(cmdline);
+
+		if(url_is_root(getenv("SMCP_CURRENT_PATH"))) {
+			asprintf(&cmdline, "list --filename-only --timeout 500 /.well-known/core");
+			require(cmdline,bail);
+
+			fprintf(temp_file,"/.well-known/core/\n");
+
+			stdout = temp_file;
+			process_input_line(cmdline);
+			stdout = real_stdout;
+			free(cmdline);
+		}
 		
 		rewind(temp_file);
-		free(cmdline);
 		len = strlen(fragment);
 	}
 
 	if(!temp_file)
 		goto bail;
-
+	//fprintf(stderr,"\nprefix=%s\n",prefix);
 	while ((name = fgetln(temp_file, &namelen)) && (namelen>len))
 	{
+		if(url_is_root(getenv("SMCP_CURRENT_PATH")) && strequal_const(prefix,".")) {
+			while(name[0]=='/') {
+				name++;
+				namelen--;
+			}
+		}
 		if (strncmp (name, fragment, len) == 0) {
 			while(namelen && isspace(name[namelen])) { namelen--; }
 			namelen--;
 			if(name[namelen-1]=='/')
 				rl_completion_append_character = 0;
-			if(strequal_const(prefix, "."))
+
+			if(	strequal_const(prefix, "/")
+				|| strequal_const(prefix, ".")
+				|| name[0]=='/'
+				||(url_is_root(getenv("SMCP_CURRENT_PATH")) && strequal_const(prefix,"."))
+			) {
 				ret = strndup(name,namelen);
-			else {
+			} else {
 				char* tmp = strndup(name,namelen);
-				asprintf(&ret, "%s/%s",prefix,tmp);
+				if(prefix[strlen(prefix)-1]=='/')
+					asprintf(&ret, "%s%s",prefix,tmp);
+				else
+					asprintf(&ret, "%s/%s",prefix,tmp);
 				free(tmp);
 			}
 			break;
@@ -504,13 +534,13 @@ main(
 	}
 	END_ARGUMENTS
 
-	    show_headers = debug_mode;
+	show_headers = debug_mode;
 	istty = isatty(fileno(stdin));
-
 
 	smcp_daemon = smcp_daemon_create(port);
 	setenv("SMCP_CURRENT_PATH", "coap://localhost/", 0);
-	fprintf(stderr,"Listening on port %d.\n",smcp_daemon_get_port(smcp_daemon));
+
+	smcp_daemon_set_proxy_url(smcp_daemon,getenv("COAP_PROXY_URL"));
 
 	if(i < argc) {
 		if(((i + 1) == argc) && (0 == strcmp(argv[i], "help")))
@@ -532,6 +562,7 @@ main(
 	}
 
 	if(istty) {
+		fprintf(stderr,"Listening on port %d.\n",smcp_daemon_get_port(smcp_daemon));
 #if !HAS_LIBREADLINE
 		print_arg_list_help(option_list,
 			argv[0],

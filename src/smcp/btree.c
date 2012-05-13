@@ -188,7 +188,8 @@ bt_remove(
 		item_->rhs = NULL;
 		item_->parent = NULL;
 
-		(*delete_func)(item_, context);
+		if(delete_func)
+			(*delete_func)(item_, context);
 
 		return true;
 	}

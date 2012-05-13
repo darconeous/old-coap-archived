@@ -43,6 +43,7 @@ struct post_request_s {
 	char* content;
 	size_t content_len;
 	coap_content_type_t content_type;
+	coap_code_t method;
 };
 
 
@@ -53,33 +54,25 @@ post_response_handler(
 ) {
 	char* content = smcp_daemon_get_current_inbound_content_ptr();
 	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
-	if((statuscode >= 100) && show_headers) {
+	if((statuscode >= COAP_RESULT_100) && show_headers) {
 		fprintf(stdout, "\n");
-		coap_dump_headers(stdout,
+		coap_dump_header(
+			stdout,
 			NULL,
-			http_to_coap_code(statuscode),
-			smcp_daemon_get_first_header(),
-			smcp_daemon_get_current_request_header_count());
+			smcp_current_request_get_packet(),
+			0
+		);
 	}
-	if((statuscode != HTTP_RESULT_CODE_OK) &&
+	if((statuscode != COAP_RESULT_204_CHANGED) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
 		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : http_code_to_cstr(statuscode));
-	if(content && (statuscode != HTTP_RESULT_CODE_CHANGED) &&
-	    content_length) {
-		char contentBuffer[500];
+				statuscode) : coap_code_to_cstr(statuscode));
+	if(content && content_length) {
+		if(content_length && (content[content_length - 1] == '\n'))
+			content[--content_length] = 0;
 
-		content_length =
-		    ((content_length > sizeof(contentBuffer) -
-		        2) ? sizeof(contentBuffer) - 2 : content_length);
-		memcpy(contentBuffer, content, content_length);
-		contentBuffer[content_length] = 0;
-
-		if(content_length && (contentBuffer[content_length - 1] == '\n'))
-			contentBuffer[--content_length] = 0;
-
-		printf("%s\n", contentBuffer);
+		printf("%s\n", content);
 	}
 
 	if(gRet == ERRORCODE_INPROGRESS)
@@ -94,20 +87,14 @@ smcp_status_t
 resend_post_request(struct post_request_s *request) {
 	smcp_status_t status = 0;
 
-	status = smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_POST, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_message_begin(smcp_get_current_daemon(),request->method, COAP_TRANS_TYPE_CONFIRMABLE);
+	require_noerr(status, bail);
+
+	status = smcp_message_set_content_type(request->content_type);
 	require_noerr(status, bail);
 
 	status = smcp_message_set_uri(request->url, 0);
 	require_noerr(status, bail);
-
-	if(request->content_type) {
-		status = smcp_message_add_header(
-			COAP_HEADER_CONTENT_TYPE,
-			(void*)&request->content_type,
-			1
-		);
-		require_noerr(status, bail);
-	}
 
 	status = smcp_message_set_content(request->content, request->content_len);
 	require_noerr(status, bail);
@@ -133,6 +120,7 @@ static coap_transaction_id_t
 send_post_request(
 	smcp_daemon_t	smcp,
 	const char*		url,
+	coap_code_t		method,
 	const char*		content,
 	int				content_len,
 	coap_content_type_t content_type
@@ -148,6 +136,7 @@ send_post_request(
 	memcpy(request->content,content,content_len);
 	request->content_len = content_len;
 	request->content_type = content_type;
+	request->method = method;
 
 	tid = SMCP_FUNC_RANDOM_UINT32();
 
@@ -178,17 +167,20 @@ tool_cmd_post(
 	coap_transaction_id_t tid;
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 	coap_content_type_t content_type = 0;
+	coap_code_t method = COAP_METHOD_POST;
 	int i;
 	char url[1000];
 	url[0] = 0;
 	char content[10000];
 	content[0] = 0;
 	content_type = 0;
-
+	if(strequal_const(argv[0],"put")) {
+		method = COAP_METHOD_PUT;
+	}
 	outbound_slice_size = 100;
 
 	BEGIN_LONG_ARGUMENTS(gRet)
-//		HANDLE_LONG_ARGUMENT("include") get_show_headers = true;
+		HANDLE_LONG_ARGUMENT("include") show_headers = true;
 //		HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
 //		HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
 	HANDLE_LONG_ARGUMENT("outbound-slice-size") outbound_slice_size =
@@ -203,7 +195,7 @@ tool_cmd_post(
 		goto bail;
 	}
 	BEGIN_SHORT_ARGUMENTS(gRet)
-//		HANDLE_SHORT_ARGUMENT('i') get_show_headers = true;
+		HANDLE_SHORT_ARGUMENT('i') show_headers = true;
 //		HANDLE_SHORT_ARGUMENT('f') redirect_count = 10;
 
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
@@ -244,7 +236,7 @@ tool_cmd_post(
 
 	gRet = ERRORCODE_INPROGRESS;
 
-	tid = send_post_request(smcp, url, content, strlen(content),content_type);
+	tid = send_post_request(smcp, url, method,content, strlen(content),content_type);
 
 	while(ERRORCODE_INPROGRESS == gRet)
 		smcp_daemon_process(smcp, -1);

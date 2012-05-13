@@ -51,13 +51,12 @@ delete_response_handler(
 ) {
 	char* content = smcp_daemon_get_current_inbound_content_ptr();
 	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
-	if((statuscode != HTTP_RESULT_CODE_OK) &&
+	if((statuscode != COAP_RESULT_202_DELETED) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
 		fprintf(stderr, "delete: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : http_code_to_cstr(statuscode));
-	if(content && (statuscode != HTTP_RESULT_CODE_CHANGED) &&
-	    content_length) {
+				statuscode) : coap_code_to_cstr(statuscode));
+	if(content && content_length) {
 		char contentBuffer[500];
 
 		content_length =

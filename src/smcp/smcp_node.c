@@ -125,13 +125,11 @@ smcp_node_delete(smcp_node_t node) {
 	if(owner) {
 		bt_remove(owner,
 			node,
-			    (bt_compare_func_t)smcp_node_compare,
-			NULL,
-			NULL);
+			(bt_compare_func_t)smcp_node_compare,
+			(void*)node->finalize,
+			NULL
+		);
 	}
-
-	if(node->finalize)
-		    (*node->finalize)(node);
 
 bail:
 	return;
@@ -213,6 +211,7 @@ smcp_node_find_next_with_path(
 		// We should evaluate the liklihood of blowing
 		// the stack here. TODO: Investigate potential oveflow!
 		char* unescaped_name = alloca(namelen+1);
+		url_decode_str(unescaped_name, namelen+1, path, namelen);
 
 		*next = smcp_node_find(
 			node,
@@ -293,4 +292,11 @@ again:
 
 bail:
 	return ret;
+}
+
+smcp_node_t
+smcp_node_get_root(smcp_node_t node) {
+	if(node && node->parent)
+		return smcp_node_get_root(node->parent); // Recursion should be optimized away.
+	return node;
 }

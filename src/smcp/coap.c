@@ -3,166 +3,67 @@
 #include <stdlib.h>
 #include "ctype.h"
 
-// Used by qsort
-static int
-header_compare(
-	coap_header_item_t*rhs, coap_header_item_t*lhs
-) {
-	if(rhs->key < lhs->key)
-		return -1;
-	else if(rhs->key > lhs->key)
-		return 1;
-	return 0;
+const uint8_t*
+coap_decode_option(const uint8_t* buffer, coap_option_key_t* key, const uint8_t** value, size_t* lenP) {
+	uint16_t len = (*buffer & 0x0F);
+
+	if(key)
+		*key += (*buffer >> 4);
+
+	buffer++;
+
+	if(len == 0xF)
+		len += *buffer++;
+
+	if(lenP) *lenP = len;
+	if(value) *value = buffer;
+
+	return buffer + len;
 }
 
-size_t
-coap_encode_header(
-	unsigned char*			buffer,
-	size_t					buffer_len,
-	coap_transaction_type_t tt,
-	coap_code_t				code,
-	coap_transaction_id_t	tid,
-	coap_header_item_t		headers[],
-	uint8_t					header_count
+uint8_t*
+coap_encode_option(
+	uint8_t* buffer,
+	uint8_t* option_count,
+	coap_option_key_t prev_key,
+	coap_option_key_t key,
+	const uint8_t* value,
+	size_t len
 ) {
-	size_t ret = 0;
+	int option_delta = key - prev_key;
+	while(option_delta>14) {
+		option_delta = (prev_key / 14 * 14 + 14) - prev_key;
+		*buffer++ = (option_delta << 4);
 
-	require(buffer, bail);
-	require(buffer_len >= 4, bail);
+		if(option_count)
+			(*option_count)++;
 
-	buffer[0] = (COAP_VERSION << 6) + (tt << 4);
-	buffer[1] = code;
-
-	tid = htons(tid);
-	buffer[2] = ((const unsigned char*)&tid)[0];
-	buffer[3] = ((const unsigned char*)&tid)[1];
-
-	ret = 4;
-
-	if(headers && header_count) {
-		unsigned char* header_ptr = buffer + 4;
-		unsigned char last_option = 0;
-		unsigned char option_delta;
-
-		// Headers must be in order.
-//		qsort(		// qsort isn't stable!!!
-		mergesort(
-			headers,
-			header_count,
-			sizeof(*headers),
-			    (int (*)(const void*, const void*)) & header_compare
-		);
-
-		for(; header_count; header_count--, headers++) {
-			option_delta = headers->key - last_option;
-
-			// Add "fenceposts" as necessary.
-			while(option_delta >= 15) {
-				option_delta = (last_option / 14 * 14 + 14) - last_option;
-				*header_ptr++ = (option_delta << 4);
-				ret++;
-				buffer[0]++;    // Increase the total header count.
-
-				last_option = (last_option / 14 * 14 + 14);
-				option_delta = headers->key - last_option;
-			}
-
-			// Increase the total header count.
-			buffer[0]++;
-
-			last_option = headers->key;
-
-			if(headers->value_len > 270)
-				headers->value_len = strlen(headers->value);
-
-			if(headers->value_len > 14) {
-				check(headers->value_len < (255 + 15));
-				*header_ptr++ = (option_delta << 4) | 0xF;
-				*header_ptr++ = headers->value_len - 15;
-				memcpy(header_ptr, headers->value, headers->value_len);
-				ret += 2 + headers->value_len;
-				header_ptr += headers->value_len;
-			} else {
-				*header_ptr++ = (option_delta << 4) | headers->value_len;
-				memcpy(header_ptr, headers->value, headers->value_len);
-				ret += 1 + headers->value_len;
-				header_ptr += headers->value_len;
-			}
-		}
+		prev_key = (prev_key / 14 * 14 + 14);
+		option_delta = key - prev_key;
 	}
 
-bail:
-	return ret;
-}
+	check(len <= (270));
 
-size_t
-coap_decode_header(
-	unsigned char*				buffer,
-	size_t						buffer_len,
-	coap_transaction_type_t*	tt,
-	coap_code_t*				code,
-	coap_transaction_id_t*		tid,
-	coap_header_item_t*			headers,
-	uint8_t*					header_count
-) {
-	size_t ret = 0;
-	unsigned char remaining_headers = 0;
-	unsigned char last_header = 0;
-	unsigned char max_headers = 0;
+	if(len > 270)
+		len = 270;
 
-	require(buffer, bail);
-	require(buffer_len >= 4, bail);
-
-	require((buffer[0] >> 6) == COAP_VERSION, bail);
-
-	if(tt)
-		*tt = ((buffer[0] >> 4) & 3);
-
-	remaining_headers = (buffer[0] & 0xF);
-
-	if(code)
-		*code = buffer[1];
-
-	if(tid)
-		*tid = (buffer[2] << 8) + buffer[3];
-
-	ret += 4;
-	buffer += 4;
-
-	if(header_count && headers) {
-		max_headers = *header_count;
-		*header_count = 0;
-	}
-
-	while(remaining_headers--) {
-		uint16_t len = (*buffer & 0xF);
-		last_header += (*buffer++ >> 4);
-
-		if(len == 0xF) {
-			len += *buffer++;
-			ret += 2;
-		} else {
-			ret++;
-		}
-
-		if(max_headers && (last_header % 14)) {
-			headers->key = last_header;
-			headers->value = (char*)buffer;
-			headers->value_len = len;
-			headers++;
-			    (*header_count)++;
-			max_headers--;
-		}
-
+	if(len > 14) {
+		*buffer++ = (option_delta << 4) | 0xF;
+		*buffer++ = len - 15;
+		memcpy(buffer, value, len);
 		buffer += len;
-		ret += len;
+	} else {
+		*buffer++ = (option_delta << 4) | len;
+		memcpy(buffer, value, len);
+		buffer += len;
 	}
 
-bail:
-	return ret;
+	if(option_count)
+		(*option_count)++;
+
+	return buffer;
 }
 
-#if 1
 const char*
 coap_content_type_to_cstr(coap_content_type_t content_type) {
 	const char* content_type_string = NULL;
@@ -289,8 +190,8 @@ coap_content_type_from_cstr(const char* x) {
 }
 
 const char*
-coap_header_key_to_cstr(
-	coap_header_key_t key, bool for_response
+coap_option_key_to_cstr(
+	coap_option_key_t key, bool for_response
 ) {
 	const char* ret = NULL;
 
@@ -362,8 +263,8 @@ coap_header_key_to_cstr(
 	return ret;
 }
 
-coap_header_key_t
-coap_header_key_from_cstr(const char* key) {
+coap_option_key_t
+coap_option_key_from_cstr(const char* key) {
 	if(strcasecmp(key, "Content-type") == 0)
 		return COAP_HEADER_CONTENT_TYPE;
 	else if(strcasecmp(key, "Max-age") == 0)
@@ -406,21 +307,21 @@ coap_header_key_from_cstr(const char* key) {
 const char*
 http_code_to_cstr(int x) {
 	switch(x) {
+	case COAP_CODE_EMPTY: return "EMPTY"; break;
 	case COAP_METHOD_GET: return "GET"; break;
 	case COAP_METHOD_POST: return "POST"; break;
 	case COAP_METHOD_PUT: return "PUT"; break;
 	case COAP_METHOD_DELETE: return "DELETE"; break;
 
-	case COAP_METHOD_PAIR: return "PAIR"; break;
-	case COAP_METHOD_UNPAIR: return "UNPAIR"; break;
-
 	case HTTP_RESULT_CODE_CONTINUE: return "CONTINUE"; break;
 	case HTTP_RESULT_CODE_OK: return "OK"; break;
+	case HTTP_RESULT_CODE_CONTENT: return "CONTENT"; break;
 	case HTTP_RESULT_CODE_VALID: return "VALID"; break;
 	case HTTP_RESULT_CODE_CREATED: return "CREATED"; break;
 	case HTTP_RESULT_CODE_CHANGED: return "CHANGED"; break;
 	case HTTP_RESULT_CODE_DELETED: return "DELETED"; break;
 	case HTTP_RESULT_CODE_PARTIAL_CONTENT: return "PARTIAL_CONTENT"; break;
+	case HTTP_RESULT_CODE_BAD_OPTION: return "BAD_OPTION"; break;
 
 	case HTTP_RESULT_CODE_NOT_MODIFIED: return "NOT_MODIFIED"; break;
 	case HTTP_RESULT_CODE_SEE_OTHER: return "SEE_OTHER"; break;
@@ -453,59 +354,59 @@ http_code_to_cstr(int x) {
 		    "URI_AUTHORITY_REQUIRED"; break;
 	case HTTP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION: return
 		    "UNSUPPORTED_CRITICAL_OPTION"; break;
-
 	default:  break;
 	}
 	return "UNKNOWN";
 }
-#endif
 
+const char* coap_code_to_cstr(int x) { return http_code_to_cstr(coap_to_http_code(x)); }
 
 void
-coap_dump_headers(
-	FILE*						outstream,
-	const char*					prefix,
-	int							statuscode,
-	const coap_header_item_t*	headers,
-	size_t						header_count
+coap_dump_header(
+	FILE*			outstream,
+	const char*		prefix,
+	const struct coap_header_s* header,
+	size_t packet_size
 ) {
-	const coap_header_item_t *end = headers + header_count;
-	const coap_header_item_t *iter;
+	coap_option_key_t key = 0;
+	const uint8_t* value;
+	size_t value_len;
+	int option_count = header->option_count;
+	const uint8_t* option_ptr = header->options;
 
 	if(!prefix)
 		prefix = "";
 
-	// Hack until this stuff gets cleaned up.
-	statuscode = coap_to_http_code(statuscode);
-
-	if(statuscode > 100) {
+	if(header->code >= COAP_RESULT_100) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
-			"CoAP/1.0 %d %s\n",
-			statuscode,
-			http_code_to_cstr(statuscode));
+			"CoAP/1.0 %d %s tt=%d tid=%d\n",
+			coap_to_http_code(header->code),
+			coap_code_to_cstr(header->code),
+			header->tt,header->tid
+		);
 	} else {
 		fputs(prefix, outstream);
-		fprintf(outstream, "%s(%d) /", http_code_to_cstr(statuscode),statuscode);
+		fprintf(outstream, "%s(%d) /", coap_code_to_cstr(header->code),header->code);
 
-		for(iter = headers; iter != end; ++iter) {
-			if(iter->key == COAP_HEADER_URI_PATH) {
-				fwrite(iter->value, iter->value_len, 1, outstream);
-				break;
-			}
-		}
-
-		fprintf(outstream, " CoAP/1.0\n");
+		fprintf(outstream, " CoAP/1.0 tt=%d tid=%d\n",
+			header->tt,header->tid
+		);
 	}
 
-	for(iter = headers; iter != end; ++iter) {
+	for(;option_count && (option_count!=15 || option_ptr[0]!=0xF0);) {
+		option_ptr = coap_decode_option(option_ptr, &key, &value, &value_len);
+		if(option_count!=15)
+			--option_count;
+		if(!(key%14))
+			continue;
 		fputs(prefix, outstream);
 		fprintf(outstream, "%s: ",
-			coap_header_key_to_cstr(iter->key, statuscode > 100));
-		switch(iter->key) {
+			coap_option_key_to_cstr(key, header->code >= COAP_RESULT_100));
+		switch(key) {
 		case COAP_HEADER_CONTENT_TYPE:
 			fprintf(outstream, "%s",
-				coap_content_type_to_cstr((unsigned char)iter->value[0]));
+				coap_content_type_to_cstr((unsigned char)value[0]));
 			break;
 		case COAP_HEADER_CASCADE_COUNT:
 		case COAP_HEADER_MAX_AGE:
@@ -517,19 +418,19 @@ coap_dump_headers(
 		{
 			unsigned long age = 0;
 			uint8_t i;
-			for(i = 0; i < iter->value_len; i++)
-				age = (age << 8) + iter->value[i];
+			for(i = 0; i < value_len; i++)
+				age = (age << 8) + value[i];
 			fprintf(outstream, "%lu", age);
 		}
 		break;
 		case COAP_HEADER_ACCEPT:
 		{
 			size_t i;
-			for(i = 0; i < iter->value_len; i++) {
+			for(i = 0; i < value_len; i++) {
 				if(i)
 					fputc(',', outstream);
 				fprintf(outstream, "%s",
-					    coap_content_type_to_cstr((uint8_t)iter->value[i]));
+					    coap_content_type_to_cstr((uint8_t)value[i]));
 			}
 		}
 		break;
@@ -538,32 +439,32 @@ coap_dump_headers(
 		case COAP_HEADER_URI_PATH:
 		case COAP_HEADER_URI_HOST:
 		case COAP_HEADER_URI_QUERY:
-
+		case COAP_HEADER_PROXY_URI:
 		case COAP_HEADER_LOCATION_PATH:
 		case COAP_HEADER_LOCATION_QUERY:
-
-		case COAP_HEADER_CONTINUATION_REQUEST:
 
 		case SMCP_HEADER_ORIGIN:
 		case SMCP_HEADER_CSEQ:
 
 			fprintf(outstream, "\"");
-			if(iter->value_len > 270)
-				fprintf(outstream, "%s",iter->value);
+			if(value_len > 270)
+				fprintf(outstream, "%s",value);
 			else
-				fwrite(iter->value, iter->value_len, 1, outstream);
+				fwrite(value, value_len, 1, outstream);
 			fprintf(outstream, "\"");
 			break;
+
+		case COAP_HEADER_CONTINUATION_REQUEST:
 		default:
-		if(iter->value_len == COAP_HEADER_CSTR_LEN) {
-			fprintf(outstream, "\"%s\"",iter->value);
+		if(value_len == COAP_HEADER_CSTR_LEN) {
+			fprintf(outstream, "\"%s\"",value);
 		} else {
 			size_t i;
-			if(iter->value_len > 270) {
+			if(value_len > 270) {
 				fprintf(outstream, "***VALUE LENGTH OVERFLOW***");
 			} else
-			for(i = 0; i < iter->value_len; i++) {
-				fprintf(outstream, "%02X ", (uint8_t)iter->value[i]);
+			for(i = 0; i < value_len; i++) {
+				fprintf(outstream, "%02X ", (uint8_t)value[i]);
 			}
 		}
 		break;

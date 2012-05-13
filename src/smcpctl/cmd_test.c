@@ -32,32 +32,18 @@ action_func(
 	coap_content_type_t		content_type
 ) {
 	fprintf(stdout,
-		" *** Received Action! content_length=%d",
+		" *** Received Action! content_length=%d\n",
 		    (int)content_length);
 
-	{
-		const coap_header_item_t *iter =
-		    smcp_daemon_get_first_header();
-		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
-			if(iter->key == COAP_HEADER_CONTENT_TYPE) {
-				fprintf(stdout,
-					" content_type=\"%s\"",
-					coap_content_type_to_cstr((unsigned char)iter->value[0
-						]));
-			} else if(iter->key == SMCP_HEADER_ORIGIN) {
-				char tmp[iter->value_len + 1];
-				memcpy(tmp, iter->value, iter->value_len);
-				tmp[iter->value_len] = 0;
-				fprintf(stdout, " origin=\"%s\"", tmp);
-			}
-		}
-	}
-
+	coap_dump_header(
+		stdout,
+		"   * ",
+		smcp_current_request_get_packet(),
+		0
+	);
 
 	if(content_length)
-		fprintf(stdout, " content=\"%s\"", content);
-
-	fprintf(stdout, "\n");
+		fprintf(stdout, "   * content=\"%s\"\n", content);
 
 	return SMCP_STATUS_OK;
 }
@@ -112,14 +98,14 @@ list_response_handler(
 	char* content = smcp_daemon_get_current_inbound_content_ptr();
 	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
-	printf("*** RESULT CODE = %d (%s)\n", statuscode,
-		http_code_to_cstr(statuscode));
+	printf("   * RESULT CODE = %d (%s)\n", statuscode,
+		(statuscode>0)?coap_code_to_cstr(statuscode):smcp_status_to_cstr(statuscode));
 
 	if(content) {
 		char contentBuffer[SMCP_MAX_CONTENT_LENGTH + 1] = {};
 		memcpy(contentBuffer, content, content_length);
 
-		printf(" *** CONTENT = \"%s\"\n", contentBuffer);
+		printf("   * CONTENT = \"%s\"\n", contentBuffer);
 	}
 }
 
@@ -129,6 +115,84 @@ sliced_post_request_handler(
 	smcp_method_t	method
 ) {
 	return SMCP_STATUS_OK;
+}
+
+static struct smcp_async_response_s async_response;
+
+smcp_status_t
+resend_async_response(void* context) {
+	smcp_status_t ret = 0;
+	struct smcp_async_response_s* async_response = (void*)context;
+
+	ret = smcp_message_begin_response(COAP_RESULT_205_CONTENT);
+	require_noerr(ret,bail);
+
+	ret = smcp_message_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	require_noerr(ret,bail);
+
+	ret = smcp_message_set_async_response(async_response);
+	require_noerr(ret,bail);
+
+	ret = smcp_message_set_content_formatted("This was an asynchronous response!");
+	require_noerr(ret,bail);
+
+	ret = smcp_message_send();
+	require_noerr(ret,bail);
+
+	if(ret) {
+		assert_printf(
+			"smcp_message_send() returned error %d(%s).\n",
+			ret,
+			smcp_status_to_cstr(ret)
+		);
+		goto bail;
+	}
+
+bail:
+	return ret;
+}
+
+static void
+async_response_ack_handler(int statuscode, void* context) {
+	struct smcp_async_response_s* async_response = (void*)context;
+
+	printf(" *** Finished sending async response.\n");
+	printf("   * RESULT CODE = %d (%s)\n", statuscode,
+		(statuscode>0)?coap_code_to_cstr(statuscode):smcp_status_to_cstr(statuscode));
+
+	smcp_finish_async_response(async_response);
+}
+
+smcp_status_t
+async_request_handler(
+	smcp_node_t		node,
+	smcp_method_t	method
+) {
+	smcp_status_t ret = SMCP_STATUS_OK;
+	if(method==COAP_METHOD_GET) {
+		ret = smcp_start_async_response(&async_response);
+		if(ret==SMCP_STATUS_DUPE) {
+			printf("  ** Dupe, already preparing async response.\n");
+		} else if(!ret) {
+			printf(" *** Request requires an async response...!\n");
+		}
+		require_noerr(ret, bail);
+
+		ret = smcp_begin_transaction(
+			smcp_get_current_daemon(),
+			SMCP_FUNC_RANDOM_UINT32(),
+			30*1000,	// Retry for thirty seconds.
+			SMCP_TRANSACTION_DELAY_START, // Flags
+			(void*)&resend_async_response,
+			(void*)&async_response_ack_handler,
+			(void*)&async_response
+		);
+	} else {
+		ret = SMCP_STATUS_NOT_ALLOWED;
+	}
+
+bail:
+	return ret;
 }
 
 int
@@ -148,6 +212,7 @@ tool_cmd_test(
 	struct smcp_variable_node_s var_node = {};
 	struct smcp_variable_node_s action_node = {};
 	struct smcp_node_s sliced_post_node = {};
+	struct smcp_node_s async_response_node = {};
 
 	smcp_daemon2 = smcp_daemon_create(12345);
 	if(smcp_daemon_get_port(smcp) == SMCP_DEFAULT_PORT)
@@ -158,13 +223,13 @@ tool_cmd_test(
 	smcp_pairing_init(
 		smcp_daemon,
 		smcp_daemon_get_root_node(smcp_daemon),
-		".pairings"
+		SMCP_PAIRING_DEFAULT_ROOT_PATH
 	);
 
 	smcp_pairing_init(
 		smcp_daemon2,
 		smcp_daemon_get_root_node(smcp_daemon2),
-		".pairings"
+		SMCP_PAIRING_DEFAULT_ROOT_PATH
 	);
 
 	smcp_node_init(
@@ -184,6 +249,13 @@ tool_cmd_test(
 		"sliced_post"
 	);
 	sliced_post_node.request_handler = &sliced_post_request_handler;
+
+	smcp_node_init((smcp_node_t)&async_response_node,
+		&device_node,
+		"async_response"
+	);
+	async_response_node.request_handler = &async_request_handler;
+
 
 	smcp_node_init_variable(
 		&var_node,
@@ -299,7 +371,7 @@ tool_cmd_test(
 
 	int i;
 	for(i = 0; i < 3000000; i++) {
-#if 1
+#if 0
 		if((i - 1) % 250 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
 			smcp_daemon_refresh_variable(smcp_daemon, &var_node);

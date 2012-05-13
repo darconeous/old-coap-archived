@@ -134,6 +134,7 @@ url_decode_str(
 			*dest++ = (hex_digit_to_int(src[0]) << 4) + hex_digit_to_int(
 				src[1]);
 			src += 2;
+			src_len -= 2;
 		} else if(src_char == '+') {
 			*dest++ = ' ';  // Stupid legacy space encoding.
 		} else {
@@ -156,14 +157,18 @@ url_decode_cstr(
 	size_t max_size
 ) {
 	size_t ret = 0;
+#if DEBUG
+	char*const dest_check = dest;
+#endif
 
 	if(!max_size--)
-		return 0;
+		goto bail;
 
 	while(true) {
 		const char src_char = *src++;
-		if(!src_char)
+		if(!src_char) {
 			break;
+		}
 
 		if(!max_size) {
 			ret++;
@@ -184,14 +189,17 @@ url_decode_cstr(
 		max_size--;
 	}
 
+bail:
 	*dest = 0;
-
+#if DEBUG
+	assert(strlen(dest_check)==ret);
+#endif
 	return ret;
 }
 
 void
 url_decode_cstr_inplace(char *str) {
-	url_decode_cstr(str, str, 0);
+	url_decode_cstr(str, str, -1);
 }
 
 size_t
@@ -200,10 +208,10 @@ url_form_next_value(
 ) {
 	size_t bytes_parsed = 0;
 	char c = **form_string;
+	char* v = NULL;
 
 	if(!c) {
 		*key = NULL;
-		*value = NULL;
 		goto bail;
 	}
 
@@ -212,10 +220,8 @@ url_form_next_value(
 	while(true) {
 		c = **form_string;
 
-		if(!c) {
-			*value = NULL;
+		if(!c)
 			goto bail;
-		}
 
 		if(c == '=')
 			break;
@@ -224,19 +230,21 @@ url_form_next_value(
 
 		if((c == ';') || (c == '&')) {
 			*(*form_string)++ = 0;
-			    (*form_string)++;
-			*value = NULL;
 			goto bail;
 		}
 
-		    (*form_string)++;
+		(*form_string)++;
 	}
 
 	// Zero terminate the key.
-	*(*form_string)++ = 0;
+	if(value)
+		**form_string = 0;
+
+	(*form_string)++;
+
 	bytes_parsed++;
 
-	*value = *form_string;
+	v = *form_string;
 
 	while(true) {
 		c = **form_string;
@@ -245,20 +253,60 @@ url_form_next_value(
 			break;
 
 		bytes_parsed++;
-		    (*form_string)++;
+		(*form_string)++;
 	}
 
 	// Zero terminate the value
-	*(*form_string)++ = 0;
-	bytes_parsed++;
+	if(*form_string[0]) {
+		*(*form_string)++ = 0;
+		bytes_parsed++;
+	}
 
 bail:
-	if(*value)
-		url_decode_cstr_inplace(*value);
+	if(v)
+		url_decode_cstr_inplace(v);
+	if(value)
+		*value = v;
 
 	return bytes_parsed;
 }
 
+size_t
+url_path_next_component(
+	char** path_string, char** component
+) {
+	size_t bytes_parsed = 0;
+	char c = **path_string;
+
+	if(!c) {
+		*component = NULL;
+		goto bail;
+	}
+
+	*component = *path_string;
+
+	while(true) {
+		c = **path_string;
+
+		if(!c || (c == '/'))
+			break;
+
+		bytes_parsed++;
+		(*path_string)++;
+	}
+
+	// Zero terminate the value
+	if(*path_string[0]) {
+		*(*path_string)++ = 0;
+		bytes_parsed++;
+	}
+
+bail:
+	if(*component)
+		url_decode_cstr_inplace(*component);
+
+	return bytes_parsed;
+}
 
 int
 url_parse(
@@ -386,6 +434,33 @@ extern bool url_is_absolute(const char* uri) {
 
 	if(bytes_parsed && *uri == ':')
 		ret = true;
+
+bail:
+	return ret;
+}
+
+extern bool url_is_root(const char* url) {
+	bool ret = false;
+
+	require(url, bail);
+	require(isalpha(url[0]),bail);
+
+	if(url_is_absolute(url)) {
+		while(*url && isalpha(*url) && (*url != ':')) {
+			require(*url, bail);
+			url++;
+		}
+		require(url[0] == ':',bail);
+		require(url[1] == '/',bail);
+		require(url[2] == '/',bail);
+		url+=3;
+		while(*url && (*url != '/')) {
+			url++;
+		}
+	}
+
+	while(url[0]=='/' && url[1]=='/') url++;
+	ret = (url[0]==0) || ((url[0]=='/') && (url[1]==0));
 
 bail:
 	return ret;

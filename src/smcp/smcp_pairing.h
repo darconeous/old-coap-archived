@@ -30,6 +30,8 @@
 #define SMCP_CONF_PAIRING_STATS 1
 #endif
 
+#define SMCP_PAIRING_DEFAULT_ROOT_PATH	".pairings"
+
 __BEGIN_DECLS
 
 

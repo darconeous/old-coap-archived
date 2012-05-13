@@ -38,6 +38,10 @@ extern void url_decode_cstr_inplace(char *str);
 extern size_t url_form_next_value(
 	char** form_string, char** key, char** value);
 
+extern size_t url_path_next_component(
+	char** path_string, char** component
+);
+
 extern int url_parse(
 	char*	url,
 	char**	protocol,
@@ -49,6 +53,8 @@ extern int url_parse(
 	char**	query);
 
 extern bool url_is_absolute(const char* url);
+
+extern bool url_is_root(const char* url);
 
 inline static bool path_is_absolute(const char* path) {
 	return path[0] == '/';

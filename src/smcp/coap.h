@@ -18,14 +18,16 @@
 #define COAP_MAX_RETRANSMIT     (5)     // Defined in http://tools.ietf.org/html/draft-ietf-core-coap-03#section-4.2
 
 
-#define COAP_DEFAULT_PORT   (5683)
-//#define COAP_DEFAULT_PORT   (61616)     // Not yet defined. Just guessing here.
+#define COAP_DEFAULT_PORT			(5683)
+#define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT)
 
 #define COAP_VERSION    (1)
 #define COAP_TRANS_TYPE_CONFIRMABLE     (0)
 #define COAP_TRANS_TYPE_NONCONFIRMABLE  (1)
 #define COAP_TRANS_TYPE_ACK             (2)
 #define COAP_TRANS_TYPE_RESET           (3)
+
+#define COAP_MAX_TOKEN_SIZE		(8)
 
 #define COAP_HEADER_CSTR_LEN        ((size_t)-1)
 
@@ -48,24 +50,23 @@ static inline uint8_t http_to_coap_code(uint16_t code) {
 		code);
 }
 
-#define COAP_CODE_IS_REQUEST(code) \
-        (((code)) > 0 && \
-            ((code) < HTTP_TO_COAP_CODE(100)))
-#define COAP_CODE_IS_RESULT(code)   ((code) >= HTTP_TO_COAP_CODE(100))
-
 enum {
+	COAP_CODE_EMPTY = 0,
 	COAP_METHOD_GET = 1,
 	COAP_METHOD_POST = 2,
 	COAP_METHOD_PUT = 3,    //!< @note UNUSED IN SMCP
 	COAP_METHOD_DELETE = 4, //!< @note UNUSED IN SMCP
 
 	// Experimental after this point
-
-	COAP_METHOD_PAIR = 11,
-	COAP_METHOD_UNPAIR = 12,
 };
 
 enum {
+	COAP_RESULT_100 = HTTP_TO_COAP_CODE(100),
+	COAP_RESULT_200 = HTTP_TO_COAP_CODE(200),
+	COAP_RESULT_300 = HTTP_TO_COAP_CODE(300),
+	COAP_RESULT_400 = HTTP_TO_COAP_CODE(400),
+	COAP_RESULT_500 = HTTP_TO_COAP_CODE(500),
+
 	COAP_RESULT_201_CREATED = HTTP_TO_COAP_CODE(201),
 	COAP_RESULT_202_DELETED = HTTP_TO_COAP_CODE(202),
 	COAP_RESULT_203_VALID = HTTP_TO_COAP_CODE(203),
@@ -90,6 +91,11 @@ enum {
 	COAP_RESULT_504_GATEWAY_TIMEOUT = HTTP_TO_COAP_CODE(504),
 	COAP_RESULT_505_PROXYING_NOT_SUPPORTED = HTTP_TO_COAP_CODE(505),
 };
+
+#define COAP_CODE_IS_REQUEST(code) \
+        (((code)) > 0 && \
+            ((code) < COAP_RESULT_100))
+#define COAP_CODE_IS_RESULT(code)   (!(code) || (code) >= COAP_RESULT_100)
 
 enum {
 
@@ -126,7 +132,6 @@ enum {
 	// Unofficial result codes, taken from HTTP
 	HTTP_RESULT_CODE_CONTINUE = 100,
 	HTTP_RESULT_CODE_OK = 200,			// Not valid in recent CoAP versions
-	//HTTP_RESULT_CODE_NO_CONTENT = 204,
 	HTTP_RESULT_CODE_SEE_OTHER = 303,
 	HTTP_RESULT_CODE_TEMPORARY_REDIRECT = 307,
 	HTTP_RESULT_CODE_PARTIAL_CONTENT = 206,
@@ -135,7 +140,7 @@ enum {
 	HTTP_RESULT_CODE_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
 };
 
-#define COAP_HEADER_IS_REQUIRED(x)		(!((x)&1))
+#define COAP_HEADER_IS_REQUIRED(x)		((x)&1)
 
 typedef enum {
 	COAP_HEADER_INVALID = 255,
@@ -194,26 +199,8 @@ typedef enum {
 	SMCP_HEADER_CSEQ = COAP_HEADER_FENCEPOST_2 + 6,             //!< Used for SMCP Pairing.
 	COAP_HEADER_ALLOW = COAP_HEADER_FENCEPOST_2 + 8,
 	SMCP_HEADER_AUTHENTICATE = COAP_HEADER_FENCEPOST_2 + 10,    //!< Used for SMCP Pairing.
-} coap_header_key_t;
+} coap_option_key_t;
 
-
-typedef struct {
-	coap_header_key_t	key;
-	char*				value;
-	size_t				value_len;
-} coap_header_item_t;
-
-inline static bool
-coap_header_strequal(const coap_header_item_t* item,const char* cstr) {
-	size_t i;
-	for(i=0;i<item->value_len;i++) {
-		if(!cstr[i] || (item->value[i]!=cstr[i]))
-			return false;
-	}
-	return cstr[i]==0;
-}
-
-#define coap_header_strequal_const(item,cstr)	coap_header_strequal(item,cstr)
 
 enum {
 	COAP_CONTENT_TYPE_TEXT_PLAIN=0,
@@ -254,38 +241,61 @@ enum {
 
 typedef unsigned char coap_content_type_t;
 
-extern size_t coap_encode_header(
-	unsigned char*			buffer,
-	size_t					buffer_len,
-	coap_transaction_type_t tt,
-	coap_code_t				code,
-	coap_transaction_id_t	tid,
-	coap_header_item_t		headers[],
-	uint8_t					header_count
+struct coap_header_s {
+	uint8_t
+		option_count:4,
+		tt:2,
+		version:2;
+	coap_code_t code:8;
+	coap_transaction_id_t tid; // Always in network order.
+	uint8_t options[0];
+};
+
+extern const uint8_t* coap_decode_option(
+	const uint8_t* buffer,
+	coap_option_key_t* key,
+	const uint8_t** value,
+	size_t* lenP
 );
 
-extern size_t coap_decode_header(
-	unsigned char*				buffer,
-	size_t						buffer_len,
-	coap_transaction_type_t*	tt,
-	coap_code_t*				code,
-	coap_transaction_id_t*		tid,
-	coap_header_item_t*			headers,
-	uint8_t*					header_count
+extern uint8_t* coap_encode_option(
+	uint8_t* buffer,
+	uint8_t* option_count,
+	coap_option_key_t prev_key,
+	coap_option_key_t key,
+	const uint8_t* value,
+	size_t len
 );
 
-extern const char* coap_content_type_to_cstr(
-	coap_content_type_t content_type);
+inline static bool
+coap_option_strequal(const char* optionptr,const char* cstr) {
+	const char* value;
+	size_t value_len;
+	coap_decode_option((const uint8_t*)optionptr, NULL, (const uint8_t**)&value, &value_len);
+
+	size_t i;
+	for(i=0;i<value_len;i++) {
+		if(!cstr[i] || (value[i]!=cstr[i]))
+			return false;
+	}
+	return cstr[i]==0;
+}
+
+#define coap_option_strequal_const(item,cstr)	coap_option_strequal(item,cstr)
+
+extern const char* coap_content_type_to_cstr(coap_content_type_t ct);
 extern coap_content_type_t coap_content_type_from_cstr(const char* x);
-extern const char* coap_header_key_to_cstr(
-	coap_header_key_t key, bool for_response);
-extern coap_header_key_t coap_header_key_from_cstr(const char* key);
+extern const char* coap_option_key_to_cstr(
+	coap_option_key_t key, bool for_response);
+extern coap_option_key_t coap_option_key_from_cstr(const char* key);
 extern const char* http_code_to_cstr(int x);
-extern void coap_dump_headers(
-	FILE*						outstream,
-	const char*					prefix,
-	int							statuscode,
-	const coap_header_item_t*	headers,
-	size_t						header_count);
+extern const char* coap_code_to_cstr(int x);
+
+extern void coap_dump_header(
+	FILE*			outstream,
+	const char*		prefix,
+	const struct coap_header_s* header,
+	size_t packet_size
+);
 
 #endif // __SMCP_COAP_H__

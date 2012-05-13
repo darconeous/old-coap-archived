@@ -59,65 +59,44 @@ get_response_handler(int statuscode, void* context) {
 	char* content = smcp_daemon_get_current_inbound_content_ptr();
 	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
 
-	if((statuscode >= 100) && get_show_headers) {
+	if((statuscode >= COAP_RESULT_100) && get_show_headers) {
 		if(next_len != ((size_t)(-1)))
 			fprintf(stdout, "\n\n");
-		coap_dump_headers(stdout,
+		coap_dump_header(
+			stdout,
 			NULL,
-			http_to_coap_code(statuscode),
-			smcp_daemon_get_first_header(),
-			smcp_daemon_get_current_request_header_count());
+			smcp_current_request_get_packet(),
+			0
+		);
 	}
 
-	if((statuscode >= 300) && (statuscode < 400) && redirect_count) {
-		// Redirect.
-		char location[256] = "";
-		const coap_header_item_t *iter =
-		    smcp_daemon_get_first_header();
-		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
-			if(iter->key == COAP_HEADER_LOCATION_PATH) {
-				memcpy(location, iter->value, iter->value_len);
-				location[iter->value_len] = 0;
-			}
-		}
-		if(location[0] && (0 != strcmp(location, (const char*)context))) {
-			static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
-			strncpy(redirect_url,
-				    (const char*)context,
-				SMCP_MAX_URI_LENGTH);
-			url_change(redirect_url, location);
-			retries = 0;
-			require(send_get_request(self, redirect_url, 0, 0), bail);
-			fflush(stdout);
-			redirect_count--;
-			return;
-		}
-	}
-
-	if(((statuscode < 200) ||
-	            (statuscode >= 300)) &&
+	if(((statuscode < COAP_RESULT_200) ||
+	            (statuscode >= COAP_RESULT_400)) &&
 	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
-	        (statuscode != HTTP_RESULT_CODE_PARTIAL_CONTENT))
+	        (statuscode != HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_PARTIAL_CONTENT)))
 		fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : http_code_to_cstr(statuscode));
+				statuscode) : coap_code_to_cstr(statuscode));
 
 	if(content && content_length) {
-		coap_content_type_t content_type = 0;
-		const coap_header_item_t *next = NULL;
-		const coap_header_item_t *iter =
-		    smcp_daemon_get_first_header();
-		for(; iter; iter=smcp_daemon_get_next_header(iter)) {
-			if(iter->key == COAP_HEADER_CONTENT_TYPE)
-				content_type = (unsigned char)iter->value[0];
-			else if(iter->key == COAP_HEADER_CONTINUATION_REQUEST)
-				next = iter;
+		coap_content_type_t content_type = smcp_daemon_get_current_inbound_content_type();
+		coap_option_key_t key;
+		const uint8_t* value;
+		size_t value_len;
+		const uint8_t* next_value = NULL;
+		size_t next_len;
+		while((key=smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+
+			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
+				next_value = value;
+				next_len = value_len;
+			}
 		}
 
 		fwrite(content, content_length, 1, stdout);
-		if(next) {
+		if(next_value) {
 			require(send_get_request(self, (const char*)context,
-					next->value, next->value_len), bail);
+					next_value, next_len), bail);
 			fflush(stdout);
 			return;
 		} else {

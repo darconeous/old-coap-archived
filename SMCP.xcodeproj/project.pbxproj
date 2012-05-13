@@ -29,6 +29,9 @@
 		A65258371528F45300E389EC /* cmd_monitor.c in Sources */ = {isa = PBXBuildFile; fileRef = A65258361528F45300E389EC /* cmd_monitor.c */; };
 		A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A27BA2127B934F003708DF /* cmd_delete.c */; };
 		A6CD69621283466B00254A8B /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E21278B16D00B24867 /* btree.c */; };
+		A6F536EE155F0E5200E0E324 /* smcp_curl_proxy.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536EC155F0E5200E0E324 /* smcp_curl_proxy.c */; };
+		A6F536F1155F0EC700E0E324 /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		A6F536F3155F255000E0E324 /* smcp_send.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp_send.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -91,6 +94,10 @@
 		A6A27BA1127B934F003708DF /* cmd_delete.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_delete.h; path = src/smcpctl/cmd_delete.h; sourceTree = "<group>"; };
 		A6A27BA2127B934F003708DF /* cmd_delete.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_delete.c; path = src/smcpctl/cmd_delete.c; sourceTree = "<group>"; };
 		A6CD695D1283463900254A8B /* btreetest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = btreetest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6F536EC155F0E5200E0E324 /* smcp_curl_proxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = smcp_curl_proxy.c; path = src/smcp/smcp_curl_proxy.c; sourceTree = "<group>"; };
+		A6F536ED155F0E5200E0E324 /* smcp_curl_proxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = smcp_curl_proxy.h; path = src/smcp/smcp_curl_proxy.h; sourceTree = "<group>"; };
+		A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = ../../../../usr/lib/libcurl.4.dylib; sourceTree = "<group>"; };
+		A6F536F2155F255000E0E324 /* smcp_send.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = smcp_send.c; path = src/smcp/smcp_send.c; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = smcpctl.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -99,6 +106,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6F536F1155F0EC700E0E324 /* libcurl.4.dylib in Frameworks */,
 				A63B1EBA125FC4E900BF2543 /* libreadline.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -116,6 +124,7 @@
 		08FB7794FE84155DC02AAC07 /* SHAP */ = {
 			isa = PBXGroup;
 			children = (
+				A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */,
 				A6C6C483121B2EE200CAB3A3 /* Tool Source */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				C6A0FF2B0290797F04C91782 /* Documentation */,
@@ -130,6 +139,7 @@
 			children = (
 				A60D0DB312795ADF00C04B8C /* Utils */,
 				A63EA6F41278B16D00B24867 /* smcp.c */,
+				A6F536F2155F255000E0E324 /* smcp_send.c */,
 				A63EA6F51278B16D00B24867 /* smcp.h */,
 				A63EA6E81278B16D00B24867 /* smcp_internal.h */,
 				A63EA6E41278B16D00B24867 /* coap.c */,
@@ -145,6 +155,8 @@
 				A63EA6EF1278B16D00B24867 /* smcp_timer_node.h */,
 				A63EA6F21278B16D00B24867 /* smcp_variable_node.c */,
 				A63EA6F31278B16D00B24867 /* smcp_variable_node.h */,
+				A6F536EC155F0E5200E0E324 /* smcp_curl_proxy.c */,
+				A6F536ED155F0E5200E0E324 /* smcp_curl_proxy.h */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -297,6 +309,8 @@
 				A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */,
 				A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */,
 				A65258371528F45300E389EC /* cmd_monitor.c in Sources */,
+				A6F536EE155F0E5200E0E324 /* smcp_curl_proxy.c in Sources */,
+				A6F536F3155F255000E0E324 /* smcp_send.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -319,6 +333,10 @@
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"HAS_LIBCURL=1",
+					"HAS_LIBREADLINE=1",
+				);
 				INSTALL_PATH = /usr/local/bin;
 				PRODUCT_NAME = smcpctl;
 			};
@@ -330,6 +348,10 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_MODEL_TUNING = G5;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"HAS_LIBCURL=1",
+					"HAS_LIBREADLINE=1",
+				);
 				INSTALL_PATH = /usr/local/bin;
 				PRODUCT_NAME = smcpctl;
 			};

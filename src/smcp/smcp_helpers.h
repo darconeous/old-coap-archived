@@ -35,9 +35,9 @@
 // DEPRECATED.
 static inline bool
 util_add_header(
-	coap_header_item_t* headerList,
+	coap_option_item_t* headerList,
 	int					maxHeaders,
-	coap_header_key_t	key,
+	coap_option_key_t	key,
 	const char*			value,
 	size_t				len
 ) {
