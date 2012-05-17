@@ -11,7 +11,6 @@
 typedef struct smcp_timer_node_s {
 	struct smcp_node_s	node;
 	struct smcp_timer_s timer;
-	smcp_daemon_t		smcpd_instance;
 	uint32_t			period;
 	uint32_t			remaining;
 	bool				autorestart;
@@ -23,7 +22,6 @@ typedef struct smcp_timer_node_s {
 smcp_timer_node_t smcp_timer_node_alloc();
 smcp_timer_node_t smcp_timer_node_init(
 	smcp_timer_node_t	self,
-	smcp_daemon_t		smcp,
 	smcp_node_t			parent,
 	const char*			name
 );

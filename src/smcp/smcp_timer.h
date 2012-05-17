@@ -14,7 +14,11 @@ typedef void (*smcp_timer_callback_t)(smcp_daemon_t smcp, void* context);
 #if CONTIKI && !CONTIKI_TARGET_MINIMAL_NET && !CONTIKI_TARGET_NATIVE
 #if !defined(timeval)
 #define timeval timeval
-typedef int32_t time_t;
+#ifndef __time_t_defined
+#include <machine/types.h>
+typedef _TIME_T_ time_t;
+#define __time_t_defined 1
+#endif
 typedef int32_t suseconds_t;
 struct timeval {
 	time_t		tv_sec;

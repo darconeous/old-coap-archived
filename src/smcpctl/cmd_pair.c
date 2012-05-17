@@ -43,20 +43,20 @@ pair_response_handler(
 	void*		context
 ) {
 //	smcp_daemon_t self = smcp_get_current_daemon();
-	char* content = smcp_daemon_get_current_inbound_content_ptr();
-	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
+	char* content = smcp_inbound_get_content_ptr();
+	size_t content_length = smcp_inbound_get_content_len();
 	if((statuscode >= COAP_RESULT_100) && show_headers) {
 		fprintf(stdout, "\n");
 		coap_dump_header(
 			stdout,
 			"NULL",
-			smcp_current_request_get_packet(),
+			smcp_inbound_get_packet(),
 			0
 		);
 	}
 	if(((statuscode < COAP_RESULT_200) ||
 	            (statuscode >= COAP_RESULT_300)) &&
-	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
+	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
 		fprintf(stderr, "pair: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
@@ -96,25 +96,25 @@ resend_pair_request(char* url[2]) {
 		url[0][len] = 0;
 	}
 
-	status = smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_PUT, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_daemon(),COAP_METHOD_PUT, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
 
-	status = smcp_message_set_uri(url[0],0);
+	status = smcp_outbound_set_uri(url[0],0);
 	require_noerr(status,bail);
 
 	// Root pairings object path
-	status = smcp_message_add_header(COAP_HEADER_URI_PATH,SMCP_PAIRING_DEFAULT_ROOT_PATH,COAP_HEADER_CSTR_LEN);
+	status = smcp_outbound_add_option(COAP_HEADER_URI_PATH,SMCP_PAIRING_DEFAULT_ROOT_PATH,COAP_HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 
 	// Path to pair with
-	status = smcp_message_add_header(COAP_HEADER_URI_PATH,url[0]+len+1,COAP_HEADER_CSTR_LEN);
+	status = smcp_outbound_add_option(COAP_HEADER_URI_PATH,url[0]+len+1,COAP_HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 
 	// Remote target
-	status = smcp_message_add_header(COAP_HEADER_URI_PATH,url[1],COAP_HEADER_CSTR_LEN);
+	status = smcp_outbound_add_option(COAP_HEADER_URI_PATH,url[1],COAP_HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 
-	status = smcp_message_send();
+	status = smcp_outbound_send();
 	require_noerr(status,bail);
 
 bail:
@@ -140,10 +140,6 @@ send_pair_request(
 	//static char tid_str[30];
 
 	gRet = ERRORCODE_INPROGRESS;
-
-	//snprintf(tid_str,sizeof(tid_str),"%d",tid);
-
-//	util_add_header(headers,SMCP_MAX_HEADERS,COAP_HEADER_ID,tid_str);
 
 	if(strcmp(url, url2) == 0) {
 		fprintf(stderr, "Pairing a URL to itself is invalid.\n");

@@ -40,14 +40,14 @@ monitor_action_func(
 	smcp_node_t node,
     smcp_method_t method
 ) {
-	char* content = smcp_daemon_get_current_inbound_content_ptr();
-	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
+	char* content = smcp_inbound_get_content_ptr();
+	size_t content_length = smcp_inbound_get_content_len();
 	fprintf(stdout,
 		" *** Received Action! content_length=%d",
 		    (int)content_length);
 	fprintf(stdout,
 		" content_type=\"%s\"",
-		coap_content_type_to_cstr(smcp_daemon_get_current_inbound_content_type())
+		coap_content_type_to_cstr(smcp_inbound_get_content_type())
 	);
 
 	if(content_length)

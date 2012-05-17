@@ -41,7 +41,7 @@ action_func(
 	coap_dump_header(
 		stdout,
 		"   * ",
-		smcp_current_request_get_packet(),
+		smcp_inbound_get_packet(),
 		0
 	);
 
@@ -98,8 +98,8 @@ list_response_handler(
 	void*		context
 ) {
 //	smcp_daemon_t self = smcp_get_current_daemon();
-	char* content = smcp_daemon_get_current_inbound_content_ptr();
-	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
+	char* content = smcp_inbound_get_content_ptr();
+	size_t content_length = smcp_inbound_get_content_len();
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
 	printf("   * RESULT CODE = %d (%s)\n", statuscode,
 		(statuscode>0)?coap_code_to_cstr(statuscode):smcp_status_to_cstr(statuscode));
@@ -127,24 +127,24 @@ resend_async_response(void* context) {
 	smcp_status_t ret = 0;
 	struct smcp_async_response_s* async_response = (void*)context;
 
-	ret = smcp_message_begin_response(COAP_RESULT_205_CONTENT);
+	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	require_noerr(ret,bail);
 
-	ret = smcp_message_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
-	ret = smcp_message_set_async_response(async_response);
+	ret = smcp_outbound_set_async_response(async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_message_set_content_formatted("This was an asynchronous response!");
+	ret = smcp_outbound_set_content_formatted("This was an asynchronous response!");
 	require_noerr(ret,bail);
 
-	ret = smcp_message_send();
+	ret = smcp_outbound_send();
 	require_noerr(ret,bail);
 
 	if(ret) {
 		assert_printf(
-			"smcp_message_send() returned error %d(%s).\n",
+			"smcp_outbound_send() returned error %d(%s).\n",
 			ret,
 			smcp_status_to_cstr(ret)
 		);
@@ -225,7 +225,15 @@ tool_cmd_test(
 
 #if HAS_LIBCURL
 	struct smcp_curl_proxy_node_s proxy_node = {};
-	smcp_curl_proxy_node_init(&proxy_node, smcp_daemon, smcp_daemon_get_root_node(smcp_daemon), "proxy");
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	CURLM* curl_multi_handle = curl_multi_init();
+	smcp_curl_proxy_node_init(
+		&proxy_node,
+		smcp_daemon_get_root_node(smcp_daemon),
+		"proxy",
+		curl_multi_handle
+	);
 #endif
 
 	smcp_pairing_init(
@@ -247,7 +255,6 @@ tool_cmd_test(
 	);
 
 	smcp_timer_node_init(&timer_node,
-		smcp_daemon,
 		smcp_daemon_get_root_node(smcp_daemon),
 		"timer"
 	);
@@ -369,10 +376,10 @@ tool_cmd_test(
 			NULL
 		);
 
-		smcp_message_begin(smcp_daemon2,COAP_METHOD_GET,COAP_TRANS_TYPE_CONFIRMABLE);
-			smcp_message_set_tid(tid);
-			smcp_message_set_uri(url, 0);
-		smcp_message_send();
+		smcp_outbound_begin(smcp_daemon2,COAP_METHOD_GET,COAP_TRANS_TYPE_CONFIRMABLE);
+			smcp_outbound_set_tid(tid);
+			smcp_outbound_set_uri(url, 0);
+		smcp_outbound_send();
 
 		fprintf(stderr, " *** Sent LIST request...\n");
 	}
@@ -387,9 +394,17 @@ tool_cmd_test(
 #endif
 		smcp_daemon_process(smcp_daemon, 10);
 		smcp_daemon_process(smcp_daemon2, 10);
+#if HAS_LIBCURL
+		int runningHandles;
+		if(curl_multi_handle)
+			curl_multi_perform(curl_multi_handle, &runningHandles);
+#endif
 	}
 
 bail:
+#if HAS_LIBCURL
+	curl_multi_cleanup(curl_multi_handle);
+#endif
 
 	return 0;
 }

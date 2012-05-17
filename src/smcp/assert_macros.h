@@ -47,6 +47,10 @@
 #define assert_error_stream     stderr
 #endif
 
+#if !DEBUG && !defined(NDEBUG)
+#define NDEBUG 1
+#endif
+
 #if HAS_ASSERTMACROS_H
  #include <AssertMacros.h>
 #else
@@ -96,5 +100,14 @@
     require_action_string(c, l, \
 	    do {} while(0), s)
 #endif
+
+#if OVERRIDE_ASSERT_H
+#undef assert
+#undef __assert
+#define assert(e)  \
+    ((void) ((e) ? 0 : __assert (#e, __FILE__, __LINE__)))
+#define __assert(e, file, line) \
+    ((void)assert_printf ("%s:%u: failed assertion `%s'\n", file, line, e), abort())
+#endif // OVERRIDE_ASSERT_H
 
 #endif

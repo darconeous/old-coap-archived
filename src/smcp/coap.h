@@ -267,6 +267,8 @@ extern uint8_t* coap_encode_option(
 	size_t len
 );
 
+extern bool coap_option_value_is_string(coap_option_key_t key);
+
 inline static bool
 coap_option_strequal(const char* optionptr,const char* cstr) {
 	const char* value;

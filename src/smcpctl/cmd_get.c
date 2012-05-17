@@ -56,8 +56,8 @@ static int redirect_count;
 static void
 get_response_handler(int statuscode, void* context) {
 	smcp_daemon_t self = smcp_get_current_daemon();
-	char* content = smcp_daemon_get_current_inbound_content_ptr();
-	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
+	char* content = smcp_inbound_get_content_ptr();
+	size_t content_length = smcp_inbound_get_content_len();
 
 	if((statuscode >= COAP_RESULT_100) && get_show_headers) {
 		if(next_len != ((size_t)(-1)))
@@ -65,27 +65,27 @@ get_response_handler(int statuscode, void* context) {
 		coap_dump_header(
 			stdout,
 			NULL,
-			smcp_current_request_get_packet(),
+			smcp_inbound_get_packet(),
 			0
 		);
 	}
 
 	if(((statuscode < COAP_RESULT_200) ||
 	            (statuscode >= COAP_RESULT_400)) &&
-	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED) &&
+	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED) &&
 	        (statuscode != HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_PARTIAL_CONTENT)))
 		fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
 
 	if(content && content_length) {
-		coap_content_type_t content_type = smcp_daemon_get_current_inbound_content_type();
+		coap_content_type_t content_type = smcp_inbound_get_content_type();
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
 		const uint8_t* next_value = NULL;
 		size_t next_len;
-		while((key=smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
 
 			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
 				next_value = value;
@@ -115,14 +115,14 @@ smcp_status_t
 resend_get_request(void* context) {
 	smcp_status_t status = 0;
 
-	status = smcp_message_begin(smcp_get_current_daemon(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_daemon(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
 
-	status = smcp_message_set_uri(url_data, 0);
+	status = smcp_outbound_set_uri(url_data, 0);
 	require_noerr(status,bail);
 
 	if(next_len != ((size_t)(-1))) {
-		status = smcp_message_add_header(
+		status = smcp_outbound_add_option(
 			COAP_HEADER_CONTINUATION_RESPONSE,
 			next_data,
 			next_len
@@ -131,7 +131,7 @@ resend_get_request(void* context) {
 	}
 
 	if(size_request) {
-		status = smcp_message_add_header(
+		status = smcp_outbound_add_option(
 			COAP_HEADER_SIZE_REQUEST,
 			(void*)&size_request,
 			sizeof(size_request)
@@ -139,12 +139,12 @@ resend_get_request(void* context) {
 		require_noerr(status,bail);
 	}
 
-	status = smcp_message_send();
+	status = smcp_outbound_send();
 
 	if(status) {
 		check_noerr(status);
 		fprintf(stderr,
-			"smcp_message_send() returned error %d(%s).\n",
+			"smcp_outbound_send() returned error %d(%s).\n",
 			status,
 			smcp_status_to_cstr(status));
 		goto bail;

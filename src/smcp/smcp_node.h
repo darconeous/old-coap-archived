@@ -33,7 +33,7 @@ struct smcp_node_s {
 	smcp_node_t					children;
 
 	void						(*finalize)(smcp_node_t node);
-	smcp_request_handler_func	request_handler;
+	smcp_inbound_handler_func	request_handler;
 
 	void* context; // DEPRECATED, TO BE REMOVED!
 };

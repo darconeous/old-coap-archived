@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include "ctype.h"
 
+#include "smcp_helpers.h"
+
 const uint8_t*
 coap_decode_option(const uint8_t* buffer, coap_option_key_t* key, const uint8_t** value, size_t* lenP) {
 	uint16_t len = (*buffer & 0x0F);
@@ -74,7 +76,7 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 	switch(content_type) {
 	case COAP_CONTENT_TYPE_UNKNOWN: content_type_string = "unknown"; break;
 
-	case COAP_CONTENT_TYPE_TEXT_PLAIN: content_type_string = "text/plain";
+	case COAP_CONTENT_TYPE_TEXT_PLAIN: content_type_string = "text/plain;charset=utf-8";
 		break;
 	case COAP_CONTENT_TYPE_TEXT_XML: content_type_string = "text/xml";
 		break;
@@ -134,7 +136,7 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 		if(content_type < 20)
 			snprintf(ret,
 				sizeof(ret),
-				"text/x-coap-%u",
+				"text/x-coap-%u;charset=utf-8",
 				    (unsigned char)content_type);
 		else if(content_type < 40)
 			snprintf(ret,
@@ -161,32 +163,52 @@ coap_content_type_from_cstr(const char* x) {
 	if(!x)
 		return 0;
 
-	if(0 ==
-	    strncmp(x, "application/x-coap-", sizeof("application/x-coap-") -
-			1))
+	if(strhasprefix_const(x, "application/x-coap-"))
 		x += sizeof("application/x-coap-") - 1;
-	else if(0 == strncmp(x, "text/x-coap-", sizeof("text/x-coap-") - 1))
+	else if(strhasprefix_const(x, "text/x-coap-"))
 		x += sizeof("text/x-coap-") - 1;
-	else if(0 == strncmp(x, "image/x-coap-", sizeof("image/x-coap-") - 1))
+	else if(strhasprefix_const(x, "image/x-coap-"))
 		x += sizeof("image/x-coap-") - 1;
 
 	if(isdigit(x[0]))
 		return strtol(x, NULL, 0);
 
-	if(0 == strcmp(x, "text/plain"))
+	if(strhasprefix_const(x, "text/plain"))
 		return COAP_CONTENT_TYPE_TEXT_PLAIN;
-	if(0 == strcmp(x, "text/xml"))
+	if(strhasprefix_const(x, "text/html"))
+		return COAP_CONTENT_TYPE_TEXT_HTML;
+	if(strhasprefix_const(x, "text/xml"))
 		return COAP_CONTENT_TYPE_TEXT_XML;
-	if(0 == strcmp(x, "application/x-www-form-urlencoded"))
+	if(strhasprefix_const(x, "text/"))
+		return COAP_CONTENT_TYPE_TEXT_PLAIN;
+	if(strhasprefix_const(x, "application/x-www-form-urlencoded"))
 		return SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
-	if(0 == strcmp(x, "application/link-format"))
+	if(strhasprefix_const(x, "application/link-format"))
 		return COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
-	if(0 == strcmp(x, "application/octet-stream"))
+	if(strhasprefix_const(x, "application/octet-stream"))
 		return COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
 
 	// TODO: Add the others!
 
 	return COAP_CONTENT_TYPE_UNKNOWN;
+}
+
+bool
+coap_option_value_is_string(coap_option_key_t key) {
+	switch(key) {
+		case COAP_HEADER_PROXY_URI:
+		case SMCP_HEADER_CSEQ:
+		case COAP_HEADER_ETAG:
+		case COAP_HEADER_URI_HOST:
+		case COAP_HEADER_LOCATION_PATH:
+		case COAP_HEADER_LOCATION_QUERY:
+		case COAP_HEADER_URI_PATH:
+			return true;
+			break;
+		deafult:
+			break;
+	}
+	return false;
 }
 
 const char*

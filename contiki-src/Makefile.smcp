@@ -1,0 +1,18 @@
+ifndef SMCP
+  ${error SMCP not defined! You must specify where SMCP resides}
+endif
+
+CONTIKI_SOURCEFILES += btree.c smcp.c smcp_list.c smcp_send.c smcp_node.c smcp_pairing.c url-helpers.c coap.c smcp_timer.c smcp_timer_node.c smcp_variable_node.c
+
+CFLAGS += -DUIP_UDP_SEND_UNREACH_NOPORT=1
+#CFLAGS += -DUIP_CONF_IPV6_QUEUE_PKT=0
+#CFLAGS += -DUIP_CONF_IPV6_RPL=0
+#CFLAGS += -DRESOLV_CONF_SUPPORTS_MDNS=0
+#CFLAGS += -DRESOLV_CONF_MDNS_RESPONDER=0
+#CFLAGS += -DUIP_CONF_LOOPBACK_INTERFACE=1
+
+CFLAGS += -I$(SMCP)/src
+APPDIRS += $(SMCP)/src/smcp
+
+CFLAGS += -I$(SMCP)/contiki-src
+APPDIRS += $(SMCP)/contiki-src/apps

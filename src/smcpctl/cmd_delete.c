@@ -49,10 +49,10 @@ delete_response_handler(
 	int			statuscode,
 	void*		context
 ) {
-	char* content = smcp_daemon_get_current_inbound_content_ptr();
-	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
+	char* content = smcp_inbound_get_content_ptr();
+	size_t content_length = smcp_inbound_get_content_len();
 	if((statuscode != COAP_RESULT_202_DELETED) &&
-	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
+	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
 		fprintf(stderr, "delete: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
@@ -79,13 +79,13 @@ smcp_status_t
 resend_delete_request(const char* url) {
 	smcp_status_t status = 0;
 
-	status = smcp_message_begin(smcp_get_current_daemon(), COAP_METHOD_DELETE, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_daemon(), COAP_METHOD_DELETE, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
 
-	status = smcp_message_set_uri(url, 0);
+	status = smcp_outbound_set_uri(url, 0);
 	require_noerr(status,bail);
 
-	status = smcp_message_send();
+	status = smcp_outbound_send();
 	require_noerr(status,bail);
 
 	gRet = ERRORCODE_INPROGRESS;

@@ -31,16 +31,16 @@ smcp_variable_request_handler(
 	smcp_method_t	method
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
-	coap_content_type_t content_type = smcp_daemon_get_current_inbound_content_type();
-	const char* content_ptr = smcp_daemon_get_current_inbound_content_ptr();
-	size_t content_len = smcp_daemon_get_current_inbound_content_len();
+	coap_content_type_t content_type = smcp_inbound_get_content_type();
+	const char* content_ptr = smcp_inbound_get_content_ptr();
+	size_t content_len = smcp_inbound_get_content_len();
 	require(node, bail);
 
 	{
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
-		while((key=smcp_current_request_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key==COAP_HEADER_URI_QUERY) {
 				if(	method == COAP_METHOD_POST
@@ -69,7 +69,7 @@ smcp_variable_request_handler(
 		method = COAP_METHOD_POST;
 
 	if(method == COAP_METHOD_POST) {
-		require_action(((smcp_variable_node_t)node)->post_func!=NULL,bail,ret=SMCP_STATUS_NOT_IMPLEMENTED);
+		require_action(((smcp_variable_node_t)node)->post_func!=NULL,bail,ret=SMCP_STATUS_NOT_ALLOWED);
 		ret = (*((smcp_variable_node_t)node)->post_func)(
 			((smcp_variable_node_t)node),
 			content_ptr,
@@ -77,8 +77,14 @@ smcp_variable_request_handler(
 			content_type
 		);
 		require_noerr(ret,bail);
+
+		ret = smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
+		require_noerr(ret,bail);
+
+		ret = smcp_outbound_send();
+		require_noerr(ret,bail);
 	} else if(method == COAP_METHOD_GET) {
-		require_action(((smcp_variable_node_t)node)->get_func!=NULL,bail,ret=SMCP_STATUS_NOT_IMPLEMENTED);
+		require_action(((smcp_variable_node_t)node)->get_func!=NULL,bail,ret=SMCP_STATUS_NOT_ALLOWED);
 		{
 			size_t replyContentLength = 0;
 			char *replyContent;
@@ -90,20 +96,27 @@ smcp_variable_request_handler(
 				&replyContentLength,
 				&replyContentType
 			);
-
 			require_noerr(ret,bail);
 
-			smcp_message_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_OK));
-			smcp_message_set_content_type(replyContentType);
-			replyContent = smcp_message_get_content_ptr(&replyContentLength);
+			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+			require_noerr(ret,bail);
+
+			smcp_outbound_set_content_type(replyContentType);
+
+			replyContent = smcp_outbound_get_content_ptr(&replyContentLength);
+
 			ret = (*((smcp_variable_node_t)node)->get_func)(
 				(smcp_variable_node_t)node,
 				replyContent,
 				&replyContentLength,
 				&replyContentType
 			);
-			smcp_message_set_content_len(replyContentLength);
-			smcp_message_send();
+			require_noerr(ret,bail);
+
+			ret = smcp_outbound_set_content_len(replyContentLength);
+			require_noerr(ret,bail);
+
+			ret = smcp_outbound_send();
 		}
 	} else {
 		ret = smcp_default_request_handler(

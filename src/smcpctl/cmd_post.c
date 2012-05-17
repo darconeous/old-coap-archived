@@ -52,19 +52,19 @@ post_response_handler(
 	int			statuscode,
 	struct post_request_s *request
 ) {
-	char* content = smcp_daemon_get_current_inbound_content_ptr();
-	size_t content_length = smcp_daemon_get_current_inbound_content_len(); 
+	char* content = smcp_inbound_get_content_ptr();
+	size_t content_length = smcp_inbound_get_content_len();
 	if((statuscode >= COAP_RESULT_100) && show_headers) {
 		fprintf(stdout, "\n");
 		coap_dump_header(
 			stdout,
 			NULL,
-			smcp_current_request_get_packet(),
+			smcp_inbound_get_packet(),
 			0
 		);
 	}
 	if((statuscode != COAP_RESULT_204_CHANGED) &&
-	        (statuscode != SMCP_STATUS_HANDLER_INVALIDATED))
+	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
 		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
@@ -87,25 +87,25 @@ smcp_status_t
 resend_post_request(struct post_request_s *request) {
 	smcp_status_t status = 0;
 
-	status = smcp_message_begin(smcp_get_current_daemon(),request->method, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_daemon(),request->method, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status, bail);
 
-	status = smcp_message_set_content_type(request->content_type);
+	status = smcp_outbound_set_content_type(request->content_type);
 	require_noerr(status, bail);
 
-	status = smcp_message_set_uri(request->url, 0);
+	status = smcp_outbound_set_uri(request->url, 0);
 	require_noerr(status, bail);
 
-	status = smcp_message_set_content(request->content, request->content_len);
+	status = smcp_outbound_set_content(request->content, request->content_len);
 	require_noerr(status, bail);
 
-	status = smcp_message_send();
+	status = smcp_outbound_send();
 	require_noerr(status, bail);
 
 	if(status) {
 		check(!status);
 		fprintf(stderr,
-			"smcp_message_send() returned error %d(%s).\n",
+			"smcp_outbound_send() returned error %d(%s).\n",
 			status,
 			smcp_status_to_cstr(status));
 		goto bail;

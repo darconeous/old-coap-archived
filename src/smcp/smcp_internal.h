@@ -7,42 +7,34 @@
  *
  */
 
-#if CONTIKI && !CONTIKI_TARGET_MINIMAL_NET
-#if !defined(timeval)
-#define timeval timeval
-struct timeval {
-	time_t		tv_sec;
-	suseconds_t tv_usec;
-};
-#endif
-#else
-#include <sys/time.h>
-#endif
+#include "smcp.h"
+#include "smcp_timer.h"
 
 #include "smcp_pairing.h"
 
 #if CONTIKI
+// Contiki only supports one daemon.
 #define smcp_set_current_daemon(x)
 #else
 extern void smcp_set_current_daemon(smcp_daemon_t x);
 #endif
-
 
 #pragma mark -
 #pragma mark Class Definitions
 
 struct smcp_transaction_s {
 	struct bt_item_s			bt_item;
-	coap_transaction_id_t		tid;
-	struct timeval				expiration;
-	uint8_t						flags;
-	bool waiting_for_async_response;
-	uint8_t						attemptCount;
-	struct smcp_timer_s			timer;
-	smcp_request_resend_func	resendCallback;
+	smcp_inbound_resend_func	resendCallback;
 	smcp_response_handler_func	callback;
 	void*						context;
+	coap_transaction_id_t		tid;
+	uint8_t						flags;
+	uint8_t						attemptCount;
+	struct timeval				expiration;
+	struct smcp_timer_s			timer;
+
 	uint16_t token;
+	bool waiting_for_async_response;
 };
 
 typedef struct smcp_transaction_s *smcp_transaction_t;
@@ -50,6 +42,7 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 // Consider members of this struct to be private!
 struct smcp_daemon_s {
 	struct smcp_node_s		root_node;
+	void*					reserved_for_root_node_use;
 
 #if SMCP_USE_BSD_SOCKETS
 	int						fd;
@@ -61,6 +54,7 @@ struct smcp_daemon_s {
 	smcp_timer_t			timers;
 
 	smcp_transaction_t		transactions;
+
 	uint8_t					cascade_count;
 
 	// Operational Flags
@@ -73,6 +67,7 @@ struct smcp_daemon_s {
 	// Inbound packet variables.
 	struct {
 		const struct coap_header_s*	packet;
+		size_t					packet_len;
 
 		coap_option_key_t		last_option_key;
 		const uint8_t*			this_option;
@@ -86,6 +81,8 @@ struct smcp_daemon_s {
 
 		coap_transaction_id_t	last_tid;
 
+		bool					was_sent_to_multicast:1,
+								is_fake:1;
 #if SMCP_USE_BSD_SOCKETS
 		struct sockaddr*		saddr;
 		socklen_t				socklen;
@@ -102,10 +99,9 @@ struct smcp_daemon_s {
 		char*					content_ptr;
 		size_t					content_len;
 
-		uint8_t					real_option_count;
-		coap_option_key_t		last_option_key;
-
 		coap_transaction_id_t	next_tid;
+
+		coap_option_key_t		last_option_key;
 
 #if SMCP_USE_BSD_SOCKETS
 		char					packet_bytes[SMCP_MAX_PACKET_LENGTH+1];
@@ -124,6 +120,11 @@ extern smcp_status_t
 smcp_daemon_handle_request(
 	smcp_daemon_t	self
 );
+extern smcp_status_t smcp_daemon_handle_list(
+	smcp_node_t		node,
+	smcp_method_t	method
+);
 
+extern smcp_status_t smcp_daemon_handle_response(smcp_daemon_t	self);
 
 
