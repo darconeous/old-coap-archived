@@ -15,8 +15,7 @@ typedef void (*smcp_timer_callback_t)(smcp_daemon_t smcp, void* context);
 #if !defined(timeval)
 #define timeval timeval
 #ifndef __time_t_defined
-#include <machine/types.h>
-typedef _TIME_T_ time_t;
+typedef long time_t;
 #define __time_t_defined 1
 #endif
 typedef int32_t suseconds_t;

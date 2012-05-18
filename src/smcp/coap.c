@@ -131,6 +131,7 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 	default: break;
 	}
 	if(!content_type_string) {
+#ifndef SDCC_REVISION
 		// TODO: Make thread safe!
 		static char ret[40];
 		if(content_type < 20)
@@ -154,6 +155,9 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 			snprintf(ret, sizeof(ret), "application/x-coap-%u",
 				    (unsigned char)content_type);
 		content_type_string = ret;
+#else
+		content_type_string = "unknown";
+#endif
 	}
 	return content_type_string;
 }
@@ -171,7 +175,7 @@ coap_content_type_from_cstr(const char* x) {
 		x += sizeof("image/x-coap-") - 1;
 
 	if(isdigit(x[0]))
-		return strtol(x, NULL, 0);
+		return atoi(x);
 
 	if(strhasprefix_const(x, "text/plain"))
 		return COAP_CONTENT_TYPE_TEXT_PLAIN;
@@ -218,7 +222,7 @@ coap_option_key_to_cstr(
 	const char* ret = NULL;
 
 	if(for_response) switch(key) {
-#if USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
+#ifdef USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
 		case COAP_HEADER_MESSAGE_SIZE: ret = "Message-size"; break;
 		case COAP_HEADER_CONTINUATION_REQUEST: ret =
 			    "Continuation-request"; break;
@@ -285,6 +289,7 @@ coap_option_key_to_cstr(
 	return ret;
 }
 
+#ifndef SDCC_REVISION
 coap_option_key_t
 coap_option_key_from_cstr(const char* key) {
 	if(strcasecmp(key, "Content-type") == 0)
@@ -324,7 +329,7 @@ coap_option_key_from_cstr(const char* key) {
 
 	return 0;
 }
-
+#endif
 
 const char*
 http_code_to_cstr(int x) {
@@ -383,6 +388,7 @@ http_code_to_cstr(int x) {
 
 const char* coap_code_to_cstr(int x) { return http_code_to_cstr(coap_to_http_code(x)); }
 
+#if !CONTIKI
 void
 coap_dump_header(
 	FILE*			outstream,
@@ -497,3 +503,4 @@ coap_dump_header(
 	fputs(prefix, outstream);
 	fputc('\n', outstream);
 }
+#endif

@@ -64,10 +64,10 @@ smcp_outbound_begin(
 	smcp_set_current_daemon(self);
 
 #if SMCP_USE_BSD_SOCKETS
-	self->outbound.packet = (void*)smcp_get_current_daemon()->outbound.packet_bytes;
+	self->outbound.packet = (struct coap_header_s*)smcp_get_current_daemon()->outbound.packet_bytes;
 #elif CONTIKI
 	uip_udp_conn = smcp_get_current_daemon()->udp_conn;
-	self->outbound.packet = (unsigned char*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+	self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
 #error WRITEME!
 #endif
@@ -186,6 +186,7 @@ smcp_outbound_add_header_(
 	coap_option_key_t key, const char* value, size_t len
 ) {
 	smcp_daemon_t const self = smcp_get_current_daemon();
+	uint8_t option_count;
 
 #warning TODO: Check for overflow!
 
@@ -200,7 +201,7 @@ smcp_outbound_add_header_(
 	if(self->outbound.packet->option_count==0xF)
 		self->outbound.content_ptr--;	// remove end-of-options marker
 
-	uint8_t option_count = self->outbound.packet->option_count;
+	option_count = self->outbound.packet->option_count;
 
 	self->outbound.content_ptr = (char*)coap_encode_option(
 		(uint8_t*)self->outbound.content_ptr,
@@ -211,8 +212,8 @@ smcp_outbound_add_header_(
 		len
 	);
 
-	self->outbound.packet->option_count = MIN(15,option_count);
 	self->outbound.last_option_key = key;
+	self->outbound.packet->option_count = MIN(15,option_count);
 
 	if(self->outbound.packet->option_count==0xF)
 		*self->outbound.content_ptr++ = 0xF0;  // Add end-of-options marker
@@ -267,10 +268,6 @@ smcp_status_t
 smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t toport) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 
-	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
-
-	toport = htons(toport);
-
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
 		.sin6_family	= AF_INET6,
@@ -289,6 +286,9 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	struct addrinfo *results = NULL;
 
 	int error = getaddrinfo(addr_str, NULL, &hint, &results);
+
+	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
+	toport = htons(toport);
 
 	if(error && (inet_addr(addr_str) != INADDR_NONE)) {
 		char addr_v4mapped_str[8 + strlen(addr_str)];
@@ -323,11 +323,14 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	uip_ipaddr_t toaddr;
 	memset(&toaddr, 0, sizeof(toaddr));
 
+	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
+	toport = htons(toport);
+
 	ret = uiplib_ipaddrconv(
 		addr_str,
 		&toaddr
 	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
-	
+
 	if(ret) {
 		uip_ipaddr_t *temp = NULL;
 		switch(resolv_lookup2(addr_str,&temp)) {
@@ -383,9 +386,12 @@ smcp_outbound_set_uri(
 		addr_str = "::1";
 		toport = smcp_daemon_get_port(smcp_get_current_daemon());
 	} else {
+#if HAS_ALLOCA
 		uri_copy = alloca(strlen(uri) + 1);
-
 		strcpy(uri_copy, uri);
+#else
+		uri_copy = strdup(uri);
+#endif
 
 		// Parse the URI.
 		require_action_string(
@@ -405,7 +411,7 @@ smcp_outbound_set_uri(
 		);
 
 		if(port_str) {
-			toport = strtol(port_str, NULL, 10);
+			toport = atoi(port_str);
 		}
 
 		DEBUG_PRINTF(
@@ -480,52 +486,11 @@ smcp_outbound_set_uri(
 			require_noerr(ret,bail);
 		}
 	}
-//
-//
-//
-//	// Skip past first slashes.
-//	while((*uri == '/') && *uri)
-//		uri++;
-//
-//	start = uri;
-//
-//	// Skip past path.
-//	while((*uri != '?') && *uri) {
-//		int namelen;
-//		for(namelen = 0; uri[namelen]; namelen++) {
-//			if((uri[namelen] == '/') || (uri[namelen] == '?') ||
-//			        (uri[namelen] == '!'))
-//				break;
-//		}
-//
-//		char* unescaped_name = alloca(namelen+1);
-//		bzero(unescaped_name,namelen+1);
-//		unescaped_name[url_decode_str(unescaped_name, namelen+1, uri, namelen)]=0;
-//
-//		ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, unescaped_name, COAP_HEADER_CSTR_LEN);
-//		require_noerr(ret,bail);
-//
-//		uri+=namelen;
-//
-//		while((*uri == '/') && *uri)
-//			uri++;
-//	}
-//
-//	if(!*uri++)
-//		goto bail;
-//
-//	start = uri;
-//
-//	if(!*uri)
-//		goto bail;
-//
-//	// Skip to the end
-//	while(*uri++) ;
-//
-//	ret = smcp_outbound_add_option(COAP_HEADER_URI_QUERY, start, uri - start);
-//	require_noerr(ret,bail);
 
 bail:
+#if !HAS_ALLOCA
+	free(uri_copy);
+#endif
 	return ret;
 }
 
@@ -660,9 +625,9 @@ smcp_outbound_set_content_formatted(const char* fmt, ...) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	size_t len = 0;
 	va_list args;
-	va_start(args,fmt);
-
 	char* content = smcp_outbound_get_content_ptr(&len);
+
+	va_start(args,fmt);
 
 	require(content!=NULL,bail);
 

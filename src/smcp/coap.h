@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #if CONTIKI
+#include "contiki.h"
 #include "net/uip.h"
 #define htons(x)    uip_htons(x)
 #define ntohs(x)    uip_ntohs(x)
@@ -36,18 +37,14 @@ typedef uint16_t coap_transaction_id_t;
 
 typedef uint16_t coap_code_t;
 
-#define COAP_TO_HTTP_CODE(code)     ((code) / 32 * 100 + (code) % 32)
-static inline uint16_t coap_to_http_code(uint8_t code) {
-	return
-	    COAP_TO_HTTP_CODE(
-		code);
+#define COAP_TO_HTTP_CODE(x)     ((x) / 32 * 100 + (x) % 32)
+static inline uint16_t coap_to_http_code(uint8_t x) {
+	return COAP_TO_HTTP_CODE(x);
 }
 
-#define HTTP_TO_COAP_CODE(code)     ((code) / 100 * 32 + (code) % 100)
-static inline uint8_t http_to_coap_code(uint16_t code) {
-	return
-	    HTTP_TO_COAP_CODE(
-		code);
+#define HTTP_TO_COAP_CODE(x)     ((x) / 100 * 32 + (x) % 100)
+static inline uint8_t http_to_coap_code(uint16_t x) {
+	return HTTP_TO_COAP_CODE(x);
 }
 
 enum {
@@ -273,9 +270,9 @@ inline static bool
 coap_option_strequal(const char* optionptr,const char* cstr) {
 	const char* value;
 	size_t value_len;
+	size_t i;
 	coap_decode_option((const uint8_t*)optionptr, NULL, (const uint8_t**)&value, &value_len);
 
-	size_t i;
 	for(i=0;i<value_len;i++) {
 		if(!cstr[i] || (value[i]!=cstr[i]))
 			return false;
@@ -293,12 +290,14 @@ extern coap_option_key_t coap_option_key_from_cstr(const char* key);
 extern const char* http_code_to_cstr(int x);
 extern const char* coap_code_to_cstr(int x);
 
-//extern const char* coap_option_
+#if !CONTIKI
+#include <stdio.h>
 extern void coap_dump_header(
 	FILE*			outstream,
 	const char*		prefix,
 	const struct coap_header_s* header,
 	size_t packet_size
 );
+#endif
 
 #endif // __SMCP_COAP_H__

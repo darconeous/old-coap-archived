@@ -49,6 +49,7 @@ smcp_timer_node_alloc() {
 	return ret;
 }
 
+/*
 smcp_status_t smcp_static_content_fetcher(
 	void* context,
 	char* content,
@@ -64,6 +65,7 @@ smcp_status_t smcp_static_content_fetcher(
 
 	return SMCP_STATUS_OK;
 }
+*/
 
 #if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
 smcp_status_t smcp_timer_node_content_fetcher(
@@ -89,14 +91,16 @@ void smcp_timer_node_fired(
 	smcp_timer_node_t const self = context;
 
 #if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-	smcp_daemon_trigger_custom_event_with_node(smcp,
+	smcp_daemon_trigger_custom_event_with_node(
+		self,
 		&self->node,
 		"!f",
 		(void*)&smcp_timer_node_content_fetcher,
 		self
 	);
 #else
-	smcp_daemon_trigger_custom_event_with_node(smcp,
+	smcp_daemon_trigger_custom_event_with_node(
+		self,
 		&self->node,
 		"!f",
 		NULL,
@@ -113,12 +117,10 @@ void smcp_timer_node_fired(
 		);
 	} else {
 		self->remaining = 0;
-		smcp_daemon_trigger_custom_event_with_node(
+		smcp_daemon_trigger_event_with_node(
 			smcp,
 			&self->node,
-			"r",
-			(void*)&smcp_static_content_fetcher,
-			(void*)"0"
+			"r"
 		);
 	}
 }
@@ -136,12 +138,10 @@ void smcp_timer_node_start(smcp_timer_node_t self) {
 			smcp_daemon_schedule_timer(smcp,
 				&self->timer,
 				self->period);
-		smcp_daemon_trigger_custom_event_with_node(
+		smcp_daemon_trigger_event_with_node(
 			smcp,
 			&self->node,
-			"r",
-			(void*)&smcp_static_content_fetcher,
-			(void*)"1"
+			"r"
 		);
 	}
 }
@@ -152,12 +152,10 @@ void smcp_timer_node_stop(smcp_timer_node_t self) {
 			&self->timer)) {
 		self->remaining = convert_timeval_to_cms(&self->timer.fire_date);
 		smcp_daemon_invalidate_timer(smcp, &self->timer);
-		smcp_daemon_trigger_custom_event_with_node(
+		smcp_daemon_trigger_event_with_node(
 			smcp,
 			&self->node,
-			"r",
-			(void*)&smcp_static_content_fetcher,
-			(void*)"0"
+			"r"
 		);
 	}
 }
@@ -229,6 +227,12 @@ smcp_timer_request_handler(
 	const smcp_daemon_t self = smcp_get_current_daemon();
 	coap_content_type_t content_type = smcp_inbound_get_content_type();
 	char* query = NULL;
+#if !HAS_ALLOCA
+	char query_tmp[128];
+#endif
+	coap_option_key_t key;
+	uint8_t* value;
+	size_t value_len;
 
 	enum {
 		PATH_ROOT,
@@ -253,15 +257,16 @@ smcp_timer_request_handler(
 	if(path!=PATH_ROOT)
 		smcp_inbound_next_header(NULL,NULL);
 
-	coap_option_key_t key;
-	uint8_t* value;
-	size_t value_len;
 	{
 		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 
 			if(key == COAP_HEADER_URI_QUERY && ((value[0]=='v')||(value[0]=='r'))) {
+#if HAS_ALLOCA
 				query = alloca(value_len + 1);
+#else
+				query = query_tmp;
+#endif
 				memcpy(query, value, value_len);
 				query[value_len] = 0;
 			} else {
@@ -299,28 +304,27 @@ smcp_timer_request_handler(
 				ret = SMCP_STATUS_NOT_ALLOWED;
 			}
 		} else if(method == COAP_METHOD_GET) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
+			ret = smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
 			content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
-			smcp_outbound_add_option(
+			ret = smcp_outbound_add_option(
 				COAP_HEADER_CONTENT_TYPE,
 				(const void*)&content_type,
 				1
 			);
-			smcp_outbound_set_content(list_content, COAP_HEADER_CSTR_LEN);
-			smcp_outbound_send();
+			ret = smcp_outbound_set_content(list_content, COAP_HEADER_CSTR_LEN);
+			ret = smcp_outbound_send();
 		} else {
 			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else if(path==PATH_RUNNING) {
 		if(method == COAP_METHOD_GET) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_var_content_int(
-				smcp_daemon_timer_is_scheduled(
-					smcp_get_current_daemon(),
-					&((smcp_timer_node_t)node)->timer
-				)
+			int v = smcp_daemon_timer_is_scheduled(
+				smcp_get_current_daemon(),
+				&((smcp_timer_node_t)node)->timer
 			);
-			smcp_outbound_send();
+			ret = smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
+			ret = smcp_outbound_set_var_content_int(v);
+			ret = smcp_outbound_send();
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
 			char* key = NULL;
@@ -329,7 +333,7 @@ smcp_timer_request_handler(
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
 					if(isdigit(value[0])) {
-						if(strtol(value, NULL, 0))
+						if(atoi(value))
 							smcp_timer_node_start((smcp_timer_node_t)node);
 						else
 							smcp_timer_node_stop((smcp_timer_node_t)node);
@@ -365,11 +369,7 @@ smcp_timer_request_handler(
 				&& value
 			) {
 				if(strequal_const(key, "v")) {
-					((smcp_timer_node_t)node)->period = strtol(
-						value,
-						NULL,
-						0
-					);
+					((smcp_timer_node_t)node)->period = atoi(value);
 					smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
 					smcp_outbound_send();
 					break;
@@ -390,10 +390,7 @@ smcp_timer_request_handler(
 			while(url_form_next_value((char**)&query, &key,
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
-					    ((smcp_timer_node_t)node)->remaining = strtol(
-						value,
-						NULL,
-						0);
+					    ((smcp_timer_node_t)node)->remaining = atoi(value);
 					if(smcp_daemon_timer_is_scheduled(self,
 							&((smcp_timer_node_t)node)->timer)) {
 						smcp_daemon_invalidate_timer(self,
@@ -425,17 +422,15 @@ smcp_timer_request_handler(
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
 					((smcp_timer_node_t)node)->autorestart =
-						!!strtol(value,NULL,10);
+						!!atoi(value);
 
 					smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
 					smcp_outbound_send();
 
-					ret = smcp_daemon_trigger_custom_event_with_node(
+					ret = smcp_daemon_trigger_event_with_node(
 						smcp_get_current_daemon(),
 						node,
-						"arstrt",
-						(void*)smcp_static_content_fetcher,//smcp_content_fetcher_func contentFetcher,
-						((smcp_timer_node_t)node)->autorestart?"1":"0"//void *context
+						"arstrt"
 					);
 
 					check_noerr(ret);
@@ -467,7 +462,7 @@ smcp_timer_node_init(
 ) {
 	require(self || (self = smcp_timer_node_alloc()), bail);
 
-	self = smcp_node_init(&self->node,(void*)parent,name);
+	self = (smcp_timer_node_t)smcp_node_init(&self->node,(void*)parent,name);
 
 	require_string(self!=NULL, bail,"Node init failed.");
 

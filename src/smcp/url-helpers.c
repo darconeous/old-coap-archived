@@ -5,6 +5,84 @@
 
 //#define VERBOSE_DEBUG 1
 
+#ifdef SDCC_REVISION
+#include <malloc.h>
+#endif
+
+#ifndef HAS_C99_VLA
+#define HAS_C99_VLA	!defined(SDCC_REVISION)
+#endif
+
+#ifndef HAS_STRSEP
+#define HAS_STRSEP	!defined(SDCC_REVISION)
+#endif
+
+#if !defined(strsep) && !HAS_STRSEP
+/* ---------------------------------------------------------------- */
+/* BEGIN BSD SECTION */
+/*-
+ * Copyright (c) 1990, 1993
+ *	The Regents of the University of California.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. All advertising materials mentioning features or use of this software
+ *    must display the following acknowledgement:
+ *	This product includes software developed by the University of
+ *	California, Berkeley and its contributors.
+ * 4. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+char *
+strsep_x(char **stringp, const char *delim)
+{
+	register char *s;
+	register const char *spanp;
+	register int c, sc;
+	char *tok;
+
+	if ((s = *stringp) == NULL)
+		return (NULL);
+	for (tok = s;;) {
+		c = *s++;
+		spanp = delim;
+		do {
+			if ((sc = *spanp++) == c) {
+				if (c == 0)
+					s = NULL;
+				else
+					s[-1] = 0;
+				*stringp = s;
+				return (tok);
+			}
+		} while (sc != 0);
+	}
+	/* NOTREACHED */
+}
+#define strsep	strsep_x
+/* END BSD SECTION */
+/* ---------------------------------------------------------------- */
+#endif
+
 static bool
 isurlchar(int src_char) {
 	return isalnum(src_char)
@@ -420,7 +498,8 @@ bail:
 	return bytes_parsed;
 }
 
-extern bool url_is_absolute(const char* uri) {
+bool
+url_is_absolute(const char* uri) {
 	bool ret = false;
 	int bytes_parsed = 0;
 
@@ -439,7 +518,8 @@ bail:
 	return ret;
 }
 
-extern bool url_is_root(const char* url) {
+bool
+url_is_root(const char* url) {
 	bool ret = false;
 
 	require(url, bail);
@@ -475,12 +555,16 @@ string_contains_colons(const char* str) {
 	return *str == ':';
 }
 
-extern bool url_change(
+bool
+url_change(
 	char* url, const char* new_url_
 ) {
 	// TODO: This function is inefficient. Optimize it!
 
 	bool ret = false;
+#if !HAS_C99_VLA
+	char *new_url = NULL;
+#endif
 
 	if(url_is_absolute(new_url_)) {
 		strcpy(url, new_url_);
@@ -489,14 +573,21 @@ extern bool url_change(
 	}
 
 	{
-		char new_url[strlen(new_url_) + 1];
-		strcpy(new_url, new_url_);
-
 		char current_path[MAX_URL_SIZE];
 		char* proto_str = NULL;
 		char* path_str = NULL;
 		char* addr_str = NULL;
 		char* port_str = NULL;
+
+#if HAS_C99_VLA
+		char new_url[strlen(new_url_) + 1];
+		strcpy(new_url, new_url_);
+#else
+		uint16_t len = strlen(new_url_);
+		new_url = malloc(len + 1);
+		memcpy(new_url,new_url_,len);
+		new_url[len]=0;
+#endif
 
 		strcpy(current_path, url);
 
@@ -601,6 +692,10 @@ extern bool url_change(
 		ret = true;
 	}
 bail:
+#if !HAS_C99_VLA
+	free(new_url);
+#endif
+
 #if VERBOSE_DEBUG
 	fprintf(stderr, "url_change: final-url=\"%s\"\n", url);
 #endif
@@ -614,6 +709,9 @@ url_shorten_reference(
 	const char* current_url, char* new_url
 ) {
 	// TODO: This function is a mess! Clean it up!
+#if !HAS_C99_VLA
+	char* temp2 = NULL;
+#endif
 
 	if(url_is_absolute(new_url)) {
 		int i;
@@ -630,7 +728,7 @@ url_shorten_reference(
 				if(current_url[i] == 0) {
 					new_url[0] = '/';
 					new_url[1] = 0;
-					return;
+					goto bail;
 				} else if(current_url[i] == '/') {
 					int len = strlen(new_url);
 					memmove(new_url, new_url + i, len - i);
@@ -639,21 +737,27 @@ url_shorten_reference(
 				}
 			}
 		}
-		return;
+		goto bail;
 	}
 
 make_relative:
 	{
-		char temp2[strlen(current_url) + 1];
 		char temp[256];
 		char* new_path;
 		char* new_query = NULL;
 		char* curr_path;
+#if HAS_C99_VLA
+		char temp2[strlen(current_url) + 1];
+		strcpy(temp2, current_url);
+#else
+		uint16_t len = strlen(current_url);
+		temp2 = malloc(len + 1);
+		memcpy(temp2,current_url,len);
+		temp2[len]=0;
+#endif
 
 		strncpy(temp, current_url, sizeof(temp));
 		url_change(temp, new_url);
-
-		strcpy(temp2, current_url);
 
 		url_parse(temp,
 			NULL,
@@ -667,6 +771,7 @@ make_relative:
 
 		while(true) {
 			char* curr_item = strsep(&curr_path, "/");
+			char* new_item;
 
 			if(!curr_item || (curr_item[0] == 0)) {
 				if(!new_path) {
@@ -681,10 +786,10 @@ make_relative:
 						strcat(new_url, new_query);
 					}
 				}
-				return;
+				goto bail;
 			}
 
-			char* new_item = strsep(&new_path, "/");
+			new_item = strsep(&new_path, "/");
 			if(!new_item || (new_item[0] == 0)) {
 				strcpy(temp2, "..");
 				while(strsep(&curr_path, "/"))
@@ -698,7 +803,7 @@ make_relative:
 						strcat(new_url, new_query);
 					}
 				}
-				return;
+				goto bail;
 			}
 
 			if(0 == strcmp(curr_item, new_item))
@@ -726,4 +831,9 @@ make_relative:
 			break;
 		}
 	}
+bail:
+#if !HAS_C99_VLA
+	free(temp2);
+#endif
+	return;
 }

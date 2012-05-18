@@ -24,13 +24,17 @@
 #endif
 #endif
 
-#define PAIRING_STATE   struct smcp_pairing_node_s* pairings; smcp_root_pairing_node_t root_pairing_node
+#define SMCP_PAIRING_DEFAULT_ROOT_PATH	".pairings"
+
+#if SMCP_ENABLE_PAIRING
+
+#define PAIRING_STATE   smcp_root_pairing_node_t root_pairing_node;
+//#define PAIRING_STATE   struct smcp_pairing_node_s* pairings; smcp_root_pairing_node_t root_pairing_node;
 
 #ifndef SMCP_CONF_PAIRING_STATS
 #define SMCP_CONF_PAIRING_STATS 1
 #endif
 
-#define SMCP_PAIRING_DEFAULT_ROOT_PATH	".pairings"
 
 __BEGIN_DECLS
 
@@ -210,5 +214,14 @@ smcp_pairing_get_next_seq(smcp_pairing_node_t pairing) {
 }
 
 __END_DECLS
+
+#else
+#define smcp_daemon_trigger_event(a,b)	(SMCP_STATUS_NOT_IMPLEMENTED)
+#define smcp_daemon_trigger_event_with_node(a,b,c)	(SMCP_STATUS_NOT_IMPLEMENTED)
+#define smcp_daemon_trigger_custom_event(a,b,c,d)	(SMCP_STATUS_NOT_IMPLEMENTED)
+#define smcp_daemon_trigger_custom_event_with_node(a,b,c,d,e)	(SMCP_STATUS_NOT_IMPLEMENTED)
+#define smcp_pairing_init(a,b,c)	(NULL)
+#define PAIRING_STATE
+#endif // #if SMCP_ENABLE_PAIRING
 
 #endif

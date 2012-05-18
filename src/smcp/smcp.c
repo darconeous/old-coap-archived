@@ -35,7 +35,6 @@ extern uint16_t uip_slen;
 
 #include "url-helpers.h"
 #include "smcp_node.h"
-#include "smcp_pairing.h"
 #include "smcp_logging.h"
 
 #if SMCP_USE_BSD_SOCKETS
@@ -173,9 +172,11 @@ smcp_daemon_init(
 #endif
 
 	ret->is_processing_message = false;
-	require_string(smcp_node_init(&ret->root_node,
-			NULL,
-			NULL) != NULL, bail, "Unable to initialize root node");
+	require_string(
+		smcp_node_init(&ret->root_node,NULL,NULL) != NULL,
+		bail,
+		"Unable to initialize root node"
+	);
 
 bail:
 	return ret;
@@ -314,6 +315,7 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 	const uint8_t* next;
 	const char* value;
 	size_t value_len;
+	size_t i;
 
 	if(!self->inbound.this_option)
 		return false;
@@ -323,7 +325,6 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 	if(curr_key != key)
 		return false;
 
-	size_t i;
 	for(i=0;i<value_len;i++) {
 		if(!cstr[i] || (value[i]!=cstr[i]))
 			return false;
@@ -438,7 +439,7 @@ smcp_daemon_handle_inbound_packet(
 	self->inbound.saddr = saddr;
 	self->inbound.socklen = socklen;
 #elif CONTIKI
-	self->inbound.toaddr = *toaddr;
+	memcpy(&self->inbound.toaddr,toaddr,sizeof(*toaddr));
 	self->inbound.toport = toport;
 #endif
 
@@ -877,6 +878,7 @@ smcp_daemon_handle_response(
 ) {
 	smcp_status_t ret = 0;
 	smcp_transaction_t handler = NULL;
+	coap_transaction_id_t tid;
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
@@ -897,7 +899,7 @@ smcp_daemon_handle_response(
 	DEBUG_PRINTF(CSTR("%p: Total Pending Transactions: %d"), self,
 		(int)bt_count((void**)&self->transactions));
 
-	coap_transaction_id_t tid = smcp_inbound_get_tid();
+	tid = smcp_inbound_get_tid();
 
 	handler = (smcp_transaction_t)bt_find(
 		(void**)&self->transactions,
@@ -1030,7 +1032,7 @@ smcp_start_async_response(struct smcp_async_response_s* x) {
 	x->socklen = self->inbound.socklen;
 	memcpy(&x->saddr,self->inbound.saddr,sizeof(x->saddr));
 #elif CONTIKI
-	x->toaddr = self->inbound.toaddr;
+	memcpy(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr));
 	x->toport = self->inbound.toport;
 #endif
 

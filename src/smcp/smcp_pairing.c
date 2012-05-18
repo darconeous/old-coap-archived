@@ -21,6 +21,8 @@
 #include "smcp.h"
 #include "smcp_logging.h"
 
+#if SMCP_ENABLE_PAIRING
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -906,3 +908,5 @@ smcp_root_pairing_node_t smcp_pairing_init(
 bail:
 	return self->root_pairing_node;
 }
+
+#endif // #if SMCP_ENABLE_PAIRING

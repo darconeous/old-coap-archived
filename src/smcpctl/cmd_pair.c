@@ -84,6 +84,7 @@ pair_response_handler(
 smcp_status_t
 resend_pair_request(char* url[2]) {
 	smcp_status_t status;
+#if SMCP_ENABLE_PAIRING
 	size_t len = 0;
 	bool did_mutate = false;
 	while(url[0][len] && url[0][len]!='/') {
@@ -116,11 +117,13 @@ resend_pair_request(char* url[2]) {
 
 	status = smcp_outbound_send();
 	require_noerr(status,bail);
-
 bail:
 	if(did_mutate) {
 		url[0][len] = '/';
 	}
+#else
+	status = SMCP_STATUS_NOT_IMPLEMENTED;
+#endif
 	return status;
 }
 

@@ -13,10 +13,10 @@ typedef struct smcp_timer_node_s {
 	struct smcp_timer_s timer;
 	uint32_t			period;
 	uint32_t			remaining;
-	bool				autorestart;
 #if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
 	uint32_t			count;
 #endif
+	uint8_t				autorestart;
 } *smcp_timer_node_t;
 
 smcp_timer_node_t smcp_timer_node_alloc();

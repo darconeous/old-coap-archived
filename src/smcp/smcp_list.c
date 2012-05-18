@@ -7,7 +7,7 @@
 //
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
 #endif
 
 #ifndef DEBUG
@@ -16,6 +16,9 @@
 
 #include "assert_macros.h"
 
+#if HAS_ALLOCA
+#include <alloca.h>
+#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -36,13 +39,20 @@ smcp_daemon_handle_list(
 	smcp_method_t	method
 ) {
 	smcp_status_t ret = 0;
+#if HAS_ALLOCA
 	char* next_node = NULL;
+#else
+	char next_node[128];
+#endif
 	char replyContent[SMCP_MAX_PATH_LENGTH + 32 + 1];
 	size_t content_break_threshold = 120;
 	size_t content_offset = 0;
 	const char* prefix = NULL;
+	coap_option_key_t key;
+	const uint8_t* value;
+	size_t value_len;
 	memset(replyContent, 0, sizeof(replyContent));
-
+	next_node[0] = 0;
 	if(!node->parent) {
 		if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,".well-known")) {
 			smcp_inbound_next_header(NULL, NULL);
@@ -56,9 +66,6 @@ smcp_daemon_handle_list(
 		}
 	}
 
-	coap_option_key_t key;
-	const uint8_t* value;
-	size_t value_len;
 	{
 		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
@@ -66,7 +73,9 @@ smcp_daemon_handle_list(
 				// Skip URI query components for now.
 			} else
 			if(key == COAP_HEADER_CONTINUATION_RESPONSE) {
+#if HAS_ALLOCA
 				next_node = alloca(value_len + 1);
+#endif
 				memcpy(next_node, value, value_len);
 				next_node[value_len] = 0;
 			} else if(key == COAP_HEADER_SIZE_REQUEST) {
@@ -124,7 +133,7 @@ smcp_daemon_handle_list(
 		else
 			node = NULL;
 	}
-	next_node = NULL;
+	next_node[0] = 0;
 
 	while(node) {
 		smcp_node_t next;
@@ -133,7 +142,7 @@ smcp_daemon_handle_list(
 		if(!node_name)
 			break;
 
-		if(next_node) {
+		if(next_node[0]) {
 			if(((int)strlen(node_name) + 4) >
 			        (int)((int)content_break_threshold -
 			            (int)strlen(replyContent) - 2))
@@ -161,7 +170,8 @@ smcp_daemon_handle_list(
 			strlcat(replyContent, ";ct=40", sizeof(replyContent));
 		next = bt_next(node);
 
-		next_node = (char*)node->name;
+		//next_node = (char*)node->name;
+		strncpy(next_node,node->name,sizeof(next_node));
 		node = next;
 #if SMCP_ADD_NEWLINES_TO_LIST_OUTPUT
 		strlcat(replyContent, ",\n" + (!node), sizeof(replyContent));
@@ -173,12 +183,12 @@ smcp_daemon_handle_list(
 	smcp_outbound_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 
 	// If there are more nodes, indicate as such in the headers.
-	if(node && next_node) {
+	if(node && next_node[0]) {
 		smcp_outbound_set_code(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_PARTIAL_CONTENT));
 		smcp_outbound_add_option(
 			COAP_HEADER_CONTINUATION_REQUEST,
 			next_node,
-			HEADER_CSTR_LEN
+			strlen(next_node)
 		);
 	}
 

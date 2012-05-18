@@ -1,6 +1,12 @@
 #ifndef __SMCP_HELPERS_HEADER__
 #define __SMCP_HELPERS_HEADER__ 1
 
+#include <string.h>
+
+#if defined(SDCC_REVISION)
+#include <malloc.h>
+#endif
+
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
 #define __BEGIN_DECLS   extern "C" {
@@ -17,42 +23,59 @@
 //#define strlcat(a,b,len)	( a[len-1]=0,strncat(a,b,len-1) )
 #endif
 
+#ifndef HAS_STRDUP
+#define HAS_STRDUP !defined(SDCC_REVISION)
+#endif
+
+#ifndef HAS_ALLOCA
+#define HAS_ALLOCA !defined(SDCC_REVISION)
+#endif
+
+#ifndef HAS_STRTOL
+#define HAS_STRTOL !defined(SDCC_REVISION)
+#endif
+
+#ifndef HAS_VSNPRINTF
+#define HAS_VSNPRINTF !defined(SDCC_REVISION)
+#endif
+
+#if !HAS_VSNPRINTF
+#warning VSNPRINTF NOT IMPLEMENTED, VSPRINTF COULD OVERFLOW!
+static inline int vsnprintf(char *dest, size_t n,const char *fmt, va_list list) {
+	return vsprintf(dest,fmt,list);
+}
+#endif
+
+#if !HAS_STRDUP
+static inline char*
+strdup(const char* cstr) {
+	size_t len = strlen(cstr);
+	char* ret = malloc(len+1);
+	memcpy(ret,cstr,len);
+	ret[len]=0;
+	return ret;
+}
+#endif
+
 #ifndef MIN
+#if !defined(SDCC_REVISION)
 #define MIN(a, \
         b) ({ __typeof__(a)_a = (a); __typeof__(b)_b = (b); _a < \
               _b ? _a : _b; })
+#else
+#define MIN(a,b)	((a)<(b)?(a):(b))	// NAUGHTY!...but compiles
+#endif
 #endif
 
 #ifndef MAX
+#if !defined(SDCC_REVISION)
 #define MAX(a, \
         b) ({ __typeof__(a)_a = (a); __typeof__(b)_b = (b); _a > \
               _b ? _a : _b; })
+#else
+#define MAX(a,b)	((a)<(b)?(b):(a))	// NAUGHTY!...but compiles
 #endif
-
-#include <string.h>
-
-/*
-// DEPRECATED.
-static inline bool
-util_add_header(
-	coap_option_item_t* headerList,
-	int					maxHeaders,
-	coap_option_key_t	key,
-	const char*			value,
-	size_t				len
-) {
-	for(; maxHeaders && headerList[0].key; maxHeaders--, headerList++) ;
-	if(maxHeaders) {
-		headerList[0].key = key;
-		headerList[0].value = (char*)value;
-		headerList[0].value_len = (len == COAP_HEADER_CSTR_LEN) ? strlen(
-			value) : len;
-		headerList[1].key = 0;
-		return true;
-	}
-	return false;
-}
-*/
+#endif
 
 #if defined(__GCC_VERSION__)
 #define SMCP_PURE_FUNC __attribute__((pure))

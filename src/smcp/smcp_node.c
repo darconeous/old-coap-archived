@@ -62,6 +62,8 @@ static bt_compare_result_t
 smcp_node_ncompare_cstr(
 	smcp_node_t lhs, const char* rhs, int*len
 ) {
+	bt_compare_result_t ret;
+
 	if(lhs->name == rhs)
 		return 0;
 	if(!lhs->name)
@@ -69,7 +71,7 @@ smcp_node_ncompare_cstr(
 	if(!rhs)
 		return -1;
 
-	bt_compare_result_t ret = strncmp(lhs->name, rhs, *len);
+	ret = strncmp(lhs->name, rhs, *len);
 
 	if(ret == 0) {
 		int lhs_len = strlen(lhs->name);
@@ -210,20 +212,28 @@ smcp_node_find_next_with_path(
 		// Warning: This could be dangerous!
 		// We should evaluate the liklihood of blowing
 		// the stack here. TODO: Investigate potential oveflow!
-		char* unescaped_name = alloca(namelen+1);
-		url_decode_str(unescaped_name, namelen+1, path, namelen);
-
-		*next = smcp_node_find(
-			node,
-			unescaped_name,
-			url_decode_str(
+		{
+#if HAS_ALLOCA
+			char unescaped_name[namelen+1];
+#else
+			char *unescaped_name = malloc(namelen+1);
+#endif
+			size_t escaped_len =url_decode_str(
 				unescaped_name,
 				namelen+1,
 				path,
 				namelen
 			)
-		);
-
+;
+			*next = smcp_node_find(
+				node,
+				unescaped_name,
+				escaped_len
+			);
+#if HAS_ALLOCA
+			free(unescaped_name);
+#endif
+		}
 		if(!*next) {
 			DEBUG_PRINTF(CSTR(
 					"Unable to find node. node->name=%s, path=%s, namelen=%d"),

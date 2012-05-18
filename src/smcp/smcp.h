@@ -30,14 +30,26 @@
 #define SMCP_USE_BSD_SOCKETS    0
 #endif
 
-#ifdef __APPLE__
-#define SMCP_FUNC_RANDOM_UINT32()   arc4random()
+#ifndef SMCP_ENABLE_PAIRING
+#define SMCP_ENABLE_PAIRING	!defined(SDCC_REVISION)
+#endif
+
+#ifndef SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
+#define SMCP_CONF_TIMER_NODE_INCLUDE_COUNT !defined(SDCC_REVISION)
 #endif
 
 #ifndef SMCP_FUNC_RANDOM_UINT32
+#ifdef __APPLE__
+#define SMCP_FUNC_RANDOM_UINT32()   arc4random()
+#elif CONTIKI
+#define SMCP_FUNC_RANDOM_UINT32() \
+        ((uint32_t)random_rand() ^ \
+            ((uint32_t)random_rand() << 16))
+#else
 #define SMCP_FUNC_RANDOM_UINT32() \
         ((uint32_t)random() ^ \
             ((uint32_t)random() << 16))
+#endif
 #endif
 
 #ifndef SMCP_USE_BSD_SOCKETS

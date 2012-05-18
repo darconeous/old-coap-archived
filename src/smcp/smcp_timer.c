@@ -120,7 +120,7 @@ bool smcp_daemon_timer_is_scheduled(
 	return timer->ll.next || timer->ll.prev || (self->timers == timer);
 }
 
-extern smcp_status_t smcp_daemon_schedule_timer(
+smcp_status_t smcp_daemon_schedule_timer(
 	smcp_daemon_t	self,
 	smcp_timer_t	timer,
 	int				cms

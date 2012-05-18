@@ -34,7 +34,7 @@ struct smcp_transaction_s {
 	struct smcp_timer_s			timer;
 
 	uint16_t token;
-	bool waiting_for_async_response;
+	uint8_t waiting_for_async_response:1;
 };
 
 typedef struct smcp_transaction_s *smcp_transaction_t;
@@ -58,7 +58,7 @@ struct smcp_daemon_s {
 	uint8_t					cascade_count;
 
 	// Operational Flags
-	bool					is_responding:1,
+	uint8_t					is_responding:1,
 							did_respond:1,
 							is_processing_message:1,
 							has_cascade_count:1,
@@ -81,7 +81,7 @@ struct smcp_daemon_s {
 
 		coap_transaction_id_t	last_tid;
 
-		bool					was_sent_to_multicast:1,
+		uint8_t					was_sent_to_multicast:1,
 								is_fake:1;
 #if SMCP_USE_BSD_SOCKETS
 		struct sockaddr*		saddr;
@@ -112,7 +112,7 @@ struct smcp_daemon_s {
 
 	const char* proxy_url;
 
-	PAIRING_STATE;
+	PAIRING_STATE
 };
 
 
