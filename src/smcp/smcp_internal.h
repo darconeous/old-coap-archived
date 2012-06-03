@@ -1,16 +1,50 @@
-/*
- *  smcp_internal.h
- *  SMCP
- *
- *  Created by Robert Quattlebaum on 10/15/10.
- *  Copyright 2010 deepdarc. All rights reserved.
- *
- */
+/*	@file smcp_internal.c
+**	@author Robert Quattlebaum <darco@deepdarc.com>
+**
+**	Copyright (C) 2011,2012 Robert Quattlebaum
+**
+**	Permission is hereby granted, free of charge, to any person
+**	obtaining a copy of this software and associated
+**	documentation files (the "Software"), to deal in the
+**	Software without restriction, including without limitation
+**	the rights to use, copy, modify, merge, publish, distribute,
+**	sublicense, and/or sell copies of the Software, and to
+**	permit persons to whom the Software is furnished to do so,
+**	subject to the following conditions:
+**
+**	The above copyright notice and this permission notice shall
+**	be included in all copies or substantial portions of the
+**	Software.
+**
+**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 #include "smcp.h"
 #include "smcp_timer.h"
 
 #include "smcp_pairing.h"
+
+
+#ifndef SMCP_FUNC_RANDOM_UINT32
+#ifdef __APPLE__
+#define SMCP_FUNC_RANDOM_UINT32()   arc4random()
+#elif CONTIKI
+#define SMCP_FUNC_RANDOM_UINT32() \
+        ((uint32_t)random_rand() ^ \
+            ((uint32_t)random_rand() << 16))
+#else
+#define SMCP_FUNC_RANDOM_UINT32() \
+        ((uint32_t)random() ^ \
+            ((uint32_t)random() << 16))
+#endif
+#endif
 
 #if CONTIKI
 // Contiki only supports one daemon.
@@ -55,7 +89,9 @@ struct smcp_daemon_s {
 
 	smcp_transaction_t		transactions;
 
+#if SMCP_USE_CASCADE_COUNT
 	uint8_t					cascade_count;
+#endif
 
 	// Operational Flags
 	uint8_t					is_responding:1,

@@ -1,7 +1,30 @@
-/*	Simple Monitoring and Control Protocol (SMCP)
-**	Stack Implementation
+/*	@file smcp.h
+**	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@desc Primary header
 **
-**	Written by Robert Quattlebaum <darco@deepdarc.com>.
+**	Copyright (C) 2011,2012 Robert Quattlebaum
+**
+**	Permission is hereby granted, free of charge, to any person
+**	obtaining a copy of this software and associated
+**	documentation files (the "Software"), to deal in the
+**	Software without restriction, including without limitation
+**	the rights to use, copy, modify, merge, publish, distribute,
+**	sublicense, and/or sell copies of the Software, and to
+**	permit persons to whom the Software is furnished to do so,
+**	subject to the following conditions:
+**
+**	The above copyright notice and this permission notice shall
+**	be included in all copies or substantial portions of the
+**	Software.
+**
+**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 
@@ -24,93 +47,22 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "smcp-opts.h"
+#include "coap.h"
+
 #ifdef CONTIKI
 #include "contiki.h"
 #include "net/uip.h"
-#define SMCP_USE_BSD_SOCKETS    0
-#endif
-
-#ifndef SMCP_ENABLE_PAIRING
-#define SMCP_ENABLE_PAIRING	!defined(SDCC_REVISION)
-#endif
-
-#ifndef SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-#define SMCP_CONF_TIMER_NODE_INCLUDE_COUNT !defined(SDCC_REVISION)
-#endif
-
-#ifndef SMCP_FUNC_RANDOM_UINT32
-#ifdef __APPLE__
-#define SMCP_FUNC_RANDOM_UINT32()   arc4random()
-#elif CONTIKI
-#define SMCP_FUNC_RANDOM_UINT32() \
-        ((uint32_t)random_rand() ^ \
-            ((uint32_t)random_rand() << 16))
-#else
-#define SMCP_FUNC_RANDOM_UINT32() \
-        ((uint32_t)random() ^ \
-            ((uint32_t)random() << 16))
-#endif
-#endif
-
-#ifndef SMCP_USE_BSD_SOCKETS
-#define SMCP_USE_BSD_SOCKETS    1
 #endif
 
 #if SMCP_USE_BSD_SOCKETS
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#define SMCP_SOCKET_ARGS        struct sockaddr* saddr, socklen_t socklen
-#endif
-
-#if !SMCP_USE_BSD_SOCKETS && defined(CONTIKI)
-#define SMCP_SOCKET_ARGS \
-    const uip_ipaddr_t *toaddr, \
-    uint16_t toport
+#define SMCP_SOCKET_ARGS	struct sockaddr* saddr, socklen_t socklen
+#elif defined(CONTIKI)
+#define SMCP_SOCKET_ARGS	const uip_ipaddr_t *toaddr, uint16_t toport
 #include "net/uip.h"
 #endif
-
-#ifndef SMCP_EMBEDDED
-#define SMCP_EMBEDDED		defined(CONTIKI)
-#endif
-
-#if SMCP_EMBEDDED
-#define SMCP_NON_RECURSIVE	static
-#else
-#define SMCP_NON_RECURSIVE
-#endif
-
-#ifndef SMCP_DEPRECATED
-#if __GCC_VERSION__
-#define SMCP_DEPRECATED
-#else
-#define SMCP_DEPRECATED __attribute__ ((deprecated))
-#endif
-#endif
-
-#include "coap.h"
-
-#define SMCP_DEFAULT_PORT           COAP_DEFAULT_PORT
-#define SMCP_DEFAULT_PORT_CSTR      #COAP_DEFAULT_PORT
-#if CONTIKI
-#define SMCP_MAX_PACKET_LENGTH \
-        ((UIP_BUFSIZE - UIP_LLH_LEN - \
-            UIP_IPUDPH_LEN))
-#define SMCP_MAX_CONTENT_LENGTH     (SMCP_MAX_PACKET_LENGTH-128)
-#else
-#define SMCP_MAX_CONTENT_LENGTH     (1024)
-#define SMCP_MAX_PACKET_LENGTH      ((size_t)SMCP_MAX_CONTENT_LENGTH+128)
-#endif
-#define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
-#define SMCP_MAX_PATH_LENGTH        (127)
-#define SMCP_MAX_URI_LENGTH \
-        (SMCP_MAX_PATH_LENGTH + 7 + 6 + 8 * \
-        4 + 7 + 2)
-
-#ifndef IPv4_COMPATIBLE_IPv6_PREFIX
-#define IPv4_COMPATIBLE_IPv6_PREFIX "::FFFF:"
-#endif
-
-#define SMCP_MAX_CASCADE_COUNT      (128)
 
 #define HEADER_CSTR_LEN     ((size_t)-1)
 
@@ -309,9 +261,12 @@ extern char* smcp_outbound_get_content_ptr(size_t* max_len);
 
 extern smcp_status_t smcp_outbound_set_content_len(size_t len);
 
-extern smcp_status_t smcp_outbound_set_content(const char* value,size_t len);
+extern smcp_status_t smcp_outbound_append_content(const char* value,size_t len);
 
 extern smcp_status_t smcp_outbound_set_content_formatted(const char* fmt, ...);
+
+#define smcp_outbound_set_content_formatted_const(fmt,...)	\
+	smcp_outbound_set_content_formatted(fmt,__VA_ARGS__)
 
 extern smcp_status_t smcp_outbound_set_var_content_int(int v);
 
@@ -399,6 +354,8 @@ extern smcp_status_t smcp_default_request_handler(
 
 #pragma mark -
 #pragma mark Helper Functions
+
+extern coap_transaction_id_t smcp_get_next_tid(smcp_daemon_t self, void* context);
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 

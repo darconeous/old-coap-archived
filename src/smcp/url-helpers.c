@@ -5,16 +5,16 @@
 
 //#define VERBOSE_DEBUG 1
 
-#ifdef SDCC_REVISION
+#ifdef __SDCC
 #include <malloc.h>
 #endif
 
 #ifndef HAS_C99_VLA
-#define HAS_C99_VLA	!defined(SDCC_REVISION)
+#define HAS_C99_VLA	!defined(__SDCC)
 #endif
 
 #ifndef HAS_STRSEP
-#define HAS_STRSEP	!defined(SDCC_REVISION)
+#define HAS_STRSEP	!defined(__SDCC)
 #endif
 
 #if !defined(strsep) && !HAS_STRSEP
@@ -159,30 +159,12 @@ url_encode_cstr(
 
 static char
 hex_digit_to_int(char c) {
-	switch(c) {
-	case '0': return 0; break;
-	case '1': return 1; break;
-	case '2': return 2; break;
-	case '3': return 3; break;
-	case '4': return 4; break;
-	case '5': return 5; break;
-	case '6': return 6; break;
-	case '7': return 7; break;
-	case '8': return 8; break;
-	case '9': return 9; break;
-	case 'A':
-	case 'a': return 10; break;
-	case 'B':
-	case 'b': return 11; break;
-	case 'C':
-	case 'c': return 12; break;
-	case 'D':
-	case 'd': return 13; break;
-	case 'E':
-	case 'e': return 14; break;
-	case 'F':
-	case 'f': return 15; break;
-	}
+	if(c>='0' && c<='9')
+		return c-'0';
+	if(c>='A' && c<='F')
+		return 10+c-'A';
+	if(c>='a' && c<='f')
+		return 10+c-'a';
 	return 0;
 }
 
@@ -530,10 +512,13 @@ url_is_root(const char* url) {
 			require(*url, bail);
 			url++;
 		}
-		require(url[0] == ':',bail);
-		require(url[1] == '/',bail);
-		require(url[2] == '/',bail);
+		if(	(url[0] != ':')
+			|| (url[1] != '/')
+			|| (url[2] != '/')
+		)	goto bail;
+
 		url+=3;
+
 		while(*url && (*url != '/')) {
 			url++;
 		}
@@ -591,14 +576,16 @@ url_change(
 
 		strcpy(current_path, url);
 
-		url_parse(current_path,
+		url_parse(
+			current_path,
 			&proto_str,
 			NULL,
 			NULL,
 			&addr_str,
 			&port_str,
 			&path_str,
-			NULL);
+			NULL
+		);
 
 #if VERBOSE_DEBUG
 		fprintf(
@@ -607,7 +594,8 @@ url_change(
 			proto_str,
 			addr_str,
 			port_str,
-			path_str);
+			path_str
+		);
 #endif
 
 		if(!proto_str) {

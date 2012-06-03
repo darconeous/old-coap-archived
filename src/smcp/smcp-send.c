@@ -1,10 +1,30 @@
-//
-//  smcp_send.c
-//  SMCP
-//
-//  Created by Robert Quattlebaum on 5/12/12.
-//  Copyright (c) 2012 deepdarc. All rights reserved.
-//
+/*	@file smcp-send.c
+**	@author Robert Quattlebaum <darco@deepdarc.com>
+**
+**	Copyright (C) 2011,2012 Robert Quattlebaum
+**
+**	Permission is hereby granted, free of charge, to any person
+**	obtaining a copy of this software and associated
+**	documentation files (the "Software"), to deal in the
+**	Software without restriction, including without limitation
+**	the rights to use, copy, modify, merge, publish, distribute,
+**	sublicense, and/or sell copies of the Software, and to
+**	permit persons to whom the Software is furnished to do so,
+**	subject to the following conditions:
+**
+**	The above copyright notice and this permission notice shall
+**	be included in all copies or substantial portions of the
+**	Software.
+**
+**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 #ifndef VERBOSE_DEBUG
 #define VERBOSE_DEBUG 0
@@ -292,7 +312,8 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 
 	if(error && (inet_addr(addr_str) != INADDR_NONE)) {
 		char addr_v4mapped_str[8 + strlen(addr_str)];
-		sprintf(addr_v4mapped_str, "::ffff:%s", addr_str);
+		strcpy(addr_v4mapped_str,"::ffff:");
+		strcat(addr_v4mapped_str,addr_str);
 		error = getaddrinfo(addr_v4mapped_str,
 			NULL,
 			&hint,
@@ -331,8 +352,10 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 		&toaddr
 	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
 
+#if SMCP_CONF_USE_DNS
 	if(ret) {
 		uip_ipaddr_t *temp = NULL;
+#if RESOLV_SUPPORTS_LOOKUP2_API
 		switch(resolv_lookup2(addr_str,&temp)) {
 			case RESOLV_STATUS_CACHED:
 				memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
@@ -350,16 +373,27 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 				ret = SMCP_STATUS_HOST_LOOKUP_FAILURE;
 				break;
 		}
+#else // RESOLV_SUPPORTS_LOOKUP2_API
+		// Fall back for older versions of contiki
+		// which don't have the more advanced DNS resolver API.
+		temp = resolv_lookup(addr_str);
+		if(temp) {
+			memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
+			ret = SMCP_STATUS_OK;
+		} else {
+			resolv_query(addr_str);
+			ret = SMCP_STATUS_WAIT_FOR_DNS;
+		}
+#endif // !RESOLV_SUPPORTS_LOOKUP2_API
 	}
+#endif // SMCP_CONF_USE_DNS
 	
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_set_destaddr(&toaddr,toport);
 
 	require_noerr(ret, bail);
-#else
-#error TODO: Implement me!
-#endif
+#endif // CONTIKI
 
 bail:
 	return ret;
@@ -495,26 +529,29 @@ bail:
 }
 
 smcp_status_t
-smcp_outbound_set_content(const char* value,size_t len) {
+smcp_outbound_append_content(const char* value,size_t len) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
+	smcp_daemon_t const self = smcp_get_current_daemon();
 
-	size_t max_len;
+	size_t max_len = self->outbound.content_len;
 	char* dest;
 
 	if(len==COAP_HEADER_CSTR_LEN)
 		len = strlen(value);
 
-	max_len = len;
+	max_len += len;
 
 	dest = smcp_outbound_get_content_ptr(&max_len);
 
 	require(dest,bail);
 
-	require(max_len>=len,bail);
+	dest += self->outbound.content_len;
+
+	require(max_len-self->outbound.content_len>=len,bail);
 
 	memcpy(dest, value, len);
 
-	smcp_outbound_set_content_len(len);
+	smcp_outbound_set_content_len(len+self->outbound.content_len);
 
 	ret = SMCP_STATUS_OK;
 
@@ -549,14 +586,14 @@ smcp_outbound_send() {
 	smcp_daemon_t const self = smcp_get_current_daemon();
 	const size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 #if VERBOSE_DEBUG
-	DEBUG_PRINTF(CSTR("Outbound: tt=%d"),smcp_get_current_daemon()->outbound.packet->tt);
+	DEBUG_PRINTF("Outbound: tt=%d",smcp_get_current_daemon()->outbound.packet->tt);
 	coap_dump_header(
 		SMCP_DEBUG_OUT_FILE,
 		"Outbound: ",
 		self->outbound.packet,
 		header_len
 	);
-	DEBUG_PRINTF(CSTR("Outbound: packet length = %d"),header_len+smcp_get_current_daemon()->outbound.content_len);
+	DEBUG_PRINTF("Outbound: packet length = %d",header_len+smcp_get_current_daemon()->outbound.content_len);
 #endif
 
 #if SMCP_USE_BSD_SOCKETS
@@ -615,9 +652,7 @@ bail:
 
 smcp_status_t
 smcp_outbound_set_content_type(coap_content_type_t t) {
-	static coap_content_type_t type;
-	type = t;
-	return smcp_outbound_add_option(COAP_HEADER_CONTENT_TYPE, (char*)&type, 1);
+	return smcp_outbound_add_option(COAP_HEADER_CONTENT_TYPE, (char*)&t, 1);
 }
 
 smcp_status_t
@@ -645,17 +680,22 @@ bail:
 smcp_status_t
 smcp_outbound_set_var_content_int(int v) {
 	smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-	return smcp_outbound_set_content_formatted("v=%d",v);
+//#if SMCP_AVOID_PRINTF
+//	smcp_outbound_append_content("v=", HEADER_CSTR_LEN);
+//
+//#else
+	return smcp_outbound_set_content_formatted_const("v=%d",v);
+//#endif
 }
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_int(unsigned int v) {
 	smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-	return smcp_outbound_set_content_formatted("v=%u",v);
+	return smcp_outbound_set_content_formatted_const("v=%u",v);
 }
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v) {
 	smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-	return smcp_outbound_set_content_formatted("v=%ul",v);
+	return smcp_outbound_set_content_formatted_const("v=%ul",v);
 }

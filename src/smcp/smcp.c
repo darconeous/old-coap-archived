@@ -1,7 +1,29 @@
-/*	Simple Home Automation Protocol (SMCP)
-**	Stack Implementation
+/*	@file smcp.c
+**	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Written by Robert Quattlebaum <darco@deepdarc.com>.
+**	Copyright (C) 2011,2012 Robert Quattlebaum
+**
+**	Permission is hereby granted, free of charge, to any person
+**	obtaining a copy of this software and associated
+**	documentation files (the "Software"), to deal in the
+**	Software without restriction, including without limitation
+**	the rights to use, copy, modify, merge, publish, distribute,
+**	sublicense, and/or sell copies of the Software, and to
+**	permit persons to whom the Software is furnished to do so,
+**	subject to the following conditions:
+**
+**	The above copyright notice and this permission notice shall
+**	be included in all copies or substantial portions of the
+**	Software.
+**
+**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #ifndef VERBOSE_DEBUG
@@ -55,10 +77,9 @@ extern uint16_t uip_slen;
 
 #pragma mark -
 
-#if CONTIKI
+#if SMCP_EMBEDDED
 struct smcp_daemon_s smcp_daemon_global_instance;
 #else
-// TODO: Make thread safe!
 static smcp_daemon_t smcp_daemon_current_instance;
 void
 smcp_set_current_daemon(smcp_daemon_t x) {
@@ -68,7 +89,7 @@ smcp_set_current_daemon(smcp_daemon_t x) {
 
 smcp_daemon_t
 smcp_get_current_daemon() {
-#if CONTIKI
+#if SMCP_EMBEDDED
 	return &smcp_daemon_global_instance;
 #else
 	return smcp_daemon_current_instance;
@@ -96,7 +117,6 @@ smcp_daemon_t
 smcp_daemon_init(
 	smcp_daemon_t ret, uint16_t port
 ) {
-	uint16_t attempts = 0x7FFF;
 	if(port == 0)
 		port = SMCP_DEFAULT_PORT;
 
@@ -112,7 +132,9 @@ smcp_daemon_init(
 
 	require(ret != NULL, bail);
 
+	// Set up the UDP port for listening.
 #if SMCP_USE_BSD_SOCKETS
+	uint16_t attempts = 0x7FFF;
 	ret->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
 	require_action_string(ret->fd > 0, bail, { smcp_daemon_release(
@@ -139,6 +161,7 @@ smcp_daemon_init(
 	ret->udp_conn->rport = 0;
 #endif
 
+	// Go ahead and start listening on our multicast address as well.
 #if SMCP_USE_BSD_SOCKETS
 	{   // Join the multicast group for SMCP_IPV6_MULTICAST_ADDRESS
 		struct ipv6_mreq imreq;
@@ -444,11 +467,13 @@ smcp_daemon_handle_inbound_packet(
 #endif
 
 	self->is_processing_message = true;
-	self->did_respond = (packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
+	self->did_respond = false;
 
 	smcp_inbound_reset_next_header();
 
-//	self->cascade_count--;
+#if SMCP_USE_CASCADE_COUNT
+	self->cascade_count--;
+#endif
 
 	if(COAP_CODE_IS_REQUEST(code)) {
 		ret = smcp_daemon_handle_request(self);
@@ -459,7 +484,7 @@ smcp_daemon_handle_inbound_packet(
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 
 	// Check to make sure we have responded by now. If not, we need to.
-	if((packet->tt==COAP_TRANS_TYPE_CONFIRMABLE) && !self->did_respond) {
+	if(!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {
 		if(COAP_CODE_IS_REQUEST(code)) {
 			int result_code = smcp_convert_status_to_result_code(ret);
 			if(ret == SMCP_STATUS_OK) {
@@ -1056,6 +1081,12 @@ bail:
 
 #pragma mark -
 #pragma mark Other
+
+coap_transaction_id_t
+smcp_get_next_tid(smcp_daemon_t self, void* context) {
+	// TODO: Implement this better!
+	return SMCP_FUNC_RANDOM_UINT32();
+}
 
 const char* smcp_status_to_cstr(int x) {
 	switch(x) {

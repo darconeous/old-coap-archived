@@ -1,3 +1,31 @@
+/*	@file smcp_timer.c
+**	@author Robert Quattlebaum <darco@deepdarc.com>
+**
+**	Copyright (C) 2011,2012 Robert Quattlebaum
+**
+**	Permission is hereby granted, free of charge, to any person
+**	obtaining a copy of this software and associated
+**	documentation files (the "Software"), to deal in the
+**	Software without restriction, including without limitation
+**	the rights to use, copy, modify, merge, publish, distribute,
+**	sublicense, and/or sell copies of the Software, and to
+**	permit persons to whom the Software is furnished to do so,
+**	subject to the following conditions:
+**
+**	The above copyright notice and this permission notice shall
+**	be included in all copies or substantial portions of the
+**	Software.
+**
+**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 #define VERBOSE_DEBUG 0
 
 #define SMCP_DEBUG_TIMERS	0
@@ -30,8 +58,7 @@ gettimeofday(
 ) {
 	if(tv) {
 		tv->tv_sec = clock_seconds();
-		tv->tv_usec =
-		    (clock_time() % CLOCK_SECOND) * USEC_PER_SEC / CLOCK_SECOND;
+		tv->tv_usec = (clock_time() % CLOCK_SECOND) * (USEC_PER_SEC / CLOCK_SECOND);
 		return 0;
 	}
 	return -1;
@@ -114,13 +141,15 @@ smcp_timer_init(
 	return self;
 }
 
-bool smcp_daemon_timer_is_scheduled(
+bool
+smcp_daemon_timer_is_scheduled(
 	smcp_daemon_t self, smcp_timer_t timer
 ) {
 	return timer->ll.next || timer->ll.prev || (self->timers == timer);
 }
 
-smcp_status_t smcp_daemon_schedule_timer(
+smcp_status_t
+smcp_daemon_schedule_timer(
 	smcp_daemon_t	self,
 	smcp_timer_t	timer,
 	int				cms
@@ -196,15 +225,18 @@ smcp_daemon_get_timeout(smcp_daemon_t self) {
 
 	ret = MAX(ret, 0);
 
-//	if(ret != SMCP_MAX_TIMEOUT)
-//		DEBUG_PRINTF(CSTR("%p: next timeout = %dms"), self, ret);
+#if VERBOSE_DEBUG
+	if(ret != SMCP_MAX_TIMEOUT)
+		DEBUG_PRINTF(CSTR("%p: next timeout = %dms"), self, ret);
+#endif
 	return ret;
 }
 
 void
 smcp_daemon_handle_timers(smcp_daemon_t self) {
-	if(self->timers &&
-	        (convert_timeval_to_cms(&self->timers->fire_date) <= 0)) {
+	if(	self->timers
+		&& (convert_timeval_to_cms(&self->timers->fire_date) <= 0)
+	) {
 		SMCP_NON_RECURSIVE smcp_timer_t timer;
 		SMCP_NON_RECURSIVE smcp_timer_callback_t callback;
 		SMCP_NON_RECURSIVE void* context;

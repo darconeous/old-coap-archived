@@ -6,7 +6,7 @@ INSTALL=install
 PREFIX=/usr/local
 
 SMCP_SOURCE_PATH=src/smcp
-SMCP_SOURCE_FILES=smcp.c smcp_list.c smcp_send.c smcp_node.c smcp_pairing.c btree.c url-helpers.c coap.c smcp_timer.c smcp_timer_node.c smcp_variable_node.c
+SMCP_SOURCE_FILES=smcp.c smcp-list.c smcp-send.c smcp_node.c smcp_pairing.c btree.c url-helpers.c coap.c smcp_timer.c smcp_timer_node.c smcp_variable_node.c
 
 ifdef HAS_LIBREADLINE
 CFLAGS+=-DHAS_LIBREADLINE=1

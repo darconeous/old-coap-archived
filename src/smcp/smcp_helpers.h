@@ -3,7 +3,11 @@
 
 #include <string.h>
 
-#if defined(SDCC_REVISION)
+#if !defined(__SDCC) && defined(SDCC_REVISION)
+#define __SDCC	1
+#endif
+
+#if defined(__SDCC)
 #include <malloc.h>
 #endif
 
@@ -24,29 +28,31 @@
 #endif
 
 #ifndef HAS_STRDUP
-#define HAS_STRDUP !defined(SDCC_REVISION)
+#define HAS_STRDUP !defined(__SDCC)
 #endif
 
 #ifndef HAS_ALLOCA
-#define HAS_ALLOCA !defined(SDCC_REVISION)
+#define HAS_ALLOCA !defined(__SDCC)
 #endif
 
 #ifndef HAS_STRTOL
-#define HAS_STRTOL !defined(SDCC_REVISION)
+#define HAS_STRTOL !defined(__SDCC)
 #endif
 
 #ifndef HAS_VSNPRINTF
-#define HAS_VSNPRINTF !defined(SDCC_REVISION)
+#define HAS_VSNPRINTF !defined(__SDCC)
 #endif
 
-#if !HAS_VSNPRINTF
+#if !HAS_VSNPRINTF && !defined(vsnprintf)
 #warning VSNPRINTF NOT IMPLEMENTED, VSPRINTF COULD OVERFLOW!
+#define vsnprintf vsnprintf
 static inline int vsnprintf(char *dest, size_t n,const char *fmt, va_list list) {
 	return vsprintf(dest,fmt,list);
 }
 #endif
 
-#if !HAS_STRDUP
+#if !HAS_STRDUP && !defined(strdup)
+#define strdup strdup
 static inline char*
 strdup(const char* cstr) {
 	size_t len = strlen(cstr);
@@ -58,7 +64,7 @@ strdup(const char* cstr) {
 #endif
 
 #ifndef MIN
-#if !defined(SDCC_REVISION)
+#if !defined(__SDCC)
 #define MIN(a, \
         b) ({ __typeof__(a)_a = (a); __typeof__(b)_b = (b); _a < \
               _b ? _a : _b; })
@@ -68,7 +74,7 @@ strdup(const char* cstr) {
 #endif
 
 #ifndef MAX
-#if !defined(SDCC_REVISION)
+#if !defined(__SDCC)
 #define MAX(a, \
         b) ({ __typeof__(a)_a = (a); __typeof__(b)_b = (b); _a > \
               _b ? _a : _b; })
@@ -82,6 +88,18 @@ strdup(const char* cstr) {
 #else
 #define SMCP_PURE_FUNC
 #endif
+
+static inline char *
+uint32_to_hex(char *str,uint32_t v) {
+	char *ret = str;
+	int i;
+	for(i=0;i<8;i++) {
+		*str++ = "0123456789ABCDEF"[v>>28];
+		v<<=4;
+	}
+	*str=0;
+	return ret;
+}
 
 #if __AVR__
 #include <avr/pgmspace.h>

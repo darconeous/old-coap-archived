@@ -1,11 +1,30 @@
-/*
- *  smcp_pairing.c
- *  SMCP
- *
- *  Created by Robert Quattlebaum on 8/31/10.
- *  Copyright 2010 deepdarc. All rights reserved.
- *
- */
+/*	@file smcp_pairing.c
+**	@author Robert Quattlebaum <darco@deepdarc.com>
+**
+**	Copyright (C) 2011,2012 Robert Quattlebaum
+**
+**	Permission is hereby granted, free of charge, to any person
+**	obtaining a copy of this software and associated
+**	documentation files (the "Software"), to deal in the
+**	Software without restriction, including without limitation
+**	the rights to use, copy, modify, merge, publish, distribute,
+**	sublicense, and/or sell copies of the Software, and to
+**	permit persons to whom the Software is furnished to do so,
+**	subject to the following conditions:
+**
+**	The above copyright notice and this permission notice shall
+**	be included in all copies or substantial portions of the
+**	Software.
+**
+**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 #ifndef VERBOSE_DEBUG
 #define VERBOSE_DEBUG 0
@@ -125,13 +144,14 @@ smcp_daemon_pair_with_sockaddr(
 	if(idVal)
 		*idVal = (uintptr_t)pairing;
 
+#if SMCP_CONF_USE_SEQ
 #if DEBUG
 	pairing->seq = pairing->ack = 0;
 #else
 	pairing->seq = pairing->ack = SMCP_FUNC_RANDOM_UINT32();
 #endif
-
 	assert(pairing->seq == pairing->ack);
+#endif
 
 bail:
 	return ret;
@@ -219,6 +239,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 	status = smcp_outbound_add_option(SMCP_HEADER_ORIGIN, smcp_pairing_get_path_cstr(pairing), COAP_HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 
+#if SMCP_CONF_USE_SEQ
 	char cseq[24];
 #if __AVR__
 	snprintf_P(
@@ -236,19 +257,24 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 #endif
 	status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
 	require_noerr(status,bail);
+#endif
 
 	if(event->contentFetcher) {
-		(*event->contentFetcher)(
+		size_t len = 0;
+		char* ptr;
+
+		status = (*event->contentFetcher)(
 			event->contentFetcherContext,
 			NULL,
 			NULL,
 			&content_type
 		);
+		require_noerr(status,bail);
+
 		status = smcp_outbound_add_option(COAP_HEADER_CONTENT_TYPE, (void*)&content_type, 1);
 		require_noerr(status,bail);
 
-		size_t len = 0;
-		char* ptr = smcp_outbound_get_content_ptr(&len);
+		ptr = smcp_outbound_get_content_ptr(&len);
 		event->contentFetcher(
 			event->contentFetcherContext,
 			ptr,
@@ -322,6 +348,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	smcp_status_t status;
 	const smcp_daemon_t self = smcp_get_current_daemon();
 	char* original_path = NULL;
+	struct coap_header_s* packet;
 
 	status = smcp_outbound_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
@@ -349,6 +376,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 
 	require_noerr(status,bail);
 
+#if SMCP_CONF_USE_SEQ
 	char cseq[24];
 #if __AVR__
 	snprintf_P(
@@ -366,8 +394,9 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 #endif
 	status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
 	require_noerr(status,bail);
+#endif
 
-	struct coap_header_s* packet = alloca(4+strlen(smcp_pairing_get_path_cstr(pairing))+5);
+	packet = alloca(4+strlen(smcp_pairing_get_path_cstr(pairing))+5);
 
 	packet->code = COAP_METHOD_GET;
 	packet->tt = COAP_TRANS_TYPE_CONFIRMABLE;
@@ -443,7 +472,7 @@ smcp_daemon_trigger_event(
 	    iter;
 	    iter = smcp_daemon_next_pairing(self, iter)
 	) {
-		coap_transaction_id_t tid = (coap_transaction_id_t)SMCP_FUNC_RANDOM_UINT32();
+		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_tid(self,NULL);
 		smcp_status_t status;
 
 		if(!event) {
@@ -544,7 +573,7 @@ smcp_daemon_trigger_custom_event(
 	    iter;
 	    iter = smcp_daemon_next_pairing(self, iter)
 	) {
-		coap_transaction_id_t tid = (coap_transaction_id_t)SMCP_FUNC_RANDOM_UINT32();
+		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_tid(self,NULL);
 		smcp_status_t status;
 		if(!event) {
 			// Allocate this lazily.
@@ -781,8 +810,10 @@ smcp_pairing_node_request_handler(
 		PATH_ERROR_COUNT,
 		PATH_LAST_ERROR,
 #endif
+#if SMCP_CONF_USE_SEQ
 		PATH_SEQ,
 		PATH_ACK,
+#endif
 	} path = PATH_ROOT;
 
 	if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"d"))
@@ -799,10 +830,12 @@ smcp_pairing_node_request_handler(
 	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"err"))
 		path = PATH_LAST_ERROR;
 #endif
+#if SMCP_CONF_USE_SEQ
 	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"seq"))
 		path = PATH_SEQ;
 	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"ack"))
 		path = PATH_ACK;
+#endif
 	
 	if(path!=PATH_ROOT)
 		smcp_inbound_next_header(NULL,NULL);
@@ -825,16 +858,22 @@ smcp_pairing_node_request_handler(
 	if(method == COAP_METHOD_GET) {
 		if(path==PATH_DEST_URI) {
 			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_content(smcp_pairing_get_uri_cstr(pairing), COAP_HEADER_CSTR_LEN);
+			smcp_outbound_append_content(smcp_pairing_get_uri_cstr(pairing), COAP_HEADER_CSTR_LEN);
 			ret = smcp_outbound_send();
 		} else if(path==PATH_FLAGS) {
 			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_content_formatted("0x%02X",pairing->flags);
+			smcp_outbound_set_var_content_unsigned_int(pairing->flags);
 			ret = smcp_outbound_send();
+#if SMCP_CONF_USE_SEQ
 		} else if(path==PATH_SEQ) {
-			ret = SMCP_STATUS_NOT_IMPLEMENTED;
+			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
+			smcp_outbound_set_var_content_unsigned_int(pairing->seq);
+			ret = smcp_outbound_send();
 		} else if(path==PATH_ACK) {
-			ret = SMCP_STATUS_NOT_IMPLEMENTED;
+			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
+			smcp_outbound_set_var_content_unsigned_int(pairing->ack);
+			ret = smcp_outbound_send();
+#endif
 #if SMCP_CONF_PAIRING_STATS
 		} else if(path==PATH_FIRE_COUNT) {
 			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
@@ -856,19 +895,21 @@ smcp_pairing_node_request_handler(
 		} else if(path==PATH_ROOT) {
 			const char rcontent[] = (
 				"<d>;n=\"Dest URI\","
-				"<f>;n=\"Flags\","
+				"<f>;n=\"Flags\""
 #if SMCP_CONF_PAIRING_STATS
-				"<fc>;n=\"Fire Count\","
+				",<fc>;n=\"Fire Count\","
 				"<tx>;n=\"Send Count\","
 				"<ec>;n=\"Error Count\","
-				"<err>;n=\"Last Error\","
+				"<err>;n=\"Last Error\""
 #endif
-				"<seq>,"
+#if SMCP_CONF_USE_SEQ
+				",<seq>,"
 				"<ack>"
+#endif
 			);
 			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
 			smcp_outbound_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
-			smcp_outbound_set_content(rcontent, COAP_HEADER_CSTR_LEN);
+			smcp_outbound_append_content(rcontent, COAP_HEADER_CSTR_LEN);
 			ret = smcp_outbound_send();
 		} else {
 			ret = smcp_default_request_handler(&pairing->node, method);

@@ -161,7 +161,7 @@ send_get_request(
 	bool ret = false;
 	smcp_status_t status = 0;
 
-	tid = SMCP_FUNC_RANDOM_UINT32();
+	tid = smcp_get_next_tid(smcp,NULL);
 	gRet = ERRORCODE_INPROGRESS;
 
 	retries = 0;

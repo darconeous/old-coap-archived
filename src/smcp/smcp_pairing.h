@@ -1,9 +1,30 @@
-/*	Simple Monitoring and Control Protocol (SMCP)
+/*	@file smcp_pairing.h
+**	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Written by Robert Quattlebaum <darco@deepdarc.com>.
-**	PUBLIC DOMAIN.
+**	Copyright (C) 2011,2012 Robert Quattlebaum
+**
+**	Permission is hereby granted, free of charge, to any person
+**	obtaining a copy of this software and associated
+**	documentation files (the "Software"), to deal in the
+**	Software without restriction, including without limitation
+**	the rights to use, copy, modify, merge, publish, distribute,
+**	sublicense, and/or sell copies of the Software, and to
+**	permit persons to whom the Software is furnished to do so,
+**	subject to the following conditions:
+**
+**	The above copyright notice and this permission notice shall
+**	be included in all copies or substantial portions of the
+**	Software.
+**
+**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
 
 #ifndef __SMCP_PAIRING_HEADER__
 #define __SMCP_PAIRING_HEADER__ 1
@@ -13,31 +34,12 @@
 #include "smcp_node.h"
 #include "smcp_timer.h"
 
-#if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
-#if defined(__cplusplus)
-#define __BEGIN_DECLS   extern "C" {
-#define __END_DECLS \
-	}
-#else
-#define __BEGIN_DECLS
-#define __END_DECLS
-#endif
-#endif
-
-#define SMCP_PAIRING_DEFAULT_ROOT_PATH	".pairings"
-
 #if SMCP_ENABLE_PAIRING
 
 #define PAIRING_STATE   smcp_root_pairing_node_t root_pairing_node;
-//#define PAIRING_STATE   struct smcp_pairing_node_s* pairings; smcp_root_pairing_node_t root_pairing_node;
-
-#ifndef SMCP_CONF_PAIRING_STATS
-#define SMCP_CONF_PAIRING_STATS 1
-#endif
-
+#define SMCP_PAIRING_EXPIRATION_INFINITE    (0x7FFFFFFF)
 
 __BEGIN_DECLS
-
 
 struct smcp_pairing_node_s;
 typedef struct smcp_pairing_node_s *smcp_pairing_node_t;
@@ -92,8 +94,6 @@ typedef smcp_status_t (*smcp_content_fetcher_func)(
 	size_t* content_length,
 	coap_content_type_t* content_type
 );
-
-#define SMCP_PAIRING_EXPIRATION_INFINITE    (0x7FFFFFFF)
 
 struct smcp_event_tracker_s {
 	int refCount;

@@ -183,7 +183,7 @@ async_request_handler(
 
 		ret = smcp_begin_transaction(
 			smcp_get_current_daemon(),
-			SMCP_FUNC_RANDOM_UINT32(),
+			smcp_get_next_tid(smcp_get_current_daemon(),NULL),
 			30*1000,	// Retry for thirty seconds.
 			SMCP_TRANSACTION_DELAY_START, // Flags
 			(void*)&resend_async_response,
@@ -350,7 +350,7 @@ tool_cmd_test(
 	}
 
 	{
-		coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
+		coap_transaction_id_t tid = smcp_get_next_tid(smcp_daemon2,NULL);
 
 		char url[256];
 

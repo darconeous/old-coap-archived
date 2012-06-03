@@ -96,7 +96,7 @@ resend_post_request(struct post_request_s *request) {
 	status = smcp_outbound_set_uri(request->url, 0);
 	require_noerr(status, bail);
 
-	status = smcp_outbound_set_content(request->content, request->content_len);
+	status = smcp_outbound_append_content(request->content, request->content_len);
 	require_noerr(status, bail);
 
 	status = smcp_outbound_send();
@@ -138,7 +138,7 @@ send_post_request(
 	request->content_type = content_type;
 	request->method = method;
 
-	tid = SMCP_FUNC_RANDOM_UINT32();
+	tid = smcp_get_next_tid(smcp,NULL);
 
 	gRet = ERRORCODE_INPROGRESS;
 

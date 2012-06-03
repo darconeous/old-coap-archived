@@ -99,7 +99,7 @@ coap_transaction_id_t
 send_delete_request(
 	smcp_daemon_t smcp, const char* url
 ) {
-	coap_transaction_id_t tid = SMCP_FUNC_RANDOM_UINT32();
+	coap_transaction_id_t tid = smcp_get_next_tid(smcp,NULL);
 
 	require_noerr(smcp_begin_transaction(
 			smcp,

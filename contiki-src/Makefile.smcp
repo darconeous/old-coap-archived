@@ -2,7 +2,7 @@ ifndef SMCP
   ${error SMCP not defined! You must specify where SMCP resides}
 endif
 
-CONTIKI_SOURCEFILES += btree.c smcp.c smcp_list.c smcp_send.c smcp_node.c smcp_pairing.c url-helpers.c coap.c smcp_timer.c smcp_timer_node.c smcp_variable_node.c
+CONTIKI_SOURCEFILES += btree.c smcp.c smcp-list.c smcp-send.c smcp_node.c smcp_pairing.c url-helpers.c coap.c smcp_timer.c smcp_timer_node.c smcp_variable_node.c
 
 CONTIKI_SOURCEFILES += smcp-task.c
 

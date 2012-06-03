@@ -1,3 +1,30 @@
+/*	@file smcp_curl_proxy.c
+**	@author Robert Quattlebaum <darco@deepdarc.com>
+**
+**	Copyright (C) 2011,2012 Robert Quattlebaum
+**
+**	Permission is hereby granted, free of charge, to any person
+**	obtaining a copy of this software and associated
+**	documentation files (the "Software"), to deal in the
+**	Software without restriction, including without limitation
+**	the rights to use, copy, modify, merge, publish, distribute,
+**	sublicense, and/or sell copies of the Software, and to
+**	permit persons to whom the Software is furnished to do so,
+**	subject to the following conditions:
+**
+**	The above copyright notice and this permission notice shall
+**	be included in all copies or substantial portions of the
+**	Software.
+**
+**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 #ifndef VERBOSE_DEBUG
 #define VERBOSE_DEBUG 0
@@ -33,7 +60,7 @@ smcp_curl_request_release(smcp_curl_request_t x) {
 smcp_curl_request_t
 smcp_curl_request_create(void) {
 	smcp_curl_request_t ret = calloc(1,sizeof(*ret));
-	ret->tid = SMCP_FUNC_RANDOM_UINT32();
+	ret->tid = smcp_get_next_tid(smcp_get_current_daemon(),NULL);
 	ret->curl = curl_easy_init();
 	if(!ret->curl) {
 		smcp_curl_request_release(ret);
@@ -77,7 +104,7 @@ resend_async_response(void* context) {
 	ret = smcp_outbound_set_async_response(async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content(request->content, len);
+	ret = smcp_outbound_append_content(request->content, len);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_send();
