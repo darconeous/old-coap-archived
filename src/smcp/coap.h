@@ -46,11 +46,11 @@
 #define COAP_RESPONSE_TIMEOUT   (1000)  // In ms, defined in http://tools.ietf.org/html/draft-ietf-core-coap-03#section-4.2
 #define COAP_MAX_RETRANSMIT     (5)     // Defined in http://tools.ietf.org/html/draft-ietf-core-coap-03#section-4.2
 
-
 #define COAP_DEFAULT_PORT			(5683)
 #define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT)
 
 #define COAP_VERSION    (1)
+
 #define COAP_TRANS_TYPE_CONFIRMABLE     (0)
 #define COAP_TRANS_TYPE_NONCONFIRMABLE  (1)
 #define COAP_TRANS_TYPE_ACK             (2)
@@ -58,29 +58,23 @@
 
 #define COAP_MAX_TOKEN_SIZE		(8)
 
-#define COAP_HEADER_CSTR_LEN        ((size_t)-1)
-
 typedef char coap_transaction_type_t;
 typedef uint16_t coap_transaction_id_t;
 
 typedef uint16_t coap_code_t;
 
 #define COAP_TO_HTTP_CODE(x)     ((x) / 32 * 100 + (x) % 32)
-static inline uint16_t coap_to_http_code(uint8_t x) {
-	return COAP_TO_HTTP_CODE(x);
-}
+static inline uint16_t coap_to_http_code(uint8_t x) { return COAP_TO_HTTP_CODE(x); }
 
 #define HTTP_TO_COAP_CODE(x)     ((x) / 100 * 32 + (x) % 100)
-static inline uint8_t http_to_coap_code(uint16_t x) {
-	return HTTP_TO_COAP_CODE(x);
-}
+static inline uint8_t http_to_coap_code(uint16_t x) { return HTTP_TO_COAP_CODE(x); }
 
 enum {
 	COAP_CODE_EMPTY = 0,
 	COAP_METHOD_GET = 1,
 	COAP_METHOD_POST = 2,
-	COAP_METHOD_PUT = 3,    //!< @note UNUSED IN SMCP
-	COAP_METHOD_DELETE = 4, //!< @note UNUSED IN SMCP
+	COAP_METHOD_PUT = 3,
+	COAP_METHOD_DELETE = 4,
 
 	// Experimental after this point
 };
@@ -117,13 +111,10 @@ enum {
 	COAP_RESULT_505_PROXYING_NOT_SUPPORTED = HTTP_TO_COAP_CODE(505),
 };
 
-#define COAP_CODE_IS_REQUEST(code) \
-        (((code)) > 0 && \
-            ((code) < COAP_RESULT_100))
-#define COAP_CODE_IS_RESULT(code)   (!(code) || (code) >= COAP_RESULT_100)
+#define COAP_CODE_IS_REQUEST(code)	(((code)) > 0 && ((code) < COAP_RESULT_100))
+#define COAP_CODE_IS_RESULT(code)	(!(code) || (code) >= COAP_RESULT_100)
 
 enum {
-
 	HTTP_RESULT_CODE_CREATED = 201,
 	HTTP_RESULT_CODE_DELETED = 202,
 	HTTP_RESULT_CODE_VALID = 203,
@@ -168,8 +159,7 @@ enum {
 #define COAP_HEADER_IS_REQUIRED(x)		((x)&1)
 
 typedef enum {
-	COAP_HEADER_INVALID = 255,
-
+	COAP_HEADER_INVALID = 255,		//!< Somewhat arbitrary value.
 
 	COAP_HEADER_TERI = 0,           //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
 	COAP_HEADER_CONTENT_TYPE = 1,
@@ -181,7 +171,6 @@ typedef enum {
 	COAP_HEADER_URI_PORT = 7,   //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
 	COAP_HEADER_LOCATION_QUERY = 8,                 //!< draft-bormann-coap-misc-06
 	COAP_HEADER_URI_PATH = 9,
-
 
 	COAP_HEADER_SUBSCRIPTION_LIFETIME = 10, //!< draft-ietf-core-observe
 
@@ -296,6 +285,7 @@ extern bool coap_option_value_is_string(coap_option_key_t key);
 
 inline static bool
 coap_option_strequal(const char* optionptr,const char* cstr) {
+	// TODO: This looks easily optimizable.
 	const char* value;
 	size_t value_len;
 	size_t i;
@@ -310,10 +300,11 @@ coap_option_strequal(const char* optionptr,const char* cstr) {
 
 #define coap_option_strequal_const(item,cstr)	coap_option_strequal(item,cstr)
 
+// The following functions are not recommended on embedded platforms.
+
 extern const char* coap_content_type_to_cstr(coap_content_type_t ct);
 extern coap_content_type_t coap_content_type_from_cstr(const char* x);
-extern const char* coap_option_key_to_cstr(
-	coap_option_key_t key, bool for_response);
+extern const char* coap_option_key_to_cstr(coap_option_key_t key, bool for_response);
 extern coap_option_key_t coap_option_key_from_cstr(const char* key);
 extern const char* http_code_to_cstr(int x);
 extern const char* coap_code_to_cstr(int x);

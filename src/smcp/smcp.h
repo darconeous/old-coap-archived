@@ -216,7 +216,7 @@ extern void smcp_inbound_reset_next_header();
 extern bool smcp_inbound_option_strequal(coap_option_key_t key,const char* str);
 
 #define smcp_inbound_option_strequal_const(key,const_str)	\
-	smcp_inbound_option_strequal(key,const_str);
+	smcp_inbound_option_strequal(key,const_str)
 
 #pragma mark -
 #pragma mark Outbound Message Composing API
@@ -365,4 +365,4 @@ __END_DECLS
 
 #endif
 
-#include "smcp_helpers.h"
+#include "smcp-helpers.h"

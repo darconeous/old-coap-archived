@@ -98,6 +98,14 @@
 #define SMCP_AVOID_PRINTF	SMCP_EMBEDDED
 #endif
 
+//!	@define SMCP_NO_MALLOC
+/*!	If set, static global pools are used instead of malloc/free.
+**	Not fully implemented yet.
+*/
+#ifndef SMCP_NO_MALLOC
+#define SMCP_NO_MALLOC	SMCP_EMBEDDED
+#endif
+
 #ifndef SMCP_CONF_USE_DNS
 #define SMCP_CONF_USE_DNS		1
 #endif

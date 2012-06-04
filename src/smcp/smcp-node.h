@@ -1,4 +1,4 @@
-/*	@file smcp_curl_proxy.h
+/*	@file smcp-node.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -26,24 +26,42 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_CURL_PROXY_H__
-#define __SMCP_CURL_PROXY_H__ 1
+#ifndef __SMCP_NODE_HEADER__
+#define __SMCP_NODE_HEADER__ 1
 
-#include "smcp_node.h"
-#include <curl/curl.h>
+#if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
+#if defined(__cplusplus)
+#define __BEGIN_DECLS   extern "C" {
+#define __END_DECLS \
+	}
+#else
+#define __BEGIN_DECLS
+#define __END_DECLS
+#endif
+#endif
 
-typedef struct smcp_curl_proxy_node_s {
-	struct smcp_node_s	node;
-	CURLM *curl_multi_handle;
-} *smcp_curl_proxy_node_t;
+#include <stdbool.h>
 
-extern smcp_curl_proxy_node_t smcp_smcp_curl_proxy_node_alloc();
+#include "smcp.h"
 
-extern smcp_curl_proxy_node_t smcp_curl_proxy_node_init(
-	smcp_curl_proxy_node_t	self,
-	smcp_node_t			parent,
-	const char*			name,
-	CURLM *multi_handle
-);
+__BEGIN_DECLS
 
-#endif //__SMCP_TIMER_NODE_H__
+// Struct size: 8*sizeof(void*)
+struct smcp_node_s {
+	struct bt_item_s			bt_item;
+	const char*					name;
+	smcp_node_t					parent;
+	smcp_node_t					children;
+
+	void						(*finalize)(smcp_node_t node);
+	smcp_inbound_handler_func	request_handler;
+
+	void* context; // DEPRECATED, TO BE REMOVED!
+};
+
+extern bt_compare_result_t smcp_node_compare(smcp_node_t lhs, smcp_node_t rhs);
+
+__END_DECLS
+
+
+#endif

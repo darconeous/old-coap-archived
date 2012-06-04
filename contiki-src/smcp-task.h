@@ -1,4 +1,4 @@
-/*	@file smcp_task.h
+/*	@file smcp-task.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum

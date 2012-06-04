@@ -236,6 +236,7 @@ list_response_handler(
 				}
 			}
 
+			// Kinda naughty.
 			if(content[content_length - 1] == '\n')
 				content[--content_length] = 0;
 			else

@@ -32,10 +32,10 @@
 
 #include "assert_macros.h"
 #include "smcp.h"
-#include "smcp_helpers.h"
-#include "smcp_logging.h"
+#include "smcp-helpers.h"
+#include "smcp-logging.h"
 #include "coap.h"
-#include "smcp_curl_proxy.h"
+#include "smcp-curl_proxy.h"
 #include <stdio.h>
 #include <stdlib.h>
 

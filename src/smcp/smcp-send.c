@@ -43,9 +43,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "smcp_internal.h"
-#include "smcp_helpers.h"
-#include "smcp_logging.h"
+#include "smcp-internal.h"
+#include "smcp-helpers.h"
+#include "smcp-logging.h"
 #include "smcp.h"
 #include "ll.h"
 #include "url-helpers.h"
@@ -215,7 +215,7 @@ smcp_outbound_add_header_(
 		return SMCP_STATUS_INVALID_ARGUMENT;
 	}
 
-	if(len == COAP_HEADER_CSTR_LEN)
+	if(len == HEADER_CSTR_LEN)
 		len = strlen(value);
 
 	if(self->outbound.packet->option_count==0xF)
@@ -505,7 +505,7 @@ smcp_outbound_set_uri(
 		while(url_path_next_component(&path_str,&component)) {
 			int len = strlen(component);
 			if(len)
-				ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, component, COAP_HEADER_CSTR_LEN);
+				ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, component, HEADER_CSTR_LEN);
 			require_noerr(ret,bail);
 		}
 	}
@@ -536,7 +536,7 @@ smcp_outbound_append_content(const char* value,size_t len) {
 	size_t max_len = self->outbound.content_len;
 	char* dest;
 
-	if(len==COAP_HEADER_CSTR_LEN)
+	if(len==HEADER_CSTR_LEN)
 		len = strlen(value);
 
 	max_len += len;

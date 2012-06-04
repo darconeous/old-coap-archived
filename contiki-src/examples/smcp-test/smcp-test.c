@@ -23,10 +23,10 @@ AUTOSTART_PROCESSES(
 /*---------------------------------------------------------------------------*/
 
 #include <smcp/smcp.h>
-#include <smcp/smcp_node.h>
-#include <smcp/smcp_timer_node.h>
-#include <smcp/smcp_pairing.h>
-#include <smcp/smcp_variable_node.h>
+#include <smcp/smcp-node.h>
+#include <smcp/smcp-timer_node.h>
+#include <smcp/smcp-pairing.h>
+#include <smcp/smcp-variable_node.h>
 #include <smcp/url-helpers.h>
 #include "lib/sensors.h"
 

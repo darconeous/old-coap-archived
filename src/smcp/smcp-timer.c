@@ -31,20 +31,20 @@
 #define SMCP_DEBUG_TIMERS	0
 
 #include "assert_macros.h"
-#include "smcp_logging.h"
+#include "smcp-logging.h"
 
 #if !SMCP_DEBUG_TIMERS && !VERBOSE_DEBUG
 #undef DEBUG_PRINTF
 #define DEBUG_PRINTF(fmt, ...) do { } while(0)
 #endif
 
-#include "smcp_timer.h"
+#include "smcp-timer.h"
 #include <stdio.h>
 #include "smcp.h"
 #include "url-helpers.h"
-#include "smcp_node.h"
+#include "smcp-node.h"
 #include <string.h>
-#include "smcp_internal.h"
+#include "smcp-internal.h"
 
 #ifndef SMCP_MAX_TIMEOUT
 #define SMCP_MAX_TIMEOUT    (30 * MSEC_PER_SEC)

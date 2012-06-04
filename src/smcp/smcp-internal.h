@@ -27,9 +27,9 @@
 */
 
 #include "smcp.h"
-#include "smcp_timer.h"
+#include "smcp-timer.h"
 
-#include "smcp_pairing.h"
+#include "smcp-pairing.h"
 
 
 #ifndef SMCP_FUNC_RANDOM_UINT32

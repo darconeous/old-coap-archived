@@ -56,7 +56,7 @@ static int redirect_count;
 static void
 get_response_handler(int statuscode, void* context) {
 	smcp_daemon_t self = smcp_get_current_daemon();
-	char* content = smcp_inbound_get_content_ptr();
+	const char* content = smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 
 	if((statuscode >= COAP_RESULT_100) && get_show_headers) {
@@ -79,7 +79,6 @@ get_response_handler(int statuscode, void* context) {
 				statuscode) : coap_code_to_cstr(statuscode));
 
 	if(content && content_length) {
-		coap_content_type_t content_type = smcp_inbound_get_content_type();
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
@@ -96,7 +95,7 @@ get_response_handler(int statuscode, void* context) {
 		fwrite(content, content_length, 1, stdout);
 		if(next_value) {
 			require(send_get_request(self, (const char*)context,
-					next_value, next_len), bail);
+					(const char*)next_value, next_len), bail);
 			fflush(stdout);
 			return;
 		} else {

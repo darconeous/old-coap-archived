@@ -1,4 +1,4 @@
-/*	@file smcp_timer_node.h
+/*	@file smcp-logging.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -26,35 +26,37 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_TIMER_NODE_H__
-#define __SMCP_TIMER_NODE_H__ 1
+#ifndef __SMCP_LOGGING_HEADER__
+#define __SMCP_LOGGING_HEADER__ 1
 
-#include "smcp_timer.h"
-#include "smcp_node.h"
+#if !VERBOSE_DEBUG
 
-typedef struct smcp_timer_node_s {
-	struct smcp_node_s	node;
-	struct smcp_timer_s timer;
-	uint32_t			period;
-	uint32_t			remaining;
-#if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-	uint32_t			count;
+#define CSTR(x)     (x)
+
+#ifndef DEBUG_PRINTF
+#define DEBUG_PRINTF(...)   do { } while(0)
 #endif
-	uint8_t				autorestart;
-} *smcp_timer_node_t;
 
-smcp_timer_node_t smcp_timer_node_alloc();
-smcp_timer_node_t smcp_timer_node_init(
-	smcp_timer_node_t	self,
-	smcp_node_t			parent,
-	const char*			name
-);
+#elif defined(__AVR__)
+#define SMCP_DEBUG_OUT_FILE     stdout
 
+#include <stdio.h>
+#include <avr/pgmspace.h>
+#define CSTR(x)     PSTR(x)
+#define DEBUG_PRINTF(...) \
+    do { fprintf_P(stdout, __VA_ARGS__); fputc( \
+			'\n', \
+			stdout); } while(0)
 
-void smcp_timer_node_start(smcp_timer_node_t self);
-void smcp_timer_node_stop(smcp_timer_node_t self);
-void smcp_timer_node_reset(smcp_timer_node_t self);
-void smcp_timer_node_restart(smcp_timer_node_t self);
-void smcp_timer_node_set_autorestart(smcp_timer_node_t self, bool x);
+#else // __AVR__
+#define SMCP_DEBUG_OUT_FILE     stderr
 
-#endif //__SMCP_TIMER_NODE_H__
+#include <stdio.h>
+#define CSTR(x)     (x)
+#define DEBUG_PRINTF(...) \
+    do { fprintf(stderr, __VA_ARGS__); fputc('\n', \
+			stderr); } while(0)
+
+#endif
+
+#endif // __SMCP_LOGGING_HEADER__

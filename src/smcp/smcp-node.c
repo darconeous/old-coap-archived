@@ -40,9 +40,9 @@
 #include "url-helpers.h"
 
 #include "smcp.h"
-#include "smcp_node.h"
-#include "smcp_helpers.h"
-#include "smcp_logging.h"
+#include "smcp-node.h"
+#include "smcp-helpers.h"
+#include "smcp-logging.h"
 
 #pragma mark -
 #pragma mark Macros

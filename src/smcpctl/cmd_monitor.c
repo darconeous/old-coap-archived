@@ -20,7 +20,7 @@
 #include <math.h>
 #include <signal.h>
 #include "smcpctl.h"
-#include <smcp/smcp_node.h>
+#include <smcp/smcp-node.h>
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",		 NULL,	 "Print Help"				 },

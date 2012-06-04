@@ -16,15 +16,15 @@
 #include <signal.h>
 
 #include <smcp/smcp.h>
-#include <smcp/smcp_node.h>
-#include <smcp/smcp_timer_node.h>
-#include <smcp/smcp_variable_node.h>
-#include <smcp/smcp_pairing.h>
+#include <smcp/smcp-node.h>
+#include <smcp/smcp-timer_node.h>
+#include <smcp/smcp-variable_node.h>
+#include <smcp/smcp-pairing.h>
 #include "help.h"
 #include "smcpctl.h"
 #include "cmd_test.h"
 #if HAS_LIBCURL
-#include <smcp/smcp_curl_proxy.h>
+#include <smcp/smcp-curl_proxy.h>
 #endif
 
 static smcp_status_t
@@ -98,7 +98,7 @@ list_response_handler(
 	void*		context
 ) {
 //	smcp_daemon_t self = smcp_get_current_daemon();
-	char* content = smcp_inbound_get_content_ptr();
+	const char* content = smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
 	printf("   * RESULT CODE = %d (%s)\n", statuscode,

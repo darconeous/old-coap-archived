@@ -32,8 +32,8 @@
 
 #include "assert_macros.h"
 #include "smcp-opts.h"
-#include "smcp_node.h"
-#include "smcp_variable_node.h"
+#include "smcp-node.h"
+#include "smcp-variable_node.h"
 #include <stdlib.h>
 
 void

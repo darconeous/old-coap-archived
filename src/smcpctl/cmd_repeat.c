@@ -9,7 +9,7 @@
 
 #include <smcp/assert_macros.h>
 #include <smcp/smcp.h>
-#include <smcp/smcp_timer.h>
+#include <smcp/smcp-timer.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>

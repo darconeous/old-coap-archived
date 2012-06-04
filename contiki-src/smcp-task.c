@@ -34,7 +34,7 @@
 #include <smcp/smcp.h>
 
 #include "smcp-task.h"
-#include <smcp/smcp_pairing.h>
+#include <smcp/smcp-pairing.h>
 #include "net/uip.h"
 #include "net/uip-udp-packet.h"
 #include "sys/clock.h"

@@ -31,7 +31,7 @@
 #include <stdlib.h>
 #include "ctype.h"
 
-#include "smcp_helpers.h"
+#include "smcp-helpers.h"
 
 const uint8_t*
 coap_decode_option(const uint8_t* buffer, coap_option_key_t* key, const uint8_t** value, size_t* lenP) {
@@ -512,9 +512,7 @@ coap_dump_header(
 
 		case COAP_HEADER_CONTINUATION_REQUEST:
 		default:
-		if(value_len == COAP_HEADER_CSTR_LEN) {
-			fprintf(outstream, "\"%s\"",value);
-		} else {
+		{
 			size_t i;
 			if(value_len > 270) {
 				fprintf(outstream, "***VALUE LENGTH OVERFLOW***");

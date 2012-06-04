@@ -38,7 +38,7 @@
 #endif
 
 #include "smcp.h"
-#include "smcp_logging.h"
+#include "smcp-logging.h"
 
 #if SMCP_ENABLE_PAIRING
 
@@ -59,14 +59,14 @@
 #include "resolv.h"
 #endif
 
-#include "smcp_pairing.h"
-#include "smcp_node.h"
-#include "smcp_timer.h"
-#include "smcp_internal.h"
+#include "smcp-pairing.h"
+#include "smcp-node.h"
+#include "smcp-timer.h"
+#include "smcp-internal.h"
 
-#include "smcp_variable_node.h"
+#include "smcp-variable_node.h"
 
-#include "smcp_helpers.h"
+#include "smcp-helpers.h"
 #include "url-helpers.h"
 
 #pragma mark -
@@ -236,7 +236,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 	status = smcp_outbound_set_uri(smcp_pairing_get_uri_cstr(pairing),0);
 	require_noerr(status,bail);
 
-	status = smcp_outbound_add_option(SMCP_HEADER_ORIGIN, smcp_pairing_get_path_cstr(pairing), COAP_HEADER_CSTR_LEN);
+	status = smcp_outbound_add_option(SMCP_HEADER_ORIGIN, smcp_pairing_get_path_cstr(pairing), HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 
 #if SMCP_CONF_USE_SEQ
@@ -255,7 +255,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		(long unsigned int)pairing->seq
 	);
 #endif
-	status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
+	status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 #endif
 
@@ -371,7 +371,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	status = smcp_outbound_add_option(
 		SMCP_HEADER_ORIGIN,
 		smcp_pairing_get_path_cstr(pairing),
-		COAP_HEADER_CSTR_LEN
+		HEADER_CSTR_LEN
 	);
 
 	require_noerr(status,bail);
@@ -392,7 +392,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 		(long unsigned int)pairing->seq
 	);
 #endif
-	status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, COAP_HEADER_CSTR_LEN);
+	status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 #endif
 
@@ -720,7 +720,7 @@ smcp_pairing_path_request_handler(
 		char* uri = NULL;
 		if(node == self->root_pairing_node) {
 			require(
-				COAP_HEADER_URI_PATH==smcp_inbound_next_header((uint8_t**)&value, &value_len),
+				COAP_HEADER_URI_PATH==smcp_inbound_next_header((const uint8_t**)&value, &value_len),
 				bail
 			);
 			path = alloca(value_len+1);
@@ -728,7 +728,7 @@ smcp_pairing_path_request_handler(
 			path[value_len] = 0;
 
 			require_action(
-				COAP_HEADER_URI_PATH==smcp_inbound_next_header((uint8_t**)&value, &value_len),
+				COAP_HEADER_URI_PATH==smcp_inbound_next_header((const uint8_t**)&value, &value_len),
 				bail,
 				ret = SMCP_STATUS_NOT_ALLOWED
 			);
@@ -739,7 +739,7 @@ smcp_pairing_path_request_handler(
 			path = (char*)node->name;
 
 			require_action(
-				COAP_HEADER_URI_PATH==smcp_inbound_next_header((uint8_t**)&value, &value_len),
+				COAP_HEADER_URI_PATH==smcp_inbound_next_header((const uint8_t**)&value, &value_len),
 				bail,
 				ret = SMCP_STATUS_NOT_ALLOWED
 			);
@@ -780,9 +780,9 @@ smcp_pairing_path_request_handler(
 		);
 #endif
 		smcp_outbound_begin_response(COAP_RESULT_201_CREATED);
-		smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, self->root_pairing_node->name, COAP_HEADER_CSTR_LEN);
-		smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, path, COAP_HEADER_CSTR_LEN);
-		smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, uri, COAP_HEADER_CSTR_LEN);
+		smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, self->root_pairing_node->name, HEADER_CSTR_LEN);
+		smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, path, HEADER_CSTR_LEN);
+		smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, uri, HEADER_CSTR_LEN);
 		smcp_outbound_send();
 	} else {
 		ret = smcp_default_request_handler(node, method);
@@ -858,7 +858,7 @@ smcp_pairing_node_request_handler(
 	if(method == COAP_METHOD_GET) {
 		if(path==PATH_DEST_URI) {
 			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_append_content(smcp_pairing_get_uri_cstr(pairing), COAP_HEADER_CSTR_LEN);
+			smcp_outbound_append_content(smcp_pairing_get_uri_cstr(pairing), HEADER_CSTR_LEN);
 			ret = smcp_outbound_send();
 		} else if(path==PATH_FLAGS) {
 			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
@@ -909,7 +909,7 @@ smcp_pairing_node_request_handler(
 			);
 			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
 			smcp_outbound_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
-			smcp_outbound_append_content(rcontent, COAP_HEADER_CSTR_LEN);
+			smcp_outbound_append_content(rcontent, HEADER_CSTR_LEN);
 			ret = smcp_outbound_send();
 		} else {
 			ret = smcp_default_request_handler(&pairing->node, method);

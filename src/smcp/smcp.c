@@ -56,8 +56,8 @@ extern uint16_t uip_slen;
 #include "ll.h"
 
 #include "url-helpers.h"
-#include "smcp_node.h"
-#include "smcp_logging.h"
+#include "smcp-node.h"
+#include "smcp-logging.h"
 
 #if SMCP_USE_BSD_SOCKETS
 #include <poll.h>
@@ -70,10 +70,10 @@ extern uint16_t uip_slen;
 #include <unistd.h>
 #endif
 
-#include "smcp_helpers.h"
+#include "smcp-helpers.h"
 
-#include "smcp_timer.h"
-#include "smcp_internal.h"
+#include "smcp-timer.h"
+#include "smcp-internal.h"
 
 #pragma mark -
 
@@ -233,8 +233,11 @@ smcp_daemon_release(smcp_daemon_t self) {
 		uip_udp_remove(self->udp_conn);
 #endif
 
+#if !SMCP_NO_MALLOC
 	// TODO: Make sure we were actually alloc'd!
 	free(self);
+#endif
+
 bail:
 	return;
 }

@@ -1,4 +1,4 @@
-/*	@file smcp_pairing.h
+/*	@file smcp-pairing.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -31,8 +31,8 @@
 
 #include <stdbool.h>
 #include "smcp.h"
-#include "smcp_node.h"
-#include "smcp_timer.h"
+#include "smcp-node.h"
+#include "smcp-timer.h"
 
 #if SMCP_ENABLE_PAIRING
 

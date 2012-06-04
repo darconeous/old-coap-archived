@@ -1,4 +1,4 @@
-/*	@file smcp_variable_node.h
+/*	@file smcp-curl_proxy.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -26,38 +26,24 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_VARIABLE_NODE_H__
-#define __SMCP_VARIABLE_NODE_H__ 1
+#ifndef __SMCP_CURL_PROXY_H__
+#define __SMCP_CURL_PROXY_H__ 1
 
-#include "smcp_node.h"
+#include "smcp-node.h"
+#include <curl/curl.h>
 
-struct smcp_variable_node_s;
-typedef struct smcp_variable_node_s *smcp_variable_node_t;
-
-// Size = sizeof(struct smcp_node_s)+2*sizeof(void*) = 10*sizeof(void*)
-struct smcp_variable_node_s {
+typedef struct smcp_curl_proxy_node_s {
 	struct smcp_node_s	node;
-	smcp_status_t		(*get_func)(
-		smcp_variable_node_t node,
-		char* content,
-		size_t* content_length,
-		coap_content_type_t* content_type
-	);
-	smcp_status_t		(*post_func)(
-		smcp_variable_node_t node,
-		char* content,
-		size_t content_length,
-		coap_content_type_t content_type
-	);
-};
+	CURLM *curl_multi_handle;
+} *smcp_curl_proxy_node_t;
 
+extern smcp_curl_proxy_node_t smcp_smcp_curl_proxy_node_alloc();
 
-#define smcp_node_init_variable smcp_variable_node_init
-
-extern smcp_variable_node_t smcp_variable_node_init(
-	smcp_variable_node_t self, smcp_node_t parent, const char* name);
-
-extern smcp_status_t smcp_daemon_refresh_variable(
-	smcp_daemon_t daemon, smcp_variable_node_t node);
+extern smcp_curl_proxy_node_t smcp_curl_proxy_node_init(
+	smcp_curl_proxy_node_t	self,
+	smcp_node_t			parent,
+	const char*			name,
+	CURLM *multi_handle
+);
 
 #endif //__SMCP_TIMER_NODE_H__

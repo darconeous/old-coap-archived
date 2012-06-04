@@ -1,4 +1,4 @@
-/*	@file smcp_node.h
+/*	@file smcp-variable_node.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -26,42 +26,38 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_NODE_HEADER__
-#define __SMCP_NODE_HEADER__ 1
+#ifndef __SMCP_VARIABLE_NODE_H__
+#define __SMCP_VARIABLE_NODE_H__ 1
 
-#if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
-#if defined(__cplusplus)
-#define __BEGIN_DECLS   extern "C" {
-#define __END_DECLS \
-	}
-#else
-#define __BEGIN_DECLS
-#define __END_DECLS
-#endif
-#endif
+#include "smcp-node.h"
 
-#include <stdbool.h>
+struct smcp_variable_node_s;
+typedef struct smcp_variable_node_s *smcp_variable_node_t;
 
-#include "smcp.h"
-
-__BEGIN_DECLS
-
-// Struct size: 8*sizeof(void*)
-struct smcp_node_s {
-	struct bt_item_s			bt_item;
-	const char*					name;
-	smcp_node_t					parent;
-	smcp_node_t					children;
-
-	void						(*finalize)(smcp_node_t node);
-	smcp_inbound_handler_func	request_handler;
-
-	void* context; // DEPRECATED, TO BE REMOVED!
+// Size = sizeof(struct smcp_node_s)+2*sizeof(void*) = 10*sizeof(void*)
+struct smcp_variable_node_s {
+	struct smcp_node_s	node;
+	smcp_status_t		(*get_func)(
+		smcp_variable_node_t node,
+		char* content,
+		size_t* content_length,
+		coap_content_type_t* content_type
+	);
+	smcp_status_t		(*post_func)(
+		smcp_variable_node_t node,
+		char* content,
+		size_t content_length,
+		coap_content_type_t content_type
+	);
 };
 
-extern bt_compare_result_t smcp_node_compare(smcp_node_t lhs, smcp_node_t rhs);
 
-__END_DECLS
+#define smcp_node_init_variable smcp_variable_node_init
 
+extern smcp_variable_node_t smcp_variable_node_init(
+	smcp_variable_node_t self, smcp_node_t parent, const char* name);
 
-#endif
+extern smcp_status_t smcp_daemon_refresh_variable(
+	smcp_daemon_t daemon, smcp_variable_node_t node);
+
+#endif //__SMCP_TIMER_NODE_H__

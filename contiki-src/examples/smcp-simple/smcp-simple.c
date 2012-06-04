@@ -21,9 +21,9 @@ AUTOSTART_PROCESSES(
 #endif
 
 #include <smcp/smcp.h>
-#include <smcp/smcp_node.h>
-#include <smcp/smcp_timer_node.h>
-#include <smcp/smcp_variable_node.h>
+#include <smcp/smcp-node.h>
+#include <smcp/smcp-timer_node.h>
+#include <smcp/smcp-variable_node.h>
 
 //////////////////////////////////
 // ELAPSED TIME NODE

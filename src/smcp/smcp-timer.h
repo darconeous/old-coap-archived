@@ -1,4 +1,4 @@
-/*	@file smcp_timer.h
+/*	@file smcp-timer.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum

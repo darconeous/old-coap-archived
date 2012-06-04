@@ -32,19 +32,19 @@
 
 #include "assert_macros.h"
 #include "smcp-opts.h"
-#include "smcp_timer.h"
-#include "smcp_timer_node.h"
+#include "smcp-timer.h"
+#include "smcp-timer_node.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "smcp.h"
 #include "url-helpers.h"
-#include "smcp_node.h"
+#include "smcp-node.h"
 #include <string.h>
 #include <ctype.h>
 
-#include "smcp_helpers.h"
-#include "smcp_pairing.h"
+#include "smcp-helpers.h"
+#include "smcp-pairing.h"
 
 #if __AVR__
 PROGMEM
@@ -339,7 +339,7 @@ smcp_timer_request_handler(
 				(const void*)&content_type,
 				1
 			);
-			ret = smcp_outbound_append_content(list_content, COAP_HEADER_CSTR_LEN);
+			ret = smcp_outbound_append_content(list_content, HEADER_CSTR_LEN);
 			ret = smcp_outbound_send();
 		} else {
 			ret = SMCP_STATUS_NOT_ALLOWED;

@@ -463,7 +463,7 @@ initialize_readline() {
 	rl_completer_word_break_characters = " \t\n\"\\'`@$><|&{("; // Removed '=' ';'
 	/* Tell the completer that we want a crack first. */
 	rl_attempted_completion_function = (CPPFunction *)smcp_attempted_completion;
-	rl_completion_entry_function = &smcp_directory_generator;
+	rl_completion_entry_function = (Function*)&smcp_directory_generator;
 
 	using_history();
 	read_history(getenv("SMCP_HISTORY_FILE"));
