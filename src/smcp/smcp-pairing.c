@@ -49,28 +49,14 @@
 #include <ctype.h>
 #include "ll.h"
 
-#if SMCP_USE_BSD_SOCKETS
-#include <netdb.h>
-#include <sys/sysctl.h>
-#include <sys/errno.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#elif CONTIKI
-#include "resolv.h"
-#endif
-
 #include "smcp-pairing.h"
 #include "smcp-node.h"
 #include "smcp-timer.h"
 #include "smcp-internal.h"
-
 #include "smcp-variable_node.h"
 
 #include "smcp-helpers.h"
 #include "url-helpers.h"
-
-#pragma mark -
-#pragma mark Macros
 
 #pragma mark -
 #pragma mark Paring
@@ -127,7 +113,7 @@ smcp_daemon_pair_with_sockaddr(
 	
 	smcp_node_init(&pairing->node, path_node, strdup(uri));
 
-	pairing->node.request_handler = &smcp_pairing_node_request_handler;
+	pairing->node.request_handler = (smcp_inbound_handler_func)&smcp_pairing_node_request_handler;
 
 	pairing->flags = flags;
 
@@ -396,7 +382,14 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	require_noerr(status,bail);
 #endif
 
+#if HAS_ALLOCA
 	packet = alloca(4+strlen(smcp_pairing_get_path_cstr(pairing))+5);
+#else
+	{
+		static char i_really_wish_we_supported_alloca[4+SMCP_MAX_PATH_LENGTH+5];
+		packet = (struct coap_header_s*)i_really_wish_we_supported_alloca;
+	}
+#endif
 
 	packet->code = COAP_METHOD_GET;
 	packet->tt = COAP_TRANS_TYPE_CONFIRMABLE;
@@ -409,35 +402,39 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	self->inbound.last_option_key = 0;
 	self->inbound.is_fake = true;
 	
-	uint8_t* option = packet->options;
-	coap_option_key_t prev_key = 0;
-	uint8_t option_count = 0;
+	{
+		uint8_t* option = packet->options;
+		coap_option_key_t prev_key = 0;
+		uint8_t option_count = 0;
+		char* path = original_path;
+		char* component = component;
 
-	original_path = strdup(smcp_pairing_get_path_cstr(pairing));
-	char* path = original_path;
-	char* component = component;
-	while(url_path_next_component(&path, &component)) {
-		DEBUG_PRINTF("Pushing path component \"%s\"",component);
-		option = coap_encode_option(
-			option,
-			&option_count,
-			prev_key,
-			COAP_HEADER_URI_PATH,
-			(uint8_t*)component,
-			strlen(component)
-		);
-		prev_key = COAP_HEADER_URI_PATH;
-	}
-	if(option_count>=0xF) {
-		packet->option_count=0xF;
-		*option++ = 0xF0;
-	} else {
-		packet->option_count=option_count;
+		original_path = strdup(smcp_pairing_get_path_cstr(pairing));
+
+		while(url_path_next_component(&path, &component)) {
+			DEBUG_PRINTF("Pushing path component \"%s\"",component);
+			option = coap_encode_option(
+				option,
+				&option_count,
+				prev_key,
+				COAP_HEADER_URI_PATH,
+				(uint8_t*)component,
+				strlen(component)
+			);
+			prev_key = COAP_HEADER_URI_PATH;
+		}
+		if(option_count>=0xF) {
+			packet->option_count=0xF;
+			*option++ = 0xF0;
+		} else {
+			packet->option_count=option_count;
+		}
+
+		self->inbound.content_ptr = (char*)option;
 	}
 
 	self->inbound.this_option = self->inbound.packet->options;
 	self->inbound.options_left = self->inbound.packet->option_count;
-	self->inbound.content_ptr = (char*)option;
 	status = smcp_daemon_handle_request(self);
 	require_noerr(status,bail);
 
@@ -686,11 +683,11 @@ bail:
 
 extern smcp_status_t
 smcp_daemon_delete_pairing(smcp_daemon_t self, smcp_pairing_node_t pairing) {
+	smcp_node_t parent = (smcp_node_t)pairing->node.parent;
 	if(pairing->currentEvent) {
 		smcp_event_tracker_release(pairing->currentEvent);
 		smcp_invalidate_transaction(self, pairing->last_tid);
 	}
-	smcp_node_t parent = (smcp_node_t)pairing->node.parent;
 	smcp_node_delete(&pairing->node);
 	if(parent && !parent->children) {
 		smcp_node_delete(parent);
@@ -716,34 +713,40 @@ smcp_pairing_path_request_handler(
 	) {
 		const char* value = NULL;
 		size_t value_len;
+#if HAS_ALLOCA
 		char* path = NULL;
 		char* uri = NULL;
+#else
+		static char path[SMCP_MAX_PATH_LENGTH];
+		static char uri[SMCP_MAX_URI_LENGTH];
+#endif
 		if(node == self->root_pairing_node) {
 			require(
 				COAP_HEADER_URI_PATH==smcp_inbound_next_header((const uint8_t**)&value, &value_len),
 				bail
 			);
+#if HAS_ALLOCA
 			path = alloca(value_len+1);
+#endif
 			memcpy(path,value,value_len);
 			path[value_len] = 0;
 
-			require_action(
-				COAP_HEADER_URI_PATH==smcp_inbound_next_header((const uint8_t**)&value, &value_len),
-				bail,
-				ret = SMCP_STATUS_NOT_ALLOWED
-			);
-			uri = alloca(value_len+1);
-			memcpy(uri,value,value_len);
-			uri[value_len] = 0;
 		} else if(node->parent == self->root_pairing_node) {
+#if HAS_ALLOCA
 			path = (char*)node->name;
-
+#else
+			strcpy(path,(char*)node->name);
+#endif
+		}
+		if(node->parent == self->root_pairing_node || node->parent == self->root_pairing_node) {
 			require_action(
 				COAP_HEADER_URI_PATH==smcp_inbound_next_header((const uint8_t**)&value, &value_len),
 				bail,
 				ret = SMCP_STATUS_NOT_ALLOWED
 			);
+#if HAS_ALLOCA
 			uri = alloca(value_len+1);
+#endif
 			memcpy(uri,value,value_len);
 			uri[value_len] = 0;
 		} else {
@@ -840,10 +843,10 @@ smcp_pairing_node_request_handler(
 	if(path!=PATH_ROOT)
 		smcp_inbound_next_header(NULL,NULL);
 
-	coap_option_key_t key;
-	uint8_t* value;
-	size_t value_len;
 	{
+		coap_option_key_t key;
+		const uint8_t* value;
+		size_t value_len;
 		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 

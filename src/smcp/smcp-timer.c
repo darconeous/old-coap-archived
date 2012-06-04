@@ -47,7 +47,7 @@
 #include "smcp-internal.h"
 
 #ifndef SMCP_MAX_TIMEOUT
-#define SMCP_MAX_TIMEOUT    (30 * MSEC_PER_SEC)
+#define SMCP_MAX_TIMEOUT    (SMCP_CONF_MAX_TIMEOUT * MSEC_PER_SEC)
 #endif
 
 #if defined(CONTIKI)

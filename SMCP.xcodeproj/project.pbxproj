@@ -70,7 +70,7 @@
 		A63EA6E41278B16D00B24867 /* coap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = coap.c; path = src/smcp/coap.c; sourceTree = "<group>"; };
 		A63EA6E51278B16D00B24867 /* coap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = coap.h; path = src/smcp/coap.h; sourceTree = "<group>"; };
 		A63EA6E61278B16D00B24867 /* ll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ll.h; path = src/smcp/ll.h; sourceTree = "<group>"; };
-		A63EA6E71278B16D00B24867 /* smcp-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; name = "smcp-helpers.h"; path = "src/smcp/smcp-helpers.h"; sourceTree = "<group>"; };
+		A63EA6E71278B16D00B24867 /* smcp-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-helpers.h"; path = "src/smcp/smcp-helpers.h"; sourceTree = "<group>"; };
 		A63EA6E81278B16D00B24867 /* smcp-internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-internal.h"; path = "src/smcp/smcp-internal.h"; sourceTree = "<group>"; };
 		A63EA6E91278B16D00B24867 /* smcp-logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-logging.h"; path = "src/smcp/smcp-logging.h"; sourceTree = "<group>"; };
 		A63EA6EA1278B16D00B24867 /* smcp-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-node.c"; path = "src/smcp/smcp-node.c"; sourceTree = "<group>"; };
@@ -108,7 +108,6 @@
 		A6F536ED155F0E5200E0E324 /* smcp-curl_proxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-curl_proxy.h"; path = "src/smcp/smcp-curl_proxy.h"; sourceTree = "<group>"; };
 		A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = ../../../../usr/lib/libcurl.4.dylib; sourceTree = "<group>"; };
 		A6F536F2155F255000E0E324 /* smcp-send.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-send.c"; path = "src/smcp/smcp-send.c"; sourceTree = "<group>"; };
-		A6F536F41561809B00E0E324 /* fifo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fifo.h; path = src/smcp/fifo.h; sourceTree = "<group>"; };
 		A6F536F71561B7A600E0E324 /* smcp-list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-list.c"; path = "src/smcp/smcp-list.c"; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = smcpctl.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -196,7 +195,6 @@
 				A63EA6E71278B16D00B24867 /* smcp-helpers.h */,
 				A63EA6F71278B16D00B24867 /* url-helpers.c */,
 				A63EA6F81278B16D00B24867 /* url-helpers.h */,
-				A6F536F41561809B00E0E324 /* fifo.h */,
 			);
 			name = Utils;
 			sourceTree = "<group>";

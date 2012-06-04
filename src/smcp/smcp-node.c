@@ -45,20 +45,39 @@
 #include "smcp-logging.h"
 
 #pragma mark -
-#pragma mark Macros
+#pragma mark Globals
 
+#if SMCP_NO_MALLOC
+static struct smcp_node_s smcp_node_pool[SMCP_CONF_MAX_ALLOCED_NODES];
+#endif
 
 #pragma mark -
 #pragma mark Node Funcs
 
 void
 smcp_node_dealloc(smcp_node_t x) {
+#if SMCP_NO_MALLOC
+	x->finalize = NULL;
+#else
 	free(x);
+#endif
 }
 
 smcp_node_t
 smcp_node_alloc() {
-	smcp_node_t ret = (smcp_node_t)calloc(sizeof(struct smcp_node_s), 1);
+	smcp_node_t ret;
+#if SMCP_NO_MALLOC
+	uint8_t i;
+	for(i=0;i<SMCP_CONF_MAX_ALLOCED_NODES;i++) {
+		ret = &smcp_node_pool[i];
+		if(!ret->finalize) {
+			ret = NULL;
+			continue;
+		}
+	}
+#else
+	ret = (smcp_node_t)calloc(sizeof(struct smcp_node_s), 1);
+#endif
 
 	ret->finalize = &smcp_node_dealloc;
 	return ret;
@@ -234,22 +253,23 @@ smcp_node_find_next_with_path(
 		{
 #if HAS_ALLOCA
 			char unescaped_name[namelen+1];
+//#elif SMCP_NO_MALLOC
+//			static char unescaped_name[SMCP_MAX_PATH_LENGTH+1];
 #else
 			char *unescaped_name = malloc(namelen+1);
 #endif
-			size_t escaped_len =url_decode_str(
+			size_t escaped_len = url_decode_str(
 				unescaped_name,
 				namelen+1,
 				path,
 				namelen
-			)
-;
+			);
 			*next = smcp_node_find(
 				node,
 				unescaped_name,
 				escaped_len
 			);
-#if HAS_ALLOCA
+#if HAS_ALLOCA // && !SMCP_NO_MALLOC
 			free(unescaped_name);
 #endif
 		}

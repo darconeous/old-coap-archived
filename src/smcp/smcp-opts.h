@@ -110,6 +110,20 @@
 #define SMCP_CONF_USE_DNS		1
 #endif
 
+#ifndef SMCP_CONF_MAX_TRANSACTIONS
+#define SMCP_CONF_MAX_TRANSACTIONS	4
+#endif
+
+//!	Only relevant when SMCP_NO_MALLOC is set.
+#ifndef SMCP_CONF_MAX_ALLOCED_NODES
+#define SMCP_CONF_MAX_ALLOCED_NODES	4
+#endif
+
+#ifndef SMCP_CONF_MAX_TIMEOUT
+#define SMCP_CONF_MAX_TIMEOUT	30
+#endif
+
+
 /*****************************************************************************/
 #pragma mark - Timer Node Options
 
@@ -121,15 +135,15 @@
 #pragma mark - Pairing/Observation Options
 
 #ifndef SMCP_ENABLE_PAIRING
-#define SMCP_ENABLE_PAIRING	!defined(__SDCC)
+#define SMCP_ENABLE_PAIRING	1//!defined(__SDCC)
 #endif
 
 #ifndef SMCP_CONF_PAIRING_STATS
-#define SMCP_CONF_PAIRING_STATS SMCP_EMBEDDED
+#define SMCP_CONF_PAIRING_STATS !SMCP_EMBEDDED
 #endif
 
 #ifndef SMCP_CONF_USE_SEQ
-#define SMCP_CONF_USE_SEQ SMCP_EMBEDDED
+#define SMCP_CONF_USE_SEQ !SMCP_EMBEDDED
 #endif
 
 #ifndef SMCP_PAIRING_DEFAULT_ROOT_PATH

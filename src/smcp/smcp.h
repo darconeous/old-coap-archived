@@ -131,7 +131,9 @@ typedef smcp_status_t (*smcp_inbound_resend_func)(void* context);
 #pragma mark -
 #pragma mark SMCP Daemon methods
 
+#if !SMCP_NO_MALLOC
 extern smcp_daemon_t smcp_daemon_create(uint16_t port);
+#endif
 
 extern smcp_daemon_t smcp_daemon_init(smcp_daemon_t self, uint16_t port);
 

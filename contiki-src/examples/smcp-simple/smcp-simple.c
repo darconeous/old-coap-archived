@@ -15,7 +15,11 @@ AUTOSTART_PROCESSES(
 );
 /*---------------------------------------------------------------------------*/
 
-#if !HAS_SNPRINTF && !defined(snprintf)
+#if !defined(__SDCC) && defined(SDCC_REVISION)
+#define __SDCC  1
+#endif
+
+#if __SDCC && !defined(snprintf)
 #warning SNPRINTF NOT IMPLEMENTED, SPRINTF COULD OVERFLOW!
 #define snprintf(dest,n,fmt,...) sprintf(dest,fmt,__VA_ARGS__)
 #endif
@@ -90,7 +94,7 @@ processes_request_handler(
 		iter = process_list;
 
 		while(iter) {
-			size+=snprintf(content+size,content_length-size,"%p, %u, %s\n",iter,iter->state,PROCESS_NAME_STRING(iter));
+			size+=snprintf(content+size,content_len-size,"%p, %u, %s\n",iter,iter->state,PROCESS_NAME_STRING(iter));
 			iter = iter->next;
 		}
 		
@@ -126,7 +130,7 @@ reset_request_handler(
 	if(method==COAP_METHOD_POST) {
 		watchdog_reboot();
 	}
-bail:
+
 	return ret;
 }
 

@@ -2,7 +2,10 @@ ifndef SMCP
   ${error SMCP not defined! You must specify where SMCP resides}
 endif
 
-CONTIKI_SOURCEFILES += btree.c smcp.c smcp-list.c smcp-send.c smcp-node.c smcp_pairing.c url-helpers.c coap.c smcp-timer.c smcp-timer_node.c smcp-variable_node.c
+CONTIKI_SOURCEFILES += btree.c smcp.c smcp-list.c smcp-send.c smcp-node.c smcp-pairing.c url-helpers.c coap.c smcp-timer.c
+
+CONTIKI_SOURCEFILES += smcp-timer_node.c
+CONTIKI_SOURCEFILES += smcp-variable_node.c
 
 CONTIKI_SOURCEFILES += smcp-task.c
 
@@ -13,11 +16,6 @@ CFLAGS += -DDEBUG=$(VERBOSE_DEBUG) -D_DEBUG=$(VERBOSE_DEBUG) -DVERBOSE_DEBUG=$(V
 endif
 
 CFLAGS += -DUIP_UDP_SEND_UNREACH_NOPORT=1
-#CFLAGS += -DUIP_CONF_IPV6_QUEUE_PKT=0
-#CFLAGS += -DUIP_CONF_IPV6_RPL=0
-#CFLAGS += -DRESOLV_CONF_SUPPORTS_MDNS=0
-#CFLAGS += -DRESOLV_CONF_MDNS_RESPONDER=0
-#CFLAGS += -DUIP_CONF_LOOPBACK_INTERFACE=1
 
 CFLAGS += -I$(SMCP)/src
 APPDIRS += $(SMCP)/src/smcp

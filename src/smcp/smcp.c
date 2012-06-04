@@ -97,8 +97,16 @@ smcp_get_current_daemon() {
 }
 
 #pragma mark -
+#pragma mark SMCP Globals
+
+#if SMCP_NO_MALLOC
+static struct smcp_transaction_s smcp_transaction_pool[SMCP_CONF_MAX_TRANSACTIONS];
+#endif // SMCP_NO_MALLOC
+
+#pragma mark -
 #pragma mark SMCP Implementation
 
+#if !SMCP_NO_MALLOC
 smcp_daemon_t
 smcp_daemon_create(uint16_t port) {
 	smcp_daemon_t ret = NULL;
@@ -112,6 +120,7 @@ smcp_daemon_create(uint16_t port) {
 bail:
 	return ret;
 }
+#endif
 
 smcp_daemon_t
 smcp_daemon_init(
@@ -419,21 +428,34 @@ smcp_daemon_handle_inbound_packet(
 
 	DEBUG_PRINTF(CSTR("%p: Inbound packet!"), self);
 
-	// TODO: We need to actually set this properly!
-	self->inbound.was_sent_to_multicast = false;
+	// Reset all inbound packet state.
+	memset(&self->inbound,0,sizeof(self->inbound));
 
+	// We are processing a message.
+	self->is_processing_message = true;
+
+	self->inbound.packet = packet;
+
+#if SMCP_USE_BSD_SOCKETS
+	self->inbound.saddr = saddr;
+	self->inbound.socklen = socklen;
+#elif CONTIKI
+	memcpy(&self->inbound.toaddr,toaddr,sizeof(*toaddr));
+	self->inbound.toport = toport;
+#endif
+
+	// TODO: Set `self->inbound.was_sent_to_multicast` properly!
+
+	// Version check.
 	require_action(packet->version==COAP_VERSION,bail,ret=SMCP_STATUS_FAILURE);
 
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
-	// Kind of a hack.
+	// Kind of a hack, but very convenient.
 	buffer[packet_length] = 0;
 
-	self->inbound.packet = packet;
-	self->inbound.token_option = NULL;
-	self->inbound.is_fake = false;
-
 	if(self->inbound.was_sent_to_multicast) {
+		// If this was multicast, make sure it isn't confirmable.
 		require_action(
 			packet->tt!=COAP_TRANS_TYPE_CONFIRMABLE,
 			bail,
@@ -444,7 +466,6 @@ smcp_daemon_handle_inbound_packet(
 	DEBUG_PRINTF(CSTR("%p: tt=%d"), self,packet->tt);
 	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"),self,coap_to_http_code(code),code);
 
-	self->inbound.content_type = 0;
 	smcp_inbound_reset_next_header();
 
 	{	// Initial options scan.
@@ -457,20 +478,12 @@ smcp_daemon_handle_inbound_packet(
 				self->inbound.content_type = self->inbound.this_option[1];
 			}
 		} while(smcp_inbound_next_option_(NULL,NULL)!=COAP_HEADER_INVALID);
+
+		// Now that we are at the end of the options, we know
+		// where the content starts.
 		self->inbound.content_ptr = (char*)self->inbound.this_option;
 		self->inbound.content_len = packet_length-(self->inbound.content_ptr-buffer);
 	}
-
-#if SMCP_USE_BSD_SOCKETS
-	self->inbound.saddr = saddr;
-	self->inbound.socklen = socklen;
-#elif CONTIKI
-	memcpy(&self->inbound.toaddr,toaddr,sizeof(*toaddr));
-	self->inbound.toport = toport;
-#endif
-
-	self->is_processing_message = true;
-	self->did_respond = false;
 
 	smcp_inbound_reset_next_header();
 
@@ -504,7 +517,7 @@ smcp_daemon_handle_inbound_packet(
 			else
 				self->outbound.packet->tt = COAP_TRANS_TYPE_ACK;
 		}
-		smcp_outbound_send();
+		ret = smcp_outbound_send();
 	}
 
 bail:
@@ -628,18 +641,23 @@ smcp_internal_delete_transaction_(
 
 	// Fire the callback to signal that this handler is now invalidated.
 	if(handler->callback) {
-		    (*handler->callback)(
+		(*handler->callback)(
 			SMCP_STATUS_TRANSACTION_INVALIDATED,
 			handler->context
 		);
 	}
 
+#if SMCP_NO_MALLOC
+	handler->callback = NULL;
+#else
 	free(handler);
+#endif
 }
 
 static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
 
-static int calc_retransmit_timeout(int retries_) {
+static int
+calc_retransmit_timeout(int retries_) {
 	int ret = smcp_rtt;
 
 	ret = (ret<<retries_);
@@ -727,7 +745,20 @@ smcp_begin_transaction(
 		bail,
 		ret = SMCP_STATUS_INVALID_ARGUMENT);
 
+#if SMCP_NO_MALLOC
+	{
+		uint8_t i;
+		for(i=0;i<SMCP_CONF_MAX_TRANSACTIONS;i++) {
+			handler = &smcp_transaction_pool[i];
+			if(!handler->callback) {
+				handler = NULL;
+				continue;
+			}
+		}
+	}
+#else
 	handler = (smcp_transaction_t)calloc(sizeof(*handler), 1);
+#endif
 
 	require_action(handler, bail, ret = SMCP_STATUS_MALLOC_FAILURE);
 
@@ -835,10 +866,10 @@ smcp_daemon_handle_request(
 	// TODO: Add authentication!
 
 	{
-		uint8_t* prev_option_ptr = self->inbound.this_option;
+		const uint8_t* prev_option_ptr = self->inbound.this_option;
 		coap_option_key_t prev_key = 0;
 		coap_option_key_t key;
-		uint8_t* value;
+		const uint8_t* value;
 		size_t value_len;
 		while((key=smcp_inbound_next_option_(&value, &value_len))!=COAP_HEADER_INVALID) {
 			if(key>COAP_HEADER_URI_PATH) {
@@ -851,7 +882,7 @@ smcp_daemon_handle_request(
 			} else if(key==COAP_HEADER_URI_PATH) {
 				smcp_node_t next = smcp_node_find(
 					node,
-					value,
+					(const char*)value,
 					value_len
 				);
 				if(next) {
