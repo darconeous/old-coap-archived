@@ -31,4 +31,3 @@ so:
 `smcpctl` is a command-line interface for browsing, observing, and
 interacting with CoAP devices. It is, for the most part, self-
 documenting.
-

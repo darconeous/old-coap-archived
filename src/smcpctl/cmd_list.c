@@ -259,13 +259,13 @@ resend_list_request(void* context) {
 
 	status = smcp_outbound_begin(smcp_get_current_daemon(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
-	
+
 	status = smcp_outbound_set_uri(url_data, 0);
 	require_noerr(status,bail);
 
 	char expected_content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
 	status = smcp_outbound_add_option(COAP_HEADER_ACCEPT,&expected_content_type,1);
-	
+
 	if(next_len != ((size_t)(-1))) {
 		status = smcp_outbound_add_option(
 			COAP_HEADER_CONTINUATION_RESPONSE,

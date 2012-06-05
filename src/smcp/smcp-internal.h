@@ -162,5 +162,3 @@ extern smcp_status_t smcp_daemon_handle_list(
 );
 
 extern smcp_status_t smcp_daemon_handle_response(smcp_daemon_t	self);
-
-

@@ -713,7 +713,7 @@ smcp_internal_transaction_timeout_(
 			}
 		}
 	}
-	
+
 	if(status) {
 		if(callback) {
 			handler->callback = NULL;

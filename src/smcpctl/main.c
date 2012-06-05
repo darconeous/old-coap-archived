@@ -357,7 +357,7 @@ smcp_directory_generator(
 		}
 		char* cmdline = NULL;
 		FILE* real_stdout = stdout;
-		
+
 		asprintf(&cmdline, "list --filename-only --timeout 1000 %s",prefix);
 		require(cmdline,bail);
 
@@ -379,7 +379,7 @@ smcp_directory_generator(
 			stdout = real_stdout;
 			free(cmdline);
 		}
-		
+
 		rewind(temp_file);
 		len = strlen(fragment);
 	}

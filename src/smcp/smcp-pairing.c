@@ -97,7 +97,7 @@ smcp_daemon_pair_with_sockaddr(
 		path,
 		strlen(path)
 	);
-	
+
 	if(!path_node) {
 		path_node = smcp_node_alloc();
 		require_action(path_node, bail, ret = SMCP_STATUS_MALLOC_FAILURE);
@@ -110,7 +110,7 @@ smcp_daemon_pair_with_sockaddr(
 	pairing = calloc(1, sizeof(*pairing));
 
 	require_action(pairing, bail, ret = SMCP_STATUS_MALLOC_FAILURE);
-	
+
 	smcp_node_init(&pairing->node, path_node, strdup(uri));
 
 	pairing->node.request_handler = (smcp_inbound_handler_func)&smcp_pairing_node_request_handler;
@@ -167,7 +167,7 @@ smcp_daemon_get_first_pairing_for_path(
 ) {
 	smcp_pairing_node_t ret = NULL;
 	smcp_node_t path_node = NULL;
-	
+
 	while(path[0] == '/' && path[1] != 0) path++;
 
 	path_node = smcp_node_find(
@@ -401,7 +401,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	self->inbound.content_ptr = NULL;
 	self->inbound.last_option_key = 0;
 	self->inbound.is_fake = true;
-	
+
 	{
 		uint8_t* option = packet->options;
 		coap_option_key_t prev_key = 0;
@@ -839,7 +839,7 @@ smcp_pairing_node_request_handler(
 	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"ack"))
 		path = PATH_ACK;
 #endif
-	
+
 	if(path!=PATH_ROOT)
 		smcp_inbound_next_header(NULL,NULL);
 

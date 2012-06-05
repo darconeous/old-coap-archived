@@ -387,7 +387,7 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 #endif // !RESOLV_SUPPORTS_LOOKUP2_API
 	}
 #endif // SMCP_CONF_USE_DNS
-	
+
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_set_destaddr(&toaddr,toport);

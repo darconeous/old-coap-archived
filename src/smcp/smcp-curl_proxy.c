@@ -159,7 +159,7 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 	memcpy(&(request->content[request->content_len]), contents, realsize);
 	request->content_len += realsize;
 	request->content[request->content_len] = 0;
-	
+
 	smcp_begin_transaction(
 		(smcp_daemon_t)smcp_node_get_root(&request->proxy_node->node),
 		request->tid,
@@ -182,13 +182,13 @@ smcp_curl_proxy_node_request_handler(
 	smcp_status_t ret = 0;
 	smcp_curl_request_t request = NULL;
 	struct curl_slist *headerlist=NULL;
- 	
+
 	require_action(method<=COAP_METHOD_DELETE,bail,ret = SMCP_STATUS_NOT_ALLOWED);
 
 	require_action(COAP_HEADER_URI_PATH!=smcp_inbound_peek_header(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
 
 	smcp_inbound_reset_next_header();
-	
+
 	request = smcp_curl_request_create();
 	request->proxy_node = node;
 
@@ -247,7 +247,7 @@ smcp_curl_proxy_node_request_handler(
 	curl_easy_setopt(request->curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 	curl_easy_setopt(request->curl, CURLOPT_WRITEDATA, (void *)request);
 	curl_easy_setopt(request->curl, CURLOPT_USERAGENT, "smcp-curl-proxy/1.0");
- 
+
 	ret = smcp_start_async_response(&request->async_response);
 	require_noerr(ret,bail);
 
@@ -260,7 +260,7 @@ bail:
 	if(headerlist)
 		curl_slist_free_all(headerlist);
 
- 	if(ret && request)
+	if(ret && request)
 		smcp_curl_request_release(request);
 
 	return ret;

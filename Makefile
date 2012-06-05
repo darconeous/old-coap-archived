@@ -56,4 +56,3 @@ install: smcpctl
 
 uninstall:
 	$(RM) $(PREFIX)/bin/smcpctl $(PREFIX)/share/man/man1/smcpctl.1
-

@@ -270,7 +270,7 @@ smcp_timer_request_handler(
 		PATH_PERIOD,
 		PATH_AUTORESTART,
 	} path = PATH_ROOT;
-	
+
 	if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"r"))
 		path = PATH_RUNNING;
 	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"!f"))
@@ -281,7 +281,7 @@ smcp_timer_request_handler(
 		path = PATH_PERIOD;
 	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"arstrt"))
 		path = PATH_AUTORESTART;
-	
+
 	if(path!=PATH_ROOT)
 		smcp_inbound_next_header(NULL,NULL);
 

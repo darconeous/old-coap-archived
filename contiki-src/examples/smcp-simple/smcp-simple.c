@@ -90,14 +90,14 @@ processes_request_handler(
 
 		content = smcp_outbound_get_content_ptr(&content_len);
 		if(!content) goto bail;
-		
+
 		iter = process_list;
 
 		while(iter) {
 			size+=snprintf(content+size,content_len-size,"%p, %u, %s\n",iter,iter->state,PROCESS_NAME_STRING(iter));
 			iter = iter->next;
 		}
-		
+
 		ret = smcp_outbound_set_content_len(size);
 		if(ret) goto bail;
 

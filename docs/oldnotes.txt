@@ -215,7 +215,7 @@ state of the protocol. - Robert Quattlebaum <darco@deepdarc.com>
       timer to time it out. We only want the timer to be enabled
       whenever the motion sensor turns on the light when it wasn't on
       already:
-        - We would have three devices and two pseudo-devices: 
+        - We would have three devices and two pseudo-devices:
             - Appliance Module
             - Switch Module
             - Motion Sensor
