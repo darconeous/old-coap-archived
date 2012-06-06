@@ -1,4 +1,3 @@
-#define HAS_LIBREADLINE 1
 
 #include <smcp/assert_macros.h>
 #include <stdio.h>
@@ -241,7 +240,9 @@ void process_input_line(char *l) {
 	if(!l[0])
 		goto bail;
 	l = strdup(l);
+#if HAS_LIBREADLINE
 	add_history(l);
+#endif
 
 	inputstring = l;
 
@@ -260,7 +261,9 @@ void process_input_line(char *l) {
 		else if(gRet && (gRet != ERRORCODE_HELP))
 			fprintf(stderr,"Error %d\n", gRet);
 
+#if HAS_LIBREADLINE
 		write_history(getenv("SMCP_HISTORY_FILE"));
+#endif
 	}
 
 bail:
@@ -272,8 +275,10 @@ bail:
 			sizeof(prompt),
 			"%s> ",
 			current_smcp_path ? current_smcp_path : "");
+#if HAS_LIBREADLINE
 		rl_prep_terminal(0);
 		rl_callback_handler_install(prompt, &process_input_line);
+#endif
 	}
 	free(l);
 	return;
