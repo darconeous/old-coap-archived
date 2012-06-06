@@ -1,9 +1,9 @@
 CONTIKI_PROJECT = smcp-test
 
 CONTIKI = ../../../../contiki
-SMCP = ../../..
+SMCP_ROOT = ../../..
 
-include $(SMCP)/contiki-src/Makefile.smcp
+include $(SMCP_ROOT)/contiki-src/Makefile.smcp
 
 CLEAN += *.hex *.elf symbols.c symbols.h
 

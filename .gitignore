@@ -5,3 +5,4 @@
 *.xcuserdatad
 /build
 /DerivedData
+/smcpctl

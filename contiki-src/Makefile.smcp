@@ -1,5 +1,5 @@
-ifndef SMCP
-  ${error SMCP not defined! You must specify where SMCP resides}
+ifndef SMCP_ROOT
+  ${error SMCP_ROOT not defined! You must specify where SMCP resides}
 endif
 
 CONTIKI_SOURCEFILES += btree.c smcp.c smcp-list.c smcp-send.c smcp-node.c smcp-pairing.c url-helpers.c coap.c smcp-timer.c
@@ -17,8 +17,8 @@ endif
 
 CFLAGS += -DUIP_UDP_SEND_UNREACH_NOPORT=1
 
-CFLAGS += -I$(SMCP)/src
-APPDIRS += $(SMCP)/src/smcp
+CFLAGS += -I$(SMCP_ROOT)/src
+APPDIRS += $(SMCP_ROOT)/src/smcp
 
-CFLAGS += -I$(SMCP)/contiki-src
-APPDIRS += $(SMCP)/contiki-src
+CFLAGS += -I$(SMCP_ROOT)/contiki-src
+APPDIRS += $(SMCP_ROOT)/contiki-src

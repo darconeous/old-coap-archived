@@ -1,19 +1,17 @@
 CONTIKI_PROJECT = smcp-simple
 
 CONTIKI = ../../../../contiki
-SMCP = ../../..
+SMCP_ROOT = ../../..
 
-include $(SMCP)/contiki-src/Makefile.smcp
+include $(SMCP_ROOT)/contiki-src/Makefile.smcp
 
 CLEAN += *.hex *.elf symbols.c symbols.h
 
-#CFLAGS += -DDEBUG_NONE=1 -DUIP_CONF_LOGGING=1
 CFLAGS += -DDEBUG=0 -DNDEBUG=1
-
 #CFLAGS += -DUIP_CONF_LOGGING=0
 
-UIP_CONF_IPV6 = 1
-UIP_CONF_RPL = 1
+#UIP_CONF_IPV6 = 1
+#UIP_CONF_RPL = 1
 
 CFLAGS += -DUIP_CONF_BROADCAST=1
 
