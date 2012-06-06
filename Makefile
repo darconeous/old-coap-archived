@@ -10,18 +10,18 @@ PREFIX=/usr/local
 SMCP_SOURCE_PATH=src/smcp
 SMCP_SOURCE_FILES=smcp.c smcp-list.c smcp-send.c smcp-node.c smcp-pairing.c btree.c url-helpers.c coap.c smcp-timer.c smcp-timer_node.c smcp-variable_node.c
 
-ifdef HAS_LIBREADLINE
+ifeq ($(HAS_LIBREADLINE),1)
 CFLAGS+=-DHAS_LIBREADLINE=1
 LFLAGS+=-lreadline
 endif
 
-ifdef HAS_LIBCURL
-CFLAGS+=-DHAS_LIBREADLINE=1
+ifeq ($(HAS_LIBCURL),1)
+CFLAGS+=-DHAS_LIBCURL=1
 LFLAGS+=-lcurl
 SMCP_SOURCE_FILES+=smcp-curl_proxy.c
 endif
 
-ifdef HAS_ASSERTMACROS_H
+ifeq ($(HAS_ASSERTMACROS_H),1)
 CFLAGS+=-DHAS_ASSERTMACROS_H=$(HAS_ASSERTMACROS_H)
 endif
 

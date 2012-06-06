@@ -433,6 +433,7 @@ smcp_daemon_handle_inbound_packet(
 
 	// We are processing a message.
 	self->is_processing_message = true;
+	self->did_respond = false;
 
 	self->inbound.packet = packet;
 
@@ -750,7 +751,7 @@ smcp_begin_transaction(
 		uint8_t i;
 		for(i=0;i<SMCP_CONF_MAX_TRANSACTIONS;i++) {
 			handler = &smcp_transaction_pool[i];
-			if(!handler->callback) {
+			if(handler->callback) {
 				handler = NULL;
 				continue;
 			}

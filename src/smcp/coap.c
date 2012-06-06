@@ -416,7 +416,7 @@ http_code_to_cstr(int x) {
 
 const char* coap_code_to_cstr(int x) { return http_code_to_cstr(coap_to_http_code(x)); }
 
-#if !CONTIKI
+#if !defined(__SDCC)
 void
 coap_dump_header(
 	FILE*			outstream,

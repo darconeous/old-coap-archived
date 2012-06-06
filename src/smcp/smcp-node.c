@@ -70,7 +70,7 @@ smcp_node_alloc() {
 	uint8_t i;
 	for(i=0;i<SMCP_CONF_MAX_ALLOCED_NODES;i++) {
 		ret = &smcp_node_pool[i];
-		if(!ret->finalize) {
+		if(ret->finalize) {
 			ret = NULL;
 			continue;
 		}
@@ -78,8 +78,8 @@ smcp_node_alloc() {
 #else
 	ret = (smcp_node_t)calloc(sizeof(struct smcp_node_s), 1);
 #endif
-
-	ret->finalize = &smcp_node_dealloc;
+	if(ret)
+		ret->finalize = &smcp_node_dealloc;
 	return ret;
 }
 
