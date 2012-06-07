@@ -49,7 +49,7 @@ delete_response_handler(
 	int			statuscode,
 	void*		context
 ) {
-	char* content = smcp_inbound_get_content_ptr();
+	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 	if((statuscode != COAP_RESULT_202_DELETED) &&
 	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
@@ -79,7 +79,7 @@ smcp_status_t
 resend_delete_request(const char* url) {
 	smcp_status_t status = 0;
 
-	status = smcp_outbound_begin(smcp_get_current_daemon(), COAP_METHOD_DELETE, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_instance(), COAP_METHOD_DELETE, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
 
 	status = smcp_outbound_set_uri(url, 0);
@@ -97,7 +97,7 @@ bail:
 
 coap_transaction_id_t
 send_delete_request(
-	smcp_daemon_t smcp, const char* url
+	smcp_t smcp, const char* url
 ) {
 	coap_transaction_id_t tid = smcp_get_next_tid(smcp,NULL);
 
@@ -119,7 +119,7 @@ bail:
 
 int
 tool_cmd_delete(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp, int argc, char* argv[]
 ) {
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 	coap_transaction_id_t tid = 0;
@@ -149,7 +149,7 @@ tool_cmd_delete(
 	gRet = ERRORCODE_INPROGRESS;
 
 	while(ERRORCODE_INPROGRESS == gRet)
-		smcp_daemon_process(smcp, -1);
+		smcp_process(smcp, -1);
 
 bail:
 	smcp_invalidate_transaction(smcp, tid);

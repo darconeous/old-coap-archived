@@ -68,7 +68,7 @@ smcp_variable_request_handler(
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
-		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key==COAP_HEADER_URI_QUERY) {
 				if(	method == COAP_METHOD_POST

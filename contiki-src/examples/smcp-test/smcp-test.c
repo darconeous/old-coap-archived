@@ -328,53 +328,53 @@ PROCESS_THREAD(smcp_demo, ev, data)
 
 	{
 		static struct smcp_variable_node_s node;
-		smcp_node_init_variable(&node,smcp_daemon_get_root_node(smcp_daemon), "beep");
+		smcp_node_init_variable(&node,smcp_get_root_node(smcp), "beep");
 		node.post_func = &action_beep_func;
 	}
 
 	{
 		static struct smcp_variable_node_s node;
-		smcp_node_init_variable(&node,smcp_daemon_get_root_node(smcp_daemon), "reset");
+		smcp_node_init_variable(&node,smcp_get_root_node(smcp), "reset");
 		node.post_func = (void*)&watchdog_reboot;
 	}
 
 	{
 		static struct smcp_variable_node_s node;
-		smcp_node_init_variable(&node,smcp_daemon_get_root_node(smcp_daemon), "lcd-msg");
+		smcp_node_init_variable(&node,smcp_get_root_node(smcp), "lcd-msg");
 		node.post_func = &action_msg_func;
 	}
 
 	create_temp_variable_node(
 		&temp_var,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"temp"
 	);
 
 	create_extvoltage_variable_node(
 		&extvoltage_var,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"extvoltage"
 	);
 
 	create_elapsed_time_variable_node(
 		&uptime_var,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"uptime"
 	);
 
 	create_process_list_variable_node(
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"processes"
 	);
 
 	create_etimer_list_variable_node(
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"etimers"
 	);
 
 #if USE_CONTIKI_SENSOR_API
 	create_sensor_list_variable_node(
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"sensors"
 	);
 #endif
@@ -383,7 +383,7 @@ PROCESS_THREAD(smcp_demo, ev, data)
 		static struct smcp_timer_node_s timer_node;
 		smcp_timer_node_init(
 			&timer_node,
-			smcp_daemon_get_root_node(smcp_daemon),
+			smcp_get_root_node(smcp),
 			"timer01"
 		);
 	}
@@ -393,14 +393,14 @@ PROCESS_THREAD(smcp_demo, ev, data)
 
 #if RAVEN_LCD_INTERFACE
 		if(ev == raven_lcd_updated_temp) {
-			smcp_daemon_trigger_event_with_node(
-				smcp_daemon,
+			smcp_trigger_event_with_node(
+				smcp,
 				&temp_var,
 				NULL
 			);
 		} else if(ev == raven_lcd_updated_extvoltage) {
-			smcp_daemon_trigger_event_with_node(
-				smcp_daemon,
+			smcp_trigger_event_with_node(
+				smcp,
 				&extvoltage_var,
 				NULL
 			);
@@ -414,8 +414,8 @@ PROCESS_THREAD(smcp_demo, ev, data)
 
 			PRINTF("Bat Voltage event (%s)\n",(const char*)content);
 
-			smcp_daemon_trigger_custom_event(
-				smcp_daemon,
+			smcp_trigger_custom_event(
+				smcp,
 				"batvoltage",
 				content,
 				content_len,

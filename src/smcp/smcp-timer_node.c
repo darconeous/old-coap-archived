@@ -114,12 +114,12 @@ smcp_status_t smcp_timer_node_content_fetcher(
 #endif
 
 void smcp_timer_node_fired(
-	smcp_daemon_t smcp, void* context
+	smcp_t smcp, void* context
 ) {
 	smcp_timer_node_t const self = context;
 
 #if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-	smcp_daemon_trigger_custom_event_with_node(
+	smcp_trigger_custom_event_with_node(
 		smcp,
 		&self->node,
 		"!f",
@@ -127,7 +127,7 @@ void smcp_timer_node_fired(
 		self
 	);
 #else
-	smcp_daemon_trigger_custom_event_with_node(
+	smcp_trigger_custom_event_with_node(
 		smcp,
 		&self->node,
 		"!f",
@@ -138,14 +138,14 @@ void smcp_timer_node_fired(
 
 	if(self->autorestart) {
 		smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);
-		smcp_daemon_schedule_timer(
+		smcp_schedule_timer(
 			smcp,
 			&self->timer,
 			self->period
 		);
 	} else {
 		self->remaining = 0;
-		smcp_daemon_trigger_event_with_node(
+		smcp_trigger_event_with_node(
 			smcp,
 			&self->node,
 			"r"
@@ -154,19 +154,19 @@ void smcp_timer_node_fired(
 }
 
 void smcp_timer_node_start(smcp_timer_node_t self) {
-	smcp_daemon_t smcp = (smcp_daemon_t)smcp_node_get_root(&self->node);
-	if(!smcp_daemon_timer_is_scheduled(smcp,
+	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node);
+	if(!smcp_timer_is_scheduled(smcp,
 			&self->timer)) {
 		smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);
 		if(self->remaining)
-			smcp_daemon_schedule_timer(smcp,
+			smcp_schedule_timer(smcp,
 				&self->timer,
 				self->remaining);
 		else
-			smcp_daemon_schedule_timer(smcp,
+			smcp_schedule_timer(smcp,
 				&self->timer,
 				self->period);
-		smcp_daemon_trigger_event_with_node(
+		smcp_trigger_event_with_node(
 			smcp,
 			&self->node,
 			"r"
@@ -175,12 +175,12 @@ void smcp_timer_node_start(smcp_timer_node_t self) {
 }
 
 void smcp_timer_node_stop(smcp_timer_node_t self) {
-	smcp_daemon_t smcp = (smcp_daemon_t)smcp_node_get_root(&self->node);
-	if(smcp_daemon_timer_is_scheduled(smcp,
+	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node);
+	if(smcp_timer_is_scheduled(smcp,
 			&self->timer)) {
 		self->remaining = convert_timeval_to_cms(&self->timer.fire_date);
-		smcp_daemon_invalidate_timer(smcp, &self->timer);
-		smcp_daemon_trigger_event_with_node(
+		smcp_invalidate_timer(smcp, &self->timer);
+		smcp_trigger_event_with_node(
 			smcp,
 			&self->node,
 			"r"
@@ -189,16 +189,16 @@ void smcp_timer_node_stop(smcp_timer_node_t self) {
 }
 
 void smcp_timer_node_toggle(smcp_timer_node_t self) {
-	smcp_daemon_t smcp = (smcp_daemon_t)smcp_node_get_root(&self->node);
-	if(smcp_daemon_timer_is_scheduled(smcp, &self->timer))
+	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node);
+	if(smcp_timer_is_scheduled(smcp, &self->timer))
 		smcp_timer_node_stop(self);
 	else
 		smcp_timer_node_start(self);
 }
 
 void smcp_timer_node_restart(smcp_timer_node_t self) {
-	smcp_daemon_t smcp = (smcp_daemon_t)smcp_node_get_root(&self->node);
-	bool previously_running = smcp_daemon_timer_is_scheduled(
+	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node);
+	bool previously_running = smcp_timer_is_scheduled(
 		smcp,
 		&self->timer
 	);
@@ -215,15 +215,15 @@ void smcp_timer_node_restart(smcp_timer_node_t self) {
 		smcp_timer_node_start(self);
 	} else {
 		smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);
-		smcp_daemon_schedule_timer(smcp,
+		smcp_schedule_timer(smcp,
 			&self->timer,
 			self->period);
 	}
 }
 
 void smcp_timer_node_reset(smcp_timer_node_t self) {
-	smcp_daemon_t smcp = (smcp_daemon_t)smcp_node_get_root(&self->node);
-	if(smcp_daemon_timer_is_scheduled(smcp,
+	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node);
+	if(smcp_timer_is_scheduled(smcp,
 			&self->timer) || self->remaining == 0)
 		smcp_timer_node_restart(self);
 	else
@@ -234,8 +234,8 @@ void smcp_timer_node_reset(smcp_timer_node_t self) {
 }
 
 int smcp_timer_node_get_remaining(smcp_timer_node_t self) {
-	smcp_daemon_t smcp = (smcp_daemon_t)smcp_node_get_root(&self->node);
-	if(smcp_daemon_timer_is_scheduled(smcp, &self->timer))
+	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node);
+	if(smcp_timer_is_scheduled(smcp, &self->timer))
 		return convert_timeval_to_cms(&self->timer.fire_date);
 	return self->remaining;
 }
@@ -252,14 +252,14 @@ smcp_timer_request_handler(
 	smcp_method_t	method
 ) {
 	smcp_status_t ret = 0;
-	const smcp_daemon_t self = smcp_get_current_daemon();
+	const smcp_t const self = smcp_get_current_instance();
 	coap_content_type_t content_type = smcp_inbound_get_content_type();
 	char* query = NULL;
 #if !HAS_ALLOCA
 	char query_tmp[128];
 #endif
 	coap_option_key_t key;
-	uint8_t* value;
+	const uint8_t* value;
 	size_t value_len;
 
 	enum {
@@ -283,10 +283,10 @@ smcp_timer_request_handler(
 		path = PATH_AUTORESTART;
 
 	if(path!=PATH_ROOT)
-		smcp_inbound_next_header(NULL,NULL);
+		smcp_inbound_next_option(NULL,NULL);
 
 	{
-		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 
 			if(key == COAP_HEADER_URI_QUERY && ((value[0]=='v')||(value[0]=='r'))) {
@@ -333,25 +333,30 @@ smcp_timer_request_handler(
 			}
 		} else if(method == COAP_METHOD_GET) {
 			ret = smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
+			require_noerr(ret,bail);
 			content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
-			ret = smcp_outbound_add_option(
+			smcp_outbound_add_option(
 				COAP_HEADER_CONTENT_TYPE,
 				(const void*)&content_type,
 				1
 			);
 			ret = smcp_outbound_append_content(list_content, HEADER_CSTR_LEN);
+			require_noerr(ret,bail);
 			ret = smcp_outbound_send();
+			require_noerr(ret,bail);
 		} else {
 			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else if(path==PATH_RUNNING) {
 		if(method == COAP_METHOD_GET) {
-			int v = smcp_daemon_timer_is_scheduled(
-				smcp_get_current_daemon(),
+			int v = smcp_timer_is_scheduled(
+				smcp_get_current_instance(),
 				&((smcp_timer_node_t)node)->timer
 			);
 			ret = smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
+			require_noerr(ret,bail);
 			ret = smcp_outbound_set_var_content_int(v);
+			require_noerr(ret,bail);
 			ret = smcp_outbound_send();
 		} else if((method == COAP_METHOD_PUT) ||
 		        (method == COAP_METHOD_POST)) {
@@ -419,11 +424,11 @@ smcp_timer_request_handler(
 					&value) && key && value) {
 				if(strequal_const(key, "v")) {
 					    ((smcp_timer_node_t)node)->remaining = atoi(value);
-					if(smcp_daemon_timer_is_scheduled(self,
+					if(smcp_timer_is_scheduled(self,
 							&((smcp_timer_node_t)node)->timer)) {
-						smcp_daemon_invalidate_timer(self,
+						smcp_invalidate_timer(self,
 							&((smcp_timer_node_t)node)->timer);
-						smcp_daemon_schedule_timer(self,
+						smcp_schedule_timer(self,
 							&((smcp_timer_node_t)node)->timer,
 							    ((smcp_timer_node_t)node)->remaining);
 					}
@@ -455,8 +460,8 @@ smcp_timer_request_handler(
 					smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
 					smcp_outbound_send();
 
-					ret = smcp_daemon_trigger_event_with_node(
-						smcp_get_current_daemon(),
+					ret = smcp_trigger_event_with_node(
+						smcp_get_current_instance(),
 						node,
 						"arstrt"
 					);

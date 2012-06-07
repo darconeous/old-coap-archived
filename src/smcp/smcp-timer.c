@@ -142,15 +142,15 @@ smcp_timer_init(
 }
 
 bool
-smcp_daemon_timer_is_scheduled(
-	smcp_daemon_t self, smcp_timer_t timer
+smcp_timer_is_scheduled(
+	smcp_t self, smcp_timer_t timer
 ) {
 	return timer->ll.next || timer->ll.prev || (self->timers == timer);
 }
 
 smcp_status_t
-smcp_daemon_schedule_timer(
-	smcp_daemon_t	self,
+smcp_schedule_timer(
+	smcp_t	self,
 	smcp_timer_t	timer,
 	int				cms
 ) {
@@ -191,8 +191,8 @@ bail:
 }
 
 void
-smcp_daemon_invalidate_timer(
-	smcp_daemon_t	self,
+smcp_invalidate_timer(
+	smcp_t	self,
 	smcp_timer_t	timer
 ) {
 #if SMCP_DEBUG_TIMERS
@@ -217,7 +217,7 @@ smcp_daemon_invalidate_timer(
 }
 
 cms_t
-smcp_daemon_get_timeout(smcp_daemon_t self) {
+smcp_get_timeout(smcp_t self) {
 	cms_t ret = SMCP_MAX_TIMEOUT;
 
 	if(self->timers)
@@ -233,7 +233,7 @@ smcp_daemon_get_timeout(smcp_daemon_t self) {
 }
 
 void
-smcp_daemon_handle_timers(smcp_daemon_t self) {
+smcp_handle_timers(smcp_t self) {
 	if(	self->timers
 		&& (convert_timeval_to_cms(&self->timers->fire_date) <= 0)
 	) {
@@ -248,7 +248,7 @@ smcp_daemon_handle_timers(smcp_daemon_t self) {
 		DEBUG_PRINTF("Timer:%p(CTX=%p): Firing...",timer,timer->context);
 
 		timer->cancel = NULL;
-		smcp_daemon_invalidate_timer(self, timer);
+		smcp_invalidate_timer(self, timer);
 		if(callback)
 			callback(self, context);
 	}

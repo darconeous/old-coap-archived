@@ -47,7 +47,7 @@ void print_commands();
 
 static int
 tool_cmd_help(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp, int argc, char* argv[]
 ) {
 	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
 		printf("Help not yet implemented for this command.\n");
@@ -69,7 +69,7 @@ tool_cmd_help(
 
 static int
 tool_cmd_cd(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp, int argc, char* argv[]
 ) {
 	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
 		printf("Help not yet implemented for this command.\n");
@@ -98,7 +98,7 @@ struct {
 	const char* name;
 	const char* desc;
 	int			(*entrypoint)(
-		smcp_daemon_t smcp, int argc, char* argv[]);
+		smcp_t smcp, int argc, char* argv[]);
 	int			isHidden;
 } commandList[] = {
 	{
@@ -189,7 +189,7 @@ print_commands() {
 
 int
 exec_command(
-	smcp_daemon_t smcp_daemon, int argc, char * argv[]
+	smcp_t smcp, int argc, char * argv[]
 ) {
 	int ret = 0;
 	int j;
@@ -207,7 +207,7 @@ exec_command(
 	for(j = 0; commandList[j].name; ++j) {
 		if(strcmp(argv[0], commandList[j].name) == 0) {
 			if(commandList[j].entrypoint) {
-				ret = commandList[j].entrypoint(smcp_daemon, argc, argv);
+				ret = commandList[j].entrypoint(smcp, argc, argv);
 				goto bail;
 			} else {
 				fprintf(stderr,
@@ -228,7 +228,7 @@ bail:
 }
 
 static int gRet = 0;
-static smcp_daemon_t smcp_daemon;
+static smcp_t smcp;
 static bool istty = true;
 
 void process_input_line(char *l) {
@@ -255,7 +255,7 @@ void process_input_line(char *l) {
 		}
 	}
 	if(argc2 > 0) {
-		gRet = exec_command(smcp_daemon, argc2, argv2);
+		gRet = exec_command(smcp, argc2, argv2);
 		if(gRet == ERRORCODE_QUIT)
 			return;
 		else if(gRet && (gRet != ERRORCODE_HELP))
@@ -542,10 +542,10 @@ main(
 	show_headers = debug_mode;
 	istty = isatty(fileno(stdin));
 
-	smcp_daemon = smcp_daemon_create(port);
+	smcp = smcp_create(port);
 	setenv("SMCP_CURRENT_PATH", "coap://localhost/", 0);
 
-	smcp_daemon_set_proxy_url(smcp_daemon,getenv("COAP_PROXY_URL"));
+	smcp_set_proxy_url(smcp,getenv("COAP_PROXY_URL"));
 
 	if(i < argc) {
 		if(((i + 1) == argc) && (0 == strcmp(argv[i], "help")))
@@ -556,7 +556,7 @@ main(
 		if((0 !=
 		        strncmp(argv[i], "smcp:",
 					5)) && (0 != strncmp(argv[i], "coap:", 5))) {
-			gRet = exec_command(smcp_daemon, argc - i, argv + i);
+			gRet = exec_command(smcp, argc - i, argv + i);
 #if HAS_LIBREADLINE
 			if(gRet || (0 != strcmp(argv[i], "cd")))
 #endif
@@ -567,7 +567,7 @@ main(
 	}
 
 	if(istty) {
-		fprintf(stderr,"Listening on port %d.\n",smcp_daemon_get_port(smcp_daemon));
+		fprintf(stderr,"Listening on port %d.\n",smcp_get_port(smcp));
 #if !HAS_LIBREADLINE
 		print_arg_list_help(option_list,
 			argv[0],
@@ -590,12 +590,12 @@ main(
 			struct pollfd polltable[2] = {
 				{ fileno(stdin),				   POLLIN | POLLHUP,
 				  0 },
-				{ smcp_daemon_get_fd(smcp_daemon), POLLIN | POLLHUP,
+				{ smcp_get_fd(smcp), POLLIN | POLLHUP,
 				  0 },
 			};
 
 			if(poll(polltable, 2,
-					smcp_daemon_get_timeout(smcp_daemon)) < 0)
+					smcp_get_timeout(smcp)) < 0)
 				break;
 
 			if(polltable[0].revents)
@@ -608,14 +608,14 @@ main(
 			process_input_line(linebuffer);
 		}
 
-		smcp_daemon_process(smcp_daemon, 0);
+		smcp_process(smcp, 0);
 	}
 
 bail:
 	if(gRet == ERRORCODE_QUIT)
 		gRet = 0;
 
-	if(smcp_daemon)
-		smcp_daemon_release(smcp_daemon);
+	if(smcp)
+		smcp_release(smcp);
 	return gRet;
 }

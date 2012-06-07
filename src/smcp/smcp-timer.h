@@ -37,7 +37,9 @@
 #define USEC_PER_MSEC   (1000)
 #define MSEC_PER_SEC    (1000)
 
-typedef void (*smcp_timer_callback_t)(smcp_daemon_t smcp, void* context);
+__BEGIN_DECLS
+
+typedef void (*smcp_timer_callback_t)(smcp_t, void*);
 
 #if CONTIKI && !CONTIKI_TARGET_MINIMAL_NET && !CONTIKI_TARGET_NATIVE
 #if !defined(timeval)
@@ -71,21 +73,23 @@ extern smcp_timer_t smcp_timer_init(
 	void*					context
 );
 
-extern smcp_status_t smcp_daemon_schedule_timer(
-	smcp_daemon_t	self,
+extern smcp_status_t smcp_schedule_timer(
+	smcp_t	self,
 	smcp_timer_t	timer,
 	int				cms
 );
 
-extern void smcp_daemon_invalidate_timer(
-	smcp_daemon_t self, smcp_timer_t timer);
-extern cms_t smcp_daemon_get_timeout(smcp_daemon_t self);
-extern void smcp_daemon_handle_timers(smcp_daemon_t self);
-extern bool smcp_daemon_timer_is_scheduled(
-	smcp_daemon_t self, smcp_timer_t timer);
+extern void smcp_invalidate_timer(
+	smcp_t self, smcp_timer_t timer);
+extern cms_t smcp_get_timeout(smcp_t self);
+extern void smcp_handle_timers(smcp_t self);
+extern bool smcp_timer_is_scheduled(
+	smcp_t self, smcp_timer_t timer);
 
 extern void convert_cms_to_timeval(
 	struct timeval* tv, int cms);
 extern int convert_timeval_to_cms(const struct timeval* tv);
+
+__END_DECLS
 
 #endif //__SMCP_TIMER_H__

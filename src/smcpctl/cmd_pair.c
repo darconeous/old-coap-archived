@@ -42,8 +42,8 @@ pair_response_handler(
 	int			statuscode,
 	void*		context
 ) {
-//	smcp_daemon_t self = smcp_get_current_daemon();
-	char* content = smcp_inbound_get_content_ptr();
+//	smcp_t const self = smcp_get_current_instance();
+	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 	if((statuscode >= COAP_RESULT_100) && show_headers) {
 		fprintf(stdout, "\n");
@@ -97,7 +97,7 @@ resend_pair_request(char* url[2]) {
 		url[0][len] = 0;
 	}
 
-	status = smcp_outbound_begin(smcp_get_current_daemon(),COAP_METHOD_PUT, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_instance(),COAP_METHOD_PUT, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
 
 	status = smcp_outbound_set_uri(url[0],0);
@@ -129,7 +129,7 @@ bail:
 
 static coap_transaction_id_t
 send_pair_request(
-	smcp_daemon_t smcp, const char* url, const char* url2
+	smcp_t smcp, const char* url, const char* url2
 ) {
 	bool ret = false;
 	coap_transaction_id_t tid;
@@ -173,10 +173,10 @@ bail:
 
 int
 tool_cmd_pair(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp, int argc, char* argv[]
 ) {
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
-	coap_transaction_id_t tid;
+	coap_transaction_id_t tid=0;
 
 	char url[1000];
 	url[0] = 0;
@@ -225,7 +225,7 @@ tool_cmd_pair(
 	gRet = ERRORCODE_INPROGRESS;
 
 	while(ERRORCODE_INPROGRESS == gRet)
-		smcp_daemon_process(smcp, -1);
+		smcp_process(smcp, -1);
 
 bail:
 	smcp_invalidate_transaction(smcp, tid);

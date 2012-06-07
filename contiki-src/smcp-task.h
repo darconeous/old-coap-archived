@@ -34,7 +34,7 @@
 
 PROCESS_NAME(smcp_task);
 
-CCIF extern struct smcp_daemon_s smcp_daemon_global_instance;
-#define smcp_daemon		&smcp_daemon_global_instance
+CCIF extern struct smcp_s smcp_global_instance;
+#define smcp		&smcp_global_instance
 
 #endif

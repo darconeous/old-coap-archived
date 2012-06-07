@@ -46,11 +46,11 @@
 #endif
 #endif
 
-#if CONTIKI
-// Contiki only supports one daemon.
-#define smcp_set_current_daemon(x)
+#if SMCP_EMBEDDED
+// Embedded platforms only support one instance.
+#define smcp_set_current_instance(x)
 #else
-extern void smcp_set_current_daemon(smcp_daemon_t x);
+extern void smcp_set_current_instance(smcp_t x);
 #endif
 
 #pragma mark -
@@ -74,7 +74,7 @@ struct smcp_transaction_s {
 typedef struct smcp_transaction_s *smcp_transaction_t;
 
 // Consider members of this struct to be private!
-struct smcp_daemon_s {
+struct smcp_s {
 	struct smcp_node_s		root_node;
 	void*					reserved_for_root_node_use;
 
@@ -153,12 +153,12 @@ struct smcp_daemon_s {
 
 
 extern smcp_status_t
-smcp_daemon_handle_request(
-	smcp_daemon_t	self
+smcp_handle_request(
+	smcp_t	self
 );
-extern smcp_status_t smcp_daemon_handle_list(
+extern smcp_status_t smcp_handle_list(
 	smcp_node_t		node,
 	smcp_method_t	method
 );
 
-extern smcp_status_t smcp_daemon_handle_response(smcp_daemon_t	self);
+extern smcp_status_t smcp_handle_response(smcp_t	self);

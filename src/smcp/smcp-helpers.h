@@ -45,10 +45,7 @@
 
 #if !HAS_VSNPRINTF && !defined(vsnprintf)
 #warning VSNPRINTF NOT IMPLEMENTED, VSPRINTF COULD OVERFLOW!
-#define vsnprintf vsnprintf
-static inline int vsnprintf(char *dest, size_t n,const char *fmt, va_list list) {
-	return vsprintf(dest,fmt,list);
-}
+#define vsnprintf(d,n,fmt,lst) vsprintf(d,fmt,lst)
 #endif
 
 #if !HAS_STRDUP && !defined(strdup)

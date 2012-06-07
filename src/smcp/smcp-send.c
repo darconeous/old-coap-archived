@@ -75,18 +75,18 @@ extern uint16_t uip_slen;
 
 smcp_status_t
 smcp_outbound_begin(
-	smcp_daemon_t self, coap_code_t code, coap_transaction_type_t tt
+	smcp_t self, coap_code_t code, coap_transaction_type_t tt
 ) {
 	if(!self)
-		self = smcp_get_current_daemon();
+		self = smcp_get_current_instance();
 
-	check(!smcp_get_current_daemon() || smcp_get_current_daemon()==self);
-	smcp_set_current_daemon(self);
+	check(!smcp_get_current_instance() || smcp_get_current_instance()==self);
+	smcp_set_current_instance(self);
 
 #if SMCP_USE_BSD_SOCKETS
-	self->outbound.packet = (struct coap_header_s*)smcp_get_current_daemon()->outbound.packet_bytes;
+	self->outbound.packet = (struct coap_header_s*)smcp_get_current_instance()->outbound.packet_bytes;
 #elif CONTIKI
-	uip_udp_conn = smcp_get_current_daemon()->udp_conn;
+	uip_udp_conn = smcp_get_current_instance()->udp_conn;
 	self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
 #error WRITEME!
@@ -115,7 +115,7 @@ smcp_outbound_begin(
 
 smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 	smcp_status_t ret = SMCP_STATUS_OK;
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 
 	require_action_string(!self->did_respond,
 		bail,
@@ -162,14 +162,14 @@ bail:
 
 smcp_status_t
 smcp_outbound_set_tid(coap_transaction_id_t tid) {
-	assert(smcp_get_current_daemon()->outbound.packet);
-	smcp_get_current_daemon()->outbound.packet->tid = tid;
+	assert(smcp_get_current_instance()->outbound.packet);
+	smcp_get_current_instance()->outbound.packet->tid = tid;
 	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
 smcp_outbound_set_code(coap_code_t code) {
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 	if(!self->force_current_outbound_code)
 		self->outbound.packet->code = code;
 	return SMCP_STATUS_OK;
@@ -181,11 +181,11 @@ smcp_outbound_set_destaddr(
 	struct sockaddr *sockaddr, socklen_t socklen
 ) {
 	memcpy(
-		&smcp_get_current_daemon()->outbound.saddr,
+		&smcp_get_current_instance()->outbound.saddr,
 		sockaddr,
 		socklen
 	);
-	smcp_get_current_daemon()->outbound.socklen = socklen;
+	smcp_get_current_instance()->outbound.socklen = socklen;
 
 	return SMCP_STATUS_OK;
 }
@@ -194,8 +194,8 @@ smcp_status_t
 smcp_outbound_set_destaddr(
 	const uip_ipaddr_t *toaddr, uint16_t toport
 ) {
-	uip_ipaddr_copy(&smcp_get_current_daemon()->udp_conn->ripaddr, toaddr);
-	smcp_get_current_daemon()->udp_conn->rport = toport;
+	uip_ipaddr_copy(&smcp_get_current_instance()->udp_conn->ripaddr, toaddr);
+	smcp_get_current_instance()->udp_conn->rport = toport;
 
 	return SMCP_STATUS_OK;
 }
@@ -205,7 +205,7 @@ static smcp_status_t
 smcp_outbound_add_header_(
 	coap_option_key_t key, const char* value, size_t len
 ) {
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 	uint8_t option_count;
 
 #warning TODO: Check for overflow!
@@ -245,7 +245,7 @@ static smcp_status_t
 smcp_outbound_add_headers_up_to_key_(
 	coap_option_key_t key
 ) {
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 	if(	self->outbound.last_option_key<COAP_HEADER_TOKEN
 		&& key>COAP_HEADER_TOKEN
 	) {
@@ -404,7 +404,7 @@ smcp_outbound_set_uri(
 	const char* uri, char flags
 ) {
 	smcp_status_t ret = SMCP_STATUS_OK;
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 	char* proto_str = NULL;
 	char* addr_str = NULL;
 	char* port_str = NULL;
@@ -418,7 +418,7 @@ smcp_outbound_set_uri(
 	if(!url_is_absolute(uri)) {
 		// Pairing with ourselves
 		addr_str = "::1";
-		toport = smcp_daemon_get_port(smcp_get_current_daemon());
+		toport = smcp_get_port(smcp_get_current_instance());
 	} else {
 #if HAS_ALLOCA
 		uri_copy = alloca(strlen(uri) + 1);
@@ -531,7 +531,7 @@ bail:
 smcp_status_t
 smcp_outbound_append_content(const char* value,size_t len) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 
 	size_t max_len = self->outbound.content_len;
 	char* dest;
@@ -561,7 +561,7 @@ bail:
 
 char*
 smcp_outbound_get_content_ptr(size_t* max_len) {
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 
 	// Finish up any remaining automatically-added headers.
 	if(self->outbound.packet->code)
@@ -575,7 +575,7 @@ smcp_outbound_get_content_ptr(size_t* max_len) {
 
 smcp_status_t
 smcp_outbound_set_content_len(size_t len) {
-	smcp_get_current_daemon()->outbound.content_len = len;
+	smcp_get_current_instance()->outbound.content_len = len;
 	DEBUG_PRINTF("Outbound: content length = %d",len);
 	return SMCP_STATUS_OK;
 }
@@ -583,31 +583,31 @@ smcp_outbound_set_content_len(size_t len) {
 smcp_status_t
 smcp_outbound_send() {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 	const size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 #if VERBOSE_DEBUG
-	DEBUG_PRINTF("Outbound: tt=%d",smcp_get_current_daemon()->outbound.packet->tt);
+	DEBUG_PRINTF("Outbound: tt=%d",smcp_get_current_instance()->outbound.packet->tt);
 	coap_dump_header(
 		SMCP_DEBUG_OUT_FILE,
 		"Outbound: ",
 		self->outbound.packet,
 		header_len
 	);
-	DEBUG_PRINTF("Outbound: packet length = %d",header_len+smcp_get_current_daemon()->outbound.content_len);
+	DEBUG_PRINTF("Outbound: packet length = %d",header_len+smcp_get_current_instance()->outbound.content_len);
 #endif
 
 #if SMCP_USE_BSD_SOCKETS
 
-	require_string(smcp_get_current_daemon()->outbound.socklen,bail,"Destaddr not set");
+	require_string(smcp_get_current_instance()->outbound.socklen,bail,"Destaddr not set");
 
 	ssize_t sent_bytes = sendto(
-		smcp_get_current_daemon()->fd,
-		smcp_get_current_daemon()->outbound.packet_bytes,
+		smcp_get_current_instance()->fd,
+		smcp_get_current_instance()->outbound.packet_bytes,
 		header_len +
-		smcp_get_current_daemon()->outbound.content_len,
+		smcp_get_current_instance()->outbound.content_len,
 		0,
-		(struct sockaddr *)&smcp_get_current_daemon()->outbound.saddr,
-		smcp_get_current_daemon()->outbound.socklen
+		(struct sockaddr *)&smcp_get_current_instance()->outbound.saddr,
+		smcp_get_current_instance()->outbound.socklen
 	);
 
 	require_action_string(
@@ -621,9 +621,9 @@ smcp_outbound_send() {
 	);
 
 #elif CONTIKI
-	uip_udp_conn = smcp_get_current_daemon()->udp_conn;
+	uip_udp_conn = smcp_get_current_instance()->udp_conn;
 	uip_slen = header_len +
-		smcp_get_current_daemon()->outbound.content_len;
+		smcp_get_current_instance()->outbound.content_len;
 
 	uip_process(UIP_UDP_SEND_CONN);
 
@@ -635,13 +635,13 @@ smcp_outbound_send() {
 #endif
 	uip_slen = 0;
 
-	memset(&smcp_get_current_daemon()->udp_conn->ripaddr, 0,
+	memset(&smcp_get_current_instance()->udp_conn->ripaddr, 0,
 		sizeof(uip_ipaddr_t));
-	smcp_get_current_daemon()->udp_conn->rport = 0;
+	smcp_get_current_instance()->udp_conn->rport = 0;
 #endif
-	if(smcp_get_current_daemon()->is_responding)
-		smcp_get_current_daemon()->did_respond = true;
-	smcp_get_current_daemon()->is_responding = false;
+	if(smcp_get_current_instance()->is_responding)
+		smcp_get_current_instance()->did_respond = true;
+	smcp_get_current_instance()->is_responding = false;
 
 	ret = SMCP_STATUS_OK;
 bail:

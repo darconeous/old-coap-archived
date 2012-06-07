@@ -24,7 +24,7 @@
 #define ERRORCODE_INPROGRESS    (127)
 
 extern int exec_command(
-	smcp_daemon_t smcp_daemon, int argc, char * argv[]);
+	smcp_t smcp, int argc, char * argv[]);
 
 extern bool show_headers;
 

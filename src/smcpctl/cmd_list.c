@@ -45,7 +45,7 @@ signal_interrupt(int sig) {
 }
 
 bool send_list_request(
-	smcp_daemon_t smcp, const char* url, const char* next, size_t nextlen);
+	smcp_t smcp, const char* url, const char* next, size_t nextlen);
 
 static int retries = 0;
 static const char* url_data;
@@ -63,8 +63,8 @@ static void
 list_response_handler(
 	int statuscode, void* context
 ) {
-	smcp_daemon_t self = smcp_get_current_daemon();
-	char* content = smcp_inbound_get_content_ptr();
+	smcp_t const self = smcp_get_current_instance();
+	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 
 	if((statuscode >= COAP_RESULT_100) && list_show_headers) {
@@ -111,7 +111,7 @@ list_response_handler(
 		size_t value_len;
 		const uint8_t* next_value = NULL;
 		size_t next_len;
-		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
 			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
 				next_value = value;
@@ -147,7 +147,7 @@ list_response_handler(
 					iter++;
 
 					uri = strsep(&iter, ">");
-					uri_len = iter - uri - 1;
+					//uri_len = iter - uri - 1;
 
 					// Skip past any arguments
 					if(iter && *iter == ';') {
@@ -243,7 +243,7 @@ list_response_handler(
 				content[content_length] = 0;
 
 			if(next_value &&
-			    send_list_request(self, (const char*)context, next_value,
+			    send_list_request(self, (const char*)context, (const char*)next_value,
 					next_len))
 				return;
 		}
@@ -257,7 +257,7 @@ static smcp_status_t
 resend_list_request(void* context) {
 	smcp_status_t status = 0;
 
-	status = smcp_outbound_begin(smcp_get_current_daemon(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_instance(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
 
 	status = smcp_outbound_set_uri(url_data, 0);
@@ -301,7 +301,7 @@ bail:
 
 bool
 send_list_request(
-	smcp_daemon_t smcp, const char* url, const char* next, size_t nextlen
+	smcp_t smcp, const char* url, const char* next, size_t nextlen
 ) {
 	bool ret = false;
 	smcp_status_t status = 0;
@@ -345,7 +345,7 @@ bail:
 
 int
 tool_cmd_list(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp, int argc, char* argv[]
 ) {
 	int i;
 	char url[1000];
@@ -416,7 +416,7 @@ tool_cmd_list(
 	require(send_list_request(smcp, url, NULL, 0), bail);
 
 	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_daemon_process(smcp, 50);
+		smcp_process(smcp, 50);
 
 bail:
 	smcp_invalidate_transaction(smcp, tid);

@@ -78,23 +78,18 @@ extern uint16_t uip_slen;
 #pragma mark -
 
 #if SMCP_EMBEDDED
-struct smcp_daemon_s smcp_daemon_global_instance;
+struct smcp_s smcp_global_instance;
 #else
-static smcp_daemon_t smcp_daemon_current_instance;
+static smcp_t smcp_current_instance;
 void
-smcp_set_current_daemon(smcp_daemon_t x) {
-	smcp_daemon_current_instance = (x);
+smcp_set_current_instance(smcp_t x) {
+	smcp_current_instance = (x);
+}
+smcp_t
+smcp_get_current_instance() {
+	return smcp_current_instance;
 }
 #endif
-
-smcp_daemon_t
-smcp_get_current_daemon() {
-#if SMCP_EMBEDDED
-	return &smcp_daemon_global_instance;
-#else
-	return smcp_daemon_current_instance;
-#endif
-}
 
 #pragma mark -
 #pragma mark SMCP Globals
@@ -106,25 +101,25 @@ static struct smcp_transaction_s smcp_transaction_pool[SMCP_CONF_MAX_TRANSACTION
 #pragma mark -
 #pragma mark SMCP Implementation
 
-#if !SMCP_NO_MALLOC
-smcp_daemon_t
-smcp_daemon_create(uint16_t port) {
-	smcp_daemon_t ret = NULL;
+#if !SMCP_NO_MALLOC && !SMCP_EMBEDDED
+smcp_t
+smcp_create(uint16_t port) {
+	smcp_t ret = NULL;
 
-	ret = (smcp_daemon_t)calloc(1, sizeof(struct smcp_daemon_s));
+	ret = (smcp_t)calloc(1, sizeof(struct smcp_s));
 
 	require(ret != NULL, bail);
 
-	ret = smcp_daemon_init(ret, port);
+	ret = smcp_init(ret, port);
 
 bail:
 	return ret;
 }
 #endif
 
-smcp_daemon_t
-smcp_daemon_init(
-	smcp_daemon_t ret, uint16_t port
+smcp_t
+smcp_init(
+	smcp_t ret, uint16_t port
 ) {
 	if(port == 0)
 		port = SMCP_DEFAULT_PORT;
@@ -146,20 +141,20 @@ smcp_daemon_init(
 	uint16_t attempts = 0x7FFF;
 	ret->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
-	require_action_string(ret->fd > 0, bail, { smcp_daemon_release(
+	require_action_string(ret->fd > 0, bail, { smcp_release(
 				ret); ret = NULL; }, "Failed to create socket");
 
 	// Keep attempting to bind until we find a port that works.
 	while(bind(ret->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
 		// We should only continue trying if errno == EADDRINUSE.
 		require_action_string(errno == EADDRINUSE, bail,
-			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_daemon_release(
+			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_release(
 				    ret); ret = NULL; }, "Failed to bind socket");
 		port++;
 
 		// Make sure we aren't in an infinite loop.
 		require_action_string(--attempts, bail,
-			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_daemon_release(
+			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_release(
 				    ret); ret = NULL; }, "Failed to bind socket (ran out of ports)");
 
 		saddr.sin6_port = htons(port);
@@ -215,7 +210,7 @@ bail:
 }
 
 void
-smcp_daemon_release(smcp_daemon_t self) {
+smcp_release(smcp_t self) {
 	require(self, bail);
 
 	// Delete all pending transactions
@@ -228,11 +223,11 @@ smcp_daemon_release(smcp_daemon_t self) {
 		smcp_timer_t timer = self->timers;
 		if(timer->cancel)
 			timer->cancel(self, timer->context);
-		smcp_daemon_invalidate_timer(self, timer);
+		smcp_invalidate_timer(self, timer);
 	}
 
 	// Delete all nodes
-	smcp_node_delete(smcp_daemon_get_root_node(self));
+	smcp_node_delete(smcp_get_root_node(self));
 
 #if SMCP_USE_BSD_SOCKETS
 	close(self->fd);
@@ -242,7 +237,7 @@ smcp_daemon_release(smcp_daemon_t self) {
 		uip_udp_remove(self->udp_conn);
 #endif
 
-#if !SMCP_NO_MALLOC
+#if !SMCP_NO_MALLOC && !SMCP_EMBEDDED
 	// TODO: Make sure we were actually alloc'd!
 	free(self);
 #endif
@@ -252,7 +247,7 @@ bail:
 }
 
 uint16_t
-smcp_daemon_get_port(smcp_daemon_t self) {
+smcp_get_port(smcp_t self) {
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr;
 	socklen_t socklen = sizeof(saddr);
@@ -265,24 +260,24 @@ smcp_daemon_get_port(smcp_daemon_t self) {
 
 #if SMCP_USE_BSD_SOCKETS
 int
-smcp_daemon_get_fd(smcp_daemon_t self) {
+smcp_get_fd(smcp_t self) {
 	return self->fd;
 }
 #elif defined(CONTIKI)
 struct uip_udp_conn*
-smcp_daemon_get_udp_conn(smcp_daemon_t self) {
+smcp_get_udp_conn(smcp_t self) {
 	return self->udp_conn;
 }
 #endif
 
 void
-smcp_daemon_set_proxy_url(smcp_daemon_t self,const char* url) {
+smcp_set_proxy_url(smcp_t self,const char* url) {
 	DEBUG_PRINTF("CoAP Proxy URL set to %s",url);
 	self->proxy_url = url;
 }
 
 smcp_node_t
-smcp_daemon_get_root_node(smcp_daemon_t self) {
+smcp_get_root_node(smcp_t self) {
 	return &self->root_node;
 }
 
@@ -290,8 +285,8 @@ smcp_daemon_get_root_node(smcp_daemon_t self) {
 #pragma mark Inbound packet parsing functions
 
 void
-smcp_inbound_reset_next_header() {
-	smcp_daemon_t self = smcp_get_current_daemon();
+smcp_inbound_reset_next_option() {
+	smcp_t const self = smcp_get_current_instance();
 	self->inbound.last_option_key = 0;
 	self->inbound.options_left = self->inbound.packet->option_count;
 	self->inbound.this_option = self->inbound.packet->options;
@@ -299,7 +294,7 @@ smcp_inbound_reset_next_header() {
 
 static coap_option_key_t
 smcp_inbound_next_option_(const uint8_t** value, size_t* len) {
-	smcp_daemon_t self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 	if(self->inbound.options_left) {
 		self->inbound.this_option = coap_decode_option(
 			self->inbound.this_option,
@@ -317,7 +312,7 @@ smcp_inbound_next_option_(const uint8_t** value, size_t* len) {
 }
 
 coap_option_key_t
-smcp_inbound_next_header(const uint8_t** value, size_t* len) {
+smcp_inbound_next_option(const uint8_t** value, size_t* len) {
 	coap_option_key_t ret;
 	do {
 		ret = smcp_inbound_next_option_(value, len);
@@ -326,8 +321,8 @@ smcp_inbound_next_header(const uint8_t** value, size_t* len) {
 }
 
 coap_option_key_t
-smcp_inbound_peek_header(const uint8_t** value, size_t* len) {
-	smcp_daemon_t self = smcp_get_current_daemon();
+smcp_inbound_peek_option(const uint8_t** value, size_t* len) {
+	smcp_t const self = smcp_get_current_instance();
 	coap_option_key_t ret = self->inbound.last_option_key;
 	if(self->inbound.last_option_key!=COAP_HEADER_INVALID && self->inbound.options_left) {
 		coap_decode_option(
@@ -345,9 +340,8 @@ smcp_inbound_peek_header(const uint8_t** value, size_t* len) {
 
 bool
 smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
-	smcp_daemon_t self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 	coap_option_key_t curr_key = self->inbound.last_option_key;
-	const uint8_t* next;
 	const char* value;
 	size_t value_len;
 	size_t i;
@@ -355,7 +349,7 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 	if(!self->inbound.this_option)
 		return false;
 
-	next = coap_decode_option(self->inbound.this_option, &curr_key, (const uint8_t**)&value, &value_len);
+	coap_decode_option(self->inbound.this_option, &curr_key, (const uint8_t**)&value, &value_len);
 
 	if(curr_key != key)
 		return false;
@@ -369,54 +363,48 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 
 const struct coap_header_s*
 smcp_inbound_get_packet() {
-	return smcp_get_current_daemon()->inbound.packet;
-}
-
-coap_transaction_id_t
-smcp_inbound_get_tid() {
-	assert(smcp_get_current_daemon()->inbound.packet);
-	return smcp_get_current_daemon()->inbound.packet->tid;
+	return smcp_get_current_instance()->inbound.packet;
 }
 
 const char*
 smcp_inbound_get_content_ptr() {
-	return smcp_get_current_daemon()->inbound.content_ptr;
+	return smcp_get_current_instance()->inbound.content_ptr;
 }
 
 size_t
 smcp_inbound_get_content_len() {
-	return smcp_get_current_daemon()->inbound.content_len;
+	return smcp_get_current_instance()->inbound.content_len;
 }
 
 coap_content_type_t
 smcp_inbound_get_content_type() {
-	return smcp_get_current_daemon()->inbound.content_type;
+	return smcp_get_current_instance()->inbound.content_type;
 }
 
 
 #if SMCP_USE_BSD_SOCKETS
 struct sockaddr* smcp_inbound_get_saddr() {
-	return smcp_get_current_daemon()->inbound.saddr;
+	return smcp_get_current_instance()->inbound.saddr;
 }
 
 socklen_t smcp_inbound_get_socklen() {
-	return smcp_get_current_daemon()->inbound.socklen;
+	return smcp_get_current_instance()->inbound.socklen;
 }
 #elif defined(CONTIKI)
 const uip_ipaddr_t* smcp_inbound_get_ipaddr() {
-	return &smcp_get_current_daemon()->inbound.toaddr;
+	return &smcp_get_current_instance()->inbound.toaddr;
 }
 
 const uint16_t smcp_inbound_get_ipport() {
-	return smcp_get_current_daemon()->inbound.toport;
+	return smcp_get_current_instance()->inbound.toport;
 }
 #endif
 
 #pragma mark -
 
 smcp_status_t
-smcp_daemon_handle_inbound_packet(
-	smcp_daemon_t	self,
+smcp_handle_inbound_packet(
+	smcp_t	self,
 	char*			buffer,
 	size_t			packet_length,
 	SMCP_SOCKET_ARGS
@@ -424,7 +412,7 @@ smcp_daemon_handle_inbound_packet(
 	smcp_status_t ret = 0;
 	struct coap_header_s* const packet = (void*)buffer;
 	const coap_code_t code = packet->code;
-	smcp_set_current_daemon(self);
+	smcp_set_current_instance(self);
 
 	DEBUG_PRINTF(CSTR("%p: Inbound packet!"), self);
 
@@ -467,12 +455,12 @@ smcp_daemon_handle_inbound_packet(
 	DEBUG_PRINTF(CSTR("%p: tt=%d"), self,packet->tt);
 	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"),self,coap_to_http_code(code),code);
 
-	smcp_inbound_reset_next_header();
+	smcp_inbound_reset_next_option();
 
 	{	// Initial options scan.
 		coap_option_key_t key;
 		do {
-			key = smcp_inbound_peek_header(NULL,NULL);
+			key = smcp_inbound_peek_option(NULL,NULL);
 			if(key==COAP_HEADER_TOKEN) {
 				self->inbound.token_option = self->inbound.this_option;
 			} else if(key==COAP_HEADER_CONTENT_TYPE) {
@@ -486,16 +474,16 @@ smcp_daemon_handle_inbound_packet(
 		self->inbound.content_len = packet_length-(self->inbound.content_ptr-buffer);
 	}
 
-	smcp_inbound_reset_next_header();
+	smcp_inbound_reset_next_option();
 
 #if SMCP_USE_CASCADE_COUNT
 	self->cascade_count--;
 #endif
 
 	if(COAP_CODE_IS_REQUEST(code)) {
-		ret = smcp_daemon_handle_request(self);
+		ret = smcp_handle_request(self);
 	} else if(COAP_CODE_IS_RESULT(code)) {
-		ret = smcp_daemon_handle_response(self);
+		ret = smcp_handle_response(self);
 	}
 
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
@@ -522,15 +510,15 @@ smcp_daemon_handle_inbound_packet(
 	}
 
 bail:
-	smcp_set_current_daemon(NULL);
+	smcp_set_current_instance(NULL);
 	self->is_processing_message = false;
 	self->force_current_outbound_code = false;
 	return ret;
 }
 
 smcp_status_t
-smcp_daemon_process(
-	smcp_daemon_t self, cms_t cms
+smcp_process(
+	smcp_t self, cms_t cms
 ) {
 	smcp_status_t ret = 0;
 
@@ -539,9 +527,9 @@ smcp_daemon_process(
 	struct pollfd pollee = { self->fd, POLLIN | POLLHUP, 0 };
 
 	if(cms >= 0)
-		cms = MIN(cms, smcp_daemon_get_timeout(self));
+		cms = MIN(cms, smcp_get_timeout(self));
 	else
-		cms = smcp_daemon_get_timeout(self);
+		cms = smcp_get_timeout(self);
 
 	errno = 0;
 
@@ -573,7 +561,7 @@ smcp_daemon_process(
 
 		packet[packet_length] = 0;
 
-		ret = smcp_daemon_handle_inbound_packet(
+		ret = smcp_handle_inbound_packet(
 			self,
 			packet,
 			packet_length,
@@ -583,11 +571,11 @@ smcp_daemon_process(
 	}
 #endif
 
-	smcp_set_current_daemon(self);
-	smcp_daemon_handle_timers(self);
+	smcp_set_current_instance(self);
+	smcp_handle_timers(self);
 
 bail:
-	smcp_set_current_daemon(NULL);
+	smcp_set_current_instance(NULL);
 	self->is_responding = false;
 	return ret;
 }
@@ -627,18 +615,18 @@ smcp_transaction_compare_tid(
 void
 smcp_internal_delete_transaction_(
 	smcp_transaction_t handler,
-	smcp_daemon_t			self
+	smcp_t			self
 ) {
 	DEBUG_PRINTF(CSTR(
 			"%p: Deleting response handler w/tid=%d"), self, handler->tid);
 
-	if(!smcp_get_current_daemon())
-		smcp_set_current_daemon(self);
+	if(!smcp_get_current_instance())
+		smcp_set_current_instance(self);
 
-	check(self==smcp_get_current_daemon());
+	check(self==smcp_get_current_instance());
 
 	// Remove the timer associated with this handler.
-	smcp_daemon_invalidate_timer(self, &handler->timer);
+	smcp_invalidate_timer(self, &handler->timer);
 
 	// Fire the callback to signal that this handler is now invalidated.
 	if(handler->callback) {
@@ -675,7 +663,7 @@ calc_retransmit_timeout(int retries_) {
 
 void
 smcp_internal_transaction_timeout_(
-	smcp_daemon_t			self,
+	smcp_t			self,
 	smcp_transaction_t handler
 ) {
 	smcp_status_t status = SMCP_STATUS_TIMEOUT;
@@ -685,7 +673,7 @@ smcp_internal_transaction_timeout_(
 	if((convert_timeval_to_cms(&handler->expiration) > 0)) {
 		if(handler->waiting_for_async_response) {
 			status = SMCP_STATUS_OK;
-			smcp_daemon_schedule_timer(
+			smcp_schedule_timer(
 				self,
 				&handler->timer,
 				convert_timeval_to_cms(&handler->expiration)
@@ -700,13 +688,13 @@ smcp_internal_transaction_timeout_(
 			status = handler->resendCallback(context);
 
 			if(status == SMCP_STATUS_WAIT_FOR_DNS) {
-				smcp_daemon_schedule_timer(
+				smcp_schedule_timer(
 					self,
 					&handler->timer,
 					100
 				);
 			} else if(status == SMCP_STATUS_OK) {
-				smcp_daemon_schedule_timer(
+				smcp_schedule_timer(
 					self,
 					&handler->timer,
 					calc_retransmit_timeout(handler->attemptCount++)
@@ -731,7 +719,7 @@ smcp_internal_transaction_timeout_(
 
 smcp_status_t
 smcp_begin_transaction(
-	smcp_daemon_t				self,
+	smcp_t				self,
 	coap_transaction_id_t		tid,
 	cms_t						cmsExpiration,
 	int							flags,
@@ -785,7 +773,7 @@ smcp_begin_transaction(
 		}
 	}
 
-	smcp_daemon_schedule_timer(
+	smcp_schedule_timer(
 		self,
 		smcp_timer_init(
 			&handler->timer,
@@ -813,7 +801,7 @@ bail:
 
 smcp_status_t
 smcp_invalidate_transaction(
-	smcp_daemon_t			self,
+	smcp_t			self,
 	coap_transaction_id_t	tid
 ) {
 	bt_remove(
@@ -835,21 +823,21 @@ smcp_default_request_handler(
        smcp_method_t   method
 ) {
        if(method == COAP_METHOD_GET) {
-               return smcp_daemon_handle_list(node,method);
+               return smcp_handle_list(node,method);
        }
        return SMCP_STATUS_NOT_IMPLEMENTED;
 }
 
 smcp_status_t
-smcp_daemon_handle_request(
-	smcp_daemon_t	self
+smcp_handle_request(
+	smcp_t	self
 ) {
 	smcp_status_t ret = 0;
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		DEBUG_PRINTF(
-			"smcp_daemon(%p): Incoming request!",
+			"smcp(%p): Incoming request!",
 			self
 		);
 		coap_dump_header(
@@ -861,7 +849,7 @@ smcp_daemon_handle_request(
 	}
 #endif
 
-	smcp_node_t node = smcp_daemon_get_root_node(self);
+	smcp_node_t node = smcp_get_root_node(self);
 	smcp_inbound_handler_func request_handler = &smcp_default_request_handler;
 
 	// TODO: Add authentication!
@@ -933,8 +921,8 @@ bail:
 }
 
 smcp_status_t
-smcp_daemon_handle_response(
-	smcp_daemon_t	self
+smcp_handle_response(
+	smcp_t	self
 ) {
 	smcp_status_t ret = 0;
 	smcp_transaction_t handler = NULL;
@@ -943,7 +931,7 @@ smcp_daemon_handle_response(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		DEBUG_PRINTF(
-			"smcp_daemon(%p): Incoming response! tid=%d",
+			"smcp(%p): Incoming response! tid=%d",
 			self,
 			smcp_inbound_get_tid()
 		);
@@ -1033,7 +1021,7 @@ bail:
 smcp_status_t
 smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 	smcp_status_t ret = 0;
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 	self->outbound.packet->tt = x->tt;
 
 #if SMCP_USE_BSD_SOCKETS
@@ -1044,7 +1032,7 @@ smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_add_option(COAP_HEADER_TOKEN, x->token_value, x->token_len);
+	ret = smcp_outbound_add_option(COAP_HEADER_TOKEN, (const char*)x->token_value, x->token_len);
 	require_noerr(ret, bail);
 bail:
 	return ret;
@@ -1053,7 +1041,7 @@ bail:
 smcp_status_t
 smcp_start_async_response(struct smcp_async_response_s* x) {
 	smcp_status_t ret = 0;
-	smcp_daemon_t const self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 
 	require_action(x!=NULL,bail,ret=SMCP_STATUS_INVALID_ARGUMENT);
 
@@ -1118,7 +1106,7 @@ bail:
 #pragma mark Other
 
 coap_transaction_id_t
-smcp_get_next_tid(smcp_daemon_t self, void* context) {
+smcp_get_next_tid(smcp_t self, void* context) {
 	// TODO: Implement this better!
 	return SMCP_FUNC_RANDOM_UINT32();
 }

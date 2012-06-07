@@ -10,6 +10,6 @@
 #define SMCP_cmd_monitor_h
 
 extern int tool_cmd_monitor(
-	smcp_daemon_t smcp, int argc, char* argv[]);
+	smcp_t smcp, int argc, char* argv[]);
 
 #endif

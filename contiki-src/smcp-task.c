@@ -32,9 +32,10 @@
 #include <string.h>
 
 #include <smcp/smcp.h>
+#include <smcp/smcp-pairing.h>
 
 #include "smcp-task.h"
-#include <smcp/smcp-pairing.h>
+
 #include "net/uip.h"
 #include "net/uip-udp-packet.h"
 #include "sys/clock.h"
@@ -69,19 +70,19 @@ PROCESS_THREAD(smcp_task, ev, data)
 
 	PRINTF("Starting SMCP\n");
 
-	if(!smcp_daemon_init(smcp_daemon, SMCP_DEFAULT_PORT)) {
+	if(!smcp_init(smcp, SMCP_DEFAULT_PORT)) {
 		PRINTF("Failed to start SMCP\n");
 		goto bail;
 	}
 
-	if(!smcp_daemon_get_udp_conn(smcp_daemon)) {
+	if(!smcp_get_udp_conn(smcp)) {
 		PRINTF("SMCP failed to create UDP conneciton!\n");
 		goto bail;
 	}
 
-	PRINTF("SMCP started. UDP Connection = %p\n",smcp_daemon_get_udp_conn(smcp_daemon));
+	PRINTF("SMCP started. UDP Connection = %p\n",smcp_get_udp_conn(smcp));
 
-	smcp_pairing_init(smcp_daemon,smcp_daemon_get_root_node(smcp_daemon),NULL);
+	smcp_pairing_init(smcp,smcp_get_root_node(smcp),NULL);
 
 	etimer_set(&et, 1);
 
@@ -89,23 +90,23 @@ PROCESS_THREAD(smcp_task, ev, data)
 		PROCESS_WAIT_EVENT();
 
 		if(ev == tcpip_event) {
-			if(uip_udpconnection() && (uip_udp_conn == smcp_daemon_get_udp_conn(smcp_daemon))) {
+			if(uip_udpconnection() && (uip_udp_conn == smcp_get_udp_conn(smcp))) {
 				if(uip_newdata())
-					smcp_daemon_handle_inbound_packet(
-						smcp_daemon,
+					smcp_handle_inbound_packet(
+						smcp,
 						uip_appdata,
 						uip_datalen(),
 						&UIP_IP_BUF->srcipaddr,
 						UIP_UDP_BUF->srcport
 					);
 				else if(uip_poll())
-					smcp_daemon_process(smcp_daemon, 0);
+					smcp_process(smcp, 0);
 
-				etimer_set(&et, CLOCK_SECOND*smcp_daemon_get_timeout(smcp_daemon)/1000+1);
+				etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/1000+1);
 			}
 		} else if(ev == PROCESS_EVENT_TIMER) {
 			if(etimer_expired(&et)) {
-				tcpip_poll_udp(smcp_daemon_get_udp_conn(smcp_daemon));
+				tcpip_poll_udp(smcp_get_udp_conn(smcp));
 			}
 		}
 	}

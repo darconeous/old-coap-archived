@@ -19,7 +19,7 @@ AUTOSTART_PROCESSES(
 #define __SDCC  1
 #endif
 
-#if __SDCC && !defined(snprintf)
+#if defined(__SDCC) && !defined(snprintf)
 #warning SNPRINTF NOT IMPLEMENTED, SPRINTF COULD OVERFLOW!
 #define snprintf(dest,n,fmt,...) sprintf(dest,fmt,__VA_ARGS__)
 #endif
@@ -159,28 +159,28 @@ PROCESS_THREAD(smcp_simple, ev, data)
 	// Create the "reset" node.
 	create_reset_node(
 		&reset_node,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"reset"
 	);
 
 	// Create the "uptime" node.
 	create_elapsed_time_node(
 		&uptime_node,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"uptime"
 	);
 
 	// Create the "timer" node.
 	smcp_timer_node_init(
 		&timer_node,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"timer"
 	);
 
 	// Create the "processes" node.
 	create_process_list_node(
 		&processes_node,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"processes"
 	);
 

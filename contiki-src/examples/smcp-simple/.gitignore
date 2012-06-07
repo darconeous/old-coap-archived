@@ -5,3 +5,12 @@
 /contiki-*.a
 /symbols.c
 /symbols.h
+*.hex
+*.lib
+*.a
+*.avr-raven
+*.banks
+*.map
+*.mem
+*.lk
+*.ihx

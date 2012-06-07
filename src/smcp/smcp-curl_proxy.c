@@ -60,7 +60,7 @@ smcp_curl_request_release(smcp_curl_request_t x) {
 smcp_curl_request_t
 smcp_curl_request_create(void) {
 	smcp_curl_request_t ret = calloc(1,sizeof(*ret));
-	ret->tid = smcp_get_next_tid(smcp_get_current_daemon(),NULL);
+	ret->tid = smcp_get_next_tid(smcp_get_current_instance(),NULL);
 	ret->curl = curl_easy_init();
 	if(!ret->curl) {
 		smcp_curl_request_release(ret);
@@ -161,7 +161,7 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 	request->content[request->content_len] = 0;
 
 	smcp_begin_transaction(
-		(smcp_daemon_t)smcp_node_get_root(&request->proxy_node->node),
+		(smcp_t)smcp_node_get_root(&request->proxy_node->node),
 		request->tid,
 		10*1000,	// Retry for thirty seconds.
 		0, // Flags
@@ -185,9 +185,9 @@ smcp_curl_proxy_node_request_handler(
 
 	require_action(method<=COAP_METHOD_DELETE,bail,ret = SMCP_STATUS_NOT_ALLOWED);
 
-	require_action(COAP_HEADER_URI_PATH!=smcp_inbound_peek_header(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
+	require_action(COAP_HEADER_URI_PATH!=smcp_inbound_peek_option(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
 
-	smcp_inbound_reset_next_header();
+	smcp_inbound_reset_next_option();
 
 	request = smcp_curl_request_create();
 	request->proxy_node = node;
@@ -203,7 +203,7 @@ smcp_curl_proxy_node_request_handler(
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
-		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 			if(key==COAP_HEADER_PROXY_URI) {
 				char uri[value_len+1];
 				memcpy(uri,value,value_len);
@@ -296,7 +296,7 @@ smcp_curl_proxy_node_init(
 	), bail);
 
 	self->curl_multi_handle = multi_handle;
-	((smcp_node_t)&self->node)->request_handler = &smcp_curl_proxy_node_request_handler;
+	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_curl_proxy_node_request_handler;
 
 bail:
 	return self;

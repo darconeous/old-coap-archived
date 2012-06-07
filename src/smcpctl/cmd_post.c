@@ -52,7 +52,7 @@ post_response_handler(
 	int			statuscode,
 	struct post_request_s *request
 ) {
-	char* content = smcp_inbound_get_content_ptr();
+	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 	if((statuscode >= COAP_RESULT_100) && show_headers) {
 		fprintf(stdout, "\n");
@@ -87,7 +87,7 @@ smcp_status_t
 resend_post_request(struct post_request_s *request) {
 	smcp_status_t status = 0;
 
-	status = smcp_outbound_begin(smcp_get_current_daemon(),request->method, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_instance(),request->method, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status, bail);
 
 	status = smcp_outbound_set_content_type(request->content_type);
@@ -118,7 +118,7 @@ bail:
 
 static coap_transaction_id_t
 send_post_request(
-	smcp_daemon_t	smcp,
+	smcp_t	smcp,
 	const char*		url,
 	coap_code_t		method,
 	const char*		content,
@@ -162,9 +162,9 @@ bail:
 
 int
 tool_cmd_post(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp, int argc, char* argv[]
 ) {
-	coap_transaction_id_t tid;
+	coap_transaction_id_t tid=0;
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 	coap_content_type_t content_type = 0;
 	coap_code_t method = COAP_METHOD_POST;
@@ -239,7 +239,7 @@ tool_cmd_post(
 	tid = send_post_request(smcp, url, method,content, strlen(content),content_type);
 
 	while(ERRORCODE_INPROGRESS == gRet)
-		smcp_daemon_process(smcp, -1);
+		smcp_process(smcp, -1);
 
 bail:
 	smcp_invalidate_transaction(smcp, tid);

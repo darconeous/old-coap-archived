@@ -94,6 +94,26 @@ coap_encode_option(
 	return buffer;
 }
 
+
+uint16_t coap_to_http_code(uint8_t x) { return COAP_TO_HTTP_CODE(x); }
+
+uint8_t http_to_coap_code(uint16_t x) { return HTTP_TO_COAP_CODE(x); }
+
+bool
+coap_option_strequal(const char* optionptr,const char* cstr) {
+	// TODO: This looks easily optimizable.
+	const char* value;
+	size_t value_len;
+	size_t i;
+	coap_decode_option((const uint8_t*)optionptr, NULL, (const uint8_t**)&value, &value_len);
+
+	for(i=0;i<value_len;i++) {
+		if(!cstr[i] || (value[i]!=cstr[i]))
+			return false;
+	}
+	return cstr[i]==0;
+}
+
 const char*
 coap_content_type_to_cstr(coap_content_type_t content_type) {
 	const char* content_type_string = NULL;

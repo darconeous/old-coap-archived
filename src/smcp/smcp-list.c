@@ -57,7 +57,7 @@
 #include "url-helpers.h"
 
 smcp_status_t
-smcp_daemon_handle_list(
+smcp_handle_list(
 	smcp_node_t		node,
 	smcp_method_t	method
 ) {
@@ -71,9 +71,9 @@ smcp_daemon_handle_list(
 	// show the root listing as a reasonable default.
 	if(!node->parent) {
 		if(smcp_inbound_option_strequal_const(COAP_HEADER_URI_PATH,".well-known")) {
-			smcp_inbound_next_header(NULL, NULL);
+			smcp_inbound_next_option(NULL, NULL);
 			if(smcp_inbound_option_strequal_const(COAP_HEADER_URI_PATH,"core")) {
-				smcp_inbound_next_header(NULL, NULL);
+				smcp_inbound_next_option(NULL, NULL);
 				prefix = "/";
 			} else {
 				ret = SMCP_STATUS_NOT_ALLOWED;
@@ -87,7 +87,7 @@ smcp_daemon_handle_list(
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
-		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key == COAP_HEADER_URI_QUERY) {
 				// Skip URI query components for now.

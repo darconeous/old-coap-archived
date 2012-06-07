@@ -40,7 +40,7 @@ monitor_action_func(
 	smcp_node_t node,
     smcp_method_t method
 ) {
-	char* content = smcp_inbound_get_content_ptr();
+	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 	fprintf(stdout,
 		" *** Received Action! content_length=%d",
@@ -62,7 +62,7 @@ monitor_action_func(
 
 int
 tool_cmd_monitor(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp, int argc, char* argv[]
 ) {
 	int i;
 	char url[1000];
@@ -72,7 +72,7 @@ tool_cmd_monitor(
 	if(!monitor_node.name) {
 		smcp_node_init(
 			(smcp_node_t)&monitor_node,
-			smcp_daemon_get_root_node(smcp),
+			smcp_get_root_node(smcp),
 			"monitor"
 		);
 		monitor_node.request_handler = (void*)&monitor_action_func;
@@ -123,7 +123,7 @@ tool_cmd_monitor(
 	gRet = ERRORCODE_OK;
 
 	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_daemon_process(smcp, 50);
+		smcp_process(smcp, 50);
 
 bail:
 	smcp_invalidate_transaction(smcp, tid);

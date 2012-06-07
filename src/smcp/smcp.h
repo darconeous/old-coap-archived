@@ -50,6 +50,8 @@
 #include "smcp-opts.h"
 #include "coap.h"
 
+#include "btree.h"
+
 #ifdef CONTIKI
 #include "contiki.h"
 #include "net/uip.h"
@@ -67,9 +69,6 @@
 #define HEADER_CSTR_LEN     ((size_t)-1)
 
 __BEGIN_DECLS
-
-#include "btree.h"
-
 
 typedef int smcp_method_t;
 
@@ -102,8 +101,8 @@ enum {
 
 typedef int smcp_status_t;
 
-struct smcp_daemon_s;
-typedef struct smcp_daemon_s *smcp_daemon_t;
+struct smcp_s;
+typedef struct smcp_s *smcp_t;
 
 struct smcp_node_s;
 typedef struct smcp_node_s *smcp_node_t;
@@ -131,39 +130,47 @@ typedef smcp_status_t (*smcp_inbound_resend_func)(void* context);
 #pragma mark -
 #pragma mark SMCP Daemon methods
 
-#if !SMCP_NO_MALLOC
-extern smcp_daemon_t smcp_daemon_create(uint16_t port);
+#if !SMCP_NO_MALLOC && !SMCP_EMBEDDED
+extern smcp_t smcp_create(uint16_t port);
 #endif
 
-extern smcp_daemon_t smcp_daemon_init(smcp_daemon_t self, uint16_t port);
+extern smcp_t smcp_init(smcp_t self, uint16_t port);
 
-extern void smcp_daemon_release(smcp_daemon_t self);
+extern void smcp_release(smcp_t self);
 
-extern uint16_t smcp_daemon_get_port(smcp_daemon_t self);
+extern uint16_t smcp_get_port(smcp_t self);
 
-extern smcp_daemon_t smcp_get_current_daemon(); // Used from callbacks
 
-extern smcp_status_t smcp_daemon_process(smcp_daemon_t self, cms_t cms);
+#if SMCP_EMBEDDED
+extern struct smcp_s smcp_global_instance;
+#define smcp_get_current_instance() (&smcp_global_instance)
+#else
+extern smcp_t smcp_get_current_instance(); // Used from callbacks
+#endif
+
+extern smcp_status_t smcp_process(smcp_t self, cms_t cms);
 
 /*!	Returns the maximum amount of time that can pass before
-**	smcp_daemon_process() must be called again. */
-extern cms_t smcp_daemon_get_timeout(smcp_daemon_t self);
+**	smcp_process() must be called again. */
+extern cms_t smcp_get_timeout(smcp_t self);
 
-extern smcp_node_t smcp_daemon_get_root_node(smcp_daemon_t self);
+extern smcp_node_t smcp_get_root_node(smcp_t self);
 
-extern void smcp_daemon_set_proxy_url(smcp_daemon_t self,const char* url);
+extern void smcp_set_proxy_url(smcp_t self,const char* url);
 
 #pragma mark -
 #pragma mark Network Interface
 
 #if SMCP_USE_BSD_SOCKETS
-extern int smcp_daemon_get_fd(smcp_daemon_t self);
+/*!	Useful for implementing asynchronous operation using select(),
+**	poll(), or other async mechanisms. */
+extern int smcp_get_fd(smcp_t self);
 #elif defined(CONTIKI)
-extern struct uip_udp_conn* smcp_daemon_get_udp_conn(smcp_daemon_t self);
+extern struct uip_udp_conn* smcp_get_udp_conn(smcp_t self);
 #endif
 
-extern smcp_status_t smcp_daemon_handle_inbound_packet(
-	smcp_daemon_t	self,
+extern smcp_status_t smcp_handle_inbound_packet(
+	smcp_t	self,
 	char*			packet,
 	size_t			packet_length,
 	SMCP_SOCKET_ARGS
@@ -173,7 +180,7 @@ extern smcp_status_t smcp_daemon_handle_inbound_packet(
 #pragma mark Transaction API
 
 extern smcp_status_t smcp_begin_transaction(
-	smcp_daemon_t self,
+	smcp_t self,
 	coap_transaction_id_t tid,
 	cms_t cmsExpiration,
 	int	flags,
@@ -183,7 +190,7 @@ extern smcp_status_t smcp_begin_transaction(
 );
 
 extern smcp_status_t smcp_invalidate_transaction(
-	smcp_daemon_t self,
+	smcp_t self,
 	coap_transaction_id_t tid
 );
 
@@ -192,7 +199,7 @@ extern smcp_status_t smcp_invalidate_transaction(
 
 extern const struct coap_header_s* smcp_inbound_get_packet();
 
-extern coap_transaction_id_t smcp_inbound_get_tid();
+#define smcp_inbound_get_tid()	(smcp_inbound_get_packet()->tid)
 
 /*! Guaranteed to be NUL-terminated */
 extern const char* smcp_inbound_get_content_ptr();
@@ -204,17 +211,19 @@ extern coap_content_type_t smcp_inbound_get_content_type();
 #if SMCP_USE_BSD_SOCKETS
 extern struct sockaddr* smcp_inbound_get_saddr();
 extern socklen_t smcp_inbound_get_socklen();
-#elif defined(CONTIKI)
+#elif CONTIKI
 extern const uip_ipaddr_t* smcp_inbound_get_ipaddr();
 extern const uint16_t smcp_inbound_get_ipport();
 #endif
 
-extern coap_option_key_t smcp_inbound_next_header(const uint8_t** ptr, size_t* len);
+extern coap_option_key_t smcp_inbound_next_option(const uint8_t** ptr, size_t* len);
 
-extern coap_option_key_t smcp_inbound_peek_header(const uint8_t** ptr, size_t* len);
+extern coap_option_key_t smcp_inbound_peek_option(const uint8_t** ptr, size_t* len);
 
-extern void smcp_inbound_reset_next_header();
+//!	Reset the option pointer to the start of the options.
+extern void smcp_inbound_reset_next_option();
 
+//!	Compares the key and value of the current option to specific values.
 extern bool smcp_inbound_option_strequal(coap_option_key_t key,const char* str);
 
 #define smcp_inbound_option_strequal_const(key,const_str)	\
@@ -224,7 +233,7 @@ extern bool smcp_inbound_option_strequal(coap_option_key_t key,const char* str);
 #pragma mark Outbound Message Composing API
 
 extern smcp_status_t smcp_outbound_begin(
-	smcp_daemon_t self,
+	smcp_t self,
 	coap_code_t code,
 	coap_transaction_type_t tt
 );
@@ -357,7 +366,7 @@ extern smcp_status_t smcp_default_request_handler(
 #pragma mark -
 #pragma mark Helper Functions
 
-extern coap_transaction_id_t smcp_get_next_tid(smcp_daemon_t self, void* context);
+extern coap_transaction_id_t smcp_get_next_tid(smcp_t self, void* context);
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 

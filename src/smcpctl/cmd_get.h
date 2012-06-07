@@ -8,4 +8,4 @@
  */
 
 extern int tool_cmd_get(
-	smcp_daemon_t smcp, int argc, char* argv[]);
+	smcp_t smcp, int argc, char* argv[]);

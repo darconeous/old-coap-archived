@@ -56,9 +56,11 @@ extern bool url_is_absolute(const char* url);
 
 extern bool url_is_root(const char* url);
 
-inline static bool path_is_absolute(const char* path) {
-	return path[0] == '/';
-}
+#if defined(__SDCC)
+#define path_is_absolute(path) ((path)[0] == '/')
+#else
+inline static bool path_is_absolute(const char* path) { return path[0] == '/'; }
+#endif
 
 // Transforms new_url into a shorter, possibly relative, path/url.
 extern void url_shorten_reference(

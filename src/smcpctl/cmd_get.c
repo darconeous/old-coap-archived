@@ -43,7 +43,7 @@ signal_interrupt(int sig) {
 }
 
 bool send_get_request(
-	smcp_daemon_t smcp, const char* url, const char* next, size_t nextlen);
+	smcp_t smcp, const char* url, const char* next, size_t nextlen);
 
 static int retries = 0;
 static const char *url_data;
@@ -55,7 +55,7 @@ static int redirect_count;
 
 static void
 get_response_handler(int statuscode, void* context) {
-	smcp_daemon_t self = smcp_get_current_daemon();
+	smcp_t const self = smcp_get_current_instance();
 	const char* content = smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 
@@ -84,7 +84,7 @@ get_response_handler(int statuscode, void* context) {
 		size_t value_len;
 		const uint8_t* next_value = NULL;
 		size_t next_len;
-		while((key=smcp_inbound_next_header(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
 			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
 				next_value = value;
@@ -114,7 +114,7 @@ smcp_status_t
 resend_get_request(void* context) {
 	smcp_status_t status = 0;
 
-	status = smcp_outbound_begin(smcp_get_current_daemon(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_instance(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
 
 	status = smcp_outbound_set_uri(url_data, 0);
@@ -155,7 +155,7 @@ bail:
 
 bool
 send_get_request(
-	smcp_daemon_t smcp, const char* url, const char* next, size_t nextlen
+	smcp_t smcp, const char* url, const char* next, size_t nextlen
 ) {
 	bool ret = false;
 	smcp_status_t status = 0;
@@ -200,7 +200,7 @@ bail:
 
 int
 tool_cmd_get(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp, int argc, char* argv[]
 ) {
 	gRet = ERRORCODE_INPROGRESS;
 	int i;
@@ -262,7 +262,7 @@ tool_cmd_get(
 	require(send_get_request(smcp, url, NULL, 0), bail);
 
 	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_daemon_process(smcp, 50);
+		smcp_process(smcp, 50);
 
 bail:
 	smcp_invalidate_transaction(smcp, tid);

@@ -139,16 +139,16 @@ typedef smcp_node_t smcp_root_pairing_node_t;
 #pragma mark -
 #pragma mark Pairing Functions
 
-extern smcp_status_t smcp_daemon_pair_with_uri(
-	smcp_daemon_t	self,
+extern smcp_status_t smcp_pair_with_uri(
+	smcp_t	self,
 	const char*		path,
 	const char*		dest_uri,
 	int				flags,
 	uintptr_t*		idVal
 );
 
-extern smcp_status_t smcp_daemon_pair_with_sockaddr(
-	smcp_daemon_t	self,
+extern smcp_status_t smcp_pair_with_sockaddr(
+	smcp_t	self,
 	const char*		path,
 	const char*		dest_uri,
 	SMCP_SOCKET_ARGS,
@@ -156,70 +156,74 @@ extern smcp_status_t smcp_daemon_pair_with_sockaddr(
 	uintptr_t*		idVal
 );
 
-extern smcp_status_t smcp_daemon_trigger_event(
-	smcp_daemon_t self,
+extern smcp_status_t smcp_trigger_event(
+	smcp_t self,
 	const char* path
 );
 
-extern smcp_status_t smcp_daemon_trigger_event_with_node(
-	smcp_daemon_t		self,
+extern smcp_status_t smcp_trigger_event_with_node(
+	smcp_t		self,
 	smcp_node_t			node,
 	const char*			subpath
 );
 
-extern smcp_status_t smcp_daemon_trigger_custom_event(
-	smcp_daemon_t		self,
+extern smcp_status_t smcp_trigger_custom_event(
+	smcp_t		self,
 	const char*			path,
 	smcp_content_fetcher_func contentFetcher,
 	void* context
 );
 
-extern smcp_status_t smcp_daemon_trigger_custom_event_with_node(
-	smcp_daemon_t		self,
+extern smcp_status_t smcp_trigger_custom_event_with_node(
+	smcp_t		self,
 	smcp_node_t			node,
 	const char*			subpath,
 	smcp_content_fetcher_func contentFetcher,
 	void* context
 );
 
-extern smcp_status_t smcp_daemon_delete_pairing(
-	smcp_daemon_t self,
+extern smcp_status_t smcp_delete_pairing(
+	smcp_t self,
 	smcp_pairing_node_t pairing
 );
 
-extern smcp_pairing_node_t smcp_daemon_get_first_pairing_for_path(
-	smcp_daemon_t self,
+extern smcp_pairing_node_t smcp_get_first_pairing_for_path(
+	smcp_t self,
 	const char* path
 );
 
-extern smcp_pairing_node_t smcp_daemon_next_pairing(
-	smcp_daemon_t self,
+extern smcp_pairing_node_t smcp_next_pairing(
+	smcp_t self,
 	smcp_pairing_node_t pairing
 );
 
-extern smcp_status_t smcp_daemon_handle_pair(
+extern smcp_status_t smcp_handle_pair(
 	smcp_node_t		node,
 	smcp_method_t	method
 );
 
 extern smcp_root_pairing_node_t smcp_pairing_init(
-	smcp_daemon_t self,
+	smcp_t self,
 	smcp_node_t parent,
 	const char* name
 );
 
+#if defined(__SDCC)
+#define smcp_pairing_get_next_seq(pairing) (++(pairing->seq))
+#else
 static inline int
 smcp_pairing_get_next_seq(smcp_pairing_node_t pairing) {
 	return ++(pairing->seq);
 }
+#endif
 
 __END_DECLS
 
 #else
-#define smcp_daemon_trigger_event(a,b)	(SMCP_STATUS_NOT_IMPLEMENTED)
-#define smcp_daemon_trigger_event_with_node(a,b,c)	(SMCP_STATUS_NOT_IMPLEMENTED)
-#define smcp_daemon_trigger_custom_event(a,b,c,d)	(SMCP_STATUS_NOT_IMPLEMENTED)
-#define smcp_daemon_trigger_custom_event_with_node(a,b,c,d,e)	(SMCP_STATUS_NOT_IMPLEMENTED)
+#define smcp_trigger_event(a,b)	(SMCP_STATUS_NOT_IMPLEMENTED)
+#define smcp_trigger_event_with_node(a,b,c)	(SMCP_STATUS_NOT_IMPLEMENTED)
+#define smcp_trigger_custom_event(a,b,c,d)	(SMCP_STATUS_NOT_IMPLEMENTED)
+#define smcp_trigger_custom_event_with_node(a,b,c,d,e)	(SMCP_STATUS_NOT_IMPLEMENTED)
 #define smcp_pairing_init(a,b,c)	(NULL)
 #define PAIRING_STATE
 #endif // #if SMCP_ENABLE_PAIRING

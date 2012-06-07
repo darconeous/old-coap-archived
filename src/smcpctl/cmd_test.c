@@ -97,7 +97,7 @@ list_response_handler(
 	int			statuscode,
 	void*		context
 ) {
-//	smcp_daemon_t self = smcp_get_current_daemon();
+//	smcp_t const self = smcp_get_current_instance();
 	const char* content = smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
@@ -182,8 +182,8 @@ async_request_handler(
 		require_noerr(ret, bail);
 
 		ret = smcp_begin_transaction(
-			smcp_get_current_daemon(),
-			smcp_get_next_tid(smcp_get_current_daemon(),NULL),
+			smcp_get_current_instance(),
+			smcp_get_next_tid(smcp_get_current_instance(),NULL),
 			30*1000,	// Retry for thirty seconds.
 			SMCP_TRANSACTION_DELAY_START, // Flags
 			(void*)&resend_async_response,
@@ -200,15 +200,15 @@ bail:
 
 int
 tool_cmd_test(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp_instance, int argc, char* argv[]
 ) {
 	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
 		printf("Help not yet implemented for this command.\n");
 		return ERRORCODE_HELP;
 	}
 
-	smcp_daemon_t smcp_daemon;
-	smcp_daemon_t smcp_daemon2;
+	smcp_t smcp;
+	smcp_t smcp2;
 
 	struct smcp_node_s device_node = {};
 	struct smcp_timer_node_s timer_node = {};
@@ -217,11 +217,11 @@ tool_cmd_test(
 	struct smcp_node_s sliced_post_node = {};
 	struct smcp_node_s async_response_node = {};
 
-	smcp_daemon2 = smcp_daemon_create(12345);
-	if(smcp_daemon_get_port(smcp) == SMCP_DEFAULT_PORT)
-		smcp_daemon = smcp;
+	smcp2 = smcp_create(12345);
+	if(smcp_get_port(smcp_instance) == SMCP_DEFAULT_PORT)
+		smcp = smcp_instance;
 	else
-		smcp_daemon = smcp_daemon_create(SMCP_DEFAULT_PORT);
+		smcp = smcp_create(SMCP_DEFAULT_PORT);
 
 #if HAS_LIBCURL
 	struct smcp_curl_proxy_node_s proxy_node = {};
@@ -230,32 +230,32 @@ tool_cmd_test(
 	CURLM* curl_multi_handle = curl_multi_init();
 	smcp_curl_proxy_node_init(
 		&proxy_node,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"proxy",
 		curl_multi_handle
 	);
 #endif
 
 	smcp_pairing_init(
-		smcp_daemon,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp,
+		smcp_get_root_node(smcp),
 		SMCP_PAIRING_DEFAULT_ROOT_PATH
 	);
 
 	smcp_pairing_init(
-		smcp_daemon2,
-		smcp_daemon_get_root_node(smcp_daemon2),
+		smcp2,
+		smcp_get_root_node(smcp2),
 		SMCP_PAIRING_DEFAULT_ROOT_PATH
 	);
 
 	smcp_node_init(
 		(smcp_node_t)&device_node,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"device"
 	);
 
 	smcp_timer_node_init(&timer_node,
-		smcp_daemon_get_root_node(smcp_daemon),
+		smcp_get_root_node(smcp),
 		"timer"
 	);
 
@@ -281,10 +281,10 @@ tool_cmd_test(
 
 	smcp_node_init_variable(
 		&action_node,
-		smcp_daemon_get_root_node(smcp_daemon2),
+		smcp_get_root_node(smcp2),
 		"action"
 	);
-	action_node.post_func = action_func;
+	action_node.post_func = (void*)action_func;
 
 #if 1
 	{
@@ -292,8 +292,8 @@ tool_cmd_test(
 		snprintf(url,
 			sizeof(url),
 			"smcp://127.0.0.1:%d/action",
-			smcp_daemon_get_port(smcp_daemon2));
-		smcp_daemon_pair_with_uri(smcp_daemon,
+			smcp_get_port(smcp2));
+		smcp_pair_with_uri(smcp,
 			"device/loadavg",
 			url,
 			0,
@@ -306,8 +306,8 @@ tool_cmd_test(
 		snprintf(url,
 			sizeof(url),
 			"smcp://[::1]:%d/device/loadavg",
-			smcp_daemon_get_port(smcp_daemon));
-		smcp_daemon_pair_with_uri(smcp_daemon2, "action", url, 0, NULL);
+			smcp_get_port(smcp));
+		smcp_pair_with_uri(smcp2, "action", url, 0, NULL);
 		printf("ACTION_NODE PAIRED WITH %s\n", url);
 	}
 #endif
@@ -315,7 +315,7 @@ tool_cmd_test(
 	// Just adding some random nodes so we can browse thru them with another process...
 	{
 		smcp_node_t subdevice = smcp_node_init(NULL,
-			smcp_daemon_get_root_node(smcp_daemon),
+			smcp_get_root_node(smcp),
 			"lots_of_devices");
 		unsigned char i = 0;
 #if 1
@@ -350,7 +350,7 @@ tool_cmd_test(
 	}
 
 	{
-		coap_transaction_id_t tid = smcp_get_next_tid(smcp_daemon2,NULL);
+		coap_transaction_id_t tid = smcp_get_next_tid(smcp2,NULL);
 
 		char url[256];
 
@@ -358,16 +358,16 @@ tool_cmd_test(
 		snprintf(url,
 			sizeof(url),
 			"smcp://["SMCP_IPV 6_MULTICAST_ADDRESS "]:%d/device/",
-			smcp_daemon_get_port(smcp_daemon));
+			smcp_get_port(smcp));
 #else
 		snprintf(url,
 			sizeof(url),
 			"smcp://[::1]:%d/device/",
-			smcp_daemon_get_port(smcp_daemon));
+			smcp_get_port(smcp));
 #endif
 
 		smcp_begin_transaction(
-			smcp_daemon2,
+			smcp2,
 			tid,
 			5 * MSEC_PER_SEC,
 			0, // Flags
@@ -376,7 +376,7 @@ tool_cmd_test(
 			NULL
 		);
 
-		smcp_outbound_begin(smcp_daemon2,COAP_METHOD_GET,COAP_TRANS_TYPE_CONFIRMABLE);
+		smcp_outbound_begin(smcp2,COAP_METHOD_GET,COAP_TRANS_TYPE_CONFIRMABLE);
 			smcp_outbound_set_tid(tid);
 			smcp_outbound_set_uri(url, 0);
 		smcp_outbound_send();
@@ -389,11 +389,11 @@ tool_cmd_test(
 #if 0
 		if((i - 1) % 250 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
-			smcp_daemon_refresh_variable(smcp_daemon, &var_node);
+			smcp_refresh_variable(smcp, &var_node);
 		}
 #endif
-		smcp_daemon_process(smcp_daemon, 10);
-		smcp_daemon_process(smcp_daemon2, 10);
+		smcp_process(smcp, 10);
+		smcp_process(smcp2, 10);
 #if HAS_LIBCURL
 		int runningHandles;
 		if(curl_multi_handle)

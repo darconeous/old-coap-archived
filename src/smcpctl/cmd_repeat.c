@@ -40,13 +40,13 @@ signal_interrupt(int sig) {
 
 int
 tool_cmd_repeat(
-	smcp_daemon_t smcp, int argc, char* argv[]
+	smcp_t smcp, int argc, char* argv[]
 ) {
 	ret = 0;
 	int i = 0;
 	cms_t interval = 5 * MSEC_PER_SEC;
 	uint32_t count = 0xFFFFFFFF;
-	const char* prefix_string;
+	const char* prefix_string = NULL;
 
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 
@@ -113,7 +113,7 @@ tool_cmd_repeat(
 		convert_cms_to_timeval(&continue_time, interval);
 
 		do {
-			smcp_daemon_process(smcp,
+			smcp_process(smcp,
 				count ? convert_timeval_to_cms(&continue_time) : 0);
 		} while(count && (ret == 0) &&
 		        (convert_timeval_to_cms(&continue_time) > 0));

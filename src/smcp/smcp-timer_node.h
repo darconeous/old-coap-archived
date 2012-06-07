@@ -32,6 +32,8 @@
 #include "smcp-timer.h"
 #include "smcp-node.h"
 
+__BEGIN_DECLS
+
 typedef struct smcp_timer_node_s {
 	struct smcp_node_s	node;
 	struct smcp_timer_s timer;
@@ -56,5 +58,7 @@ void smcp_timer_node_stop(smcp_timer_node_t self);
 void smcp_timer_node_reset(smcp_timer_node_t self);
 void smcp_timer_node_restart(smcp_timer_node_t self);
 void smcp_timer_node_set_autorestart(smcp_timer_node_t self, bool x);
+
+__END_DECLS
 
 #endif //__SMCP_TIMER_NODE_H__
