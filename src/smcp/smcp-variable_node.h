@@ -34,23 +34,25 @@
 struct smcp_variable_node_s;
 typedef struct smcp_variable_node_s *smcp_variable_node_t;
 
-// Size = sizeof(struct smcp_node_s)+2*sizeof(void*) = 10*sizeof(void*)
-struct smcp_variable_node_s {
-	struct smcp_node_s	node;
-	smcp_status_t		(*get_func)(
-		smcp_variable_node_t node,
-		char* content,
-		size_t* content_length,
-		coap_content_type_t* content_type
-	);
-	smcp_status_t		(*post_func)(
-		smcp_variable_node_t node,
-		const char* content,
-		size_t content_length,
-		coap_content_type_t content_type
-	);
+#define SMCP_VARIABLE_MAX_VALUE_LENGTH		(127)
+
+enum {
+	SMCP_VAR_GET_KEY,
+	SMCP_VAR_CHECK_KEY,
+	SMCP_VAR_SET_VALUE,
+	SMCP_VAR_GET_VALUE,
 };
 
+struct smcp_variable_node_s {
+	struct smcp_node_s node;
+	void* context;
+	smcp_status_t (*func)(
+		smcp_variable_node_t node,
+		uint8_t action,
+		uint8_t i,
+		char* value
+	);
+};
 
 #define smcp_node_init_variable smcp_variable_node_init
 

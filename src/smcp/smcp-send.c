@@ -297,13 +297,17 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	};
 
 	struct addrinfo hint = {
-		.ai_flags		= AI_ALL | AI_V4MAPPED,
+#if 0
+		.ai_flags		= AI_ADDRCONFIG | AI_ALL | AI_V4MAPPED,
 		.ai_family		= AF_INET6,
-		.ai_socktype	= SOCK_DGRAM,
-		.ai_protocol	= IPPROTO_UDP,
+#else
+		.ai_flags		= AI_ADDRCONFIG,
+		.ai_family		= AF_UNSPEC,
+#endif
 	};
 
 	struct addrinfo *results = NULL;
+	struct addrinfo *iter = NULL;
 
 	int error = getaddrinfo(addr_str, NULL, &hint, &results);
 
@@ -312,13 +316,22 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 
 	if(error && (inet_addr(addr_str) != INADDR_NONE)) {
 		char addr_v4mapped_str[8 + strlen(addr_str)];
+		hint.ai_family = AF_INET6;
+		hint.ai_flags = AI_ALL | AI_V4MAPPED,
 		strcpy(addr_v4mapped_str,"::ffff:");
 		strcat(addr_v4mapped_str,addr_str);
 		error = getaddrinfo(addr_v4mapped_str,
 			NULL,
 			&hint,
-			&results);
+			&results
+		);
 	}
+
+	require_action(error!=EAI_AGAIN,bail,ret=SMCP_STATUS_WAIT_FOR_DNS);
+
+#ifdef TM_EWOULDBLOCK
+	require_action(error!=TM_EWOULDBLOCK,bail,ret=SMCP_STATUS_WAIT_FOR_DNS);
+#endif
 
 	require_action_string(
 		!error,
@@ -327,14 +340,22 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 		gai_strerror(error)
 	);
 
+	for(iter = results;iter && (iter->ai_family!=AF_INET6 && iter->ai_family!=AF_INET);iter=iter->ai_next);
+
 	require_action(
-		results,
+		iter,
 		bail,
 		ret = SMCP_STATUS_HOST_LOOKUP_FAILURE
 	);
 
-	memcpy(&saddr, results->ai_addr, results->ai_addrlen);
-
+	if(iter->ai_family == AF_INET) {
+		struct sockaddr_in *v4addr = (void*)iter->ai_addr;
+		saddr.sin6_addr.s6_addr[10] = 0xFF;
+		saddr.sin6_addr.s6_addr[11] = 0xFF;
+		memcpy(&saddr.sin6_addr.s6_addr[12], &v4addr->sin_addr.s_addr, 4);
+	} else {
+		memcpy(&saddr, iter->ai_addr, iter->ai_addrlen);
+	}
 	saddr.sin6_port = toport;
 
 	ret = smcp_outbound_set_destaddr((struct sockaddr *)&saddr,sizeof(struct sockaddr_in6));
@@ -396,6 +417,10 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 #endif // CONTIKI
 
 bail:
+#if SMCP_USE_BSD_SOCKETS
+	if(results)
+		freeaddrinfo(results);
+#endif
 	return ret;
 }
 
@@ -662,6 +687,9 @@ smcp_outbound_set_content_formatted(const char* fmt, ...) {
 	va_list args;
 	char* content = smcp_outbound_get_content_ptr(&len);
 
+	content += smcp_get_current_instance()->outbound.content_len;
+	len -= smcp_get_current_instance()->outbound.content_len;
+
 	va_start(args,fmt);
 
 	require(content!=NULL,bail);
@@ -670,6 +698,7 @@ smcp_outbound_set_content_formatted(const char* fmt, ...) {
 
 	require(len!=0,bail);
 
+	len += smcp_get_current_instance()->outbound.content_len;
 	ret = smcp_outbound_set_content_len(len);
 
 bail:

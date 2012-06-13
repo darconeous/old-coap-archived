@@ -1,4 +1,4 @@
-/*	@file smcp-timer_node.h
+/*	@file sensor-node.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -26,40 +26,58 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_TIMER_NODE_H__
-#define __SMCP_TIMER_NODE_H__ 1
+#include "sensor-node.h"
+#include "assert_macros.h"
+#include "lib/sensors.h"
+#include <smcp/smcp-node.h>
+#include <smcp/smcp-variable_node.h>
 
-#include "smcp-timer.h"
-#include "smcp-node.h"
-#include "smcp-variable_node.h"
+const extern struct sensors_sensor *sensors[];
 
-__BEGIN_DECLS
+static smcp_status_t
+sensor_var_func(
+	smcp_variable_node_t node,
+	uint8_t action,
+	uint8_t i,
+	char* value
+) {
+	smcp_status_t ret = 0;
+	const struct sensors_sensor *sensor;
+	static uint8_t sensor_count;
 
-typedef struct smcp_timer_node_s {
-	struct smcp_variable_node_s	node;
-	struct smcp_timer_s timer;
-	uint32_t			period;
-	uint32_t			remaining;
-#if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-	uint32_t			count;
-#endif
-	uint8_t				autorestart;
-} *smcp_timer_node_t;
+	if(!sensor_count)
+		for(sensor_count = 0; sensors[sensor_count] != NULL; ++sensor_count) {}
 
-smcp_timer_node_t smcp_timer_node_alloc();
-smcp_timer_node_t smcp_timer_node_init(
-	smcp_timer_node_t	self,
-	smcp_node_t			parent,
-	const char*			name
-);
+	if(i>=sensor_count) {
+		ret = SMCP_STATUS_NOT_FOUND;
+		goto bail;
+	}
+
+	sensor = sensors[i];
+
+	if(action==SMCP_VAR_GET_KEY) {
+		strcpy(value,sensor->type);
+	} else if(action==SMCP_VAR_GET_VALUE) {
+		sprintf(value,"%d",sensor->value(0));
+	} else if(action==SMCP_VAR_SET_VALUE) {
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+	} else {
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+	}
+
+bail:
+	return ret;
+}
 
 
-void smcp_timer_node_start(smcp_timer_node_t self);
-void smcp_timer_node_stop(smcp_timer_node_t self);
-void smcp_timer_node_reset(smcp_timer_node_t self);
-void smcp_timer_node_restart(smcp_timer_node_t self);
-void smcp_timer_node_set_autorestart(smcp_timer_node_t self, bool x);
+smcp_node_t
+smcp_init_sensor_node(smcp_node_t parent,const char* name) {
 
-__END_DECLS
+	static struct smcp_variable_node_s node;
 
-#endif //__SMCP_TIMER_NODE_H__
+	smcp_variable_node_init(&node,(void*)parent, name);
+
+	node.func = &sensor_var_func;
+
+	return &node.node;
+}

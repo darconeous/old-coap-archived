@@ -41,7 +41,7 @@ __BEGIN_DECLS
 
 typedef void (*smcp_timer_callback_t)(smcp_t, void*);
 
-#if CONTIKI && !CONTIKI_TARGET_MINIMAL_NET && !CONTIKI_TARGET_NATIVE
+#if CONTIKI && !CONTIKI_TARGET_MINIMAL_NET && !CONTIKI_TARGET_COOJA && !CONTIKI_TARGET_NATIVE
 #if !defined(timeval)
 #define timeval timeval
 #ifndef __time_t_defined

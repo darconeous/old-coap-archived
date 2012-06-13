@@ -1,4 +1,4 @@
-/*	@file smcp-timer_node.h
+/*	@file led-node.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -26,40 +26,13 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_TIMER_NODE_H__
-#define __SMCP_TIMER_NODE_H__ 1
+#ifndef SMCP_led_node_h
+#define SMCP_led_node_h
 
-#include "smcp-timer.h"
-#include "smcp-node.h"
-#include "smcp-variable_node.h"
+#include "contiki.h"
+#include <smcp/smcp.h>
+#include <smcp/smcp-variable_node.h>
 
-__BEGIN_DECLS
+smcp_node_t smcp_init_led_node(smcp_node_t parent,const char* name);
 
-typedef struct smcp_timer_node_s {
-	struct smcp_variable_node_s	node;
-	struct smcp_timer_s timer;
-	uint32_t			period;
-	uint32_t			remaining;
-#if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-	uint32_t			count;
 #endif
-	uint8_t				autorestart;
-} *smcp_timer_node_t;
-
-smcp_timer_node_t smcp_timer_node_alloc();
-smcp_timer_node_t smcp_timer_node_init(
-	smcp_timer_node_t	self,
-	smcp_node_t			parent,
-	const char*			name
-);
-
-
-void smcp_timer_node_start(smcp_timer_node_t self);
-void smcp_timer_node_stop(smcp_timer_node_t self);
-void smcp_timer_node_reset(smcp_timer_node_t self);
-void smcp_timer_node_restart(smcp_timer_node_t self);
-void smcp_timer_node_set_autorestart(smcp_timer_node_t self, bool x);
-
-__END_DECLS
-
-#endif //__SMCP_TIMER_NODE_H__

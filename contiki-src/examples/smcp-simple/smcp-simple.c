@@ -28,6 +28,7 @@ AUTOSTART_PROCESSES(
 #include <smcp/smcp-node.h>
 #include <smcp/smcp-timer_node.h>
 #include <smcp/smcp-variable_node.h>
+#include "led-node.h"
 
 //////////////////////////////////
 // ELAPSED TIME NODE
@@ -49,6 +50,8 @@ elapsed_time_request_handler(
 		if(ret) goto bail;
 
 		ret = smcp_outbound_send();
+
+		resolv_query("bellatrix.local");
 	}
 bail:
 	return ret;
@@ -145,6 +148,44 @@ create_reset_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 }
 
 //////////////////////////////////
+// HOSTNAME NODE
+#if RESOLV_CONF_MDNS_RESPONDER
+smcp_status_t
+hostname_request_handler(
+	smcp_node_t		node,
+	smcp_method_t	method
+) {
+	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+
+	if(method==COAP_METHOD_GET) {
+		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+		if(ret) goto bail;
+
+		ret = smcp_outbound_append_content(resolv_get_hostname(),-1);
+		if(ret) goto bail;
+
+		ret = smcp_outbound_send();
+	} else if(method==COAP_METHOD_POST) {
+		if(smcp_inbound_get_content_len())
+			resolv_set_hostname(smcp_inbound_get_content_ptr());
+		ret = 0;
+	}
+bail:
+	return ret;
+}
+
+smcp_node_t
+create_hostname_node(smcp_node_t node,smcp_node_t parent,const char* name) {
+
+	node = smcp_node_init(node,(void*)parent, name);
+
+	node->request_handler = hostname_request_handler;
+
+	return node;
+}
+#endif // #if RESOLV_CONF_MDNS_RESPONDER
+
+//////////////////////////////////
 // MAIN THREAD
 
 PROCESS_THREAD(smcp_simple, ev, data)
@@ -153,8 +194,15 @@ PROCESS_THREAD(smcp_simple, ev, data)
 	static struct smcp_node_s uptime_node;
 	static struct smcp_timer_node_s timer_node;
 	static struct smcp_node_s processes_node;
+	static struct smcp_node_s hostname_node;
 
 	PROCESS_BEGIN();
+
+	smcp_init_led_node(smcp_get_root_node(smcp),"leds");
+
+#if !CONTIKI_TARGET_MINIMAL_NET
+	smcp_init_sensor_node(smcp_get_root_node(smcp),"sensors");
+#endif
 
 	// Create the "reset" node.
 	create_reset_node(
@@ -183,6 +231,15 @@ PROCESS_THREAD(smcp_simple, ev, data)
 		smcp_get_root_node(smcp),
 		"processes"
 	);
+
+#if RESOLV_CONF_MDNS_RESPONDER
+	// Create the "hostname" node.
+	create_hostname_node(
+		&hostname_node,
+		smcp_get_root_node(smcp),
+		"hostname"
+	);
+#endif // RESOLV_CONF_MDNS_RESPONDER
 
 	PROCESS_END();
 }

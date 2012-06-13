@@ -1,4 +1,4 @@
-/*	@file smcp-timer_node.h
+/*	@file led-node.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -26,40 +26,65 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_TIMER_NODE_H__
-#define __SMCP_TIMER_NODE_H__ 1
+#include "led-node.h"
+#include "assert_macros.h"
+#include "dev/leds.h"
+#include <smcp/smcp-node.h>
+#include <smcp/smcp-variable_node.h>
 
-#include "smcp-timer.h"
-#include "smcp-node.h"
-#include "smcp-variable_node.h"
+static smcp_status_t
+led_var_func(
+	smcp_variable_node_t node,
+	uint8_t action,
+	uint8_t i,
+	char* value
+) {
+	smcp_status_t ret = 0;
+	uint8_t mask = (1<<i);
 
-__BEGIN_DECLS
+	if(!(mask&LEDS_ALL)) {
+		ret = SMCP_STATUS_NOT_FOUND;
+	} else if(action==SMCP_VAR_GET_KEY) {
+		value[0] = i+'0';
+		value[1] = 0;
+	} else if(action==SMCP_VAR_GET_VALUE) {
+		value[0] = !!(leds_get()&mask)+'0';
+		value[1] = 0;
+	} else if(action==SMCP_VAR_SET_VALUE) {
+		if(	value[0]=='1'
+			|| value[0]=='t'
+			|| value[0]=='y'
+		) {
+			leds_on(mask);
+		} else if( value[0]=='0'
+			|| value[0]=='f'
+			|| value[0]=='n'
+		) {
+			leds_off(mask);
+		} else if( value[0]=='!'
+			&& value[1]=='v'
+			&& value[2]==0
+		) {
+			leds_toggle(mask);
+		} else {
+			ret = SMCP_STATUS_FAILURE;
+		}
+	} else {
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+	}
 
-typedef struct smcp_timer_node_s {
-	struct smcp_variable_node_s	node;
-	struct smcp_timer_s timer;
-	uint32_t			period;
-	uint32_t			remaining;
-#if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-	uint32_t			count;
-#endif
-	uint8_t				autorestart;
-} *smcp_timer_node_t;
-
-smcp_timer_node_t smcp_timer_node_alloc();
-smcp_timer_node_t smcp_timer_node_init(
-	smcp_timer_node_t	self,
-	smcp_node_t			parent,
-	const char*			name
-);
+	return ret;
+}
 
 
-void smcp_timer_node_start(smcp_timer_node_t self);
-void smcp_timer_node_stop(smcp_timer_node_t self);
-void smcp_timer_node_reset(smcp_timer_node_t self);
-void smcp_timer_node_restart(smcp_timer_node_t self);
-void smcp_timer_node_set_autorestart(smcp_timer_node_t self, bool x);
+smcp_node_t
+smcp_init_led_node(smcp_node_t parent,const char* name) {
 
-__END_DECLS
+	static struct smcp_variable_node_s node;
 
-#endif //__SMCP_TIMER_NODE_H__
+	smcp_variable_node_init(&node,(void*)parent, name);
+
+	node.func = &led_var_func;
+
+	return &node.node;
+}

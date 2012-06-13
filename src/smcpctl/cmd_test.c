@@ -27,70 +27,102 @@
 #include <smcp/smcp-curl_proxy.h>
 #endif
 
-static smcp_status_t
-action_func(
-	smcp_variable_node_t	node,
-	char*					content,
-	size_t					content_length,
-	coap_content_type_t		content_type
+smcp_status_t device_func(
+	smcp_variable_node_t node,
+	uint8_t action,
+	uint8_t i,
+	char* value
 ) {
-	fprintf(stdout,
-		" *** Received Action! content_length=%d\n",
-		    (int)content_length);
+	smcp_status_t ret = 0;
+	if(action==SMCP_VAR_GET_KEY) {
+		switch(i) {
+			case 0:
+				strcpy(value,"loadavg");
+				break;
+			case 1:
+				strcpy(value,"clock");
+				break;
+			case 2:
+				strcpy(value,"action");
+				break;
+			default:
+				ret = SMCP_STATUS_NOT_FOUND;
+				break;
+		}
+	} else if(action==SMCP_VAR_GET_VALUE) {
+		switch(i) {
+			case 0:
+				{
+					double loadavg[3] = { };
+					require_action(
+						0 < getloadavg(loadavg, sizeof(loadavg) / sizeof(*loadavg)),
+						bail,
+						ret = SMCP_STATUS_FAILURE
+					);
 
-	coap_dump_header(
-		stdout,
-		"   * ",
-		smcp_inbound_get_packet(),
-		0
-	);
+					require_action(
+						(size_t)snprintf(
+							value,
+							SMCP_VARIABLE_MAX_VALUE_LENGTH,
+							"%0.2f",
+							loadavg[0]
+						) <= SMCP_VARIABLE_MAX_VALUE_LENGTH,
+						bail,
+						ret = SMCP_STATUS_FAILURE
+					);
+				}
+				break;
+			case 1:
+				require_action(
+					(size_t)snprintf(
+						value,
+						SMCP_VARIABLE_MAX_VALUE_LENGTH,
+						"%d",
+						(int)clock()
+					) <= SMCP_VARIABLE_MAX_VALUE_LENGTH,
+					bail,
+					ret = SMCP_STATUS_FAILURE
+				);
+				break;
+			case 2:
+				ret = SMCP_STATUS_NOT_ALLOWED;
+				break;
 
-	if(content_length)
-		fprintf(stdout, "   * content=\"%s\"\n", content);
+			default:
+				ret = SMCP_STATUS_NOT_FOUND;
+				break;
+		}
+	} else if(action==SMCP_VAR_SET_VALUE) {
+		switch(i) {
+			case 0:
+				ret = SMCP_STATUS_NOT_ALLOWED;
+				break;
+			case 1:
+				ret = SMCP_STATUS_NOT_ALLOWED;
+				break;
+			case 2:
+				fprintf(stdout," *** Received Action!\n");
 
-	return SMCP_STATUS_OK;
-}
+				coap_dump_header(
+					stdout,
+					"   * ",
+					smcp_inbound_get_packet(),
+					0
+				);
+				break;
 
-smcp_status_t
-loadavg_get_func(
-	smcp_variable_node_t	node,
-	char*					content,
-	size_t*					content_length,
-	coap_content_type_t*	content_type
-) {
-	int ret = 0;
-	double loadavg[3] = { };
-
-	if(content_type)
-		*content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
-
-	if(!content_type || !content || !content_length)
-		goto bail; // Just an event saying that they are finished.
-
-	require_action(node!=NULL, bail, ret = -1);
-	require_action(content!=NULL, bail, ret = -1);
-	require_action(content_length!=0, bail, ret = -1);
-
-	require_action(0 <
-		getloadavg(loadavg,
-			sizeof(loadavg) / sizeof(*loadavg)), bail, ret = -1);
-
-	require_action((size_t)snprintf(content, *content_length, "v=%0.2f",
-			loadavg[0]) <= *content_length, bail, ret = -1);
-
-	fprintf(
-		stderr,
-		" *** Queried for load average (max_content_length=%d, content=\"%s\", loadavg=%0.2f) \n",
-		    (int)*content_length,
-		content,
-		loadavg[0]);
-
-	*content_length = strlen(content);
-
+			default:
+				ret = SMCP_STATUS_NOT_FOUND;
+				break;
+		}
+	} else {
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+	}
 
 bail:
 	return ret;
 }
+
 
 static void
 list_response_handler(
@@ -210,11 +242,11 @@ tool_cmd_test(
 	smcp_t smcp;
 	smcp_t smcp2;
 
-	struct smcp_node_s device_node = {};
+	//struct smcp_node_s device_node = {};
 	struct smcp_timer_node_s timer_node = {};
-	struct smcp_variable_node_s var_node = {};
-	struct smcp_variable_node_s action_node = {};
-	struct smcp_node_s sliced_post_node = {};
+	struct smcp_variable_node_s device_node = {};
+	//struct smcp_variable_node_s action_node = {};
+//	struct smcp_node_s sliced_post_node = {};
 	struct smcp_node_s async_response_node = {};
 
 	smcp2 = smcp_create(12345);
@@ -248,43 +280,49 @@ tool_cmd_test(
 		SMCP_PAIRING_DEFAULT_ROOT_PATH
 	);
 
-	smcp_node_init(
-		(smcp_node_t)&device_node,
+	smcp_node_init_variable(
+		&device_node,
 		smcp_get_root_node(smcp),
 		"device"
 	);
+	device_node.func = device_func;
+
+//	smcp_node_init(
+//		(smcp_node_t)&device_node,
+//		smcp_get_root_node(smcp),
+//		"device"
+//	);
 
 	smcp_timer_node_init(&timer_node,
 		smcp_get_root_node(smcp),
 		"timer"
 	);
 
-	smcp_node_init((smcp_node_t)&sliced_post_node,
-		&device_node,
-		"sliced_post"
-	);
-	sliced_post_node.request_handler = &sliced_post_request_handler;
+//	smcp_node_init((smcp_node_t)&sliced_post_node,
+//		&device_node,
+//		"sliced_post"
+//	);
+//	sliced_post_node.request_handler = &sliced_post_request_handler;
 
 	smcp_node_init((smcp_node_t)&async_response_node,
-		&device_node,
+		smcp_get_root_node(smcp),
 		"async_response"
 	);
 	async_response_node.request_handler = &async_request_handler;
 
-
-	smcp_node_init_variable(
-		&var_node,
-		(smcp_node_t)&device_node,
-		"loadavg"
-	);
-	var_node.get_func = loadavg_get_func;
-
-	smcp_node_init_variable(
-		&action_node,
-		smcp_get_root_node(smcp2),
-		"action"
-	);
-	action_node.post_func = (void*)action_func;
+//	smcp_node_init_variable(
+//		&var_node,
+//		(smcp_node_t)&device_node,
+//		"loadavg"
+//	);
+//	var_node.get_func = loadavg_get_func;
+//
+//	smcp_node_init_variable(
+//		&action_node,
+//		smcp_get_root_node(smcp2),
+//		"action"
+//	);
+//	action_node.post_func = (void*)action_func;
 
 #if 1
 	{

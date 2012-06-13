@@ -50,6 +50,10 @@
 
 /* Begin PBXFileReference section */
 		8DD76FB20486AB0100D96B5E /* smcpctl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = smcpctl; sourceTree = BUILT_PRODUCTS_DIR; };
+		A61C873C1583C79400AFD8A1 /* sensor-node.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "sensor-node.c"; sourceTree = "<group>"; };
+		A61C873E1583C79E00AFD8A1 /* sensor-node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "sensor-node.h"; sourceTree = "<group>"; };
+		A61C873F1583C7AA00AFD8A1 /* led-node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "led-node.h"; sourceTree = "<group>"; };
+		A61C87401583C7B900AFD8A1 /* led-node.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "led-node.c"; sourceTree = "<group>"; };
 		A63B1EB9125FC4E900BF2543 /* libreadline.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libreadline.dylib; path = usr/lib/libreadline.dylib; sourceTree = SDKROOT; };
 		A63EA6CD1278B13800B24867 /* cmd_get.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_get.c; path = src/smcpctl/cmd_get.c; sourceTree = "<group>"; };
 		A63EA6CE1278B13800B24867 /* cmd_get.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_get.h; path = src/smcpctl/cmd_get.h; sourceTree = "<group>"; };
@@ -95,7 +99,7 @@
 		A676468C156474380074028C /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		A676468E156474380074028C /* smcp-test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-test.c"; sourceTree = "<group>"; };
 		A676468F156474380074028C /* Makefile.smcp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.smcp; sourceTree = "<group>"; };
-		A6764690156474380074028C /* smcp-task.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-task.c"; sourceTree = "<group>"; };
+		A6764690156474380074028C /* smcp-task.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.c.c; path = "smcp-task.c"; sourceTree = "<group>"; tabWidth = 2; usesTabs = 0; };
 		A6764691156474380074028C /* smcp-task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-task.h"; sourceTree = "<group>"; };
 		A67646A9156479E50074028C /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		A67646AA156479E50074028C /* smcp-simple.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "smcp-simple.c"; sourceTree = "<group>"; };
@@ -206,6 +210,10 @@
 				A676468F156474380074028C /* Makefile.smcp */,
 				A6764690156474380074028C /* smcp-task.c */,
 				A6764691156474380074028C /* smcp-task.h */,
+				A61C873C1583C79400AFD8A1 /* sensor-node.c */,
+				A61C873E1583C79E00AFD8A1 /* sensor-node.h */,
+				A61C87401583C7B900AFD8A1 /* led-node.c */,
+				A61C873F1583C7AA00AFD8A1 /* led-node.h */,
 			);
 			path = "contiki-src";
 			sourceTree = "<group>";
