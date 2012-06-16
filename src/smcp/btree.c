@@ -640,6 +640,96 @@ main(void) {
 	reverse_traversal_test(root);
 
 	// Cleanup.
+	printf("Removing all nodes...\n");
+	while(root)
+		bt_remove((void**)&root,
+			root,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+
+	printf("Adding more nodes...\n");
+	{
+		self_test_node_t new_node;
+
+		new_node = calloc(sizeof(struct self_test_node_s),1);
+		asprintf(&new_node->name, "proxy");
+		nodes_alive++;
+		bt_insert(
+			(void**)&root,
+			new_node,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+
+		new_node = calloc(sizeof(struct self_test_node_s),1);
+		asprintf(&new_node->name, ".p");
+		nodes_alive++;
+		bt_insert(
+			(void**)&root,
+			new_node,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+
+		new_node = calloc(sizeof(struct self_test_node_s),1);
+		asprintf(&new_node->name, "device");
+		nodes_alive++;
+		bt_insert(
+			(void**)&root,
+			new_node,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+
+		new_node = calloc(sizeof(struct self_test_node_s),1);
+		asprintf(&new_node->name, "timer");
+		nodes_alive++;
+		bt_insert(
+			(void**)&root,
+			new_node,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+
+		new_node = calloc(sizeof(struct self_test_node_s),1);
+		asprintf(&new_node->name, "async_response");
+		nodes_alive++;
+		bt_insert(
+			(void**)&root,
+			new_node,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+
+		new_node = calloc(sizeof(struct self_test_node_s),1);
+		asprintf(&new_node->name, "lots_of_devices");
+		nodes_alive++;
+		bt_insert(
+			(void**)&root,
+			new_node,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+	}
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	i = bt_rebalance((void**)&root);
+	printf("Rebalance operation took %u rotations\n", i);
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	// Cleanup.
 	while(root)
 		bt_remove((void**)&root,
 			root,

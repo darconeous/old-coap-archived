@@ -521,6 +521,7 @@ smcp_trigger_event(
 		DEBUG_PRINTF("Event:%p: retain",event);
 
 #if SMCP_CONF_PAIRING_STATS
+		// TODO: Trigger an event on the fire count, too?
 		iter->fire_count++;
 #endif
 	}
@@ -764,7 +765,7 @@ smcp_pairing_path_request_handler(
 			uri[value_len] = 0;
 		}
 
-		require_action(uri!=NULL,bail,"URI must be set by this point");
+		require_string(uri!=NULL,bail,"URI must be set by this point");
 
 		ret = smcp_pair_with_uri(
 			self,

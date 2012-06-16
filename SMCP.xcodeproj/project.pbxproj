@@ -50,6 +50,8 @@
 
 /* Begin PBXFileReference section */
 		8DD76FB20486AB0100D96B5E /* smcpctl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = smcpctl; sourceTree = BUILT_PRODUCTS_DIR; };
+		A60BF11B158D425F00D39B5C /* COPYING */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYING; sourceTree = "<group>"; };
+		A60BF11C158D425F00D39B5C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		A61C873C1583C79400AFD8A1 /* sensor-node.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "sensor-node.c"; sourceTree = "<group>"; };
 		A61C873E1583C79E00AFD8A1 /* sensor-node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "sensor-node.h"; sourceTree = "<group>"; };
 		A61C873F1583C7AA00AFD8A1 /* led-node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "led-node.h"; sourceTree = "<group>"; };
@@ -276,6 +278,8 @@
 			isa = PBXGroup;
 			children = (
 				C6A0FF2C0290799A04C91782 /* smcpctl.1 */,
+				A60BF11B158D425F00D39B5C /* COPYING */,
+				A60BF11C158D425F00D39B5C /* README.md */,
 			);
 			name = Documentation;
 			sourceTree = "<group>";

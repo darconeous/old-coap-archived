@@ -47,8 +47,12 @@ SMCPCTL_OBJECT_FILES=${addprefix $(SMCPCTL_SOURCE_PATH)/,${subst .c,.o,$(SMCPCTL
 smcpctl: $(SMCPCTL_OBJECT_FILES) $(SMCP_OBJECT_FILES)
 	$(CXX) -o $@ $+ -lpthread $(LFLAGS)
 
+btreetest: src/smcp/btree.c
+	$(CC) -o $@ $+ -Wall -DBTREE_SELF_TEST=1
+	./btreetest
+
 clean:
-	$(RM) $(SMCPCTL_OBJECT_FILES) $(SMCP_OBJECT_FILES) smcpctl
+	$(RM) $(SMCPCTL_OBJECT_FILES) $(SMCP_OBJECT_FILES) smcpctl btreetest
 
 install: smcpctl
 	$(INSTALL) smcpctl $(PREFIX)/bin

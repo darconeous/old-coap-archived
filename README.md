@@ -12,6 +12,7 @@ environments. Features include:
    URLs when a value chagnes.
  * Supports retransmission of confirmable packets.
  * CoAP-to-HTTP proxy, based on CuRL (incomplete, but kinda working)
+ * Supports more than 14 options in the header.
 
 Features which are in progress:
 

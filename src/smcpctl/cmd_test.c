@@ -242,11 +242,8 @@ tool_cmd_test(
 	smcp_t smcp;
 	smcp_t smcp2;
 
-	//struct smcp_node_s device_node = {};
 	struct smcp_timer_node_s timer_node = {};
 	struct smcp_variable_node_s device_node = {};
-	//struct smcp_variable_node_s action_node = {};
-//	struct smcp_node_s sliced_post_node = {};
 	struct smcp_node_s async_response_node = {};
 
 	smcp2 = smcp_create(12345);
@@ -254,6 +251,8 @@ tool_cmd_test(
 		smcp = smcp_instance;
 	else
 		smcp = smcp_create(SMCP_DEFAULT_PORT);
+
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 #if HAS_LIBCURL
 	struct smcp_curl_proxy_node_s proxy_node = {};
@@ -268,6 +267,8 @@ tool_cmd_test(
 	);
 #endif
 
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
+
 	smcp_pairing_init(
 		smcp_get_root_node(smcp),
 		SMCP_PAIRING_DEFAULT_ROOT_PATH
@@ -277,6 +278,8 @@ tool_cmd_test(
 		smcp_get_root_node(smcp2),
 		SMCP_PAIRING_DEFAULT_ROOT_PATH
 	);
+
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 	smcp_node_init_variable(
 		&device_node,
@@ -285,28 +288,23 @@ tool_cmd_test(
 	);
 	device_node.func = device_func;
 
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
+
 	smcp_node_init_variable(
-		&device_node,
+		NULL,
 		smcp_get_root_node(smcp2),
 		"device"
 	)->func = device_func;
 
-//	smcp_node_init(
-//		(smcp_node_t)&device_node,
-//		smcp_get_root_node(smcp),
-//		"device"
-//	);
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
-	smcp_timer_node_init(&timer_node,
+	smcp_timer_node_init(
+		&timer_node,
 		smcp_get_root_node(smcp),
 		"timer"
 	);
 
-//	smcp_node_init((smcp_node_t)&sliced_post_node,
-//		&device_node,
-//		"sliced_post"
-//	);
-//	sliced_post_node.request_handler = &sliced_post_request_handler;
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 	smcp_node_init((smcp_node_t)&async_response_node,
 		smcp_get_root_node(smcp),
@@ -314,19 +312,7 @@ tool_cmd_test(
 	);
 	async_response_node.request_handler = &async_request_handler;
 
-//	smcp_node_init_variable(
-//		&var_node,
-//		(smcp_node_t)&device_node,
-//		"loadavg"
-//	);
-//	var_node.get_func = loadavg_get_func;
-//
-//	smcp_node_init_variable(
-//		&action_node,
-//		smcp_get_root_node(smcp2),
-//		"action"
-//	);
-//	action_node.post_func = (void*)action_func;
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 #if 1
 	{
@@ -353,6 +339,8 @@ tool_cmd_test(
 		printf("ACTION_NODE PAIRED WITH %s\n", url);
 	}
 #endif
+
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 	// Just adding some random nodes so we can browse thru them with another process...
 	{
@@ -391,6 +379,8 @@ tool_cmd_test(
 		}
 	}
 
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
+
 	{
 		coap_transaction_id_t tid = smcp_get_next_tid(smcp2,NULL);
 
@@ -425,6 +415,8 @@ tool_cmd_test(
 
 		fprintf(stderr, " *** Sent LIST request...\n");
 	}
+
+	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 	int i;
 	for(i = 0; i < 3000000; i++) {
