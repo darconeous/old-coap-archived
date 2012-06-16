@@ -85,7 +85,7 @@ smcp_status_t
 resend_pair_request(char* url[2]) {
 	smcp_status_t status;
 #if SMCP_ENABLE_PAIRING
-	size_t len = 0;
+	size_t len = 8;
 	bool did_mutate = false;
 	while(url[0][len] && url[0][len]!='/') {
 		len++;
@@ -97,7 +97,11 @@ resend_pair_request(char* url[2]) {
 		url[0][len] = 0;
 	}
 
-	status = smcp_outbound_begin(smcp_get_current_instance(),COAP_METHOD_PUT, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(
+		smcp_get_current_instance(),
+		COAP_METHOD_PUT,
+		COAP_TRANS_TYPE_CONFIRMABLE
+	);
 	require_noerr(status,bail);
 
 	status = smcp_outbound_set_uri(url[0],0);

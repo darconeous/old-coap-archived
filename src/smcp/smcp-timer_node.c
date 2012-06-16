@@ -120,7 +120,6 @@ void smcp_timer_node_fired(
 
 #if SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
 	smcp_trigger_custom_event_with_node(
-		smcp,
 		&self->node.node,
 		"!f",
 		(void*)&smcp_timer_node_content_fetcher,
@@ -128,7 +127,6 @@ void smcp_timer_node_fired(
 	);
 #else
 	smcp_trigger_custom_event_with_node(
-		smcp,
 		&self->node.node,
 		"!f",
 		NULL,

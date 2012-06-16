@@ -276,10 +276,12 @@ smcp_set_proxy_url(smcp_t self,const char* url) {
 	self->proxy_url = url;
 }
 
+#if !SMCP_EMBEDDED
 smcp_node_t
 smcp_get_root_node(smcp_t self) {
 	return &self->root_node;
 }
+#endif
 
 #pragma mark -
 #pragma mark Inbound packet parsing functions
@@ -825,7 +827,7 @@ smcp_default_request_handler(
        if(method == COAP_METHOD_GET) {
                return smcp_handle_list(node,method);
        }
-       return SMCP_STATUS_NOT_IMPLEMENTED;
+       return SMCP_STATUS_NOT_ALLOWED;
 }
 
 smcp_status_t

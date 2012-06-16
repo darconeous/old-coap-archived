@@ -144,8 +144,12 @@ extern uint16_t smcp_get_port(smcp_t self);
 #if SMCP_EMBEDDED
 extern struct smcp_s smcp_global_instance;
 #define smcp_get_current_instance() (&smcp_global_instance)
+#define smcp_get_root_node(x)		((smcp_node_t)&smcp_global_instance)
+#define smcp_node_get_root(x)		((smcp_node_t)&smcp_global_instance)
 #else
 extern smcp_t smcp_get_current_instance(); // Used from callbacks
+extern smcp_node_t smcp_get_root_node(smcp_t self);
+extern smcp_node_t smcp_node_get_root(smcp_node_t node);
 #endif
 
 extern smcp_status_t smcp_process(smcp_t self, cms_t cms);
@@ -153,8 +157,6 @@ extern smcp_status_t smcp_process(smcp_t self, cms_t cms);
 /*!	Returns the maximum amount of time that can pass before
 **	smcp_process() must be called again. */
 extern cms_t smcp_get_timeout(smcp_t self);
-
-extern smcp_node_t smcp_get_root_node(smcp_t self);
 
 extern void smcp_set_proxy_url(smcp_t self,const char* url);
 
@@ -327,7 +329,6 @@ extern smcp_node_t smcp_node_init(
 
 extern void smcp_node_delete(smcp_node_t node);
 
-extern smcp_node_t smcp_node_get_root(smcp_node_t node);
 
 extern smcp_status_t smcp_node_get_path(
 	smcp_node_t node,

@@ -50,8 +50,6 @@ elapsed_time_request_handler(
 		if(ret) goto bail;
 
 		ret = smcp_outbound_send();
-
-		resolv_query("bellatrix.local");
 	}
 bail:
 	return ret;

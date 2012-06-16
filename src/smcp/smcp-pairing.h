@@ -33,6 +33,7 @@
 #include "smcp.h"
 #include "smcp-node.h"
 #include "smcp-timer.h"
+#include "smcp-variable_node.h"
 
 #if SMCP_ENABLE_PAIRING
 
@@ -103,21 +104,24 @@ struct smcp_event_tracker_s {
 
 typedef struct smcp_event_tracker_s* smcp_event_tracker_t;
 
-#define smcp_pairing_get_uri_cstr(pairing) (pairing)->node.name
-#define smcp_pairing_get_path_cstr(pairing) ((smcp_node_t)(pairing)->node.parent)->name
+#define smcp_pairing_get_uri_cstr(pairing) (pairing)->node.node.name
+#define smcp_pairing_get_path_cstr(pairing) ((smcp_node_t)(pairing)->node.node.parent)->name
 
 struct smcp_pairing_node_s {
-	struct smcp_node_s	node;
+	struct smcp_variable_node_s	node;
 	// Local pairng path comes from parent node name.
 	// Remote pairing URI comes from this node's name.
 
 	uint8_t				flags;
 
+	coap_transaction_id_t last_tid;
+
+	smcp_event_tracker_t currentEvent;
+
+#if SMCP_CONF_USE_SEQ
 	smcp_pairing_seq_t	seq;
 	smcp_pairing_seq_t	ack;
-
-	coap_transaction_id_t last_tid;
-	smcp_event_tracker_t currentEvent;
+#endif
 
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr;
@@ -128,8 +132,8 @@ struct smcp_pairing_node_s {
 
 #if SMCP_CONF_PAIRING_STATS
 	uint16_t			fire_count;
-	uint16_t			errors;
 	uint16_t			send_count;
+	uint16_t			errors;
 	smcp_status_t		last_error;
 #endif
 };
@@ -175,17 +179,13 @@ extern smcp_status_t smcp_trigger_custom_event(
 );
 
 extern smcp_status_t smcp_trigger_custom_event_with_node(
-	smcp_t		self,
 	smcp_node_t			node,
 	const char*			subpath,
 	smcp_content_fetcher_func contentFetcher,
 	void* context
 );
 
-extern smcp_status_t smcp_delete_pairing(
-	smcp_t self,
-	smcp_pairing_node_t pairing
-);
+extern smcp_status_t smcp_delete_pairing(smcp_pairing_node_t pairing);
 
 extern smcp_pairing_node_t smcp_get_first_pairing_for_path(
 	smcp_t self,
@@ -193,7 +193,6 @@ extern smcp_pairing_node_t smcp_get_first_pairing_for_path(
 );
 
 extern smcp_pairing_node_t smcp_next_pairing(
-	smcp_t self,
 	smcp_pairing_node_t pairing
 );
 
@@ -203,11 +202,11 @@ extern smcp_status_t smcp_handle_pair(
 );
 
 extern smcp_root_pairing_node_t smcp_pairing_init(
-	smcp_t self,
 	smcp_node_t parent,
 	const char* name
 );
 
+#if SMCP_CONF_USE_SEQ
 #if defined(__SDCC)
 #define smcp_pairing_get_next_seq(pairing) (++(pairing->seq))
 #else
@@ -215,6 +214,7 @@ static inline int
 smcp_pairing_get_next_seq(smcp_pairing_node_t pairing) {
 	return ++(pairing->seq);
 }
+#endif
 #endif
 
 __END_DECLS

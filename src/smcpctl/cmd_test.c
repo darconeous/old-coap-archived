@@ -269,13 +269,11 @@ tool_cmd_test(
 #endif
 
 	smcp_pairing_init(
-		smcp,
 		smcp_get_root_node(smcp),
 		SMCP_PAIRING_DEFAULT_ROOT_PATH
 	);
 
 	smcp_pairing_init(
-		smcp2,
 		smcp_get_root_node(smcp2),
 		SMCP_PAIRING_DEFAULT_ROOT_PATH
 	);
@@ -286,6 +284,12 @@ tool_cmd_test(
 		"device"
 	);
 	device_node.func = device_func;
+
+	smcp_node_init_variable(
+		&device_node,
+		smcp_get_root_node(smcp2),
+		"device"
+	)->func = device_func;
 
 //	smcp_node_init(
 //		(smcp_node_t)&device_node,
@@ -329,7 +333,7 @@ tool_cmd_test(
 		char url[256];
 		snprintf(url,
 			sizeof(url),
-			"smcp://127.0.0.1:%d/action",
+			"smcp://127.0.0.1:%d/device/action",
 			smcp_get_port(smcp2));
 		smcp_pair_with_uri(smcp,
 			"device/loadavg",
@@ -345,7 +349,7 @@ tool_cmd_test(
 			sizeof(url),
 			"smcp://[::1]:%d/device/loadavg",
 			smcp_get_port(smcp));
-		smcp_pair_with_uri(smcp2, "action", url, 0, NULL);
+		smcp_pair_with_uri(smcp2, "device/action", url, 0, NULL);
 		printf("ACTION_NODE PAIRED WITH %s\n", url);
 	}
 #endif
@@ -424,10 +428,10 @@ tool_cmd_test(
 
 	int i;
 	for(i = 0; i < 3000000; i++) {
-#if 0
+#if 1
 		if((i - 1) % 250 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
-			smcp_refresh_variable(smcp, &var_node);
+			smcp_trigger_event_with_node(smcp, &device_node.node, "loadavg");
 		}
 #endif
 		smcp_process(smcp, 10);

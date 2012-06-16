@@ -31,6 +31,8 @@
 
 #include "smcp-node.h"
 
+__BEGIN_DECLS
+
 struct smcp_variable_node_s;
 typedef struct smcp_variable_node_s *smcp_variable_node_t;
 
@@ -43,15 +45,16 @@ enum {
 	SMCP_VAR_GET_VALUE,
 };
 
+typedef smcp_status_t (*smcp_variable_node_func)(
+	smcp_variable_node_t node,
+	uint8_t action,
+	uint8_t i,
+	char* value
+);
+
 struct smcp_variable_node_s {
 	struct smcp_node_s node;
-	void* context;
-	smcp_status_t (*func)(
-		smcp_variable_node_t node,
-		uint8_t action,
-		uint8_t i,
-		char* value
-	);
+	smcp_variable_node_func func;
 };
 
 #define smcp_node_init_variable smcp_variable_node_init
@@ -59,7 +62,14 @@ struct smcp_variable_node_s {
 extern smcp_variable_node_t smcp_variable_node_init(
 	smcp_variable_node_t self, smcp_node_t parent, const char* name);
 
-extern smcp_status_t smcp_refresh_variable(
-	smcp_t daemon, smcp_variable_node_t node);
+//extern smcp_status_t smcp_refresh_variable(
+//	smcp_t daemon, smcp_variable_node_t node);
+
+extern smcp_status_t smcp_variable_request_handler(
+	smcp_variable_node_t		node,
+	smcp_method_t	method
+);
+
+__END_DECLS
 
 #endif //__SMCP_TIMER_NODE_H__

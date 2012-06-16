@@ -68,6 +68,14 @@ smcp_pairing_node_request_handler(
 );
 
 static smcp_status_t
+smcp_pairing_node_variable_func(
+	smcp_pairing_node_t		pairing,
+	uint8_t action,
+	uint8_t i,
+	char* value
+);
+
+static smcp_status_t
 smcp_pairing_path_request_handler(
 	smcp_node_t		node,
 	smcp_method_t	method
@@ -111,9 +119,10 @@ smcp_pair_with_sockaddr(
 
 	require_action(pairing, bail, ret = SMCP_STATUS_MALLOC_FAILURE);
 
-	smcp_node_init(&pairing->node, path_node, strdup(uri));
+	smcp_variable_node_init(&pairing->node, path_node, strdup(uri));
 
-	pairing->node.request_handler = (smcp_inbound_handler_func)&smcp_pairing_node_request_handler;
+	pairing->node.node.request_handler = (smcp_inbound_handler_func)&smcp_pairing_node_request_handler;
+	pairing->node.func = (smcp_variable_node_func)&smcp_pairing_node_variable_func;
 
 	pairing->flags = flags;
 
@@ -168,6 +177,7 @@ smcp_get_first_pairing_for_path(
 	smcp_pairing_node_t ret = NULL;
 	smcp_node_t path_node = NULL;
 
+	// Remove all preceeding slashes
 	while(path[0] == '/' && path[1] != 0) path++;
 
 	path_node = smcp_node_find(
@@ -187,7 +197,7 @@ bail:
 
 smcp_pairing_node_t
 smcp_next_pairing(
-	smcp_t self, smcp_pairing_node_t pairing
+	smcp_pairing_node_t pairing
 ) {
 	smcp_pairing_node_t ret = NULL;
 
@@ -209,6 +219,19 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 
 	status = smcp_outbound_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status,bail);
+
+	if(event->contentFetcher) {
+		status = (*event->contentFetcher)(
+			event->contentFetcherContext,
+			NULL,
+			NULL,
+			&content_type
+		);
+		require_noerr(status,bail);
+
+		status = smcp_outbound_add_option(COAP_HEADER_CONTENT_TYPE, (void*)&content_type, 1);
+		require_noerr(status,bail);
+	}
 
 #if SMCP_USE_BSD_SOCKETS
 	if(((struct sockaddr*)&pairing->saddr)->sa_family)
@@ -248,17 +271,6 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 	if(event->contentFetcher) {
 		size_t len = 0;
 		char* ptr;
-
-		status = (*event->contentFetcher)(
-			event->contentFetcherContext,
-			NULL,
-			NULL,
-			&content_type
-		);
-		require_noerr(status,bail);
-
-		status = smcp_outbound_add_option(COAP_HEADER_CONTENT_TYPE, (void*)&content_type, 1);
-		require_noerr(status,bail);
 
 		ptr = smcp_outbound_get_content_ptr(&len);
 		event->contentFetcher(
@@ -308,7 +320,7 @@ smcp_event_response_handler(
 		pairing->last_error = statuscode;
 		smcp_trigger_event_with_node(
 			smcp_get_current_instance(),
-			&pairing->node,
+			&pairing->node.node,
 			"err"
 		);
 	}
@@ -317,7 +329,7 @@ smcp_event_response_handler(
 		pairing->errors++;
 		smcp_trigger_event_with_node(
 			smcp_get_current_instance(),
-			&pairing->node,
+			&pairing->node.node,
 			"ec"
 		);
 	}
@@ -406,10 +418,10 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 		uint8_t* option = packet->options;
 		coap_option_key_t prev_key = 0;
 		uint8_t option_count = 0;
-		char* path = original_path;
-		char* component;
+		char* component = NULL;
+		char* path = strdup(smcp_pairing_get_path_cstr(pairing));
 
-		original_path = strdup(smcp_pairing_get_path_cstr(pairing));
+		original_path = path;
 
 		while(url_path_next_component(&path, &component)) {
 			DEBUG_PRINTF("Pushing path component \"%s\"",component);
@@ -467,7 +479,7 @@ smcp_trigger_event(
 
 	for(iter = smcp_get_first_pairing_for_path(self, path);
 	    iter;
-	    iter = smcp_next_pairing(self, iter)
+	    iter = smcp_next_pairing(iter)
 	) {
 		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_tid(self,NULL);
 		smcp_status_t status;
@@ -568,7 +580,7 @@ smcp_trigger_custom_event(
 
 	for(iter = smcp_get_first_pairing_for_path(self, path);
 	    iter;
-	    iter = smcp_next_pairing(self, iter)
+	    iter = smcp_next_pairing(iter)
 	) {
 		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_tid(self,NULL);
 		smcp_status_t status;
@@ -620,12 +632,12 @@ bail:
 
 smcp_status_t
 smcp_trigger_custom_event_with_node(
-	smcp_t		self,
 	smcp_node_t			node,
 	const char*			subpath,
 	smcp_content_fetcher_func contentFetcher,
 	void* context
 ) {
+	smcp_t const self = (smcp_t)smcp_node_get_root(node);
 	char path[SMCP_MAX_PATH_LENGTH + 1];
 
 	path[sizeof(path) - 1] = 0;
@@ -682,13 +694,14 @@ bail:
 }
 
 extern smcp_status_t
-smcp_delete_pairing(smcp_t self, smcp_pairing_node_t pairing) {
-	smcp_node_t parent = (smcp_node_t)pairing->node.parent;
+smcp_delete_pairing(smcp_pairing_node_t pairing) {
+	smcp_node_t parent = (smcp_node_t)pairing->node.node.parent;
 	if(pairing->currentEvent) {
+		smcp_t const self = (smcp_t)smcp_node_get_root(&pairing->node.node);
 		smcp_event_tracker_release(pairing->currentEvent);
 		smcp_invalidate_transaction(self, pairing->last_tid);
 	}
-	smcp_node_delete(&pairing->node);
+	smcp_node_delete(&pairing->node.node);
 	if(parent && !parent->children) {
 		smcp_node_delete(parent);
 	}
@@ -738,7 +751,7 @@ smcp_pairing_path_request_handler(
 			strcpy(path,(char*)node->name);
 #endif
 		}
-		if(node->parent == self->root_pairing_node || node->parent == self->root_pairing_node) {
+		if(node->parent == self->root_pairing_node || node == self->root_pairing_node) {
 			require_action(
 				COAP_HEADER_URI_PATH==smcp_inbound_next_option((const uint8_t**)&value, &value_len),
 				bail,
@@ -751,27 +764,8 @@ smcp_pairing_path_request_handler(
 			uri[value_len] = 0;
 		}
 
-#if SMCP_USE_BSD_SOCKETS
-		ret = smcp_pair_with_sockaddr(
-			self,
-			path,
-			uri,
-			smcp_inbound_get_saddr(),
-			smcp_inbound_get_socklen(),
-			SMCP_PARING_FLAG_RELIABILITY_PART,
-			&idVal
-		);
-#elif CONTIKI
-		ret = smcp_pair_with_sockaddr(
-			self,
-			path,
-			uri,
-			smcp_inbound_get_ipaddr(),
-			smcp_inbound_get_ipport(),
-			SMCP_PARING_FLAG_RELIABILITY_PART,
-			&idVal
-		);
-#else
+		require_action(uri!=NULL,bail,"URI must be set by this point");
+
 		ret = smcp_pair_with_uri(
 			self,
 			path,
@@ -779,11 +773,33 @@ smcp_pairing_path_request_handler(
 			SMCP_PARING_FLAG_RELIABILITY_PART,
 			&idVal
 		);
-#endif
+
+//#if SMCP_USE_BSD_SOCKETS
+//		ret = smcp_pair_with_sockaddr(
+//			self,
+//			path,
+//			uri,
+//			smcp_inbound_get_saddr(),
+//			smcp_inbound_get_socklen(),
+//			SMCP_PARING_FLAG_RELIABILITY_PART,
+//			&idVal
+//		);
+//#elif CONTIKI
+//		ret = smcp_pair_with_sockaddr(
+//			self,
+//			path,
+//			uri,
+//			smcp_inbound_get_ipaddr(),
+//			smcp_inbound_get_ipport(),
+//			SMCP_PARING_FLAG_RELIABILITY_PART,
+//			&idVal
+//		);
+//#endif
+
 		smcp_outbound_begin_response(COAP_RESULT_201_CREATED);
 		smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, self->root_pairing_node->name, HEADER_CSTR_LEN);
 		smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, path, HEADER_CSTR_LEN);
-		smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, uri, HEADER_CSTR_LEN);
+			smcp_outbound_add_option(COAP_HEADER_LOCATION_PATH, uri, HEADER_CSTR_LEN);
 		smcp_outbound_send();
 	} else {
 		ret = smcp_default_request_handler(node, method);
@@ -794,15 +810,14 @@ bail:
 }
 
 static smcp_status_t
-smcp_pairing_node_request_handler(
+smcp_pairing_node_variable_func(
 	smcp_pairing_node_t		pairing,
-	smcp_method_t	method
+	uint8_t action,
+	uint8_t path,
+	char* value
 ) {
 	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
-
 	enum {
-		PATH_ROOT,
 		PATH_DEST_URI,
 		PATH_FLAGS,
 #if SMCP_CONF_PAIRING_STATS
@@ -815,124 +830,82 @@ smcp_pairing_node_request_handler(
 		PATH_SEQ,
 		PATH_ACK,
 #endif
-	} path = PATH_ROOT;
+		PATH_COUNT
+	};
 
-	if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"d"))
-		path = PATH_DEST_URI;
-	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"f"))
-		path = PATH_FLAGS;
+	//printf("timer_node_var_func: action=%d path=%d\n",action,path);
+
+	if(path>=PATH_COUNT) {
+		ret = SMCP_STATUS_NOT_FOUND;
+	} else if(action==SMCP_VAR_GET_KEY) {
+		static const char* path_names[] = {
+			[PATH_DEST_URI] = "d",
+			[PATH_FLAGS] = "f",
 #if SMCP_CONF_PAIRING_STATS
-	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"fc"))
-		path = PATH_FIRE_COUNT;
-	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"tx"))
-		path = PATH_SEND_COUNT;
-	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"ec"))
-		path = PATH_ERROR_COUNT;
-	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"err"))
-		path = PATH_LAST_ERROR;
+			[PATH_FIRE_COUNT] = "fc",
+			[PATH_SEND_COUNT] = "tx",
+			[PATH_ERROR_COUNT] = "ec",
+			[PATH_LAST_ERROR] = "err",
 #endif
 #if SMCP_CONF_USE_SEQ
-	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"seq"))
-		path = PATH_SEQ;
-	else if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH,"ack"))
-		path = PATH_ACK;
+			[PATH_SEQ] = "seq",
+			[PATH_ACK] = "ack",
 #endif
-
-	if(path!=PATH_ROOT)
-		smcp_inbound_next_option(NULL,NULL);
-
-	{
-		coap_option_key_t key;
-		const uint8_t* value;
-		size_t value_len;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
-			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
-
-			require_action(
-				!COAP_HEADER_IS_REQUIRED(key),
-				bail,
-				ret=SMCP_STATUS_BAD_OPTION
-			);
-		}
-	}
-
-	if(method == COAP_METHOD_GET) {
+		};
+		strcpy(value,path_names[path]);
+	} else if(action==SMCP_VAR_GET_VALUE) {
+		int v;
 		if(path==PATH_DEST_URI) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_append_content(smcp_pairing_get_uri_cstr(pairing), HEADER_CSTR_LEN);
-			ret = smcp_outbound_send();
+			strncpy(value,smcp_pairing_get_uri_cstr(pairing),SMCP_VARIABLE_MAX_VALUE_LENGTH);
+			return 0;
 		} else if(path==PATH_FLAGS) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_var_content_unsigned_int(pairing->flags);
-			ret = smcp_outbound_send();
+			v = pairing->flags;
 #if SMCP_CONF_USE_SEQ
 		} else if(path==PATH_SEQ) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_var_content_unsigned_int(pairing->seq);
-			ret = smcp_outbound_send();
+			v = pairing->seq;
 		} else if(path==PATH_ACK) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_var_content_unsigned_int(pairing->ack);
-			ret = smcp_outbound_send();
+			v = pairing->ack;
 #endif
 #if SMCP_CONF_PAIRING_STATS
 		} else if(path==PATH_FIRE_COUNT) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_var_content_unsigned_int(pairing->fire_count);
-			ret = smcp_outbound_send();
+			v = pairing->fire_count;
 		} else if(path==PATH_SEND_COUNT) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_var_content_unsigned_int(pairing->send_count);
-			ret = smcp_outbound_send();
+			v = pairing->send_count;
 		} else if(path==PATH_ERROR_COUNT) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_var_content_unsigned_int(pairing->errors);
-			ret = smcp_outbound_send();
+			v = pairing->errors;
 		} else if(path==PATH_LAST_ERROR) {
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_var_content_int(pairing->last_error);
-			ret = smcp_outbound_send();
+			v = pairing->last_error;
 #endif
-		} else if(path==PATH_ROOT) {
-			const char rcontent[] = (
-				"<d>;n=\"Dest URI\","
-				"<f>;n=\"Flags\""
-#if SMCP_CONF_PAIRING_STATS
-				",<fc>;n=\"Fire Count\","
-				"<tx>;n=\"Send Count\","
-				"<ec>;n=\"Error Count\","
-				"<err>;n=\"Last Error\""
-#endif
-#if SMCP_CONF_USE_SEQ
-				",<seq>,"
-				"<ack>"
-#endif
-			);
-			smcp_outbound_begin_response(HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_CONTENT));
-			smcp_outbound_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
-			smcp_outbound_append_content(rcontent, HEADER_CSTR_LEN);
-			ret = smcp_outbound_send();
-		} else {
-			ret = smcp_default_request_handler(&pairing->node, method);
 		}
-	} else if(method == COAP_METHOD_POST && method == COAP_METHOD_PUT) {
-		if(path==PATH_FLAGS) {
-			// TODO: Fix this!
-			ret = SMCP_STATUS_NOT_ALLOWED;
-		} else {
-			ret = SMCP_STATUS_NOT_ALLOWED;
-		}
-	} else if(method == COAP_METHOD_DELETE) {
-		if(path==PATH_ROOT) {
-			ret = smcp_delete_pairing(self, pairing);
+		sprintf(value,"%d",v);
+	} else if(action==SMCP_VAR_SET_VALUE) {
+		// TODO: Writeme!
+		ret = SMCP_STATUS_NOT_ALLOWED;
+	} else {
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+	}
+
+	return ret;
+}
+
+static smcp_status_t
+smcp_pairing_node_request_handler(
+	smcp_pairing_node_t		pairing,
+	smcp_method_t	method
+) {
+	smcp_status_t ret = 0;
+
+	if(method == COAP_METHOD_DELETE) {
+		if(smcp_inbound_next_option(NULL, NULL)!=COAP_HEADER_URI_PATH) {
+			ret = smcp_delete_pairing(pairing);
 			require_noerr(ret, bail);
 			smcp_outbound_begin_response(COAP_RESULT_202_DELETED);
-			smcp_outbound_send();
+			ret = smcp_outbound_send();
 		} else {
 			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else {
-		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		ret = smcp_variable_request_handler(&pairing->node, method);
 	}
 
 bail:
@@ -940,8 +913,9 @@ bail:
 }
 
 smcp_root_pairing_node_t smcp_pairing_init(
-	smcp_t self, smcp_node_t parent, const char* name
+	smcp_node_t parent, const char* name
 ) {
+	smcp_t const self = (smcp_t)smcp_node_get_root(parent);
 	if(!name)
 		name = SMCP_PAIRING_DEFAULT_ROOT_PATH;
 	require((self->root_pairing_node = smcp_node_init(NULL, parent, name)), bail);

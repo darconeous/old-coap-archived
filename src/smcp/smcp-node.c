@@ -343,9 +343,11 @@ bail:
 	return ret;
 }
 
+#if !SMCP_EMBEDDED
 smcp_node_t
 smcp_node_get_root(smcp_node_t node) {
 	if(node && node->parent)
 		return smcp_node_get_root(node->parent); // Recursion should be optimized away.
 	return node;
 }
+#endif
