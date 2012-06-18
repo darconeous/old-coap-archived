@@ -310,7 +310,6 @@ coap_option_key_to_cstr(
 		case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
 		case COAP_HEADER_RANGE: ret = "Range"; break;
 		case COAP_HEADER_BLOCK: ret = "Block"; break;
-		case COAP_HEADER_ALLOW: ret = "Allow"; break;
 
 		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
 		case COAP_HEADER_CONTINUATION_RESPONSE: ret =
@@ -371,8 +370,6 @@ coap_option_key_from_cstr(const char* key) {
 		return COAP_HEADER_BLOCK;
 	else if(strcasecmp(key, "Origin") == 0)
 		return SMCP_HEADER_ORIGIN;
-	else if(strcasecmp(key, "Allow") == 0)
-		return COAP_HEADER_ALLOW;
 
 
 	return 0;

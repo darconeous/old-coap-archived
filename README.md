@@ -4,7 +4,6 @@ SMTP — A C-Based CoAP Stack
 SMTP is a C-based CoAP stack which is suitable for embedded
 environments. Features include:
 
- * Low stack usage. (With continuing work to make it lower)
  * Fully asynchronous.
  * Supports both Contiki and BSD sockets.
  * Supports sending and receiving asynchronous responses.
@@ -13,10 +12,14 @@ environments. Features include:
  * Supports retransmission of confirmable packets.
  * CoAP-to-HTTP proxy, based on CuRL (incomplete, but kinda working)
  * Supports more than 14 options in the header.
+ * Low stack usage. (With continuing work to make it lower)
 
 Features which are in progress:
 
  * Observing. (Will be based on the current pairing implementaiton)
+
+Initial focus is on correctness of implementation. Stack usage and other
+performance optimizations will become the focus later on.
 
 ## Contiki Support ##
 

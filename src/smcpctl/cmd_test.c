@@ -137,10 +137,7 @@ list_response_handler(
 		(statuscode>0)?coap_code_to_cstr(statuscode):smcp_status_to_cstr(statuscode));
 
 	if(content) {
-		char contentBuffer[SMCP_MAX_CONTENT_LENGTH + 1] = {};
-		memcpy(contentBuffer, content, content_length);
-
-		printf("   * CONTENT = \"%s\"\n", contentBuffer);
+		printf("   * CONTENT = \"%s\"\n", content);
 	}
 }
 
