@@ -131,7 +131,6 @@ list_response_handler(
 ) {
 //	smcp_t const self = smcp_get_current_instance();
 	const char* content = smcp_inbound_get_content_ptr();
-	size_t content_length = smcp_inbound_get_content_len();
 	printf(" *** GOT LIST RESPONSE!!! ***\n");
 	printf("   * RESULT CODE = %d (%s)\n", statuscode,
 		(statuscode>0)?coap_code_to_cstr(statuscode):smcp_status_to_cstr(statuscode));
@@ -354,26 +353,26 @@ tool_cmd_test(
 			asprintf(&name, "subdevice_%d", i); // Will leak, but we don't care.
 			smcp_node_init(NULL, (smcp_node_t)subdevice, name);
 		}
-		{
-			unsigned int i = bt_rebalance(
-				    (void**)&((smcp_node_t)subdevice)->children);
-			printf("Balance operation took %u rotations\n", i);
-		}
-		{
-			unsigned int i = bt_rebalance(
-				    (void**)&((smcp_node_t)subdevice)->children);
-			printf("Second balance operation took %u rotations\n", i);
-		}
-		{
-			unsigned int i = bt_rebalance(
-				    (void**)&((smcp_node_t)subdevice)->children);
-			printf("Third balance operation took %u rotations\n", i);
-		}
-		{
-			unsigned int i = bt_rebalance(
-				    (void**)&((smcp_node_t)subdevice)->children);
-			printf("Fourth balance operation took %u rotations\n", i);
-		}
+//		{
+//			unsigned int i = bt_rebalance(
+//				    (void**)&((smcp_node_t)subdevice)->children);
+//			printf("Balance operation took %u rotations\n", i);
+//		}
+//		{
+//			unsigned int i = bt_rebalance(
+//				    (void**)&((smcp_node_t)subdevice)->children);
+//			printf("Second balance operation took %u rotations\n", i);
+//		}
+//		{
+//			unsigned int i = bt_rebalance(
+//				    (void**)&((smcp_node_t)subdevice)->children);
+//			printf("Third balance operation took %u rotations\n", i);
+//		}
+//		{
+//			unsigned int i = bt_rebalance(
+//				    (void**)&((smcp_node_t)subdevice)->children);
+//			printf("Fourth balance operation took %u rotations\n", i);
+//		}
 	}
 
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));

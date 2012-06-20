@@ -523,7 +523,7 @@ main(void) {
 	//
 	//  * <http://en.wikipedia.org/wiki/Linear_congruential_generator>
 	//
-
+again:
 	printf("Inserting nodes in pseudo random order.\n");
 	for(c = c * 97 + 101; c; c = c * 97 + 101) {
 		self_test_node_t new_node = calloc(sizeof(struct self_test_node_s),
@@ -748,6 +748,7 @@ main(void) {
 		printf("Failed.\n");
 	else
 		printf("OK\n");
+	goto again;
 
 	return ret;
 }

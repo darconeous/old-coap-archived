@@ -336,6 +336,10 @@ smcp_event_response_handler(
 #endif
 	// expire the event.
 	smcp_event_tracker_t event = pairing->currentEvent;
+#if SMCP_CONF_USE_SEQ
+	if(!statuscode)
+		pairing->ack = event->seq;
+#endif
 	DEBUG_PRINTF("Event:%p: smcp_event_response_handler(): statuscode=%d",event,statuscode);
 	pairing->currentEvent = NULL;
 	smcp_event_tracker_release(event);
@@ -502,6 +506,10 @@ smcp_trigger_event(
 			smcp_invalidate_transaction(self, iter->last_tid);
 		}
 
+#if SMCP_CONF_USE_SEQ
+		iter->seq++;
+		event->seq = iter->seq;
+#endif
 		iter->currentEvent = event;
 
 		status = smcp_begin_transaction(
@@ -602,6 +610,10 @@ smcp_trigger_custom_event(
 			smcp_invalidate_transaction(self, iter->last_tid);
 		}
 
+#if SMCP_CONF_USE_SEQ
+		iter->seq++;
+		event->seq = iter->seq;
+#endif
 		iter->currentEvent = event;
 
 		status = smcp_begin_transaction(

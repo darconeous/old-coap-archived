@@ -412,8 +412,8 @@ smcp_handle_inbound_packet(
 	SMCP_SOCKET_ARGS
 ) {
 	smcp_status_t ret = 0;
-	struct coap_header_s* const packet = (void*)buffer;
-	const coap_code_t code = packet->code;
+	struct coap_header_s* const packet = (void*)buffer; // Should not use stack space.
+
 	smcp_set_current_instance(self);
 
 	DEBUG_PRINTF(CSTR("%p: Inbound packet!"), self);
@@ -455,7 +455,7 @@ smcp_handle_inbound_packet(
 	}
 
 	DEBUG_PRINTF(CSTR("%p: tt=%d"), self,packet->tt);
-	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"),self,coap_to_http_code(code),code);
+	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"),self,coap_to_http_code(packet->code),packet->code);
 
 	smcp_inbound_reset_next_option();
 
@@ -482,9 +482,9 @@ smcp_handle_inbound_packet(
 	self->cascade_count--;
 #endif
 
-	if(COAP_CODE_IS_REQUEST(code)) {
+	if(COAP_CODE_IS_REQUEST(packet->code)) {
 		ret = smcp_handle_request(self);
-	} else if(COAP_CODE_IS_RESULT(code)) {
+	} else if(COAP_CODE_IS_RESULT(packet->code)) {
 		ret = smcp_handle_response(self);
 	}
 
@@ -492,12 +492,12 @@ smcp_handle_inbound_packet(
 
 	// Check to make sure we have responded by now. If not, we need to.
 	if(!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {
-		if(COAP_CODE_IS_REQUEST(code)) {
+		if(COAP_CODE_IS_REQUEST(packet->code)) {
 			int result_code = smcp_convert_status_to_result_code(ret);
 			if(ret == SMCP_STATUS_OK) {
-				if(code==COAP_METHOD_GET)
+				if(packet->code==COAP_METHOD_GET)
 					result_code = COAP_RESULT_205_CONTENT;
-				else if(code==COAP_METHOD_POST || code==COAP_METHOD_PUT)
+				else if(packet->code==COAP_METHOD_POST || packet->code==COAP_METHOD_PUT)
 					result_code = COAP_RESULT_204_CHANGED;
 			}
 			smcp_outbound_begin_response(result_code);
@@ -821,13 +821,13 @@ smcp_invalidate_transaction(
 
 smcp_status_t
 smcp_default_request_handler(
-       smcp_node_t             node,
-       smcp_method_t   method
+   smcp_node_t node,
+   smcp_method_t method
 ) {
-       if(method == COAP_METHOD_GET) {
-               return smcp_handle_list(node,method);
-       }
-       return SMCP_STATUS_NOT_ALLOWED;
+   if(method == COAP_METHOD_GET) {
+	   return smcp_handle_list(node,method);
+   }
+   return SMCP_STATUS_NOT_ALLOWED;
 }
 
 smcp_status_t
@@ -911,12 +911,13 @@ smcp_handle_request(
 	if(node->request_handler)
 		request_handler = node->request_handler;
 
-	ret = (*request_handler)(
+	// By returning directly here we can
+	// possibly avoid having the overhead of
+	// the current function on the stack.
+	return (*request_handler)(
 	    node,
 	    self->inbound.packet->code
 	);
-
-	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 
 bail:
 	return ret;
@@ -971,7 +972,7 @@ smcp_handle_response(
 			handler = NULL;
 	}
 
-	// TODO: Make sure this pacet didn't originate from multicast.
+	// TODO: Make sure this packet didn't originate from multicast.
 
 	if(!handler) {
 		if(self->inbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {

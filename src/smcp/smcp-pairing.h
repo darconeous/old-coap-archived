@@ -100,6 +100,9 @@ struct smcp_event_tracker_s {
 	int refCount;
 	smcp_content_fetcher_func contentFetcher;
 	void* contentFetcherContext;
+#if SMCP_CONF_USE_SEQ
+	smcp_pairing_seq_t	seq;
+#endif
 };
 
 typedef struct smcp_event_tracker_s* smcp_event_tracker_t;

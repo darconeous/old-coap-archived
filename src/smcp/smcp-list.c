@@ -30,7 +30,7 @@
 */
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 0
+#define VERBOSE_DEBUG 1
 #endif
 
 #ifndef DEBUG
@@ -120,6 +120,15 @@ smcp_handle_list(
 
 	// Node should always be set by the time we get here.
 	require_action(node, bail, ret = SMCP_STATUS_BAD_ARGUMENT);
+
+#if VERBOSE_DEBUG
+	{
+		smcp_node_t iter = bt_first(((smcp_node_t)node)->children);
+		for(;iter;iter = bt_next(iter)) {
+			DEBUG_PRINTF("CHILD: \"%s\"",iter->name);
+		}
+	}
+#endif
 
 	if(((smcp_node_t)node)->children)
 		node = bt_first(((smcp_node_t)node)->children);

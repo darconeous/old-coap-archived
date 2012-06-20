@@ -158,6 +158,7 @@ smcp_variable_request_handler(
 		ret = smcp_outbound_send();
 		require_noerr(ret,bail);
 	} else if(method == COAP_METHOD_GET) {
+
 		if(key_index==BAD_KEY_INDEX) {
 			char* content_end_ptr;
 
@@ -198,6 +199,7 @@ smcp_variable_request_handler(
 				*content_ptr++ = ',';
 			}
 			ret = smcp_outbound_set_content_len(content_len-(content_end_ptr-content_ptr));
+			require_noerr(ret,bail);
 
 			ret = smcp_outbound_send();
 		} else {

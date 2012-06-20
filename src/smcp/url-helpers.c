@@ -84,19 +84,19 @@ strsep_x(char **stringp, const char *delim)
 #endif
 
 static bool
-isurlchar(int src_char) {
+isurlchar(char src_char) {
 	return isalnum(src_char)
-	       || (src_char == '$')
-	       || (src_char == '-')
-	       || (src_char == '_')
-	       || (src_char == '.')
-	       || (src_char == '+')
-	       || (src_char == '!')
-	       || (src_char == '*')
-	       || (src_char == '\'')
-	       || (src_char == '(')
-	       || (src_char == ')')
-	       || (src_char == ',');
+	   || (src_char == '$')
+	   || (src_char == '-')
+	   || (src_char == '_')
+	   || (src_char == '.')
+	   || (src_char == '+')
+	   || (src_char == '!')
+	   || (src_char == '*')
+	   || (src_char == '\'')
+	   || (src_char == '(')
+	   || (src_char == ')')
+	   || (src_char == ',');
 }
 
 #if __AVR__
@@ -190,7 +190,11 @@ url_decode_str(
 			break;
 		}
 
-		if((src_char == '%') && (src_len>=2) && src[0] && src[1]) {
+		if((src_char == '%')
+			&& (src_len>=2)
+			&& src[0]
+			&& src[1]
+		) {
 			*dest++ = (hex_digit_to_int(src[0]) << 4) + hex_digit_to_int(
 				src[1]);
 			src += 2;
@@ -235,7 +239,10 @@ url_decode_cstr(
 			break;
 		}
 
-		if((src_char == '%') && src[0] && src[1]) {
+		if((src_char == '%')
+			&& src[0]
+			&& src[1]
+		) {
 			*dest++ = (hex_digit_to_int(src[0]) << 4) + hex_digit_to_int(
 				src[1]);
 			src += 2;
@@ -372,14 +379,15 @@ int
 url_parse(
 	char*	uri,
 	char**	protocol,
-	char**	username,
-	char**	password,
+	char**	username,	// Not yet supported: will be skipped if present.
+	char**	password,	// Not yet supported: will be skipped if present.
 	char**	host,
 	char**	port,
 	char**	path,
 	char**	query
 ) {
 	int bytes_parsed = 0;
+	char tmp;
 
 	require_string(uri, bail, "NULL uri parameter");
 
@@ -409,8 +417,14 @@ url_parse(
 
 		addr_begin = uri;
 
-		while((isurlchar(*uri) || (*uri == '[') || (*uri == ']') ||
-		            (*uri == ':') || (*uri == '@')) && (*uri != '/')) {
+		while( (tmp=*uri) != '/'
+			&& ( isurlchar(tmp)
+				|| (tmp == '[')
+				|| (tmp == ']')
+				|| (tmp == ':')
+				|| (tmp == '@')
+			)
+		) {
 			uri++;
 			bytes_parsed++;
 		}
@@ -444,10 +458,18 @@ url_parse(
 		*path = uri;
 
 	// Move to the end of the path.
-	while((isurlchar(*uri) || (*uri == '/') || (*uri == '[') ||
-	            (*uri == ']') || (*uri == ':') || (*uri == '=') ||
-	            (*uri == '&') ||
-	            (*uri == '%')) && (*uri != '#') && (*uri != '?')) {
+	while( ((tmp=*uri) != '#')
+		&& (tmp != '?')
+		&& ( isurlchar(tmp)
+			|| (tmp == '[')
+			|| (tmp == ']')
+			|| (tmp == ':')
+			|| (tmp == '/')
+			|| (tmp == '=')
+			|| (tmp == '&')
+			|| (tmp == '%')
+		)
+	) {
 		uri++;
 		bytes_parsed++;
 	}
@@ -461,10 +483,18 @@ url_parse(
 			*query = uri;
 
 		// Move to the end of the query.
-		while((isurlchar(*uri) || (*uri == '[') || (*uri == ']') ||
-		            (*uri == ':') || (*uri == '/') || (*uri == '=') ||
-		            (*uri == '&') ||
-		            (*uri == ';') || (*uri == '%')) && (*uri != '#')) {
+		while( ((tmp=*uri) != '#')
+			&& ( isurlchar(tmp)
+				|| (tmp == '[')
+				|| (tmp == ']')
+				|| (tmp == ':')
+				|| (tmp == '/')
+				|| (tmp == '=')
+				|| (tmp == '&')
+				|| (tmp == '%')
+				|| (tmp == ';')
+			)
+		) {
 			uri++;
 			bytes_parsed++;
 		}
