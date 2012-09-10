@@ -12,6 +12,10 @@
 #include <ctype.h>
 #include <libgen.h>
 
+#if !HAVE_FGETLN
+#include <missing/fgetln.h>
+#endif
+
 #if HAS_LIBREADLINE
 #include <readline/readline.h>
 #include <readline/history.h>
