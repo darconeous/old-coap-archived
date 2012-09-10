@@ -38,13 +38,24 @@ CFLAGS+=-Isrc
 
 SMCP_OBJECT_FILES=${addprefix $(SMCP_SOURCE_PATH)/,${subst .c,.o,$(SMCP_SOURCE_FILES)}}
 
+SMCPD_SOURCE_PATH=src/smcpd
+SMCPD_SOURCE_FILES=main.c
+SMCPD_OBJECT_FILES=${addprefix $(SMCPD_SOURCE_PATH)/,${subst .c,.o,$(SMCPD_SOURCE_FILES)}}
+
 SMCPCTL_SOURCE_PATH=src/smcpctl
 SMCPCTL_SOURCE_FILES=main.c cmd_list.c cmd_test.c cmd_get.c cmd_post.c cmd_pair.c help.c cmd_repeat.c cmd_delete.c cmd_monitor.c
 SMCPCTL_OBJECT_FILES=${addprefix $(SMCPCTL_SOURCE_PATH)/,${subst .c,.o,$(SMCPCTL_SOURCE_FILES)}}
 
-.PHONY: install uninstall clean
+.PHONY: all test install uninstall clean
+
+all: smcpctl smcpd
+
+test: btreetest
 
 smcpctl: $(SMCPCTL_OBJECT_FILES) $(SMCP_OBJECT_FILES)
+	$(CXX) -o $@ $+ -lpthread $(LFLAGS)
+
+smcpd: $(SMCPD_OBJECT_FILES) $(SMCP_OBJECT_FILES)
 	$(CXX) -o $@ $+ -lpthread $(LFLAGS)
 
 btreetest: src/smcp/btree.c
@@ -52,11 +63,12 @@ btreetest: src/smcp/btree.c
 	./btreetest
 
 clean:
-	$(RM) $(SMCPCTL_OBJECT_FILES) $(SMCP_OBJECT_FILES) smcpctl btreetest
+	$(RM) $(SMCPD_OBJECT_FILES) $(SMCPCTL_OBJECT_FILES) $(SMCP_OBJECT_FILES) smcpd smcpctl btreetest
 
-install: smcpctl
+install: smcpctl smcpd
 	$(INSTALL) smcpctl $(PREFIX)/bin
 	$(INSTALL) smcpctl.1 $(PREFIX)/share/man/man1
+	$(INSTALL) smcpd $(PREFIX)/bin
 
 uninstall:
-	$(RM) $(PREFIX)/bin/smcpctl $(PREFIX)/share/man/man1/smcpctl.1
+	$(RM) $(PREFIX)/bin/smcpd $(PREFIX)/bin/smcpctl $(PREFIX)/share/man/man1/smcpctl.1
