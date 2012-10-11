@@ -227,7 +227,7 @@ smcp_curl_proxy_node_request_handler(
 					char header[strlen(option_name)+value_len+3];
 					strcpy(header,option_name);
 					strcat(header,": ");
-					strncat(header,(const char*)value,value_len);
+					strlcat(header,(const char*)value,value_len);
 					headerlist = curl_slist_append(headerlist, header);
 				}
 			}

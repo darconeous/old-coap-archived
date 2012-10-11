@@ -14,7 +14,7 @@
 #include <libgen.h>
 
 #include <smcp/smcp.h>
-//#include <smcp/url-helpers.h>
+#include <missing/fgetln.h>
 
 #include "help.h"
 

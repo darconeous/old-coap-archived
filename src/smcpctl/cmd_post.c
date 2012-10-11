@@ -215,10 +215,10 @@ tool_cmd_post(
 			}
 		} else {
 			if(content[0] == 0) {
-				strncpy(content, argv[i], sizeof(content));
+				strlcpy(content, argv[i], sizeof(content));
 			} else {
-				strncat(content, " ", sizeof(content));
-				strncat(content, argv[i], sizeof(content));
+				strlcat(content, " ", sizeof(content));
+				strlcat(content, argv[i], sizeof(content));
 			}
 		}
 	}

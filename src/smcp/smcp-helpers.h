@@ -22,9 +22,8 @@
 #endif
 #endif
 
-#if defined(linux) || (!defined(__APPLE__) && !defined(__AVR__))
-#define strlcat(a, b, len)    strncat(a, b, len)
-//#define strlcat(a,b,len)	( a[len-1]=0,strncat(a,b,len-1) )
+#if !defined(strlcat) && (defined(linux) || (!defined(__APPLE__) && !defined(__AVR__)))
+#define strlcat(a, b, len)    strncat(a, b, len-strlen(a)-1)
 #endif
 
 #ifndef HAS_STRDUP

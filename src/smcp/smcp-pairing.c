@@ -554,8 +554,8 @@ smcp_trigger_event_with_node(
 
 	if(subpath) {
 		if(path[0])
-			strncat(path, "/", sizeof(path) - 1);
-		strncat(path, subpath, sizeof(path) - 1);
+			strlcat(path, "/", sizeof(path));
+		strlcat(path, subpath, sizeof(path));
 	}
 
 	{   // Remove trailing slashes.
@@ -659,8 +659,8 @@ smcp_trigger_custom_event_with_node(
 
 	if(subpath) {
 		if(path[0])
-			strncat(path, "/", sizeof(path) - 1);
-		strncat(path, subpath, sizeof(path) - 1);
+			strlcat(path, "/", sizeof(path));
+		strlcat(path, subpath, sizeof(path));
 	}
 
 	{   // Remove trailing slashes.
