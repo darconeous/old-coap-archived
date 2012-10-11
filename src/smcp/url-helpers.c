@@ -137,6 +137,8 @@ url_encode_cstr(
 			max_size--;
 		} else if(src_char == ' ') {
 			*dest++ = '+';  // Stupid legacy space encoding.
+			ret++;
+			max_size--;
 		} else {
 			if(max_size < 3) {
 				// Too small for the next character.

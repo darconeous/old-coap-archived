@@ -97,6 +97,7 @@ enum {
 	SMCP_STATUS_BAD_OPTION			= -21,
 	SMCP_STATUS_DUPE				= -22,
 	SMCP_STATUS_RESET				= -23,
+	SMCP_STATUS_ASYNC_RESPONSE		= -24,
 };
 
 typedef int smcp_status_t;
