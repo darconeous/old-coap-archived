@@ -215,7 +215,7 @@ tool_cmd_post(
 			}
 		} else {
 			if(content[0] == 0) {
-				strlcpy(content, argv[i], sizeof(content));
+				strncpy(content, argv[i], sizeof(content));
 			} else {
 				strlcat(content, " ", sizeof(content));
 				strlcat(content, argv[i], sizeof(content));
