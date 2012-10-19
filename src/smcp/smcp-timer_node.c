@@ -134,6 +134,11 @@ void smcp_timer_node_start(smcp_timer_node_t self) {
 			&self->node.node,
 			"r"
 		);
+		smcp_trigger_event_with_node(
+			smcp,
+			&self->node.node,
+			"r!v=1"
+		);
 	}
 }
 
@@ -147,6 +152,11 @@ void smcp_timer_node_stop(smcp_timer_node_t self) {
 			smcp,
 			&self->node.node,
 			"r"
+		);
+		smcp_trigger_event_with_node(
+			smcp,
+			&self->node.node,
+			"r!v=0"
 		);
 	}
 }
@@ -255,6 +265,8 @@ timer_node_var_func(
 			v = ((smcp_timer_node_t)node)->period;
 		} else if(path==PATH_AUTORESTART) {
 			v = ((smcp_timer_node_t)node)->autorestart;
+		} else {
+			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 		sprintf(value,"%d",v);
 	} else if(action==SMCP_VAR_SET_VALUE) {
