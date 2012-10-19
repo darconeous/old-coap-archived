@@ -454,7 +454,12 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	self->inbound.this_option = self->inbound.packet->options;
 	self->inbound.options_left = self->inbound.packet->option_count;
 	status = smcp_handle_request(self);
-	require_noerr(status,bail);
+	require(!status||status==SMCP_STATUS_NOT_FOUND||status==SMCP_STATUS_NOT_ALLOWED,bail);
+
+	if(status) {
+		smcp_outbound_set_content_len(0);
+		smcp_outbound_send();
+	}
 
 #if SMCP_CONF_PAIRING_STATS
 	pairing->send_count++;
