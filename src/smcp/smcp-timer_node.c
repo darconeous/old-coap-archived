@@ -223,6 +223,7 @@ timer_node_var_func(
 		PATH_REMAINING,
 		PATH_PERIOD,
 		PATH_AUTORESTART,
+		PATH_RESTART,
 
 		PATH_COUNT,
 	};
@@ -235,7 +236,8 @@ timer_node_var_func(
 			"!f",
 			"rem",
 			"p",
-			"arstrt"
+			"arstrt",
+			"rstrt"
 		};
 		strcpy(value,path_names[path]);
 	} else if(action==SMCP_VAR_GET_VALUE) {
@@ -280,6 +282,8 @@ timer_node_var_func(
 			}
 		} else if(path==PATH_PERIOD) {
 			((smcp_timer_node_t)node)->period = atoi(value);
+		} else if(path==PATH_RESTART) {
+				smcp_timer_node_restart((smcp_timer_node_t)node);
 		} else if(path==PATH_AUTORESTART) {
 			((smcp_timer_node_t)node)->autorestart = atoi(value);
 		}

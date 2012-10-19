@@ -115,7 +115,7 @@ struct smcp_s {
 		size_t					content_len;
 		coap_content_type_t		content_type;
 
-		coap_transaction_id_t	last_tid;
+//		coap_transaction_id_t	last_tid;
 
 		uint8_t					was_sent_to_multicast:1,
 								is_fake:1;

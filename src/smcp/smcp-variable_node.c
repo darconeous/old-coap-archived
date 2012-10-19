@@ -35,6 +35,7 @@
 #include "smcp-node.h"
 #include "smcp-variable_node.h"
 #include "url-helpers.h"
+#include "smcp-logging.h"
 #include <stdlib.h>
 
 void
@@ -97,6 +98,7 @@ smcp_variable_request_handler(
 					&& value_len>=2
 					&& strhasprefix_const((const char*)value,"v=")
 				) {
+					DEBUG_PRINTF("variable-node: value is in the query.");
 					content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 					content_ptr = (char*)value+2;
 					content_len = value_len-2;
@@ -149,6 +151,10 @@ smcp_variable_request_handler(
 				}
 			}
 		}
+
+		// Make sure our content is zero terminated.
+		((char*)content_ptr)[content_len] = 0;
+
 		ret = node->func(node,SMCP_VAR_SET_VALUE,key_index,(char*)content_ptr);
 		require_noerr(ret,bail);
 
