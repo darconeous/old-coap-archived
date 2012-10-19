@@ -53,9 +53,16 @@
 
 #include <stdio.h>
 #define CSTR(x)     (x)
+#if ASSERT_MACROS_USES_SYSLOG
+#include <syslog.h>
+#define DEBUG_PRINTF(...) \
+    do { syslog(7, __VA_ARGS__); fputc('\n', \
+			stderr); } while(0)
+#else
 #define DEBUG_PRINTF(...) \
     do { fprintf(stderr, __VA_ARGS__); fputc('\n', \
 			stderr); } while(0)
+#endif
 
 #endif
 
