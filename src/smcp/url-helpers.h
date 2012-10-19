@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 #define URL_HELPERS_MAX_URL_COMPONENTS      (15)
-#define MAX_URL_SIZE        (128)
+#define MAX_URL_SIZE        (256)
 
 /*!	Perfoms a URL encoding of the given string.
 **	@returns	Number of bytes in encoded string

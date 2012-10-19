@@ -600,13 +600,10 @@ url_change(
 		char new_url[strlen(new_url_) + 1];
 		strcpy(new_url, new_url_);
 #else
-		uint16_t len = strlen(new_url_);
-		new_url = malloc(len + 1);
-		memcpy(new_url,new_url_,len);
-		new_url[len]=0;
+		new_url = strdup(new_url_);
 #endif
 
-		strcpy(current_path, url);
+		strlcpy(current_path, url,MAX_URL_SIZE);
 
 		url_parse(
 			current_path,
