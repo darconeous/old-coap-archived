@@ -196,6 +196,19 @@ smcp_variable_request_handler(
 					content_ptr += url_encode_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
 				}
 
+				ret = node->func(node,SMCP_VAR_GET_LF_TITLE,key_index,buffer);
+
+				if(content_ptr+8>=content_end_ptr) {
+					// No more room for content.
+					break;
+				}
+
+				if(!ret) {
+					strcpy(content_ptr,";title=");
+					content_ptr += 3;
+					content_ptr += url_encode_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
+				}
+
 				*content_ptr++ = ',';
 			}
 			ret = smcp_outbound_set_content_len(content_len-(content_end_ptr-content_ptr));

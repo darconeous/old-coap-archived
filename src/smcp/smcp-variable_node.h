@@ -43,6 +43,7 @@ enum {
 	SMCP_VAR_CHECK_KEY,
 	SMCP_VAR_SET_VALUE,
 	SMCP_VAR_GET_VALUE,
+	SMCP_VAR_GET_LF_TITLE,
 };
 
 typedef smcp_status_t (*smcp_variable_node_func)(

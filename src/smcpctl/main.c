@@ -272,7 +272,7 @@ void process_input_line(char *l) {
 
 bail:
 	if(istty) {
-		char prompt[128] = {};
+		char prompt[MAX_URL_SIZE+4] = {};
 		char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
 
 		snprintf(prompt,

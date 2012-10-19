@@ -316,22 +316,24 @@ smcp_event_response_handler(
 	int statuscode, smcp_pairing_node_t pairing
 ) {
 #if SMCP_CONF_PAIRING_STATS
-	if(pairing->last_error != statuscode) {
-		pairing->last_error = statuscode;
-		smcp_trigger_event_with_node(
-			smcp_get_current_instance(),
-			&pairing->node.node,
-			"err"
-		);
-	}
-	if(statuscode && ((statuscode < 200) || (statuscode >= 300))) {
-		// Looks like we failed to live up to this pairing.
-		pairing->errors++;
-		smcp_trigger_event_with_node(
-			smcp_get_current_instance(),
-			&pairing->node.node,
-			"ec"
-		);
+	if(statuscode!=SMCP_STATUS_TRANSACTION_INVALIDATED) {
+		if(pairing->last_error != statuscode) {
+			pairing->last_error = statuscode;
+			smcp_trigger_event_with_node(
+				smcp_get_current_instance(),
+				&pairing->node.node,
+				"err"
+			);
+		}
+		if(statuscode && ((statuscode < 200) || (statuscode >= 300))) {
+			// Looks like we failed to live up to this pairing.
+			pairing->errors++;
+			smcp_trigger_event_with_node(
+				smcp_get_current_instance(),
+				&pairing->node.node,
+				"ec"
+			);
+		}
 	}
 #endif
 	// expire the event.
@@ -891,6 +893,12 @@ smcp_pairing_node_variable_func(
 #endif
 		}
 		sprintf(value,"%d",v);
+	} else if(action==SMCP_VAR_GET_LF_TITLE) {
+		if(path==PATH_LAST_ERROR) {
+			sprintf(value,"%s",(pairing->last_error>0)?coap_code_to_cstr(pairing->last_error):smcp_status_to_cstr(pairing->last_error));
+		} else {
+			ret = SMCP_STATUS_NOT_FOUND;
+		}
 	} else if(action==SMCP_VAR_SET_VALUE) {
 		// TODO: Writeme!
 		ret = SMCP_STATUS_NOT_ALLOWED;

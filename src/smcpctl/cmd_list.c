@@ -171,6 +171,23 @@ list_response_handler(
 								endchar = *iter;
 								*iter++ = 0;
 							}
+							{	// Convert all line feeds into " | ".
+								char* value_iter = value;
+								for(;*value_iter;value_iter++) {
+									if(0==strncmp(value_iter,"%0A",3)) {
+										if(value_iter[3]) {
+											value_iter[0]=' ';
+											value_iter[1]='|';
+											value_iter[2]=' ';
+										} else {
+											value_iter[0]=0;
+											value_iter[1]=0;
+											value_iter[2]=0;
+										}
+									}
+								}
+							}
+							url_decode_cstr_inplace(value);
 							if(0 == strcmp(key, "n"))
 								name = value;
 							else if(!name && 0 == strcmp(key, "rt"))
