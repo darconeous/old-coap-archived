@@ -241,6 +241,8 @@ extern smcp_status_t smcp_outbound_begin(
 	coap_transaction_type_t tt
 );
 
+extern void smcp_outbound_drop();
+
 extern smcp_status_t smcp_outbound_begin_response(coap_code_t code);
 
 extern smcp_status_t smcp_outbound_set_tid(coap_transaction_id_t tid);

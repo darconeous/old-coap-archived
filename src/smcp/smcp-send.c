@@ -73,6 +73,14 @@ extern uint16_t uip_slen;
 #pragma mark -
 #pragma mark Constrained sending API
 
+void
+smcp_outbound_drop() {
+	smcp_t self = smcp_get_current_instance();
+
+	self->is_responding = false;
+	self->did_respond = true;
+}
+
 smcp_status_t
 smcp_outbound_begin(
 	smcp_t self, coap_code_t code, coap_transaction_type_t tt
