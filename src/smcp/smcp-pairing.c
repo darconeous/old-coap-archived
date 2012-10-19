@@ -229,8 +229,8 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		);
 		require_noerr(status,bail);
 
-		status = smcp_outbound_add_option(COAP_HEADER_CONTENT_TYPE, (void*)&content_type, 1);
-		require_noerr(status,bail);
+		status = smcp_outbound_set_content_type(content_type);
+		check_noerr(status);
 	}
 
 #if SMCP_USE_BSD_SOCKETS

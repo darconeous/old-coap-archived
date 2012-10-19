@@ -95,7 +95,7 @@ resend_async_response(void* context) {
 		coap_content_type_t content_type = coap_content_type_from_cstr(content_type_string);
 		if(content_type!=COAP_CONTENT_TYPE_UNKNOWN) {
 			ret = smcp_outbound_set_content_type(content_type);
-			require_noerr(ret,bail);
+			check_noerr(ret);
 		} else {
 			DEBUG_PRINTF("Unrecognised content-type: %s",content_type_string);
 		}
