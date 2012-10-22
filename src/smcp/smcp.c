@@ -1137,6 +1137,8 @@ const char* smcp_status_to_cstr(int x) {
 	case SMCP_STATUS_BAD_ARGUMENT: return "Bad Argument"; break;
 	case SMCP_STATUS_MESSAGE_TOO_BIG: return "Message Too Big"; break;
 
+	case SMCP_STATUS_NOT_ALLOWED: return "Not Allowed"; break;
+
 	case SMCP_STATUS_BAD_OPTION: return "Bad Option"; break;
 	case SMCP_STATUS_DUPE: return "Duplicate"; break;
 

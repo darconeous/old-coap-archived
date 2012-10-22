@@ -211,7 +211,7 @@ smcp_variable_request_handler(
 
 				if(!ret) {
 					strcpy(content_ptr,";title=");
-					content_ptr += 3;
+					content_ptr += 7;
 					content_ptr += url_encode_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
 				}
 
@@ -258,9 +258,11 @@ smcp_variable_request_handler(
 			(void*)node,
 			method
 		);
+		check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 	}
 
 bail:
+	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 	return ret;
 }
 

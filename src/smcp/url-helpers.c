@@ -603,7 +603,7 @@ url_change(
 		new_url = strdup(new_url_);
 #endif
 
-		strlcpy(current_path, url,MAX_URL_SIZE);
+		strncpy(current_path, url,MAX_URL_SIZE);
 
 		url_parse(
 			current_path,

@@ -51,6 +51,10 @@
 #define NDEBUG 1
 #endif
 
+#if ASSERT_MACROS_USE_SYSLOG
+#include <syslog.h>
+#endif
+
 #if HAS_ASSERTMACROS_H
  #include <AssertMacros.h>
 #else
@@ -72,11 +76,19 @@
 				__LINE__, \
 				__VA_ARGS__)
  #else
-  #define assert_printf(fmt, ...) \
+  #if ASSERT_MACROS_USE_SYSLOG
+   #define assert_printf(fmt, ...) \
+    syslog(7, \
+				__FILE__ ":%d: "fmt"\n", \
+				__LINE__, \
+				__VA_ARGS__)
+  #else
+   #define assert_printf(fmt, ...) \
     fprintf(assert_error_stream, \
 				__FILE__ ":%d: "fmt"\n", \
 				__LINE__, \
 				__VA_ARGS__)
+  #endif
  #endif
  #define check_string(c, s) \
    do { if(!(c)) assert_printf("Check Failed (%s)", \

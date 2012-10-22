@@ -44,9 +44,9 @@
 #include <avr/pgmspace.h>
 #define CSTR(x)     PSTR(x)
 #define DEBUG_PRINTF(...) \
-    do { fprintf_P(stdout, __VA_ARGS__); fputc( \
+    do { fprintf_P(SMCP_DEBUG_OUT_FILE, __VA_ARGS__); fputc( \
 			'\n', \
-			stdout); } while(0)
+			SMCP_DEBUG_OUT_FILE); } while(0)
 
 #else // __AVR__
 #define SMCP_DEBUG_OUT_FILE     stderr
@@ -55,13 +55,11 @@
 #define CSTR(x)     (x)
 #if ASSERT_MACROS_USES_SYSLOG
 #include <syslog.h>
-#define DEBUG_PRINTF(...) \
-    do { syslog(7, __VA_ARGS__); fputc('\n', \
-			stderr); } while(0)
+#define DEBUG_PRINTF(...) syslog(7, __VA_ARGS__)
 #else
 #define DEBUG_PRINTF(...) \
-    do { fprintf(stderr, __VA_ARGS__); fputc('\n', \
-			stderr); } while(0)
+    do { fprintf(SMCP_DEBUG_OUT_FILE, __VA_ARGS__); fputc('\n', \
+			SMCP_DEBUG_OUT_FILE); } while(0)
 #endif
 
 #endif
