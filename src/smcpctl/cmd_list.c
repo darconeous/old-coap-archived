@@ -158,6 +158,8 @@ list_response_handler(
 
 							iter++;
 							key = strsep(&iter, "=");
+							if(!iter)
+								break;
 							if(*iter == '"') {
 								iter++;
 								value = strsep(&iter, "\"");

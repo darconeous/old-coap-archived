@@ -35,3 +35,9 @@ so:
 `smcpctl` is a command-line interface for browsing, observing, and
 interacting with CoAP devices. It is, for the most part, self-
 documenting.
+
+## Test Servers ##
+
+	* <coap://129.132.15.80/>
+	* <coap://ns.tzi.org/>
+
