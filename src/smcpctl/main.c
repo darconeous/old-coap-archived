@@ -38,6 +38,9 @@
 #include <smcp/url-helpers.h>
 
 bool show_headers = 0;
+static int gRet = 0;
+static smcp_t smcp;
+static bool istty = true;
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",	NULL, "Print Help"				},
@@ -231,9 +234,6 @@ bail:
 	return ret;
 }
 
-static int gRet = 0;
-static smcp_t smcp;
-static bool istty = true;
 
 void process_input_line(char *l) {
 	char *inputstring;
@@ -261,7 +261,7 @@ void process_input_line(char *l) {
 	if(argc2 > 0) {
 		gRet = exec_command(smcp, argc2, argv2);
 		if(gRet == ERRORCODE_QUIT)
-			return;
+			goto bail;
 		else if(gRet && (gRet != ERRORCODE_HELP))
 			fprintf(stderr,"Error %d\n", gRet);
 
@@ -271,7 +271,14 @@ void process_input_line(char *l) {
 	}
 
 bail:
-	if(istty) {
+	free(l);
+	return;
+}
+
+#if HAS_LIBREADLINE
+void process_input_readline(char *l) {
+	process_input_line(l);
+	if(istty && (gRet!=ERRORCODE_QUIT)) {
 		char prompt[MAX_URL_SIZE+4] = {};
 		char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
 
@@ -279,14 +286,10 @@ bail:
 			sizeof(prompt),
 			"%s> ",
 			current_smcp_path ? current_smcp_path : "");
-#if HAS_LIBREADLINE
-		rl_prep_terminal(0);
-		rl_callback_handler_install(prompt, &process_input_line);
-#endif
+		rl_callback_handler_install(prompt, &process_input_readline);
 	}
-	free(l);
-	return;
 }
+#endif
 
 
 #pragma mark -
@@ -343,16 +346,23 @@ smcp_directory_generator(
 	 variable to 0. */
 	if (!state)
 	{
+		int i;
+
 		if(temp_file)
 			fclose(temp_file);
+
 		temp_file = tmpfile();
 
-		int i;
+		require(temp_file!=NULL,bail);
+
 		free(prefix);
 		free(fragment);
 
 		prefix = strdup(text);
+
+		// Figure out where the last path component starts.
 		for(i=strlen(prefix);i && prefix[i]!='/';i--);
+
 		if(prefix[i]=='/') {
 			prefix[i] = 0;
 			if(i==0) {
@@ -393,9 +403,8 @@ smcp_directory_generator(
 		len = strlen(fragment);
 	}
 
-	if(!temp_file)
-		goto bail;
-	//fprintf(stderr,"\nprefix=%s\n",prefix);
+	require(temp_file!=NULL,bail);
+
 	while ((name = fgetln(temp_file, &namelen)) && (namelen>len))
 	{
 		if(url_is_root(getenv("SMCP_CURRENT_PATH")) && strequal_const(prefix,".")) {
@@ -430,6 +439,7 @@ smcp_directory_generator(
 
 
 bail:
+	//fprintf(stderr,"\n[prefix=\"%s\" ret=\"%s\"] ",prefix,ret);
 
 	return ret;
 }
@@ -486,7 +496,7 @@ initialize_readline() {
 		"%s> ",
 		current_smcp_path ? current_smcp_path : "");
 
-	rl_callback_handler_install(prompt, &process_input_line);
+	rl_callback_handler_install(prompt, &process_input_readline);
 
 bail:
 	return ret;
@@ -616,6 +626,9 @@ main(
 	}
 
 bail:
+#if HAS_LIBREADLINE
+	rl_callback_handler_remove();
+#endif  // HAS_LIBREADLINE
 	if(gRet == ERRORCODE_QUIT)
 		gRet = 0;
 

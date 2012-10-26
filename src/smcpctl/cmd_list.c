@@ -90,10 +90,10 @@ list_response_handler(
 		}
 		if(statuscode<0)
 			gRet = statuscode;
-		else if(content_length) {
-			printf("%s",content);
+		else if(content_length && !list_filename_only) {
+			fprintf(stdout,"%s",content);
 			if((content[content_length - 1] != '\n'))
-				printf("\n");
+				fprintf(stdout,"\n");
 		}
 		goto bail;
 	}
@@ -124,7 +124,7 @@ list_response_handler(
 				if(statuscode >= 300) {
 					fwrite(content, content_length, 1, stdout);
 					if((content[content_length - 1] != '\n'))
-						printf("\n");
+						fprintf(stdout,"\n");
 				} else {
 					fprintf(stderr, " *** Not a directory\n");
 				}
@@ -220,36 +220,36 @@ list_response_handler(
 					url_shorten_reference((const char*)original_url, uri);
 
 
-					uri_len = printf("%s", uri) - 1;
+					uri_len = fprintf(stdout,"%s", uri) - 1;
 					if(type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
-						printf("/");
+						fprintf(stdout,"/");
 					if(!list_filename_only) {
 						if(v)
-							printf("=%s",v);
-						printf(" ");
+							fprintf(stdout,"=%s",v);
+						fprintf(stdout," ");
 						if(uri_len < col_width) {
 							if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {
 								uri_len = col_width - uri_len;
 								while(uri_len--) {
-									printf(" ");
+									fprintf(stdout," ");
 								}
-								printf("\t");
+								fprintf(stdout,"\t");
 							}
 						} else {
-							printf("\t");
+							fprintf(stdout,"\t");
 							col_width = uri_len;
 						}
 
-						if(name && (0 != strcmp(name, uri))) printf("\"%s\" ",
+						if(name && (0 != strcmp(name, uri))) fprintf(stdout,"\"%s\" ",
 								name);
-						if(sh_url && (0 != strcmp(sh_url, uri))) printf(
+						if(sh_url && (0 != strcmp(sh_url, uri))) fprintf(stdout,
 								"<%s> ",
 								sh_url);
-						if(type != COAP_CONTENT_TYPE_UNKNOWN) printf("[%s] ",
+						if(type != COAP_CONTENT_TYPE_UNKNOWN) fprintf(stdout,"[%s] ",
 								coap_content_type_to_cstr(type));
-						if(desc) printf("(%s) ",desc);
+						if(desc) fprintf(stdout,"(%s) ",desc);
 					}
-					printf("\n");
+					fprintf(stdout,"\n");
 				} else {
 					iter++;
 				}
