@@ -30,6 +30,10 @@ so:
     cd contiki-src/examples/smcp-simple
 	make CONTIKI=~/Projects/contiki TARGET=minimal-net
 
+## Installing via Homebrew on OS X ##
+
+	brew install https://raw.github.com/darconeous/smcp/formula/smcp.rb
+
 ## SMCPCTL ##
 
 `smcpctl` is a command-line interface for browsing, observing, and
