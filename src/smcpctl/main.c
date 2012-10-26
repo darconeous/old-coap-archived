@@ -234,6 +234,47 @@ bail:
 	return ret;
 }
 
+static char* get_next_arg(char *buf, char **rest) {
+	char* ret = NULL;
+
+	while(*buf && isspace(*buf)) buf++;
+
+	if(!*buf || *buf == '#')
+		goto bail;
+
+	ret = buf;
+
+	char quote_type = 0;
+	char* write_iter = ret;
+
+	while(*buf) {
+		if(quote_type && *buf==quote_type) {
+			quote_type = 0;
+			buf++;
+			continue;
+		}
+		if(*buf == '"' || *buf == '\'') {
+			quote_type = *buf++;
+			continue;
+		}
+
+		if(!quote_type && isspace(*buf)) {
+			buf++;
+			break;
+		}
+
+		if(buf[0]=='\\' && buf[1]) buf++;
+
+		*write_iter++ = *buf++;
+	}
+
+	*write_iter = 0;
+
+bail:
+	if(rest)
+		*rest = buf;
+	return ret;
+}
 
 void process_input_line(char *l) {
 	char *inputstring;
@@ -250,9 +291,7 @@ void process_input_line(char *l) {
 
 	inputstring = l;
 
-	while((*ap = strsep(&inputstring," \t\n\r"))) {
-		if(**ap == '#')    // Ignore everything after a comment symbol.
-			break;
+	while((*ap = get_next_arg(inputstring,&inputstring))) {
 		if(**ap != '\0') {
 			ap++;
 			argc2++;

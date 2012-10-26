@@ -1,4 +1,8 @@
 
+#ifndef ASSERT_MACROS_USE_SYSLOG
+#define ASSERT_MACROS_USE_SYSLOG 1
+#endif
+
 #include <smcp/assert_macros.h>
 
 #include <stdio.h>
@@ -12,8 +16,10 @@
 #include <ctype.h>
 #include <poll.h>
 #include <libgen.h>
+#include <syslog.h>
 
 #include <smcp/smcp.h>
+#include <smcp/smcp-node.h>
 #include <missing/fgetln.h>
 
 #include "help.h"
@@ -55,21 +61,124 @@ static sig_t gPreviousHandlerForSIGINT;
 static void
 signal_SIGINT(int sig) {
 	gRet = ERRORCODE_INTERRUPT;
-	fprintf(stderr,"%s: Caught SIGINT!\n",gProcessName);
+	syslog(LOG_NOTICE,"Caught SIGINT!");
 	signal(SIGINT, gPreviousHandlerForSIGINT);
 }
 
 static void
 signal_SIGHUP(int sig) {
 	gRet = ERRORCODE_SIGHUP;
-	fprintf(stderr,"%s: Caught SIGHUP!\n",gProcessName);
+	syslog(LOG_NOTICE,"Caught SIGHUP!");
 }
+
+static char* get_next_arg(char *buf, char **rest) {
+	char* ret = NULL;
+
+	while(*buf && isspace(*buf)) buf++;
+
+	if(!*buf || *buf == '#')
+		goto bail;
+
+	ret = buf;
+
+	char quote_type = 0;
+	char* write_iter = ret;
+
+	while(*buf) {
+		if(quote_type && *buf==quote_type) {
+			quote_type = 0;
+			buf++;
+			continue;
+		}
+		if(*buf == '"' || *buf == '\'') {
+			quote_type = *buf++;
+			continue;
+		}
+
+		if(!quote_type && isspace(*buf)) {
+			buf++;
+			break;
+		}
+
+		if(buf[0]=='\\' && buf[1]) buf++;
+
+		*write_iter++ = *buf++;
+	}
+
+	*write_iter = 0;
+
+bail:
+	if(rest)
+		*rest = buf;
+	return ret;
+}
+
+#define strcaseequal(x,y)	(strcasecmp(x,y)==0)
 
 static int
 read_configuration(smcp_t smcp,const char* filename) {
-	fprintf(stderr,"%s: Reading configuration from \"%s\"...\n",gProcessName,filename);
+	int ret = 1;
+	syslog(LOG_INFO,"Reading configuration from \"%s\" . . .",filename);
 
-	return 0;
+	FILE* file = fopen(filename,"r");
+	char* line = NULL;
+	size_t line_len = 0;
+	smcp_node_t node = smcp_get_root_node(smcp);
+
+	require(file!=NULL,bail);
+
+	while(!feof(file) && (line=fgetln(file,&line_len))) {
+		char *cmd = get_next_arg(line,&line);
+		if(strcaseequal(cmd,"ListenPort")) {
+			char* arg = get_next_arg(line,&line);
+			if(!arg) {
+				syslog(LOG_ERR,"Config option \"%s\" requires an argument.",cmd);
+				goto bail;
+			}
+			// Not really supported at the moment.
+			if(smcp_get_port(smcp)!=atoi(arg))
+				syslog(LOG_ERR,"ListenPort doesn't match current listening port.");
+		} else if(strcaseequal(cmd,"CoAPProxyURL")) {
+			char* arg = get_next_arg(line,&line);
+			if(!arg) {
+				syslog(LOG_ERR,"Config option \"%s\" requires an argument.",cmd);
+				goto bail;
+			}
+			smcp_set_proxy_url(smcp,arg);
+		} else if(strcaseequal(cmd,"<node")) {
+			char* arg = get_next_arg(line,&line);
+			char* arg2 = get_next_arg(line,&line);
+			if(!arg) {
+				syslog(LOG_ERR,"Config option \"%s\" requires an argument.",cmd);
+				goto bail;
+			}
+			// Fix trailing '>'
+			if(!arg2 && arg[strlen(arg)-1]=='>') {
+				arg[strlen(arg)-1]=0;
+			}
+			smcp_node_t next_node = smcp_node_find(node,arg,strlen(arg));
+			if(!next_node) next_node = smcp_node_init(NULL,node,arg2);
+			node = next_node;
+		} else if(strcaseequal(cmd,"</node>")) {
+			if(!node->parent) {
+				syslog(LOG_ERR,"Unmatched \"%s\".",cmd);
+				goto bail;
+			}
+			node = node->parent;
+		} else {
+			syslog(LOG_ERR,"Unrecognised config option \"%s\".",cmd);
+		}
+	}
+
+	if(node->parent) {
+		syslog(LOG_ERR,"Unmatched \"<node>\".");
+		goto bail;
+	}
+
+	ret = 0;
+
+bail:
+	return ret;
 }
 
 int
@@ -79,6 +188,8 @@ main(
 	int i, debug_mode = 0;
 	int port = 5684;
 	const char* config_file = ETC_PREFIX "smcp.conf";
+
+	openlog(basename(argv[0]),LOG_PERROR|LOG_PID|LOG_CONS,LOG_DAEMON);
 
 	gPreviousHandlerForSIGINT = signal(SIGINT, &signal_SIGINT);
 	signal(SIGHUP, &signal_SIGHUP);
@@ -124,12 +235,12 @@ main(
 	}
 	END_ARGUMENTS
 
-	fprintf(stderr,"%s: Starting smcpd...\n",gProcessName);
+	syslog(LOG_NOTICE,"Starting smcpd . . .");
 
 	smcp = smcp_create(port);
 
 	if(!smcp) {
-		fprintf(stderr,"%s: error: Unable to initialize SMCP.\n",gProcessName);
+		syslog(LOG_CRIT,"Unable to initialize SMCP instance.");
 		gRet = ERRORCODE_UNKNOWN;
 		goto bail;
 	}
@@ -138,7 +249,7 @@ main(
 
 	read_configuration(smcp,config_file);
 
-	fprintf(stderr,"%s: smcpd started. Listening on port %d.\n",gProcessName,smcp_get_port(smcp));
+	syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_get_port(smcp));
 
 	do {
 		while(!gRet) {
@@ -157,11 +268,11 @@ bail:
 		gRet = 0;
 
 	if(smcp) {
-		fprintf(stderr,"%s: Stopping smcpd...\n",gProcessName);
+		syslog(LOG_NOTICE,"Stopping smcpd . . .");
 
 		smcp_release(smcp);
 
-		fprintf(stderr,"%s: Stopped.\n",gProcessName);
+		syslog(LOG_NOTICE,"Stopped.");
 	}
 	return gRet;
 }

@@ -50,6 +50,10 @@
 
 /* Begin PBXFileReference section */
 		8DD76FB20486AB0100D96B5E /* smcpctl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = smcpctl; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6030637163AE4BC00B0AA6C /* fgetln.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fgetln.h; sourceTree = "<group>"; };
+		A6030639163AE4D100B0AA6C /* config-parser.l */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.lex; path = "config-parser.l"; sourceTree = "<group>"; };
+		A603063A163AE4D100B0AA6C /* help.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = help.h; sourceTree = "<group>"; };
+		A603063B163AE4D100B0AA6C /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		A60BF11B158D425F00D39B5C /* COPYING */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYING; sourceTree = "<group>"; };
 		A60BF11C158D425F00D39B5C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		A61C873C1583C79400AFD8A1 /* sensor-node.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "sensor-node.c"; sourceTree = "<group>"; };
@@ -141,6 +145,8 @@
 		08FB7794FE84155DC02AAC07 /* SHAP */ = {
 			isa = PBXGroup;
 			children = (
+				A6030638163AE4D100B0AA6C /* smcpd */,
+				A6030636163AE4BC00B0AA6C /* missing */,
 				A6770028156AA92300592868 /* Makefile */,
 				A6C6C483121B2EE200CAB3A3 /* Tool Source */,
 				08FB7795FE84155DC02AAC07 /* Source */,
@@ -189,6 +195,26 @@
 				A6CD695D1283463900254A8B /* btreetest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A6030636163AE4BC00B0AA6C /* missing */ = {
+			isa = PBXGroup;
+			children = (
+				A6030637163AE4BC00B0AA6C /* fgetln.h */,
+			);
+			name = missing;
+			path = src/missing;
+			sourceTree = "<group>";
+		};
+		A6030638163AE4D100B0AA6C /* smcpd */ = {
+			isa = PBXGroup;
+			children = (
+				A6030639163AE4D100B0AA6C /* config-parser.l */,
+				A603063A163AE4D100B0AA6C /* help.h */,
+				A603063B163AE4D100B0AA6C /* main.c */,
+			);
+			name = smcpd;
+			path = src/smcpd;
 			sourceTree = "<group>";
 		};
 		A60D0DB312795ADF00C04B8C /* Utils */ = {
