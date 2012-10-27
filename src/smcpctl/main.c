@@ -320,9 +320,9 @@ static char* get_current_prompt() {
 	char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
 	snprintf(prompt,
 		sizeof(prompt),
-		"\001\033[1;37;40m\002"
+//		"\1\033[1;37;40m\2"
 		"%s"
-		"\001\033[0;37;40m\002"
+//		"\1\033[0;37;40m\2"
 		"> ",
 		current_smcp_path ? current_smcp_path : ""
 	);
