@@ -314,18 +314,28 @@ bail:
 	return;
 }
 
+static char* get_current_prompt() {
+	static char prompt[MAX_URL_SIZE+40] = {};
+	char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
+	snprintf(prompt,
+		sizeof(prompt),
+		"\001\033[1;37;40m\002"
+		"%s"
+		"\001\033[0;37;40m\002"
+		"> ",
+		current_smcp_path ? current_smcp_path : ""
+	);
+	return prompt;
+}
+
 #if HAS_LIBREADLINE
 void process_input_readline(char *l) {
 	process_input_line(l);
-	if(istty && (gRet!=ERRORCODE_QUIT)) {
-		char prompt[MAX_URL_SIZE+4] = {};
-		char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
-
-		snprintf(prompt,
-			sizeof(prompt),
-			"%s> ",
-			current_smcp_path ? current_smcp_path : "");
-		rl_callback_handler_install(prompt, &process_input_readline);
+	if(istty) {
+		if(gRet==ERRORCODE_QUIT)
+			rl_set_prompt("");
+		else
+			rl_set_prompt(get_current_prompt());
 	}
 }
 #endif
@@ -416,8 +426,9 @@ smcp_directory_generator(
 		char* cmdline = NULL;
 		FILE* real_stdout = stdout;
 
-		asprintf(&cmdline, "list --filename-only --timeout 1000 %s",prefix);
+		asprintf(&cmdline, "list --filename-only --timeout 1000 \"%s\"",prefix);
 		require(cmdline,bail);
+		//fprintf(stderr,"\n[cmd=\"%s\"] ",cmdline);
 
 		stdout = temp_file;
 		if(strequal_const(fragment, "."))
@@ -426,16 +437,22 @@ smcp_directory_generator(
 		stdout = real_stdout;
 		free(cmdline);
 
-		if(url_is_root(getenv("SMCP_CURRENT_PATH"))) {
-			asprintf(&cmdline, "list --filename-only --timeout 500 /.well-known/core");
-			require(cmdline,bail);
+		if(url_is_root(getenv("SMCP_CURRENT_PATH")) && !url_is_root(prefix)) {
+			if(!i) {
+				asprintf(&cmdline, "list --filename-only --timeout 750 /.well-known/core");
+				require(cmdline,bail);
+				//fprintf(stderr,"\n[cmd=\"%s\"] ",cmdline);
 
-			fprintf(temp_file,"/.well-known/core/\n");
+				fprintf(temp_file,".well-known/\n");
 
-			stdout = temp_file;
-			process_input_line(cmdline);
-			stdout = real_stdout;
-			free(cmdline);
+				stdout = temp_file;
+				process_input_line(cmdline);
+				stdout = real_stdout;
+				free(cmdline);
+			} else {
+				if(strequal_const(prefix, ".well-known"))
+					fprintf(temp_file,".well-known/core\n");
+			}
 		}
 
 		rewind(temp_file);
@@ -528,14 +545,7 @@ initialize_readline() {
 	rl_instream = stdin;
 
 
-	char prompt[128] = {};
-	char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
-	snprintf(prompt,
-		sizeof(prompt),
-		"%s> ",
-		current_smcp_path ? current_smcp_path : "");
-
-	rl_callback_handler_install(prompt, &process_input_readline);
+	rl_callback_handler_install(get_current_prompt(), &process_input_readline);
 
 bail:
 	return ret;
@@ -551,6 +561,8 @@ main(
 ) {
 	int i, debug_mode = 0;
 	int port = 61616;
+
+	srandom(time(NULL));
 
 	BEGIN_LONG_ARGUMENTS(gRet)
 	HANDLE_LONG_ARGUMENT("port") port = strtol(argv[++i], NULL, 0);

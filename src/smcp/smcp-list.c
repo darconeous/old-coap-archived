@@ -121,6 +121,7 @@ smcp_handle_list(
 	// Node should always be set by the time we get here.
 	require_action(node, bail, ret = SMCP_STATUS_BAD_ARGUMENT);
 
+/*
 #if VERBOSE_DEBUG
 	{
 		smcp_node_t iter = bt_first(((smcp_node_t)node)->children);
@@ -129,6 +130,7 @@ smcp_handle_list(
 		}
 	}
 #endif
+*/
 
 	if(((smcp_node_t)node)->children)
 		node = bt_first(((smcp_node_t)node)->children);

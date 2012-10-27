@@ -1110,8 +1110,15 @@ bail:
 
 coap_transaction_id_t
 smcp_get_next_tid(smcp_t self, void* context) {
-	// TODO: Implement this better!
-	return SMCP_FUNC_RANDOM_UINT32();
+	uint8_t hash = ((1664525*((uint32_t)context)+1013904223)>>28);
+	static uint16_t table[16];
+
+	if(!table[hash])
+		table[hash] = (uint16_t)SMCP_FUNC_RANDOM_UINT32();
+
+	table[hash] = table[hash]*23873+41;
+
+	return table[hash];
 }
 
 const char* smcp_status_to_cstr(int x) {

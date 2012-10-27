@@ -66,6 +66,7 @@ list_response_handler(
 	smcp_t const self = smcp_get_current_instance();
 	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
+	bool istty = isatty(fileno(stdout));
 
 	if((statuscode >= COAP_RESULT_100) && list_show_headers) {
 		if(next_len != ((size_t)(-1)))
@@ -220,7 +221,16 @@ list_response_handler(
 					url_shorten_reference((const char*)original_url, uri);
 
 
-					uri_len = fprintf(stdout,"%s", uri) - 1;
+					if(istty && !list_filename_only && type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
+						uri_len = fprintf(stdout,
+							"\033[1;34;40m"
+							"%s"
+							"\033[0;37;40m"
+							,
+							uri
+						) - 1;
+					else
+						uri_len = fprintf(stdout,"%s", uri) - 1;
 					if(type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
 						fprintf(stdout,"/");
 					if(!list_filename_only) {

@@ -21,7 +21,7 @@
 #include <smcp/smcp.h>
 #include <smcp/smcp-node.h>
 #include <missing/fgetln.h>
-
+#include <smcp/smcp-timer_node.h>
 #include "help.h"
 
 #ifndef PREFIX
@@ -129,7 +129,9 @@ read_configuration(smcp_t smcp,const char* filename) {
 
 	while(!feof(file) && (line=fgetln(file,&line_len))) {
 		char *cmd = get_next_arg(line,&line);
-		if(strcaseequal(cmd,"ListenPort")) {
+		if(!cmd)
+			continue;
+		else if(strcaseequal(cmd,"Port")) {
 			char* arg = get_next_arg(line,&line);
 			if(!arg) {
 				syslog(LOG_ERR,"Config option \"%s\" requires an argument.",cmd);
@@ -146,19 +148,42 @@ read_configuration(smcp_t smcp,const char* filename) {
 			}
 			smcp_set_proxy_url(smcp,arg);
 		} else if(strcaseequal(cmd,"<node")) {
+			// Fix trailing '>'
+			int linelen = strlen(line);
+			while(isspace(line[linelen-1])) line[--linelen]=0;
+			if(line[linelen-1]=='>') {
+				line[linelen-1]=0;
+			} else {
+				syslog(LOG_ERR,"Missing '>'");
+				goto bail;
+			}
 			char* arg = get_next_arg(line,&line);
 			char* arg2 = get_next_arg(line,&line);
 			if(!arg) {
 				syslog(LOG_ERR,"Config option \"%s\" requires an argument.",cmd);
 				goto bail;
 			}
-			// Fix trailing '>'
-			if(!arg2 && arg[strlen(arg)-1]=='>') {
-				arg[strlen(arg)-1]=0;
-			}
+
 			smcp_node_t next_node = smcp_node_find(node,arg,strlen(arg));
-			if(!next_node) next_node = smcp_node_init(NULL,node,arg2);
-			node = next_node;
+
+			if(arg2) {
+				if(strcaseequal(arg2,"timer")) {
+					if(!next_node) next_node = smcp_timer_node_init(NULL,node,strdup(arg));
+				} else {
+					syslog(LOG_ERR,"Unknown node type \"%s\".",arg2);
+					goto bail;
+				}
+			} else {
+				if(!next_node) next_node = smcp_node_init(NULL,node,strdup(arg));
+			}
+
+			if(!next_node || next_node->parent!=node) {
+				syslog(LOG_ERR,"Node creation failed for node \"%s\"",arg);
+				goto bail;
+			} else {
+				syslog(LOG_DEBUG,"Created node \"%s\".",arg);
+				node = next_node;
+			}
 		} else if(strcaseequal(cmd,"</node>")) {
 			if(!node->parent) {
 				syslog(LOG_ERR,"Unmatched \"%s\".",cmd);
@@ -193,6 +218,8 @@ main(
 
 	gPreviousHandlerForSIGINT = signal(SIGINT, &signal_SIGINT);
 	signal(SIGHUP, &signal_SIGHUP);
+
+	srandom(time(NULL));
 
 	if(argc && argv[0][0])
 		gProcessName = basename(argv[0]);

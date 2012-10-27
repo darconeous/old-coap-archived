@@ -33,7 +33,7 @@
 
 
 #ifndef SMCP_FUNC_RANDOM_UINT32
-#ifdef __APPLE__
+#if defined(__APPLE__)
 #define SMCP_FUNC_RANDOM_UINT32()   arc4random()
 #elif CONTIKI
 #define SMCP_FUNC_RANDOM_UINT32() \
