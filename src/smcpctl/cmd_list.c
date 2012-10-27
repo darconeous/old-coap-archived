@@ -114,9 +114,38 @@ list_response_handler(
 		size_t next_len;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
-			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
-				next_value = value;
-				next_len = value_len;
+//			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
+//				next_value = value;
+//				next_len = value_len;
+//			}
+			if(key == COAP_HEADER_BLOCK1 && value_len) {
+				static uint8_t tmp[5];
+				next_len = value_len<3?value_len:3;
+				memcpy(tmp,value,next_len);
+				if(tmp[next_len-1]&(1<<3)) {
+					uint32_t block = 0;
+					if(next_len==1)
+						block = (tmp[0]>>4);
+					else if(next_len==2)
+						block = (tmp[0]<<4)+(tmp[1]>>4);
+					else if(next_len==3)
+						block = (tmp[1]<<12)+(tmp[1]<<4)+(tmp[2]>>4);
+
+					block++;
+
+					if(next_len==1) {
+						tmp[0] = (tmp[0]&0xf)| ((block&0xf)<<4);
+					} else if(next_len==2) {
+						tmp[0] = ((block>>4)&0xf);
+						tmp[1] = (tmp[1]&0xf)| ((block&0xf)<<4);
+					} else if(next_len==3) {
+						tmp[0] = ((block>>12)&0xf);
+						tmp[1] = ((block>>4)&0xf);
+						tmp[2] = (tmp[2]&0xf)| ((block&0xf)<<4);
+					}
+
+					next_value = tmp;
+				}
 			}
 		}
 
@@ -152,7 +181,7 @@ list_response_handler(
 
 					// Skip past any arguments
 					if(iter && *iter == ';') {
-						while((iter < end)) {
+						while(iter && (iter < end)) {
 							char* key;
 							char* value;
 							char endchar;
@@ -164,6 +193,8 @@ list_response_handler(
 							if(*iter == '"') {
 								iter++;
 								value = strsep(&iter, "\"");
+								if(!iter)
+									break;
 								endchar = *iter++;
 							} else {
 								value = iter;
@@ -297,7 +328,7 @@ resend_list_request(void* context) {
 
 	if(next_len != ((size_t)(-1))) {
 		status = smcp_outbound_add_option(
-			COAP_HEADER_CONTINUATION_RESPONSE,
+			COAP_HEADER_BLOCK1,
 			next_data,
 			next_len
 		);

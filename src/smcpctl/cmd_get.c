@@ -50,7 +50,7 @@ static const char *url_data;
 static char next_data[128];
 static size_t next_len = ((size_t)(-1));
 static int redirect_count;
-
+static coap_transaction_id_t tokenid;
 
 
 static void
@@ -86,14 +86,41 @@ get_response_handler(int statuscode, void* context) {
 		size_t next_len;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
-			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
-				next_value = value;
-				next_len = value_len;
+			if(key == COAP_HEADER_BLOCK1 && value_len) {
+				static uint8_t tmp[5];
+				next_len = value_len<3?value_len:3;
+				memcpy(tmp,value,next_len);
+				if(tmp[next_len-1]&(1<<3)) {
+					uint32_t block = 0;
+					if(next_len==1)
+						block = (tmp[0]>>4);
+					else if(next_len==2)
+						block = (tmp[0]<<4)+(tmp[1]>>4);
+					else if(next_len==3)
+						block = (tmp[1]<<12)+(tmp[1]<<4)+(tmp[2]>>4);
+
+					block++;
+
+					if(next_len==1) {
+						tmp[0] = (tmp[0]&0xf)| ((block&0xf)<<4);
+					} else if(next_len==2) {
+						tmp[0] = ((block>>4)&0xf);
+						tmp[1] = (tmp[1]&0xf)| ((block&0xf)<<4);
+					} else if(next_len==3) {
+						tmp[0] = ((block>>12)&0xf);
+						tmp[1] = ((block>>4)&0xf);
+						tmp[2] = (tmp[2]&0xf)| ((block&0xf)<<4);
+					}
+
+					next_value = tmp;
+				}
 			}
 		}
 
 		fwrite(content, content_length, 1, stdout);
 		if(next_value) {
+
+
 			require(send_get_request(self, (const char*)context,
 					(const char*)next_value, next_len), bail);
 			fflush(stdout);
@@ -120,9 +147,12 @@ resend_get_request(void* context) {
 	status = smcp_outbound_set_uri(url_data, 0);
 	require_noerr(status,bail);
 
+	status = smcp_outbound_add_option(COAP_HEADER_TOKEN, (void*)&tokenid, sizeof(tokenid));
+	require_noerr(status,bail);
+
 	if(next_len != ((size_t)(-1))) {
 		status = smcp_outbound_add_option(
-			COAP_HEADER_CONTINUATION_RESPONSE,
+			COAP_HEADER_BLOCK1,
 			next_data,
 			next_len
 		);
@@ -162,6 +192,9 @@ send_get_request(
 
 	tid = smcp_get_next_tid(smcp,NULL);
 	gRet = ERRORCODE_INPROGRESS;
+
+	if(!next)
+		tokenid = tid;
 
 	retries = 0;
 	url_data = url;

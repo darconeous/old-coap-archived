@@ -298,10 +298,8 @@ coap_option_key_to_cstr(
 
 #if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
 		case COAP_HEADER_MESSAGE_SIZE: ret = "Message-size"; break;
-		case COAP_HEADER_CONTINUATION_REQUEST: ret =
-			    "Continuation-request"; break;
-		case COAP_HEADER_CONTINUATION_REQUIRED: ret =
-			    "Continuation-required"; break;
+		case COAP_HEADER_BLOCK1: ret = "Block1"; break;
+		case COAP_HEADER_BLOCK2: ret = "Block2"; break;
 		case COAP_HEADER_NEXT: ret = "Next"; break;
 #endif
 
@@ -313,8 +311,7 @@ coap_option_key_to_cstr(
 //		case COAP_HEADER_ALLOW: ret = "Allow"; break;
 
 		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
-		case COAP_HEADER_CONTINUATION_RESPONSE: ret =
-			    "Continuation-response"; break;
+//		case COAP_HEADER_CONTINUATION_RESPONSE: ret = "Continuation-response"; break;
 
 		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
 		case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
@@ -403,6 +400,7 @@ http_code_to_cstr(int x) {
 	case HTTP_RESULT_CODE_TEMPORARY_REDIRECT: return "TEMPORARY_REDIRECT";
 		break;
 
+	case HTTP_RESULT_CODE_REQUEST_TIMEOUT: return "REQUEST_TIMEOUT"; break;
 
 	case HTTP_RESULT_CODE_BAD_REQUEST: return "BAD_REQUEST"; break;
 	case HTTP_RESULT_CODE_UNAUTHORIZED: return "UNAUTHORIZED"; break;
