@@ -467,6 +467,8 @@ smcp_handle_inbound_packet(
 				self->inbound.token_option = self->inbound.this_option;
 			} else if(key==COAP_HEADER_CONTENT_TYPE) {
 				self->inbound.content_type = self->inbound.this_option[1];
+			} else if(key==COAP_HEADER_OBSERVE) {
+				self->inbound.has_observe_option = 1;
 			}
 		} while(smcp_inbound_next_option_(NULL,NULL)!=COAP_HEADER_INVALID);
 
@@ -672,6 +674,8 @@ smcp_internal_transaction_timeout_(
 	smcp_response_handler_func callback = handler->callback;
 	void* context = handler->context;
 
+	self->current_transaction = handler;
+
 	if((convert_timeval_to_cms(&handler->expiration) > 0)) {
 		if(handler->waiting_for_async_response) {
 			status = SMCP_STATUS_OK;
@@ -706,6 +710,10 @@ smcp_internal_transaction_timeout_(
 	}
 
 	if(status) {
+		if(handler->flags&SMCP_TRANSACTION_OBSERVE) {
+			// If we are an observing transaction, we need to clean up
+			// first. TODO: Implement this!
+		}
 		if(callback) {
 			handler->callback = NULL;
 			smcp_invalidate_transaction(self, handler->tid);
@@ -717,6 +725,8 @@ smcp_internal_transaction_timeout_(
 			smcp_invalidate_transaction(self, handler->tid);
 		}
 	}
+
+	self->current_transaction = NULL;
 }
 
 smcp_status_t
@@ -975,7 +985,7 @@ smcp_handle_response(
 	// TODO: Make sure this packet didn't originate from multicast.
 
 	if(!handler) {
-		if(self->inbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
+		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {
 			// We don't know what they are talking
 			// about, so send them a reset so that they
 			// will shut up.
@@ -996,22 +1006,52 @@ smcp_handle_response(
 		DEBUG_PRINTF("Inbound: Async Response");
 		handler->waiting_for_async_response = true;
 	} else if(handler->callback) {
-		if(handler->flags & SMCP_TRANSACTION_ALWAYS_TIMEOUT) {
-			handler->resendCallback = NULL;
+		if(handler->flags & SMCP_TRANSACTION_OBSERVE) {
 			(*handler->callback)(
 				self->inbound.packet->code,
 				handler->context
 			);
-		} else {
-			smcp_response_handler_func callback = handler->callback;
-			handler->resendCallback = NULL;
-			handler->callback = NULL;
-			(*callback)(
-			    self->inbound.packet->code,
-			    handler->context
+
+			if(self->inbound.has_observe_option) {
+				handler->waiting_for_async_response = true;
+			}
+
+			handler->attemptCount = 0;
+			handler->timer.cancel = NULL;
+			smcp_invalidate_timer(self, &handler->timer);
+			cms_t cms = convert_timeval_to_cms(&handler->expiration);
+			if(cms>10*1000)
+				cms = 10*1000; // TODO: Calculate this from max-age
+			smcp_schedule_timer(
+				self,
+				smcp_timer_init(
+					&handler->timer,
+					(smcp_timer_callback_t)&smcp_internal_transaction_timeout_,
+					NULL,
+					handler
+				),
+				cms
 			);
+		} else {
+			if(handler->flags & SMCP_TRANSACTION_ALWAYS_TIMEOUT) {
+				if(!(handler->flags & SMCP_TRANSACTION_OBSERVE)) {
+					handler->resendCallback = NULL;
+				}
+				(*handler->callback)(
+					self->inbound.packet->code,
+					handler->context
+				);
+			} else {
+				smcp_response_handler_func callback = handler->callback;
+				handler->resendCallback = NULL;
+				handler->callback = NULL;
+				(*callback)(
+					self->inbound.packet->code,
+					handler->context
+				);
+			}
+			smcp_invalidate_transaction(self, tid);
 		}
-		smcp_invalidate_transaction(self, tid);
 	}
 
 bail:

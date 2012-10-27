@@ -290,8 +290,8 @@ coap_option_key_to_cstr(
 		case COAP_HEADER_LOCATION_QUERY: ret = "Location-query"; break;
 
 		case COAP_HEADER_ACCEPT: ret = "Accept"; break;
-		case COAP_HEADER_SUBSCRIPTION_LIFETIME: ret =
-			    "Subscription-lifetime"; break;
+		case COAP_HEADER_OBSERVE: ret =
+			    "Observe"; break;
 		case COAP_HEADER_TOKEN: ret = "Token"; break;
 
 /* -- EXPERIMENTAL AFTER THIS POINT -- */

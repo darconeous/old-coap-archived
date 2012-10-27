@@ -25,6 +25,9 @@ static arg_list_item_t option_list[] = {
 	{ 'h', "help",	  NULL, "Print Help"				},
 	{ 'i', "include", NULL, "include headers in output" },
 	{ 'f', "follow",  NULL, "follow redirects"			},
+	{ 'O', "observe",  NULL, "Observe changes"			},
+	{ 0  , "timeout",  "seconds", "Change timeout period (Default: 30 Seconds)" },
+
 	{ 0 }
 };
 
@@ -33,8 +36,9 @@ typedef void (*sig_t)(int);
 static int gRet;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
-static bool get_show_headers;
+static bool get_show_headers, get_observe;
 static uint16_t size_request;
+static cms_t get_timeout;
 
 static void
 signal_interrupt(int sig) {
@@ -70,13 +74,23 @@ get_response_handler(int statuscode, void* context) {
 		);
 	}
 
-	if(((statuscode < COAP_RESULT_200) ||
-	            (statuscode >= COAP_RESULT_400)) &&
-	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED) &&
-	        (statuscode != HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_PARTIAL_CONTENT)))
-		fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
-			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : coap_code_to_cstr(statuscode));
+	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
+		gRet = 0;
+	}
+
+	if(	((statuscode < COAP_RESULT_200) ||(statuscode >= COAP_RESULT_400))
+		&& (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED)
+		&& (statuscode != HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_PARTIAL_CONTENT))
+	) {
+		if(get_observe && statuscode == SMCP_STATUS_TIMEOUT) {
+			gRet = 0;
+		} else {
+			gRet = (statuscode == SMCP_STATUS_TIMEOUT)?ERRORCODE_TIMEOUT:ERRORCODE_COAP_ERROR;
+			fprintf(stderr, "get: Result code = %d (%s)\n", statuscode,
+					(statuscode < 0) ? smcp_status_to_cstr(
+					statuscode) : coap_code_to_cstr(statuscode));
+		}
+	}
 
 	if(content && content_length) {
 		coap_option_key_t key;
@@ -132,7 +146,7 @@ get_response_handler(int statuscode, void* context) {
 	}
 
 bail:
-	if(gRet == ERRORCODE_INPROGRESS)
+	if(!get_observe && gRet == ERRORCODE_INPROGRESS)
 		gRet = 0;
 	return;
 }
@@ -208,8 +222,8 @@ send_get_request(
 	status = smcp_begin_transaction(
 		smcp,
 		tid,
-		30*1000,	// Retry for thirty seconds.
-		0, // Flags
+		get_timeout,
+		get_observe?(SMCP_TRANSACTION_OBSERVE|SMCP_TRANSACTION_ALWAYS_TIMEOUT):0, // Flags
 		(void*)&resend_get_request,
 		(void*)&get_response_handler,
 		(void*)url_data
@@ -245,13 +259,21 @@ tool_cmd_get(
 	get_show_headers = false;
 	redirect_count = 0;
 	size_request = 0;
+	get_observe = false;
+	get_timeout = 30*1000; // Default timeout is 30 seconds.
+
+	if(strcmp(argv[0],"observe")==0 || strcmp(argv[0],"obs")==0) {
+		get_observe = true;
+		get_timeout = CMS_DISTANT_FUTURE;
+	}
 
 	BEGIN_LONG_ARGUMENTS(gRet)
 	HANDLE_LONG_ARGUMENT("include") get_show_headers = true;
 	HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
 	HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
-	HANDLE_LONG_ARGUMENT("slice-size") size_request =
-	    htons(strtol(argv[++i], NULL, 0));
+	HANDLE_LONG_ARGUMENT("slice-size") size_request = htons(strtol(argv[++i], NULL, 0));
+	HANDLE_LONG_ARGUMENT("timeout") get_timeout = 1000*strtof(argv[++i], NULL);
+	HANDLE_LONG_ARGUMENT("observe") get_observe = true;
 
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");
@@ -261,6 +283,7 @@ tool_cmd_get(
 	BEGIN_SHORT_ARGUMENTS(gRet)
 	HANDLE_SHORT_ARGUMENT('i') get_show_headers = true;
 	HANDLE_SHORT_ARGUMENT('f') redirect_count = 10;
+	HANDLE_SHORT_ARGUMENT('O') get_observe = true;
 
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");

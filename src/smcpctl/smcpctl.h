@@ -19,6 +19,8 @@
 #define ERRORCODE_NOREADLINE    (6)
 #define ERRORCODE_QUIT          (7)
 #define ERRORCODE_INTERRUPT     (8)
+#define ERRORCODE_TIMEOUT       (9)
+#define ERRORCODE_COAP_ERROR    (10)
 
 
 #define ERRORCODE_INPROGRESS    (127)

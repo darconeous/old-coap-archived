@@ -261,15 +261,31 @@ smcp_outbound_add_headers_up_to_key_(
 			&& self->is_responding
 			&& self->inbound.token_option
 		) {
+			// For sending a response.
 			const uint8_t* value;
 			size_t len;
 			coap_decode_option(self->inbound.token_option, NULL, &value, &len);
 			return smcp_outbound_add_header_(COAP_HEADER_TOKEN,(void*)value,len);
 		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
+			// For sending a request.
 			return smcp_outbound_add_header_(
 				COAP_HEADER_TOKEN,
 				(void*)&self->outbound.packet->tid,
 				sizeof(self->outbound.packet->tid)
+			);
+		}
+	}
+	if(	(self->current_transaction && self->current_transaction->flags&SMCP_TRANSACTION_OBSERVE)
+		&& self->outbound.last_option_key<COAP_HEADER_OBSERVE
+		&& key>COAP_HEADER_OBSERVE
+	) {
+		if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
+			// For sending a request.
+			uint8_t zero = 0;
+			return smcp_outbound_add_header_(
+				COAP_HEADER_OBSERVE,
+				(void*)&zero,
+				1
 			);
 		}
 	}

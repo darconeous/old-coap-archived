@@ -88,6 +88,7 @@ struct smcp_s {
 	smcp_timer_t			timers;
 
 	smcp_transaction_t		transactions;
+	smcp_transaction_t		current_transaction;
 
 #if SMCP_USE_CASCADE_COUNT
 	uint8_t					cascade_count;
@@ -118,7 +119,8 @@ struct smcp_s {
 //		coap_transaction_id_t	last_tid;
 
 		uint8_t					was_sent_to_multicast:1,
-								is_fake:1;
+								is_fake:1,
+								has_observe_option:1;
 #if SMCP_USE_BSD_SOCKETS
 		struct sockaddr*		saddr;
 		socklen_t				socklen;

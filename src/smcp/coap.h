@@ -174,7 +174,7 @@ typedef enum {
 	COAP_HEADER_LOCATION_QUERY = 8,                 //!< draft-bormann-coap-misc-06
 	COAP_HEADER_URI_PATH = 9,
 
-	COAP_HEADER_SUBSCRIPTION_LIFETIME = 10, //!< draft-ietf-core-observe
+	COAP_HEADER_OBSERVE = 10, //!< draft-ietf-core-observe
 
 	COAP_HEADER_TOKEN = 11,
 	COAP_HEADER_ACCEPT = 12,

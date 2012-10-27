@@ -111,10 +111,18 @@ struct {
 } commandList[] = {
 	{
 		"get",
-		"Fetches the value of a variable.",
+		"Fetches the value of a resource.",
 		&tool_cmd_get
 	},
 	{ "cat", NULL,
+	  &tool_cmd_get,
+	  1 },
+	{
+		"observe",
+		"observes changes in the value of a resource.",
+		&tool_cmd_get
+	},
+	{ "obs", NULL,
 	  &tool_cmd_get,
 	  1 },
 	{

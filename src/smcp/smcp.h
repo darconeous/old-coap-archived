@@ -111,10 +111,13 @@ typedef struct smcp_node_s *smcp_node_t;
 
 enum {
 	SMCP_TRANSACTION_ALWAYS_TIMEOUT = (1 << 0),
+	SMCP_TRANSACTION_OBSERVE = (1 << 1),
 	SMCP_TRANSACTION_DELAY_START = (1 << 8),
 };
 
 typedef int32_t cms_t;
+
+#define CMS_DISTANT_FUTURE		(cms_t)((1<<(8*sizeof(cms_t)-1))-1)
 
 typedef void (*smcp_response_handler_func)(
 	int statuscode,
