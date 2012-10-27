@@ -11,6 +11,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <libgen.h>
+#include <time.h>
 
 #if !HAVE_FGETLN
 #include <missing/fgetln.h>
@@ -332,10 +333,12 @@ static char* get_current_prompt() {
 void process_input_readline(char *l) {
 	process_input_line(l);
 	if(istty) {
-		if(gRet==ERRORCODE_QUIT)
+		if(gRet==ERRORCODE_QUIT) {
 			rl_set_prompt("");
-		else
-			rl_set_prompt(get_current_prompt());
+		} else {
+			rl_callback_handler_install(get_current_prompt(), &process_input_readline);
+			//rl_set_prompt(get_current_prompt());
+		}
 	}
 }
 #endif
@@ -543,7 +546,6 @@ initialize_readline() {
 	using_history();
 	read_history(getenv("SMCP_HISTORY_FILE"));
 	rl_instream = stdin;
-
 
 	rl_callback_handler_install(get_current_prompt(), &process_input_readline);
 
