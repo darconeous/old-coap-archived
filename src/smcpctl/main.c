@@ -454,7 +454,7 @@ smcp_directory_generator(
 				free(cmdline);
 			} else {
 				if(strequal_const(prefix, ".well-known"))
-					fprintf(temp_file,".well-known/core\n");
+					fprintf(temp_file,"core/\n");
 			}
 		}
 
@@ -464,8 +464,11 @@ smcp_directory_generator(
 
 	require(temp_file!=NULL,bail);
 
-	while ((name = fgetln(temp_file, &namelen)) && (namelen>len))
+	while ((name = fgetln(temp_file, &namelen)))
 	{
+		if(namelen<len)
+			continue;
+		//fprintf(stderr,"\n[candidate=\"%s\" namelen=%d] ",name,namelen);
 		if(url_is_root(getenv("SMCP_CURRENT_PATH")) && strequal_const(prefix,".")) {
 			while(name[0]=='/') {
 				name++;
@@ -473,8 +476,8 @@ smcp_directory_generator(
 			}
 		}
 		if (strncmp (name, fragment, len) == 0) {
-			while(namelen && isspace(name[namelen])) { namelen--; }
-			namelen--;
+			while(namelen && isspace(name[namelen-1])) { namelen--; }
+			//namelen--;
 			if(name[namelen-1]=='/')
 				rl_completion_append_character = 0;
 
