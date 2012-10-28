@@ -1012,16 +1012,21 @@ smcp_handle_response(
 				handler->context
 			);
 
-			if(self->inbound.has_observe_option) {
-				handler->waiting_for_async_response = true;
-			}
+			//if(self->inbound.has_observe_option) {
+			//	handler->waiting_for_async_response = true;
+			//}
 
 			handler->attemptCount = 0;
 			handler->timer.cancel = NULL;
 			smcp_invalidate_timer(self, &handler->timer);
 			cms_t cms = convert_timeval_to_cms(&handler->expiration);
-			if(cms>10*1000)
+			if(cms>61*1000) {
+				cms = 61*1000; // TODO: Calculate this from max-age
+			}
+
+			if(self->inbound.has_observe_option && cms>10*1000) {
 				cms = 10*1000; // TODO: Calculate this from max-age
+			}
 			smcp_schedule_timer(
 				self,
 				smcp_timer_init(
