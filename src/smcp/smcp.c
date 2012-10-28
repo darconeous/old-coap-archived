@@ -864,7 +864,7 @@ smcp_handle_request(
 	smcp_node_t node = smcp_get_root_node(self);
 	smcp_inbound_handler_func request_handler = &smcp_default_request_handler;
 
-	// TODO: Add authentication!
+	// TODO: Add authentication here!
 
 	{
 		const uint8_t* prev_option_ptr = self->inbound.this_option;
@@ -1008,7 +1008,7 @@ smcp_handle_response(
 	} else if(handler->callback) {
 		if(handler->flags & SMCP_TRANSACTION_OBSERVE) {
 			(*handler->callback)(
-				self->inbound.packet->code,
+				self->inbound.packet->tt==COAP_TRANS_TYPE_RESET?SMCP_STATUS_RESET:self->inbound.packet->code,
 				handler->context
 			);
 
@@ -1038,7 +1038,7 @@ smcp_handle_response(
 					handler->resendCallback = NULL;
 				}
 				(*handler->callback)(
-					self->inbound.packet->code,
+					self->inbound.packet->tt==COAP_TRANS_TYPE_RESET?SMCP_STATUS_RESET:self->inbound.packet->code,
 					handler->context
 				);
 			} else {
@@ -1046,7 +1046,7 @@ smcp_handle_response(
 				handler->resendCallback = NULL;
 				handler->callback = NULL;
 				(*callback)(
-					self->inbound.packet->code,
+					self->inbound.packet->tt==COAP_TRANS_TYPE_RESET?SMCP_STATUS_RESET:self->inbound.packet->code,
 					handler->context
 				);
 			}
@@ -1082,26 +1082,28 @@ bail:
 }
 
 smcp_status_t
-smcp_start_async_response(struct smcp_async_response_s* x) {
+smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 	smcp_status_t ret = 0;
 	smcp_t const self = smcp_get_current_instance();
 
-	require_action(x!=NULL,bail,ret=SMCP_STATUS_INVALID_ARGUMENT);
+	require_action_string(x!=NULL,bail,ret=SMCP_STATUS_INVALID_ARGUMENT,"NULL async_response arg");
 
-	// Fake inbound packets are created to tickle
-	// content out of nodes by the pairing system.
-	// Since we are asynchronous, this clearly isn't
-	// going to work. Support for this will have to
-	// come in the future.
-	require_action(!self->inbound.is_fake,bail,ret = SMCP_STATUS_NOT_IMPLEMENTED);
+	if(!(flags & SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK)) {
+		// Fake inbound packets are created to tickle
+		// content out of nodes by the pairing system.
+		// Since we are asynchronous, this clearly isn't
+		// going to work. Support for this will have to
+		// come in the future.
+		require_action(!self->inbound.is_fake,bail,ret = SMCP_STATUS_NOT_IMPLEMENTED);
 
-	ret = smcp_outbound_begin_response(COAP_CODE_EMPTY);
+		ret = smcp_outbound_begin_response(COAP_CODE_EMPTY);
 
-	require_noerr(ret, bail);
+		require_noerr(ret, bail);
 
-	ret = smcp_outbound_send();
+		ret = smcp_outbound_send();
 
-	require_noerr(ret, bail);
+		require_noerr(ret, bail);
+	}
 
 	// TODO: Make duplicate detection better!
 	if(x->original_tid && x->original_tid == self->inbound.packet->tid) {

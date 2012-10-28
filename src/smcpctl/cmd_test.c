@@ -201,7 +201,7 @@ async_request_handler(
 ) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	if(method==COAP_METHOD_GET) {
-		ret = smcp_start_async_response(&async_response);
+		ret = smcp_start_async_response(&async_response,0);
 		if(ret==SMCP_STATUS_DUPE) {
 			printf("  ** Dupe, already preparing async response.\n");
 		} else if(!ret) {

@@ -81,6 +81,138 @@ smcp_pairing_path_request_handler(
 	smcp_method_t	method
 );
 
+static char* smcp_inbound_get_path(char* where) {
+	smcp_t const self = smcp_get_current_instance();
+
+	coap_option_key_t		last_option_key = self->inbound.last_option_key;
+	const uint8_t*			this_option = self->inbound.this_option;
+	uint8_t					options_left = self->inbound.options_left;
+
+	char* filename;
+	size_t filename_len;
+	coap_option_key_t key;
+	char* iter;
+
+	if(!where)
+		where = calloc(1,SMCP_MAX_URI_LENGTH+1);
+
+	iter = where;
+
+	smcp_inbound_reset_next_option();
+
+	while((key = smcp_inbound_peek_option(NULL,NULL))!=COAP_HEADER_URI_PATH
+		&& key!=COAP_HEADER_INVALID
+	) {
+		smcp_inbound_next_option(NULL,NULL);
+	}
+
+	while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_HEADER_URI_PATH) {
+		char old_end = filename[filename_len];
+		if(iter!=where)
+			*iter++='/';
+		filename[filename_len] = 0;
+		iter+=url_encode_cstr(iter, filename, (iter-where)+SMCP_MAX_URI_LENGTH);
+		filename[filename_len] = old_end;
+	}
+	*iter = 0;
+
+	self->inbound.last_option_key = last_option_key;
+	self->inbound.this_option = this_option;
+	self->inbound.options_left = options_left;
+	return where;
+}
+
+smcp_status_t
+smcp_pair_inbound_observe_update() {
+	smcp_status_t ret = SMCP_STATUS_OK;
+	smcp_t const self = smcp_get_current_instance();
+
+	if(self->inbound.has_observe_option) {
+		const char* path = NULL;
+		char* uri = NULL;
+		smcp_node_t path_node = NULL;
+		smcp_pairing_node_t pairing = NULL;
+
+		if(self->inbound.is_fake) {
+			return 0;
+		}
+
+		ret = smcp_outbound_add_option(
+			COAP_HEADER_OBSERVE,
+			NULL,
+			0
+		);
+
+		require_string(ret==0, bail, smcp_status_to_cstr(ret));
+
+		path = smcp_inbound_get_path(NULL);
+		require_action_string(path && path[0], bail, ret = SMCP_STATUS_INVALID_ARGUMENT,"Trying to observe bad path");
+
+		DEBUG_PRINTF("Adding observer to \"%s\" . . .",path);
+
+		while(path[0] == '/' && path[1] != 0) path++;
+
+		path_node = smcp_node_find(
+			self->root_pairing_node,
+			path,
+			strlen(path)
+		);
+
+		if(!path_node) {
+			DEBUG_PRINTF("Can't find existing node for \"%s\", Making a new one . . .",path);
+			path_node = smcp_node_alloc();
+			require_action(path_node!=NULL, bail, ret = SMCP_STATUS_MALLOC_FAILURE);
+			path_node = smcp_node_init(path_node, self->root_pairing_node, path);
+			path_node->request_handler = &smcp_pairing_path_request_handler;
+		} else {
+			DEBUG_PRINTF("Found existing node (%s), usng it.",path_node->name);
+			free((void*)path);
+			path = path_node->name;
+		}
+
+		require_action(path_node!=NULL, bail, ret = SMCP_STATUS_FAILURE);
+
+		pairing = calloc(1, sizeof(*pairing));
+		require_action(pairing, bail, ret = SMCP_STATUS_MALLOC_FAILURE);
+
+		ret = smcp_start_async_response(&pairing->async_response,SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK);
+		require_string(ret==0,bail,smcp_status_to_cstr(ret));
+
+		{
+			char token_str[COAP_MAX_TOKEN_SIZE*2+1];
+			int i;
+			for(i=0;i<pairing->async_response.token_len;i++)
+				sprintf(token_str+i*2,"%02x",pairing->async_response.token_value[i]);
+			asprintf(&uri,"observer-%s",token_str);
+		}
+		DEBUG_PRINTF("\"%s\" -> \"%s\"",path,uri);
+
+		pairing = (void*)smcp_variable_node_init(&pairing->node, path_node, uri);
+
+		require_action(pairing!=NULL,bail,ret = SMCP_STATUS_FAILURE);
+
+
+		pairing->node.node.request_handler = (smcp_inbound_handler_func)&smcp_pairing_node_request_handler;
+		pairing->node.func = (smcp_variable_node_func)&smcp_pairing_node_variable_func;
+
+		pairing->flags = SMCP_PARING_FLAG_OBSERVE|SMCP_PARING_FLAG_RELIABILITY_ASAP|SMCP_PARING_FLAG_RELIABILITY_ASAP;
+
+#if SMCP_CONF_USE_SEQ
+#if DEBUG
+		pairing->seq = pairing->ack = 0;
+#else
+		pairing->seq = pairing->ack = SMCP_FUNC_RANDOM_UINT32();
+#endif
+		assert(pairing->seq == pairing->ack);
+#endif
+	} else {
+		// Look up and remove the pairing if it exists.
+	}
+
+bail:
+	return ret;
+}
+
 smcp_status_t
 smcp_pair_with_sockaddr(
 	smcp_t	self,
@@ -326,13 +458,22 @@ smcp_event_response_handler(
 			);
 		}
 		if(statuscode && ((statuscode < 200) || (statuscode >= 300))) {
-			// Looks like we failed to live up to this pairing.
-			pairing->errors++;
-			smcp_trigger_event_with_node(
-				smcp_get_current_instance(),
-				&pairing->node.node,
-				"ec"
-			);
+			if(pairing->flags & SMCP_PARING_FLAG_OBSERVE) {
+				// expire the event.
+				smcp_event_tracker_t event = pairing->currentEvent;
+				pairing->currentEvent = NULL;
+				smcp_event_tracker_release(event);
+				smcp_delete_pairing(pairing);
+				return;
+			} else {
+				// Looks like we failed to live up to this pairing.
+				pairing->errors++;
+				smcp_trigger_event_with_node(
+					smcp_get_current_instance(),
+					&pairing->node.node,
+					"ec"
+				);
+			}
 		}
 	}
 #endif
@@ -354,51 +495,65 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	char* original_path = NULL;
 	struct coap_header_s* packet;
 
-	status = smcp_outbound_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
-	require_noerr(status,bail);
+	if(pairing->flags & SMCP_PARING_FLAG_OBSERVE) {
+		status = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+		require_noerr(status,bail);
 
-	self->is_responding = true;
-	self->force_current_outbound_code = true;
+		status = smcp_outbound_add_option(
+			COAP_HEADER_OBSERVE,
+			NULL,
+			0
+		);
+		status = smcp_outbound_set_async_response(&pairing->async_response);
+
+		self->inbound.has_observe_option = true;
+		self->is_responding = true;
+		self->force_current_outbound_code = true;
+	} else {
+		status = smcp_outbound_begin(self,COAP_METHOD_POST,COAP_TRANS_TYPE_CONFIRMABLE);
+		require_noerr(status,bail);
+		self->is_responding = true;
+		self->force_current_outbound_code = true;
 
 #if SMCP_USE_BSD_SOCKETS
-	if(((struct sockaddr*)&pairing->saddr)->sa_family)
-		status = smcp_outbound_set_destaddr((struct sockaddr*)&pairing->saddr, sizeof(pairing->saddr));
+		if(((struct sockaddr*)&pairing->saddr)->sa_family)
+			status = smcp_outbound_set_destaddr((struct sockaddr*)&pairing->saddr, sizeof(pairing->saddr));
 #elif CONTIKI
-	if(pairing->toport)
-		status = smcp_outbound_set_destaddr(&pairing->toaddr,pairing->toport);
+		if(pairing->toport)
+			status = smcp_outbound_set_destaddr(&pairing->toaddr,pairing->toport);
 #endif
-	require_noerr(status,bail);
+		require_noerr(status,bail);
 
-	status = smcp_outbound_set_uri(smcp_pairing_get_uri_cstr(pairing),0);
-	require_noerr(status,bail);
+		status = smcp_outbound_set_uri(smcp_pairing_get_uri_cstr(pairing),0);
+		require_noerr(status,bail);
 
-	status = smcp_outbound_add_option(
-		SMCP_HEADER_ORIGIN,
-		smcp_pairing_get_path_cstr(pairing),
-		HEADER_CSTR_LEN
-	);
-
-	require_noerr(status,bail);
+		status = smcp_outbound_add_option(
+			SMCP_HEADER_ORIGIN,
+			smcp_pairing_get_path_cstr(pairing),
+			HEADER_CSTR_LEN
+		);
+		require_noerr(status,bail);
 
 #if SMCP_CONF_USE_SEQ
-	char cseq[24];
+		char cseq[24];
 #if __AVR__
-	snprintf_P(
-		cseq,
-		sizeof(cseq),
-		PSTR("%lX POST"),
-		(long unsigned int)pairing->seq
-	);
+		snprintf_P(
+			cseq,
+			sizeof(cseq),
+			PSTR("%lX POST"),
+			(long unsigned int)pairing->seq
+		);
 #else
-	snprintf(cseq,
-		sizeof(cseq),
-		"%lX POST",
-		(long unsigned int)pairing->seq
-	);
+		snprintf(cseq,
+			sizeof(cseq),
+			"%lX POST",
+			(long unsigned int)pairing->seq
+		);
 #endif
-	status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
-	require_noerr(status,bail);
+		status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
+		require_noerr(status,bail);
 #endif
+	}
 
 #if HAS_ALLOCA
 	packet = alloca(4+strlen(smcp_pairing_get_path_cstr(pairing))+5);
@@ -716,6 +871,12 @@ bail:
 extern smcp_status_t
 smcp_delete_pairing(smcp_pairing_node_t pairing) {
 	smcp_node_t parent = (smcp_node_t)pairing->node.node.parent;
+
+	DEBUG_PRINTF("Deleting pairing \"%s\"",pairing->node.node.name);
+
+	if(pairing->flags&SMCP_PARING_FLAG_OBSERVE)
+		smcp_finish_async_response(&pairing->async_response);
+
 	if(pairing->currentEvent) {
 		smcp_t const self = (smcp_t)smcp_node_get_root(&pairing->node.node);
 		smcp_event_tracker_release(pairing->currentEvent);

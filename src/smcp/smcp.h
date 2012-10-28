@@ -299,9 +299,6 @@ extern smcp_status_t smcp_outbound_send();
 #pragma mark Asynchronous response support API
 
 struct smcp_async_response_s {
-	coap_transaction_id_t original_tid;
-	coap_transaction_type_t tt;
-
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6		saddr;
 	socklen_t				socklen;
@@ -310,13 +307,16 @@ struct smcp_async_response_s {
 	uint16_t				toport;	// Always in network order.
 #endif
 
+	coap_transaction_id_t original_tid;
+	coap_transaction_type_t tt;
+
 	uint8_t token_len;
 	uint8_t token_value[COAP_MAX_TOKEN_SIZE];
 };
 
 typedef struct smcp_async_response_s* smcp_async_response_t;
 
-extern smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x);
+extern smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,int flags);
 
 extern smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
 

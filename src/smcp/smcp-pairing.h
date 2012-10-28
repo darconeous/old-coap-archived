@@ -84,6 +84,11 @@ enum {
 	**	          non-volatile storage.
 	*/
 	SMCP_PARING_FLAG_TEMPORARY = (1 << 2),
+
+	/*!	@enum SMCP_PARING_FLAG_OBSERVE
+	**	@abstract This is an observation-style pairing.
+	*/
+	SMCP_PARING_FLAG_OBSERVE = (1 << 3),
 };
 
 
@@ -118,6 +123,7 @@ struct smcp_pairing_node_s {
 	uint8_t				flags;
 
 	coap_transaction_id_t last_tid;
+	uint8_t				token[8];
 
 	smcp_event_tracker_t currentEvent;
 
@@ -126,12 +132,18 @@ struct smcp_pairing_node_s {
 	smcp_pairing_seq_t	ack;
 #endif
 
+	union {
+	struct smcp_async_response_s async_response;
+	struct {
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr;
 #elif CONTIKI
     const uip_ipaddr_t toaddr;
     uint16_t toport;
 #endif
+	};
+	};
+
 
 #if SMCP_CONF_PAIRING_STATS
 	uint16_t			fire_count;
@@ -162,6 +174,8 @@ extern smcp_status_t smcp_pair_with_sockaddr(
 	int				flags,
 	uintptr_t*		idVal
 );
+
+extern smcp_status_t smcp_pair_inbound_observe_update();
 
 extern smcp_status_t smcp_trigger_event(
 	smcp_t self,

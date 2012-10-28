@@ -53,6 +53,8 @@
 extern void smcp_set_current_instance(smcp_t x);
 #endif
 
+#define SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK		(1<<0)
+
 #pragma mark -
 #pragma mark Class Definitions
 

@@ -17,6 +17,13 @@ extern size_t url_encode_cstr(
 	size_t dest_max_size
 );
 
+extern size_t url_encode_str(
+	char *dest,
+	size_t dest_max_size,
+	const char* src,		// Length determined by src_len.
+	size_t src_len
+);
+
 extern size_t url_decode_str(
 	char *dest,
 	size_t dest_max_size,

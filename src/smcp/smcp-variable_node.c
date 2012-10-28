@@ -37,6 +37,7 @@
 #include "url-helpers.h"
 #include "smcp-logging.h"
 #include <stdlib.h>
+#include "smcp-pairing.h"
 
 void
 smcp_variable_node_dealloc(smcp_variable_node_t x) {
@@ -231,9 +232,12 @@ smcp_variable_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-
 			if(reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+#if SMCP_ENABLE_PAIRING
+				ret = smcp_pair_inbound_observe_update();
+				check_string(ret==0,smcp_status_to_cstr(ret));
+#endif
 				replyContent = smcp_outbound_get_content_ptr(&replyContentLength);
 
 				*replyContent++ = 'v';
@@ -246,6 +250,10 @@ smcp_variable_request_handler(
 				);
 				ret = smcp_outbound_set_content_len(replyContentLength+2);
 			} else {
+#if SMCP_ENABLE_PAIRING
+				ret = smcp_pair_inbound_observe_update();
+				check_string(ret==0,smcp_status_to_cstr(ret));
+#endif
 				ret = smcp_outbound_append_content(buffer, HEADER_CSTR_LEN);
 			}
 

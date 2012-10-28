@@ -248,7 +248,7 @@ smcp_curl_proxy_node_request_handler(
 	curl_easy_setopt(request->curl, CURLOPT_WRITEDATA, (void *)request);
 	curl_easy_setopt(request->curl, CURLOPT_USERAGENT, "smcp-curl-proxy/1.0");
 
-	ret = smcp_start_async_response(&request->async_response);
+	ret = smcp_start_async_response(&request->async_response,0);
 	require_noerr(ret,bail);
 
 	if(node->curl_multi_handle)
