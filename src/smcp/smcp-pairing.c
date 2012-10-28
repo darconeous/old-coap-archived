@@ -458,7 +458,11 @@ smcp_event_response_handler(
 			);
 		}
 		if(statuscode && ((statuscode < 200) || (statuscode >= 300))) {
-			if(pairing->flags & SMCP_PARING_FLAG_OBSERVE) {
+			// Looks like we failed to live up to this pairing.
+			pairing->errors++;
+			if(	(pairing->errors>=10 || statuscode==SMCP_STATUS_RESET)
+				&& pairing->flags & SMCP_PARING_FLAG_OBSERVE
+			) {
 				// expire the event.
 				smcp_event_tracker_t event = pairing->currentEvent;
 				pairing->currentEvent = NULL;
@@ -466,8 +470,6 @@ smcp_event_response_handler(
 				smcp_delete_pairing(pairing);
 				return;
 			} else {
-				// Looks like we failed to live up to this pairing.
-				pairing->errors++;
 				smcp_trigger_event_with_node(
 					smcp_get_current_instance(),
 					&pairing->node.node,
