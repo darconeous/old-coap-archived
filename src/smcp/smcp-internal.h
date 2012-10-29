@@ -53,7 +53,6 @@
 extern void smcp_set_current_instance(smcp_t x);
 #endif
 
-#define SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK		(1<<0)
 
 #pragma mark -
 #pragma mark Class Definitions
@@ -118,8 +117,6 @@ struct smcp_s {
 		size_t					content_len;
 		coap_content_type_t		content_type;
 
-//		coap_transaction_id_t	last_tid;
-
 		uint8_t					was_sent_to_multicast:1,
 								is_fake:1,
 								has_observe_option:1;
@@ -156,13 +153,9 @@ struct smcp_s {
 };
 
 
-extern smcp_status_t
-smcp_handle_request(
-	smcp_t	self
-);
-extern smcp_status_t smcp_handle_list(
-	smcp_node_t		node,
-	smcp_method_t	method
-);
+extern smcp_status_t smcp_handle_request(smcp_t	self);
 
-extern smcp_status_t smcp_handle_response(smcp_t	self);
+extern smcp_status_t smcp_handle_response(smcp_t self);
+
+extern smcp_status_t smcp_handle_list(smcp_node_t node,smcp_method_t method);
+

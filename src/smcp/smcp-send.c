@@ -142,14 +142,6 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 	if(self->is_processing_message)
 		smcp_outbound_set_tid(self->inbound.packet->tid);
 
-//	if(self->has_cascade_count) {
-//		ret = smcp_outbound_add_option(
-//			COAP_HEADER_CASCADE_COUNT,
-//			(char*)&self->cascade_count,
-//			1
-//		);
-//	}
-
 	if(self->is_processing_message) {
 #if SMCP_USE_BSD_SOCKETS
 		ret = smcp_outbound_set_destaddr(
@@ -275,6 +267,7 @@ smcp_outbound_add_headers_up_to_key_(
 			);
 		}
 	}
+
 	if(	(self->current_transaction && self->current_transaction->flags&SMCP_TRANSACTION_OBSERVE)
 		&& self->outbound.last_option_key<COAP_HEADER_OBSERVE
 		&& key>COAP_HEADER_OBSERVE
@@ -289,6 +282,19 @@ smcp_outbound_add_headers_up_to_key_(
 			);
 		}
 	}
+
+#if SMCP_USE_CASCADE_COUNT
+	if(	self->outbound.last_option_key<COAP_HEADER_CASCADE_COUNT
+		&& key>COAP_HEADER_CASCADE_COUNT
+		&& self->has_cascade_count
+	) {
+		ret = smcp_outbound_add_header_(
+			COAP_HEADER_CASCADE_COUNT,
+			(char*)&self->cascade_count,
+			1
+		);
+	}
+#endif
 	return SMCP_STATUS_OK;
 }
 

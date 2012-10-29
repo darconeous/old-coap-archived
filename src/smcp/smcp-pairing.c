@@ -679,7 +679,7 @@ smcp_trigger_event(
 		status = smcp_begin_transaction(
 			self,
 			tid,
-			(iter->flags&SMCP_PARING_FLAG_RELIABILITY_MASK)?30000:10,
+			(iter->flags&SMCP_PARING_FLAG_RELIABILITY_MASK)?30000:100,
 			0, // Flags
 			(void*)&smcp_retry_event,
 			(void*)&smcp_event_response_handler,

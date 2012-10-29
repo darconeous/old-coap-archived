@@ -298,6 +298,8 @@ extern smcp_status_t smcp_outbound_send();
 #pragma mark -
 #pragma mark Asynchronous response support API
 
+#define SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK		(1<<0)
+
 struct smcp_async_response_s {
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6		saddr;

@@ -110,6 +110,7 @@
 #define SMCP_CONF_USE_DNS		1
 #endif
 
+//!	Only relevant when SMCP_NO_MALLOC is set.
 #ifndef SMCP_CONF_MAX_TRANSACTIONS
 #define SMCP_CONF_MAX_TRANSACTIONS	4
 #endif
@@ -135,7 +136,7 @@
 #pragma mark - Pairing/Observation Options
 
 #ifndef SMCP_ENABLE_PAIRING
-#define SMCP_ENABLE_PAIRING	1//!defined(__SDCC)
+#define SMCP_ENABLE_PAIRING		1
 #endif
 
 #ifndef SMCP_CONF_PAIRING_STATS
@@ -143,7 +144,7 @@
 #endif
 
 #ifndef SMCP_CONF_USE_SEQ
-#define SMCP_CONF_USE_SEQ !SMCP_EMBEDDED
+#define SMCP_CONF_USE_SEQ		!SMCP_EMBEDDED
 #endif
 
 #ifndef SMCP_PAIRING_DEFAULT_ROOT_PATH
