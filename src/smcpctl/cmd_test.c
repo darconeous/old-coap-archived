@@ -417,7 +417,7 @@ tool_cmd_test(
 	int i;
 	for(i = 0; i < 3000000; i++) {
 #if 1
-		if((i - 1) % 250 == 0) {
+		if((i - 1) % 200 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
 			smcp_trigger_event_with_node(smcp, &device_node.node, "loadavg");
 		}

@@ -449,6 +449,28 @@ smcp_event_response_handler(
 ) {
 #if SMCP_CONF_PAIRING_STATS
 	if(statuscode!=SMCP_STATUS_TRANSACTION_INVALIDATED) {
+		if(statuscode && ((statuscode < COAP_RESULT_200) || (statuscode >= COAP_RESULT_400))) {
+			// Looks like we failed to live up to this pairing.
+			pairing->errors++;
+			if(	(pairing->errors>=10) && pairing->flags & SMCP_PARING_FLAG_OBSERVE ) {
+				DEBUG_PRINTF("Event:%p: Too many errors!\n",pairing);
+				statuscode = SMCP_STATUS_RESET;
+			}
+			if(statuscode==SMCP_STATUS_RESET && pairing->flags & SMCP_PARING_FLAG_OBSERVE) {
+				// expire the event.
+				DEBUG_PRINTF("Event:%p: Pairing RESET.\n",pairing);
+				smcp_event_tracker_t event = pairing->currentEvent;
+				pairing->currentEvent = NULL;
+				smcp_event_tracker_release(event);
+				smcp_delete_pairing(pairing);
+				return;
+			}
+			smcp_trigger_event_with_node(
+				smcp_get_current_instance(),
+				&pairing->node.node,
+				"ec"
+			);
+		}
 		if(pairing->last_error != statuscode) {
 			pairing->last_error = statuscode;
 			smcp_trigger_event_with_node(
@@ -456,26 +478,6 @@ smcp_event_response_handler(
 				&pairing->node.node,
 				"err"
 			);
-		}
-		if(statuscode && ((statuscode < 200) || (statuscode >= 300))) {
-			// Looks like we failed to live up to this pairing.
-			pairing->errors++;
-			if(	(pairing->errors>=10 || statuscode==SMCP_STATUS_RESET)
-				&& pairing->flags & SMCP_PARING_FLAG_OBSERVE
-			) {
-				// expire the event.
-				smcp_event_tracker_t event = pairing->currentEvent;
-				pairing->currentEvent = NULL;
-				smcp_event_tracker_release(event);
-				smcp_delete_pairing(pairing);
-				return;
-			} else {
-				smcp_trigger_event_with_node(
-					smcp_get_current_instance(),
-					&pairing->node.node,
-					"ec"
-				);
-			}
 		}
 	}
 #endif

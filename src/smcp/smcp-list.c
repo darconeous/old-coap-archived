@@ -91,20 +91,20 @@ smcp_handle_list(
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key == COAP_HEADER_URI_QUERY) {
 				// Skip URI query components for now.
-			} else if(key == COAP_HEADER_SIZE_REQUEST) {
-				uint8_t i;
-				content_break_threshold = 0;
-				for(i = 0; i < value_len; i++)
-					content_break_threshold =
-						(content_break_threshold << 8) + value[i];
-				if(content_break_threshold >= sizeof(replyContent)) {
-					DEBUG_PRINTF(
-						"Requested size (%d) is too large, trimming to %d.",
-						(int)content_break_threshold,
-						(int)sizeof(replyContent) - 1
-					);
-					content_break_threshold = sizeof(replyContent) - 1;
-				}
+//			} else if(key == COAP_HEADER_SIZE_REQUEST) {
+//				uint8_t i;
+//				content_break_threshold = 0;
+//				for(i = 0; i < value_len; i++)
+//					content_break_threshold =
+//						(content_break_threshold << 8) + value[i];
+//				if(content_break_threshold >= sizeof(replyContent)) {
+//					DEBUG_PRINTF(
+//						"Requested size (%d) is too large, trimming to %d.",
+//						(int)content_break_threshold,
+//						(int)sizeof(replyContent) - 1
+//					);
+//					content_break_threshold = sizeof(replyContent) - 1;
+//				}
 			} else {
 				if(COAP_HEADER_IS_REQUIRED(key)) {
 					ret=SMCP_STATUS_BAD_OPTION;

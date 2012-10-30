@@ -290,27 +290,30 @@ coap_option_key_to_cstr(
 		case COAP_HEADER_LOCATION_QUERY: ret = "Location-query"; break;
 
 		case COAP_HEADER_ACCEPT: ret = "Accept"; break;
-		case COAP_HEADER_OBSERVE: ret =
-			    "Observe"; break;
+		case COAP_HEADER_OBSERVE: ret = "Observe"; break;
 		case COAP_HEADER_TOKEN: ret = "Token"; break;
+
+		case COAP_HEADER_BLOCK1: ret = "Block1"; break;
+		case COAP_HEADER_BLOCK2: ret = "Block2"; break;
+
+		case COAP_HEADER_09_BLOCK1: ret = "Draft-9-Block1"; break;
+		case COAP_HEADER_09_BLOCK2: ret = "Draft-9-Block2"; break;
 
 /* -- EXPERIMENTAL AFTER THIS POINT -- */
 
-#if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
-		case COAP_HEADER_MESSAGE_SIZE: ret = "Message-size"; break;
-		case COAP_HEADER_BLOCK1: ret = "Block1"; break;
-		case COAP_HEADER_BLOCK2: ret = "Block2"; break;
-		case COAP_HEADER_NEXT: ret = "Next"; break;
-#endif
+//#if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
+//		case COAP_HEADER_MESSAGE_SIZE: ret = "Message-size"; break;
+//		case COAP_HEADER_NEXT: ret = "Next"; break;
+//#endif
 
 
 
 		case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
 		case COAP_HEADER_RANGE: ret = "Range"; break;
-		case COAP_HEADER_BLOCK: ret = "Block"; break;
+//		case COAP_HEADER_BLOCK: ret = "Block"; break;
 //		case COAP_HEADER_ALLOW: ret = "Allow"; break;
 
-		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
+//		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
 //		case COAP_HEADER_CONTINUATION_RESPONSE: ret = "Continuation-response"; break;
 
 		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
@@ -360,14 +363,23 @@ coap_option_key_from_cstr(const char* key) {
 
 	else if(strcasecmp(key, "Cseq") == 0)
 		return SMCP_HEADER_CSEQ;
-	else if(strcasecmp(key, "Next") == 0)
-		return COAP_HEADER_NEXT;
 	else if(strcasecmp(key, "Range") == 0)
 		return COAP_HEADER_RANGE;
-	else if(strcasecmp(key, "Block") == 0)
-		return COAP_HEADER_BLOCK;
+
+	else if(strcasecmp(key, "Block1") == 0)
+		return COAP_HEADER_BLOCK1;
+	else if(strcasecmp(key, "Block2") == 0)
+		return COAP_HEADER_BLOCK2;
+
+	else if(strcasecmp(key, "Draft-9-Block1") == 0)
+		return COAP_HEADER_09_BLOCK1;
+	else if(strcasecmp(key, "Draft-9-Block2") == 0)
+		return COAP_HEADER_09_BLOCK2;
 	else if(strcasecmp(key, "Origin") == 0)
 		return SMCP_HEADER_ORIGIN;
+
+//	else if(strcasecmp(key, "Next") == 0)
+//		return COAP_HEADER_NEXT;
 //	else if(strcasecmp(key, "Allow") == 0)
 //		return COAP_HEADER_ALLOW;
 
@@ -485,10 +497,6 @@ coap_dump_header(
 		case COAP_HEADER_CASCADE_COUNT:
 		case COAP_HEADER_MAX_AGE:
 		case COAP_HEADER_URI_PORT:
-		case COAP_HEADER_MESSAGE_SIZE:
-#if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
-		case COAP_HEADER_SIZE_REQUEST:
-#endif
 		{
 			unsigned long age = 0;
 			uint8_t i;
@@ -508,7 +516,26 @@ coap_dump_header(
 			}
 		}
 		break;
-
+		case COAP_HEADER_BLOCK1:
+		case COAP_HEADER_BLOCK2:
+		case COAP_HEADER_09_BLOCK1:
+		case COAP_HEADER_09_BLOCK2:
+		{
+			uint32_t block;
+			if(value_len==1)
+				block = (value[0]>>4);
+			else if(value_len==2)
+				block = (value[0]<<4)+(value[1]>>4);
+			else if(value_len==3)
+				block = (value[1]<<12)+(value[1]<<4)+(value[2]>>4);
+			fprintf(outstream,
+				"%d/%d/%d",
+				block,
+				(value[value_len-1]&(1<<3))!=0,
+				1<<((value[value_len-1]&(0x7))+4)
+			);
+		}
+		break;
 
 		case COAP_HEADER_URI_PATH:
 		case COAP_HEADER_URI_HOST:
@@ -528,7 +555,6 @@ coap_dump_header(
 			fprintf(outstream, "\"");
 			break;
 
-		case COAP_HEADER_CONTINUATION_REQUEST:
 		default:
 		{
 			size_t i;

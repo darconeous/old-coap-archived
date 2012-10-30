@@ -55,7 +55,9 @@ static char next_data[128];
 static size_t next_len = ((size_t)(-1));
 static int redirect_count;
 static coap_transaction_id_t tokenid;
-
+static int last_observe_value = -1;
+static int last_block = -1;
+static int block_key = COAP_HEADER_BLOCK2;
 
 static void
 get_response_handler(int statuscode, void* context) {
@@ -92,20 +94,33 @@ get_response_handler(int statuscode, void* context) {
 		}
 	}
 
-	if(content && content_length) {
+	if((statuscode>0) && content && content_length) {
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
 		const uint8_t* next_value = NULL;
 		size_t next_len;
+		bool has_observe_option = false, last_block = true;
+		int observe_value = -1;
+		int block = -1;
+
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
-			if(key == COAP_HEADER_BLOCK1 && value_len) {
+			if(key == COAP_HEADER_OBSERVE) {
+				has_observe_option = true;
+				if(value_len)
+					observe_value = value[0];
+				else observe_value = 0;
+			}
+
+			if((key == COAP_HEADER_09_BLOCK1 || key == COAP_HEADER_BLOCK2) && value_len) {
 				static uint8_t tmp[5];
 				next_len = value_len<3?value_len:3;
 				memcpy(tmp,value,next_len);
-				if(tmp[next_len-1]&(1<<3)) {
-					uint32_t block = 0;
+				block_key = key;
+				last_block = !(tmp[next_len-1]&(1<<3));
+
+				if(!last_block) {
 					if(next_len==1)
 						block = (tmp[0]>>4);
 					else if(next_len==2)
@@ -127,22 +142,28 @@ get_response_handler(int statuscode, void* context) {
 					}
 
 					next_value = tmp;
+
+					block--;
 				}
 			}
 		}
 
 		fwrite(content, content_length, 1, stdout);
-		if(next_value) {
 
-
+		if(!(get_observe && observe_value>=0) && next_value) {
 			require(send_get_request(self, (const char*)context,
 					(const char*)next_value, next_len), bail);
 			fflush(stdout);
 			return;
-		} else {
+		} else if(last_block) {
 			if((content[content_length - 1] != '\n'))
 				printf("\n");
 		}
+
+		fflush(stdout);
+
+		last_block = block;
+		last_observe_value = observe_value;
 	}
 
 bail:
@@ -166,21 +187,21 @@ resend_get_request(void* context) {
 
 	if(next_len != ((size_t)(-1))) {
 		status = smcp_outbound_add_option(
-			COAP_HEADER_BLOCK1,
+			block_key,
 			next_data,
 			next_len
 		);
 		require_noerr(status,bail);
 	}
 
-	if(size_request) {
-		status = smcp_outbound_add_option(
-			COAP_HEADER_SIZE_REQUEST,
-			(void*)&size_request,
-			sizeof(size_request)
-		);
-		require_noerr(status,bail);
-	}
+//	if(size_request) {
+//		status = smcp_outbound_add_option(
+//			COAP_HEADER_SIZE_REQUEST,
+//			(void*)&size_request,
+//			sizeof(size_request)
+//		);
+//		require_noerr(status,bail);
+//	}
 
 	status = smcp_outbound_send();
 
@@ -261,6 +282,8 @@ tool_cmd_get(
 	size_request = 0;
 	get_observe = false;
 	get_timeout = 30*1000; // Default timeout is 30 seconds.
+	last_observe_value = -1;
+	last_block = -1;
 
 	if(strcmp(argv[0],"observe")==0 || strcmp(argv[0],"obs")==0) {
 		get_observe = true;

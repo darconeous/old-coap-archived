@@ -182,31 +182,40 @@ typedef enum {
 	COAP_HEADER_URI_QUERY = 15,
 	COAP_HEADER_IF_NONE_MATCH = 21,
 
-	COAP_HEADER_FENCEPOST_1 = 14,
-	COAP_HEADER_FENCEPOST_2 = 28,
+	COAP_HEADER_FENCEPOST_1 = 14*1,
+	COAP_HEADER_FENCEPOST_2 = 14*2,
+	COAP_HEADER_FENCEPOST_3 = 14*3,
+	COAP_HEADER_FENCEPOST_4 = 14*4,
+	COAP_HEADER_FENCEPOST_5 = 14*5,
 
-	COAP_HEADER_BLOCK = 13,         //!< draft-bormann-core-coap-block-00
+	/* draft-ietf-core-block-9 */
+	COAP_HEADER_09_BLOCK1 = 17,
+	COAP_HEADER_09_BLOCK2 = 19,
 
-#define USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT    0
+	/* draft-ietf-core-block-10 */
+	COAP_HEADER_BLOCK1 = 27,
+	COAP_HEADER_BLOCK2 = 23,
 
-#if USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
-	COAP_HEADER_MESSAGE_SIZE = 16,
-	COAP_HEADER_CONTINUATION_REQUEST = 17,
-	COAP_HEADER_SIZE_REQUEST = 16,
-	COAP_HEADER_CONTINUATION_RESPONSE = 17,
 
-	COAP_HEADER_NEXT = 17,                          //!< Experimental alternative to draft-bormann-core-coap-block-00
-#else
-	COAP_HEADER_MESSAGE_SIZE = 16,                  //!< draft-bormann-core-coap-block-01
-	COAP_HEADER_CONTINUATION_REQUEST = 17,          //!< draft-bormann-core-coap-block-01
-	COAP_HEADER_BLOCK1 = 17,          //!< draft-bormann-core-coap-block-01
-	COAP_HEADER_SIZE_REQUEST = 18,                  //!< draft-bormann-core-coap-block-01
-	COAP_HEADER_CONTINUATION_RESPONSE = 19,         //!< draft-bormann-core-coap-block-01
-	COAP_HEADER_BLOCK2 = 19,          //!< draft-bormann-core-coap-block-01
-	COAP_HEADER_CONTINUATION_REQUIRED = 21,         //!< draft-bormann-core-coap-block-01
-
-	COAP_HEADER_NEXT = COAP_HEADER_FENCEPOST_2 + 3, //!< Experimental alternative to draft-bormann-core-coap-block-00
-#endif
+//	COAP_HEADER_MESSAGE_SIZE = 16,                  //!< draft-bormann-core-coap-block-01
+//	COAP_HEADER_BLOCK = 13,         //!< draft-bormann-core-coap-block-00
+//	COAP_HEADER_CONTINUATION_REQUEST = 17,          //!< draft-bormann-core-coap-block-01
+//	COAP_HEADER_SIZE_REQUEST = 18,                  //!< draft-bormann-core-coap-block-01
+//	COAP_HEADER_CONTINUATION_RESPONSE = 19,         //!< draft-bormann-core-coap-block-01
+//	COAP_HEADER_CONTINUATION_REQUIRED = 21,         //!< draft-bormann-core-coap-block-01
+//#define USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT    0
+//
+//#if USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
+//	COAP_HEADER_MESSAGE_SIZE = 16,
+//	COAP_HEADER_CONTINUATION_REQUEST = 17,
+//	COAP_HEADER_SIZE_REQUEST = 16,
+//	COAP_HEADER_CONTINUATION_RESPONSE = 17,
+//
+//	COAP_HEADER_NEXT = 17,                          //!< Experimental alternative to draft-bormann-core-coap-block-00
+//#else
+//
+//	COAP_HEADER_NEXT = COAP_HEADER_FENCEPOST_2 + 3, //!< Experimental alternative to draft-bormann-core-coap-block-00
+//#endif
 
 	COAP_HEADER_RANGE = COAP_HEADER_FENCEPOST_2 + 2, //!< Experimental alternative to draft-bormann-core-coap-block-00
 
@@ -215,7 +224,6 @@ typedef enum {
 	COAP_HEADER_CASCADE_COUNT = COAP_HEADER_FENCEPOST_2 + 1,    //!< Used for preventing pairing loops.
 	SMCP_HEADER_ORIGIN = COAP_HEADER_FENCEPOST_2 + 4,           //!< Used for SMCP Pairing.
 	SMCP_HEADER_CSEQ = COAP_HEADER_FENCEPOST_2 + 6,             //!< Used for SMCP Pairing.
-//	COAP_HEADER_ALLOW = COAP_HEADER_FENCEPOST_2 + 8,
 	SMCP_HEADER_AUTHENTICATE = COAP_HEADER_FENCEPOST_2 + 10,    //!< Used for SMCP Pairing.
 } coap_option_key_t;
 
