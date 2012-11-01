@@ -128,17 +128,7 @@ struct {
 		"Fetches the value of a resource.",
 		&tool_cmd_get
 	},
-	{ "cat", NULL,
-	  &tool_cmd_get,
-	  1 },
-	{
-		"observe",
-		"observes changes in the value of a resource.",
-		&tool_cmd_get
-	},
-	{ "obs", NULL,
-	  &tool_cmd_get,
-	  1 },
+	{ "cat", NULL, &tool_cmd_get, 1 },
 	{
 		"post",
 		"Triggers an event.",
@@ -150,52 +140,43 @@ struct {
 		&tool_cmd_post
 	},
 	{
-		"pair",
-		"Pairs an event to an action.",
-		&tool_cmd_pair
-	},
-	{
 		"delete",
 		"Deletes a resource.",
 		&tool_cmd_delete
 	},
+	{ "rm",	 NULL, &tool_cmd_delete, 1 },
 	{
 		"list",
 		"Displays the contents of a folder.",
 		&tool_cmd_list
 	},
-	{ "ls",	 NULL,
-	  &tool_cmd_list,
-	  1 },
-	{ "rm",	 NULL,
-	  &tool_cmd_delete,
-	  1 },
+	{ "ls",	 NULL, &tool_cmd_list, 1 },
 	{
-		"test",
-		"Self test mode.",
-		&tool_cmd_test
+		"observe",
+		"observes changes in the value of a resource.",
+		&tool_cmd_get
 	},
+	{ "obs", NULL, &tool_cmd_get, 1 },
 	{
 		"repeat",
 		"Repeat the specified command",
 		&tool_cmd_repeat
 	},
 	{
-		"monitor",
-		"Monitor a given URL for events and changes",
-		&tool_cmd_monitor
+		"pair",
+		"Pairs an event to an action. (Experimental)",
+		&tool_cmd_pair
 	},
-	{
-		"help",
-		"Display this help.",
-		&tool_cmd_help
-	},
-	{ "?",	 NULL,
-	  &tool_cmd_help,
-	  1 },
+	{ "cd",	 "Change current directory or URL (command mode)", &tool_cmd_cd },
+	{ "quit", "Terminate command line mode.", NULL },
 
-	{ "cd",	 "Change current directory or URL (command mode)",
-	  &tool_cmd_cd },
+	{ "help", "Display this help.", &tool_cmd_help },
+	{ "?",	 NULL, &tool_cmd_help,  1 },
+
+
+
+	{ "test", "Self test mode.", &tool_cmd_test, 1 },
+	{ "monitor", NULL, &tool_cmd_monitor, 1},
 
 	{ NULL }
 };
