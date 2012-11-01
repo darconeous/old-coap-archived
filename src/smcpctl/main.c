@@ -79,26 +79,40 @@ static int
 tool_cmd_cd(
 	smcp_t smcp, int argc, char* argv[]
 ) {
+	int ret = 0;
+
 	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
 		printf("Help not yet implemented for this command.\n");
-		return ERRORCODE_HELP;
+		ret = ERRORCODE_HELP;
 	}
 
 	if(argc == 1) {
 		printf("%s\n", getenv("SMCP_CURRENT_PATH"));
-		return 0;
+		ret = ERRORCODE_HELP;
+	} else if(argc == 2) {
+		char url[2000];
+		strncpy(url, getenv("SMCP_CURRENT_PATH"),sizeof(url)-1);
+		if(!url_change(url, argv[1])) {
+			ret = ERRORCODE_BADARG;
+			goto bail;
+		}
+
+		char* url_check = strdup(url);
+		char* host = NULL;
+
+		url_parse(url_check,NULL,NULL,NULL,&host,NULL,NULL,NULL);
+		free(url_check);
+		if(!host) {
+			ret = ERRORCODE_BADARG;
+			goto bail;
+		}
+
+		setenv("SMCP_CURRENT_PATH", url, 1);
+		return ERRORCODE_BADARG;
 	}
 
-	if(argc == 2) {
-		char url[1000];
-		strcpy(url, getenv("SMCP_CURRENT_PATH"));
-		if(url_change(url, argv[1]))
-			setenv("SMCP_CURRENT_PATH", url, 1);
-		else
-			return ERRORCODE_BADARG;
-	}
-
-	return 0;
+bail:
+	return ret;
 }
 
 
