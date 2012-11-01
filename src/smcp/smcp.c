@@ -462,13 +462,20 @@ smcp_handle_inbound_packet(
 	{	// Initial options scan.
 		coap_option_key_t key;
 		do {
-			key = smcp_inbound_peek_option(NULL,NULL);
+			const uint8_t* value;
+			size_t value_len;
+			key = smcp_inbound_peek_option(&value,&value_len);
 			if(key==COAP_HEADER_TOKEN) {
 				self->inbound.token_option = self->inbound.this_option;
 			} else if(key==COAP_HEADER_CONTENT_TYPE) {
 				self->inbound.content_type = self->inbound.this_option[1];
 			} else if(key==COAP_HEADER_OBSERVE) {
 				self->inbound.has_observe_option = 1;
+			} else if(key==COAP_HEADER_MAX_AGE) {
+				uint8_t i;
+				self->inbound.max_age = 0;
+				for(i = 0; i < value_len; i++)
+					self->inbound.max_age = (self->inbound.max_age << 8) + value[i];
 			}
 		} while(smcp_inbound_next_option_(NULL,NULL)!=COAP_HEADER_INVALID);
 
@@ -679,7 +686,7 @@ smcp_internal_transaction_timeout_(
 	self->current_transaction = handler;
 
 	if((convert_timeval_to_cms(&handler->expiration) > 0)) {
-		if(handler->waiting_for_async_response) {
+		if(handler->waiting_for_async_response && !(handler->flags&SMCP_TRANSACTION_OBSERVE)) {
 			status = SMCP_STATUS_OK;
 			smcp_schedule_timer(
 				self,
@@ -1023,13 +1030,24 @@ smcp_handle_response(
 
 			smcp_invalidate_timer(self, &handler->timer);
 			cms_t cms = convert_timeval_to_cms(&handler->expiration);
-			if(cms>61*1000) {
-				cms = 61*1000; // TODO: Calculate this from max-age
+			cms_t max_age = 0; // TODO: Calculate this from max-age
+
+			if(!max_age) {
+				if(self->inbound.has_observe_option)
+					max_age = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
+				else
+					max_age = CMS_DISTANT_FUTURE;
 			}
 
-			if(!self->inbound.has_observe_option && cms>10*1000) {
-				cms = 10*1000; // TODO: Calculate this from max-age
+			if(cms>max_age)
+				cms = max_age;
+
+			if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
+				&& cms>SMCP_OBSERVATION_KEEPALIVE_INTERVAL
+			) {
+				cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
 			}
+
 			smcp_schedule_timer(
 				self,
 				smcp_timer_init(

@@ -112,6 +112,7 @@ typedef struct smcp_node_s *smcp_node_t;
 enum {
 	SMCP_TRANSACTION_ALWAYS_TIMEOUT = (1 << 0),
 	SMCP_TRANSACTION_OBSERVE = (1 << 1),
+	SMCP_TRANSACTION_KEEPALIVE = (1 << 2),		//!< Send keep-alive packets when observing
 	SMCP_TRANSACTION_DELAY_START = (1 << 8),
 };
 

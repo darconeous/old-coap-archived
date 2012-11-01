@@ -117,6 +117,8 @@ struct smcp_s {
 		size_t					content_len;
 		coap_content_type_t		content_type;
 
+		int32_t					max_age;
+
 		uint8_t					was_sent_to_multicast:1,
 								is_fake:1,
 								has_observe_option:1;
