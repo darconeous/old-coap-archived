@@ -82,7 +82,7 @@ tool_cmd_cd(
 	int ret = 0;
 
 	if((2 == argc) && (0 == strcmp(argv[1], "--help"))) {
-		printf("Help not yet implemented for this command.\n");
+		fprintf(stderr,"%s: Help not yet implemented for this command.\n",argv[0]);
 		ret = ERRORCODE_HELP;
 	}
 
@@ -93,6 +93,7 @@ tool_cmd_cd(
 		char url[2000];
 		strncpy(url, getenv("SMCP_CURRENT_PATH"),sizeof(url)-1);
 		if(!url_change(url, argv[1])) {
+			fprintf(stderr,"%s: Bad URL.\n",argv[0]);
 			ret = ERRORCODE_BADARG;
 			goto bail;
 		}
@@ -103,12 +104,12 @@ tool_cmd_cd(
 		url_parse(url_check,NULL,NULL,NULL,&host,NULL,NULL,NULL);
 		free(url_check);
 		if(!host) {
+			fprintf(stderr,"%s: Bad URL.\n",argv[0]);
 			ret = ERRORCODE_BADARG;
 			goto bail;
 		}
 
 		setenv("SMCP_CURRENT_PATH", url, 1);
-		return ERRORCODE_BADARG;
 	}
 
 bail:
