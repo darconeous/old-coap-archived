@@ -376,11 +376,11 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		}
 
 #if SMCP_CONF_USE_SEQ
-		smcp_pairing_seq_t seq = htonl(pairing->seq);
+		smcp_pairing_seq_t seq = htons(pairing->seq);
 		status = smcp_outbound_add_option(
 			COAP_HEADER_OBSERVE,
-			(char*)&seq + (sizeof(smcp_pairing_seq_t)-(1+(flsl(pairing->seq)>>4))),
-			1+(flsl(pairing->seq)>>4)
+			(char*)&seq,// + (pairing->seq<=255),
+			2//-(pairing->seq<=255)
 		);
 #else
 		status = smcp_outbound_add_option(COAP_HEADER_OBSERVE,NULL,0);
@@ -477,6 +477,7 @@ static void
 smcp_event_response_handler(
 	int statuscode, smcp_pairing_node_t pairing
 ) {
+	DEBUG_PRINTF("Event:%p: smcp_event_response_handler(): statuscode=%d",event,statuscode);
 #if SMCP_CONF_PAIRING_STATS
 	if(statuscode!=SMCP_STATUS_TRANSACTION_INVALIDATED) {
 		if(statuscode && ((statuscode < COAP_RESULT_200) || (statuscode >= COAP_RESULT_400))) {
@@ -511,13 +512,14 @@ smcp_event_response_handler(
 		}
 	}
 #endif
+
+#if SMCP_CONF_USE_SEQ
+	if(!statuscode || ((statuscode >= COAP_RESULT_200) && (statuscode < COAP_RESULT_400)))
+		pairing->ack = pairing->seq;
+#endif
+
 	// expire the event.
 	smcp_event_tracker_t event = pairing->currentEvent;
-#if SMCP_CONF_USE_SEQ
-	if(!statuscode)
-		pairing->ack = event->seq;
-#endif
-	DEBUG_PRINTF("Event:%p: smcp_event_response_handler(): statuscode=%d",event,statuscode);
 	pairing->currentEvent = NULL;
 	smcp_event_tracker_release(event);
 }
@@ -534,11 +536,11 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 		require_noerr(status,bail);
 
 #if SMCP_CONF_USE_SEQ
-		smcp_pairing_seq_t seq = htonl(pairing->seq);
+		smcp_pairing_seq_t seq = htons(pairing->seq);
 		status = smcp_outbound_add_option(
 			COAP_HEADER_OBSERVE,
-			(char*)&seq + (sizeof(smcp_pairing_seq_t)-(1+(flsl(pairing->seq)>>4))),
-			1+(flsl(pairing->seq)>>4)
+			(char*)&seq,// + (pairing->seq<=255),
+			2//-(pairing->seq<=255)
 		);
 #else
 		status = smcp_outbound_add_option(COAP_HEADER_OBSERVE,NULL,0);

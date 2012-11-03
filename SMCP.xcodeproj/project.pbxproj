@@ -54,6 +54,7 @@
 		A6030639163AE4D100B0AA6C /* config-parser.l */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.lex; path = "config-parser.l"; sourceTree = "<group>"; };
 		A603063A163AE4D100B0AA6C /* help.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = help.h; sourceTree = "<group>"; };
 		A603063B163AE4D100B0AA6C /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		A6030647164595E500B0AA6C /* fls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fls.h; sourceTree = "<group>"; };
 		A60BF11B158D425F00D39B5C /* COPYING */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYING; sourceTree = "<group>"; };
 		A60BF11C158D425F00D39B5C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		A61C873C1583C79400AFD8A1 /* sensor-node.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "sensor-node.c"; sourceTree = "<group>"; };
@@ -201,6 +202,7 @@
 			isa = PBXGroup;
 			children = (
 				A6030637163AE4BC00B0AA6C /* fgetln.h */,
+				A6030647164595E500B0AA6C /* fls.h */,
 			);
 			name = missing;
 			path = src/missing;
