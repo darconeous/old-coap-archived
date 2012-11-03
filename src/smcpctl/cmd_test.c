@@ -313,7 +313,7 @@ tool_cmd_test(
 
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
-#if 1
+#if !SMCP_CONF_OBSERVING_ONLY
 	{
 		char url[256];
 		snprintf(url,
@@ -422,7 +422,7 @@ tool_cmd_test(
 #if 1
 		if((i - 1) % 250 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
-			smcp_trigger_event_with_node(smcp, &device_node.node, "loadavg");
+			smcp_variable_node_did_change(&device_node,0);
 		}
 #endif
 		smcp_process(smcp, 10);

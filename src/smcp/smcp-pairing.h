@@ -92,7 +92,7 @@ enum {
 };
 
 
-typedef uint32_t smcp_pairing_seq_t;
+typedef uint16_t smcp_pairing_seq_t;
 
 typedef smcp_status_t (*smcp_content_fetcher_func)(
 	void* context,
@@ -133,15 +133,17 @@ struct smcp_pairing_node_s {
 #endif
 
 	union {
-	struct smcp_async_response_s async_response;
-	struct {
+		struct smcp_async_response_s async_response;
+#if !SMCP_CONF_OBSERVING_ONLY
+		struct {
 #if SMCP_USE_BSD_SOCKETS
-	struct sockaddr_in6 saddr;
+			struct sockaddr_in6 saddr;
 #elif CONTIKI
-    const uip_ipaddr_t toaddr;
-    uint16_t toport;
+			const uip_ipaddr_t toaddr;
+			uint16_t toport;
 #endif
-	};
+		};
+#endif // #if !SMCP_CONF_OBSERVING_ONLY
 	};
 
 
@@ -158,6 +160,7 @@ typedef smcp_node_t smcp_root_pairing_node_t;
 #pragma mark -
 #pragma mark Pairing Functions
 
+#if !SMCP_CONF_OBSERVING_ONLY
 extern smcp_status_t smcp_pair_with_uri(
 	smcp_t	self,
 	const char*		path,
@@ -174,6 +177,7 @@ extern smcp_status_t smcp_pair_with_sockaddr(
 	int				flags,
 	uintptr_t*		idVal
 );
+#endif // !SMCP_CONF_OBSERVING_ONLY
 
 extern smcp_status_t smcp_pair_inbound_observe_update();
 

@@ -242,12 +242,22 @@ timer_node_var_func(
 		ret = SMCP_STATUS_NOT_FOUND;
 	} else if(action==SMCP_VAR_GET_KEY) {
 		static const char* path_names[] = {
-			"r",
-			"!f",
-			"rem",
-			"p",
-			"arstrt",
-			"rstrt"
+			[PATH_RUNNING]="r",
+			[PATH_FIRE]="!f",
+			[PATH_REMAINING]="rem",
+			[PATH_PERIOD]="p",
+			[PATH_AUTORESTART]="arstrt",
+			[PATH_RESTART]="rstrt",
+		};
+		strncpy(value,path_names[path],SMCP_VARIABLE_MAX_KEY_LENGTH);
+	} else if(action==SMCP_VAR_GET_LF_TITLE) {
+		static const char* path_names[] = {
+			[PATH_RUNNING]="is-running",
+			[PATH_FIRE]="fire-event",
+			[PATH_REMAINING]="remaining",
+			[PATH_PERIOD]="period",
+			[PATH_AUTORESTART]="autorestart",
+			[PATH_RESTART]="restart",
 		};
 		strcpy(value,path_names[path]);
 	} else if(action==SMCP_VAR_GET_VALUE) {

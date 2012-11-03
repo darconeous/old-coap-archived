@@ -79,15 +79,12 @@ extern smcp_status_t smcp_schedule_timer(
 	int				cms
 );
 
-extern void smcp_invalidate_timer(
-	smcp_t self, smcp_timer_t timer);
+extern void smcp_invalidate_timer(smcp_t self, smcp_timer_t timer);
 extern cms_t smcp_get_timeout(smcp_t self);
 extern void smcp_handle_timers(smcp_t self);
-extern bool smcp_timer_is_scheduled(
-	smcp_t self, smcp_timer_t timer);
+extern bool smcp_timer_is_scheduled(smcp_t self, smcp_timer_t timer);
 
-extern void convert_cms_to_timeval(
-	struct timeval* tv, int cms);
+extern void convert_cms_to_timeval(struct timeval* tv, int cms);
 extern int convert_timeval_to_cms(const struct timeval* tv);
 
 __END_DECLS

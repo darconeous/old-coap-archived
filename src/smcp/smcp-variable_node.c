@@ -280,6 +280,29 @@ bail:
 	return ret;
 }
 
+#if SMCP_ENABLE_PAIRING
+smcp_status_t
+smcp_variable_node_did_change(smcp_variable_node_t node, int i) {
+	smcp_status_t ret = 0;
+	char nodename[SMCP_VARIABLE_MAX_KEY_LENGTH];
+
+	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+
+	ret = node->func(node,SMCP_VAR_GET_KEY,i,nodename);
+	require_noerr(ret,bail);
+
+	ret = smcp_trigger_event_with_node(
+		(smcp_t)smcp_node_get_root(&node->node),
+		(smcp_node_t)node,
+		nodename
+	);
+	require_noerr(ret,bail);
+
+bail:
+	return ret;
+}
+#endif
+
 smcp_variable_node_t
 smcp_node_init_variable(
 	smcp_variable_node_t self, smcp_node_t node, const char* name

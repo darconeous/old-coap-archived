@@ -1207,16 +1207,10 @@ bail:
 
 smcp_status_t
 smcp_finish_async_response(struct smcp_async_response_s* x) {
-	smcp_status_t ret = 0;
+	// This method is largely a hook for future functionality.
+	// It doesn't really do much at the moment, but it may later.
 
-	// TODO: Add more stuff!
-
-	x->original_tid = 0;
-
-	require_noerr(ret, bail);
-
-bail:
-	return ret;
+	return SMCP_STATUS_OK;
 }
 
 #pragma mark -
@@ -1224,8 +1218,12 @@ bail:
 
 coap_transaction_id_t
 smcp_get_next_tid(smcp_t self, void* context) {
-	uint8_t hash = ((1664525*((uint32_t)context)+1013904223)>>28);
 	static uint16_t table[16];
+	uint8_t hash;
+
+	fasthash_start(0x31337);
+	fasthash_feed((uint8_t*)&context, sizeof(void*));
+	hash = fasthash_finish_uint8();
 
 	if(!table[hash])
 		table[hash] = (uint16_t)SMCP_FUNC_RANDOM_UINT32();
@@ -1237,9 +1235,9 @@ smcp_get_next_tid(smcp_t self, void* context) {
 
 const char* smcp_status_to_cstr(int x) {
 	switch(x) {
+	case SMCP_STATUS_OK: return "OK"; break;
 	case SMCP_STATUS_HOST_LOOKUP_FAILURE: return "Hostname Lookup Failure";
 		break;
-	case SMCP_STATUS_OK: return "OK"; break;
 	case SMCP_STATUS_FAILURE: return "Unspecified Failure"; break;
 	case SMCP_STATUS_INVALID_ARGUMENT: return "Invalid Argument"; break;
 	case SMCP_STATUS_BAD_NODE_TYPE: return "Bad Node Type"; break;
@@ -1269,7 +1267,7 @@ const char* smcp_status_to_cstr(int x) {
 #if SMCP_USE_BSD_SOCKETS
 		return strerror(errno); break;
 #else
-		return "ERRNO"; break;
+		return "ERRNO!?"; break;
 #endif
 	default:
 		{

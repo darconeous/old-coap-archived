@@ -30,13 +30,12 @@
 #define __SMCP_VARIABLE_NODE_H__ 1
 
 #include "smcp-node.h"
+#include "smcp-opts.h"
 
 __BEGIN_DECLS
 
 struct smcp_variable_node_s;
 typedef struct smcp_variable_node_s *smcp_variable_node_t;
-
-#define SMCP_VARIABLE_MAX_VALUE_LENGTH		(127)
 
 enum {
 	SMCP_VAR_GET_KEY,
@@ -62,15 +61,19 @@ struct smcp_variable_node_s {
 #define smcp_node_init_variable smcp_variable_node_init
 
 extern smcp_variable_node_t smcp_variable_node_init(
-	smcp_variable_node_t self, smcp_node_t parent, const char* name);
-
-//extern smcp_status_t smcp_refresh_variable(
-//	smcp_t daemon, smcp_variable_node_t node);
+	smcp_variable_node_t self,
+	smcp_node_t parent,
+	const char* name
+);
 
 extern smcp_status_t smcp_variable_request_handler(
 	smcp_variable_node_t		node,
 	smcp_method_t	method
 );
+
+#if SMCP_ENABLE_PAIRING
+extern smcp_status_t smcp_variable_node_did_change(smcp_variable_node_t node, int i);
+#endif
 
 __END_DECLS
 

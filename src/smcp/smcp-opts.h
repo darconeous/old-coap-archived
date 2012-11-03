@@ -63,6 +63,8 @@
 #endif
 
 #ifndef SMCP_MAX_URI_LENGTH
+// I can't for the life of me remember where I got these numbers from.
+// TODO: Determine where these numbers come from!
 #define SMCP_MAX_URI_LENGTH (SMCP_MAX_PATH_LENGTH + 7 + 6 + 8 * 4 + 7 + 2)
 #endif
 
@@ -142,12 +144,16 @@
 #define SMCP_ENABLE_PAIRING		1
 #endif
 
+#ifndef SMCP_CONF_OBSERVING_ONLY
+#define SMCP_CONF_OBSERVING_ONLY	SMCP_EMBEDDED
+#endif
+
 #ifndef SMCP_OBSERVATION_KEEPALIVE_INTERVAL
-#define SMCP_OBSERVATION_KEEPALIVE_INTERVAL		45*1000
+#define SMCP_OBSERVATION_KEEPALIVE_INTERVAL		(45*1000)
 #endif
 
 #ifndef SMCP_OBSERVATION_DEFAULT_MAX_AGE
-#define SMCP_OBSERVATION_DEFAULT_MAX_AGE		10*1000
+#define SMCP_OBSERVATION_DEFAULT_MAX_AGE		(10*1000)
 #endif
 
 #ifndef SMCP_CONF_PAIRING_STATS
@@ -160,6 +166,17 @@
 
 #ifndef SMCP_PAIRING_DEFAULT_ROOT_PATH
 #define SMCP_PAIRING_DEFAULT_ROOT_PATH	".p"
+#endif
+
+/*****************************************************************************/
+#pragma mark - SMCP Compiler Stuff
+
+#ifndef SMCP_VARIABLE_MAX_VALUE_LENGTH
+#define SMCP_VARIABLE_MAX_VALUE_LENGTH		(127)
+#endif
+
+#ifndef SMCP_VARIABLE_MAX_KEY_LENGTH
+#define SMCP_VARIABLE_MAX_KEY_LENGTH		(23)
 #endif
 
 /*****************************************************************************/
