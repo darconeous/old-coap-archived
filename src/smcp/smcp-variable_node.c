@@ -127,6 +127,8 @@ smcp_variable_request_handler(
 		method = COAP_METHOD_POST;
 
 	if(method == COAP_METHOD_POST) {
+		require_action(!smcp_inbound_is_dupe(),bail,ret=0);
+
 		require_action(
 			key_index!=BAD_KEY_INDEX,
 			bail,
@@ -226,14 +228,15 @@ smcp_variable_request_handler(
 			size_t replyContentLength = 0;
 			char *replyContent;
 
-			ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
-			require_noerr(ret,bail);
-
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
 			if(reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+
+				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
+				require_noerr(ret,bail);
+
 #if SMCP_ENABLE_PAIRING
 				ret = smcp_pair_inbound_observe_update();
 				check_string(ret==0,smcp_status_to_cstr(ret));
@@ -250,6 +253,9 @@ smcp_variable_request_handler(
 				);
 				ret = smcp_outbound_set_content_len(replyContentLength+2);
 			} else {
+				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
+				require_noerr(ret,bail);
+
 #if SMCP_ENABLE_PAIRING
 				ret = smcp_pair_inbound_observe_update();
 				check_string(ret==0,smcp_status_to_cstr(ret));

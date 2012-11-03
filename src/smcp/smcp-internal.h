@@ -121,7 +121,11 @@ struct smcp_s {
 
 		uint8_t					was_sent_to_multicast:1,
 								is_fake:1,
+								is_dupe:1,
 								has_observe_option:1;
+
+		uint32_t transaction_hash;
+
 #if SMCP_USE_BSD_SOCKETS
 		struct sockaddr*		saddr;
 		socklen_t				socklen;
@@ -149,6 +153,17 @@ struct smcp_s {
 #endif
 	} outbound;
 
+	struct {
+		uint32_t hash;
+		coap_code_t code;
+	} dupe[SMCP_CONF_DUPE_BUFFER_SIZE];
+
+#if SMCP_CONF_DUPE_BUFFER_SIZE<=255
+	uint8_t dupe_index;
+#else
+	uint16_t dupe_index;
+#endif
+
 	const char* proxy_url;
 
 	PAIRING_STATE
@@ -161,3 +176,13 @@ extern smcp_status_t smcp_handle_response(smcp_t self);
 
 extern smcp_status_t smcp_handle_list(smcp_node_t node,smcp_method_t method);
 
+///////////////////////////////////////////////////////////////////////////////
+#pragma mark -
+#pragma mark Fasthash
+
+extern void fasthash_start(uint32_t salt);
+extern void fasthash_feed_byte(uint8_t data);
+extern void fasthash_feed(const uint8_t* data, uint8_t len);
+extern uint32_t fasthash_finish_uint32();
+extern uint16_t fasthash_finish_uint16();
+extern uint8_t fasthash_finish_uint8();

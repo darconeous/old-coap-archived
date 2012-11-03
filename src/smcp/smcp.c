@@ -402,6 +402,11 @@ const uint16_t smcp_inbound_get_ipport() {
 }
 #endif
 
+bool
+smcp_inbound_is_dupe() {
+	return smcp_get_current_instance()->inbound.is_dupe;
+}
+
 #pragma mark -
 
 smcp_status_t
@@ -436,6 +441,28 @@ smcp_handle_inbound_packet(
 #endif
 
 	// TODO: Set `self->inbound.was_sent_to_multicast` properly!
+
+	{
+		// Update dupe hash.
+		fasthash_start(0);
+#if SMCP_USE_BSD_SOCKETS
+		fasthash_feed((void*)self->inbound.saddr,self->inbound.socklen);
+#elif CONTIKI
+		fasthash_feed((void*)self->inbound.toaddr,sizeof(self->inbound.toaddr));
+		fasthash_feed((void*)&self->inbound.toport,sizeof(self->inbound.toport));
+#endif
+		fasthash_feed_byte(self->inbound.packet->code);
+		fasthash_feed((const uint8_t*)&self->inbound.packet->tid,sizeof(self->inbound.packet->tid));
+
+		self->inbound.transaction_hash = fasthash_finish_uint32();
+		int i = SMCP_CONF_DUPE_BUFFER_SIZE;
+		while(i--) {
+			if(self->dupe[i].hash == self->inbound.transaction_hash) {
+				self->inbound.is_dupe = true;
+				break;
+			}
+		}
+	}
 
 	// Version check.
 	require_action(packet->version==COAP_VERSION,bail,ret=SMCP_STATUS_FAILURE);
@@ -499,20 +526,40 @@ smcp_handle_inbound_packet(
 
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 
+	if(	(ret == SMCP_STATUS_OK)
+		&& !self->inbound.is_fake
+		&& !self->inbound.is_dupe
+		&& (self->inbound.packet->code != COAP_METHOD_GET
+			|| (self->did_respond
+				&& self->outbound.packet->code == COAP_CODE_EMPTY
+				&& self->outbound.packet->tt == COAP_TRANS_TYPE_ACK
+			)
+		)
+	) {
+		// This is not a dupe, add it to the list.
+		self->dupe[self->dupe_index].hash = self->inbound.transaction_hash;
+		self->dupe_index++;
+		self->dupe_index%=SMCP_CONF_DUPE_BUFFER_SIZE;
+	}
+
 	// Check to make sure we have responded by now. If not, we need to.
 	if(!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {
 		if(COAP_CODE_IS_REQUEST(packet->code)) {
 			int result_code = smcp_convert_status_to_result_code(ret);
+			if(self->inbound.is_dupe)
+				ret = 0;
 			if(ret == SMCP_STATUS_OK) {
 				if(packet->code==COAP_METHOD_GET)
 					result_code = COAP_RESULT_205_CONTENT;
 				else if(packet->code==COAP_METHOD_POST || packet->code==COAP_METHOD_PUT)
 					result_code = COAP_RESULT_204_CHANGED;
+				else if(packet->code==COAP_METHOD_DELETE)
+					result_code = COAP_RESULT_202_DELETED;
 			}
 			smcp_outbound_begin_response(result_code);
 		} else {
 			smcp_outbound_begin_response(0);
-			if(ret)
+			if(ret && !self->inbound.is_dupe)
 				self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
 			else
 				self->outbound.packet->tt = COAP_TRANS_TYPE_ACK;
@@ -1131,8 +1178,7 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 		require_noerr(ret, bail);
 	}
 
-	// TODO: Make duplicate detection better!
-	if(x->original_tid && x->original_tid == self->inbound.packet->tid) {
+	if(self->inbound.is_dupe) {
 		ret = SMCP_STATUS_DUPE;
 		goto bail;
 	}
@@ -1262,4 +1308,61 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 	}
 
 	return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+#pragma mark -
+#pragma mark Fasthash
+
+static struct {
+	uint32_t hash;
+	uint32_t bytes;
+	uint32_t next;
+} global_fasthash_state;
+
+static void
+fasthash_feed_block(uint32_t blk) {
+	blk ^= (global_fasthash_state.bytes>>2);
+	global_fasthash_state.hash ^= blk;
+	global_fasthash_state.hash = global_fasthash_state.hash*1664525 + 1013904223;
+}
+
+void
+fasthash_start(uint32_t salt) {
+	bzero((void*)&global_fasthash_state,sizeof(global_fasthash_state));
+	fasthash_feed_block(salt);
+}
+
+void
+fasthash_feed_byte(uint8_t data) {
+	global_fasthash_state.next |= (data<<(8*(global_fasthash_state.bytes++&3)));
+	if((global_fasthash_state.bytes&3)==0) {
+		fasthash_feed_block(global_fasthash_state.next);
+		global_fasthash_state.next = 0;
+	}
+}
+
+void
+fasthash_feed(const uint8_t* data, uint8_t len) {
+	while(len--)
+		fasthash_feed_byte(*data++);
+}
+
+uint32_t
+fasthash_finish_uint32() {
+	if(global_fasthash_state.bytes&3) {
+		fasthash_feed_block(global_fasthash_state.next);
+		global_fasthash_state.bytes = 0;
+	}
+	return global_fasthash_state.hash;
+}
+
+uint16_t
+fasthash_finish_uint16() {
+	return global_fasthash_state.hash>>16;
+}
+
+uint8_t
+fasthash_finish_uint8() {
+	return global_fasthash_state.hash>>24;
 }

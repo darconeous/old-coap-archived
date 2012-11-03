@@ -49,6 +49,7 @@ smcp_status_t device_func(
 				ret = SMCP_STATUS_NOT_FOUND;
 				break;
 		}
+	} else if(action==SMCP_VAR_GET_MAX_AGE && i==0) {
 	} else if(action==SMCP_VAR_GET_VALUE) {
 		switch(i) {
 			case 0:
@@ -59,6 +60,8 @@ smcp_status_t device_func(
 						bail,
 						ret = SMCP_STATUS_FAILURE
 					);
+
+					smcp_outbound_add_option(COAP_HEADER_MAX_AGE,"\x0F", 1);
 
 					require_action(
 						(size_t)snprintf(
@@ -415,9 +418,9 @@ tool_cmd_test(
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 	int i;
-	for(i = 0; i < 3000000; i++) {
+	for(i = 0; 1/*i < 3000000*/; i++) {
 #if 1
-		if((i - 1) % 200 == 0) {
+		if((i - 1) % 250 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
 			smcp_trigger_event_with_node(smcp, &device_node.node, "loadavg");
 		}

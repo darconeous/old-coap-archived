@@ -202,7 +202,7 @@ smcp_outbound_set_destaddr(
 #endif
 
 static smcp_status_t
-smcp_outbound_add_header_(
+smcp_outbound_add_option_(
 	coap_option_key_t key, const char* value, size_t len
 ) {
 	smcp_t const self = smcp_get_current_instance();
@@ -242,7 +242,7 @@ smcp_outbound_add_header_(
 }
 
 static smcp_status_t
-smcp_outbound_add_headers_up_to_key_(
+smcp_outbound_add_options_up_to_key_(
 	coap_option_key_t key
 ) {
 	smcp_t const self = smcp_get_current_instance();
@@ -257,10 +257,10 @@ smcp_outbound_add_headers_up_to_key_(
 			const uint8_t* value;
 			size_t len;
 			coap_decode_option(self->inbound.token_option, NULL, &value, &len);
-			return smcp_outbound_add_header_(COAP_HEADER_TOKEN,(void*)value,len);
+			return smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
 		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
-			return smcp_outbound_add_header_(
+			return smcp_outbound_add_option_(
 				COAP_HEADER_TOKEN,
 				(void*)&self->outbound.packet->tid,
 				sizeof(self->outbound.packet->tid)
@@ -275,7 +275,7 @@ smcp_outbound_add_headers_up_to_key_(
 		if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
 			uint8_t zero = 0;
-			return smcp_outbound_add_header_(
+			return smcp_outbound_add_option_(
 				COAP_HEADER_OBSERVE,
 				(void*)&zero,
 				1
@@ -288,7 +288,7 @@ smcp_outbound_add_headers_up_to_key_(
 		&& key>COAP_HEADER_CASCADE_COUNT
 		&& self->has_cascade_count
 	) {
-		ret = smcp_outbound_add_header_(
+		ret = smcp_outbound_add_option_(
 			COAP_HEADER_CASCADE_COUNT,
 			(char*)&self->cascade_count,
 			1
@@ -304,10 +304,10 @@ smcp_outbound_add_option(
 ) {
 	smcp_status_t ret = 0;
 
-	ret = smcp_outbound_add_headers_up_to_key_(key);
+	ret = smcp_outbound_add_options_up_to_key_(key);
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_add_header_(key,value,len);
+	ret = smcp_outbound_add_option_(key,value,len);
 	require_noerr(ret, bail);
 
 bail:
@@ -620,7 +620,7 @@ smcp_outbound_get_content_ptr(size_t* max_len) {
 
 	// Finish up any remaining automatically-added headers.
 	if(self->outbound.packet->code)
-		smcp_outbound_add_headers_up_to_key_(200);
+		smcp_outbound_add_options_up_to_key_(200);
 
 	if(max_len)
 		*max_len = SMCP_MAX_PACKET_LENGTH-(self->outbound.content_ptr-(char*)self->outbound.packet);

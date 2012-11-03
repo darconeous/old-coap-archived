@@ -208,6 +208,8 @@ extern const struct coap_header_s* smcp_inbound_get_packet();
 
 #define smcp_inbound_get_tid()	(smcp_inbound_get_packet()->tid)
 
+extern bool smcp_inbound_is_dupe();
+
 /*! Guaranteed to be NUL-terminated */
 extern const char* smcp_inbound_get_content_ptr();
 

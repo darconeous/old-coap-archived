@@ -124,6 +124,9 @@
 #define SMCP_CONF_MAX_TIMEOUT	30
 #endif
 
+#ifndef SMCP_CONF_DUPE_BUFFER_SIZE
+#define SMCP_CONF_DUPE_BUFFER_SIZE	(16)
+#endif
 
 /*****************************************************************************/
 #pragma mark - Timer Node Options
