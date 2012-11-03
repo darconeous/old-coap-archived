@@ -1081,9 +1081,9 @@ smcp_handle_response(
 
 			if(!max_age) {
 				if(self->inbound.has_observe_option)
-					max_age = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
-				else
 					max_age = CMS_DISTANT_FUTURE;
+				else
+					max_age = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
 			}
 
 			if(cms>max_age)
