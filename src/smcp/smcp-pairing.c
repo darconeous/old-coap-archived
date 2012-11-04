@@ -172,11 +172,13 @@ smcp_pair_inbound_observe_update() {
 		require_string(ret==0,bail,smcp_status_to_cstr(ret));
 
 		{
-			char token_str[COAP_MAX_TOKEN_SIZE*2+1];
+			char token_str[COAP_MAX_TOKEN_SIZE*2+2+1];
 			int i;
+			token_str[0]='o';
+			token_str[1]='-';
 			for(i=0;i<pairing->async_response.token_len;i++)
-				sprintf(token_str+i*2,"%02x",pairing->async_response.token_value[i]);
-			asprintf(&uri,"observer-%s",token_str);
+				sprintf(token_str+i*2+2,"%02x",pairing->async_response.token_value[i]);
+			uri=strdup(token_str);
 		}
 		DEBUG_PRINTF("\"%s\" -> \"%s\"",path,uri);
 
