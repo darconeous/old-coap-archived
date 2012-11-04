@@ -448,7 +448,7 @@ smcp_handle_inbound_packet(
 #if SMCP_USE_BSD_SOCKETS
 		fasthash_feed((void*)self->inbound.saddr,self->inbound.socklen);
 #elif CONTIKI
-		fasthash_feed((void*)self->inbound.toaddr,sizeof(self->inbound.toaddr));
+		fasthash_feed((void*)&self->inbound.toaddr,sizeof(self->inbound.toaddr));
 		fasthash_feed((void*)&self->inbound.toport,sizeof(self->inbound.toport));
 #endif
 		fasthash_feed_byte(self->inbound.packet->code);
