@@ -288,13 +288,24 @@ smcp_variable_node_did_change(smcp_variable_node_t node, int i) {
 
 	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
-	ret = node->func(node,SMCP_VAR_GET_KEY,i,nodename);
-	require_noerr(ret,bail);
+	if(i>=0) {
+		ret = node->func(node,SMCP_VAR_GET_KEY,i,nodename);
+		require_noerr(ret,bail);
 
+		// trigger the event on the specific variable.
+		ret = smcp_trigger_event_with_node(
+			(smcp_t)smcp_node_get_root(&node->node),
+			(smcp_node_t)node,
+			nodename
+		);
+		require_noerr(ret,bail);
+	}
+
+	// Also trigger the event on parent.
 	ret = smcp_trigger_event_with_node(
 		(smcp_t)smcp_node_get_root(&node->node),
 		(smcp_node_t)node,
-		nodename
+		NULL
 	);
 	require_noerr(ret,bail);
 
