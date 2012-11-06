@@ -16,6 +16,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <poll.h>
+#include <sys/select.h>
 #include <libgen.h>
 #include <syslog.h>
 
@@ -338,7 +339,7 @@ main(
 
 	do {
 		int fds_ready = 0, max_fd = -1;
-		struct fd_set read_fd_set,write_fd_set,error_fd_set;
+		fd_set read_fd_set,write_fd_set,error_fd_set;
 		long cms_timeout = 600000;
 		struct timeval timeout = {};
 
