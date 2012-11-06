@@ -281,6 +281,10 @@ bail:
 	return ret;
 }
 
+#if HAS_LIBREADLINE
+static bool history_disabled;
+#endif
+
 void process_input_line(char *l) {
 	char *inputstring;
 	char *argv2[100];
@@ -291,7 +295,8 @@ void process_input_line(char *l) {
 		goto bail;
 	l = strdup(l);
 #if HAS_LIBREADLINE
-	add_history(l);
+	if(!history_disabled)
+		add_history(l);
 #endif
 
 	inputstring = l;
@@ -310,7 +315,8 @@ void process_input_line(char *l) {
 			fprintf(stderr,"Error %d\n", gRet);
 
 #if HAS_LIBREADLINE
-		write_history(getenv("SMCP_HISTORY_FILE"));
+		if(!history_disabled)
+			write_history(getenv("SMCP_HISTORY_FILE"));
 #endif
 	}
 
@@ -396,6 +402,9 @@ smcp_directory_generator(
 	size_t namelen = 0;
 
 	rl_filename_completion_desired = 1;
+
+	// Don't add the internal commands to the history.
+	history_disabled = true;
 
 	/* If this is a new word to complete, initialize now.  This includes
 	 saving the length of TEXT for efficiency, and initializing the index
@@ -505,6 +514,7 @@ smcp_directory_generator(
 
 
 bail:
+	history_disabled = false;
 	//fprintf(stderr,"\n[prefix=\"%s\" ret=\"%s\"] ",prefix,ret);
 
 	return ret;
@@ -662,10 +672,8 @@ main(
 #if HAS_LIBREADLINE
 		if(istty) {
 			struct pollfd polltable[2] = {
-				{ fileno(stdin),				   POLLIN | POLLHUP,
-				  0 },
-				{ smcp_get_fd(smcp), POLLIN | POLLHUP,
-				  0 },
+				{ fileno(stdin), POLLIN | POLLHUP, 0 },
+				{ smcp_get_fd(smcp), POLLIN | POLLHUP, 0 },
 			};
 
 			if(poll(polltable, 2,

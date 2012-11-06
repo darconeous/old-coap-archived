@@ -470,11 +470,7 @@ smcp_outbound_set_uri(
 
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
-	if(!url_is_absolute(uri)) {
-		// Pairing with ourselves
-		addr_str = "::1";
-		toport = smcp_get_port(smcp_get_current_instance());
-	} else {
+	{
 #if HAS_ALLOCA
 		uri_copy = alloca(strlen(uri) + 1);
 		strcpy(uri_copy, uri);
@@ -499,7 +495,13 @@ smcp_outbound_set_uri(
 			"Unable to parse URL"
 		);
 
-		if(port_str) {
+		if(!proto_str && !addr_str) {
+			// Pairing with ourselves
+			proto_str = "coap";
+			addr_str = "::1";
+			toport = smcp_get_port(smcp_get_current_instance());
+			flags |= SMCP_MSG_SKIP_AUTHORITY;
+		} else if(port_str) {
 			toport = atoi(port_str);
 		}
 
@@ -546,7 +548,7 @@ smcp_outbound_set_uri(
 	if(	!(flags&SMCP_MSG_SKIP_DESTADDR)
 		&& addr_str && addr_str[0]!=0
 	) {
-		ret = smcp_outbound_set_destaddr_from_host_and_port(addr_str,toport); // TODO: Handle port
+		ret = smcp_outbound_set_destaddr_from_host_and_port(addr_str,toport);
 		require_noerr(ret, bail);
 	}
 
@@ -577,6 +579,10 @@ smcp_outbound_set_uri(
 	}
 
 bail:
+	DEBUG_PRINTF(
+		"URI Parse failed for URI: \"%s\"",
+		uri
+	);
 #if !HAS_ALLOCA
 	free(uri_copy);
 #endif

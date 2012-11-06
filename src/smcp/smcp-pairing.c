@@ -479,7 +479,7 @@ static void
 smcp_event_response_handler(
 	int statuscode, smcp_pairing_node_t pairing
 ) {
-	DEBUG_PRINTF("Event:%p: smcp_event_response_handler(): statuscode=%d",event,statuscode);
+	DEBUG_PRINTF("Pairing:%p: smcp_event_response_handler(): statuscode=%d",pairing,statuscode);
 #if SMCP_CONF_PAIRING_STATS
 	if(statuscode!=SMCP_STATUS_TRANSACTION_INVALIDATED) {
 		if(statuscode && ((statuscode < COAP_RESULT_200) || (statuscode >= COAP_RESULT_400))) {

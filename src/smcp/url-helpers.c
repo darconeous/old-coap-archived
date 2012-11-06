@@ -391,7 +391,10 @@ url_parse(
 	int bytes_parsed = 0;
 	char tmp;
 
-	require_string(uri, bail, "NULL uri parameter");
+	if(!url_is_absolute(uri))
+		goto skip_absolute_url_stuff;
+
+	check_string(uri, "NULL uri parameter");
 
 	if(protocol)
 		*protocol = uri;
@@ -455,6 +458,8 @@ url_parse(
 		if(host)
 			*host = addr_end + 1;
 	}
+
+skip_absolute_url_stuff:
 
 	if(path)
 		*path = uri;

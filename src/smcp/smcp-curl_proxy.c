@@ -147,7 +147,9 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 	size_t realsize = size * nmemb;
 	smcp_curl_request_t request = (smcp_curl_request_t)userp;
 
-	require_action(realsize>0,bail,realsize=0);
+	assert_printf("CuRL WriteMemoryCallback()",0);
+
+	require_action(realsize>=0,bail,realsize=0);
 
 	// At the moment limit to one call.
 	require_action(request->content==NULL,bail,realsize=0);
@@ -179,7 +181,7 @@ smcp_curl_proxy_node_request_handler(
 	smcp_curl_proxy_node_t		node,
 	smcp_method_t	method
 ) {
-	smcp_status_t ret = 0;
+	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	smcp_curl_request_t request = NULL;
 	struct curl_slist *headerlist=NULL;
 
@@ -209,6 +211,8 @@ smcp_curl_proxy_node_request_handler(
 				memcpy(uri,value,value_len);
 				uri[value_len] = 0;
 				curl_easy_setopt(request->curl, CURLOPT_URL, uri);
+				assert_printf("CuRL URL: \"%s\"",uri);
+				ret = 0;
 			} else if(key==COAP_HEADER_URI_HOST) {
 			} else if(key==COAP_HEADER_URI_PORT) {
 			} else if(key==COAP_HEADER_URI_PATH) {
@@ -220,19 +224,24 @@ smcp_curl_proxy_node_request_handler(
 				char header[strlen(option_name)+strlen(value_string)+3];
 				strcpy(header,option_name);
 				strcat(header,": ");
-				strcpy(header,value_string);
+				strcat(header,value_string);
+				headerlist = curl_slist_append(headerlist, header);
+				assert_printf(,"CuRL HEADER: \"%s\"",header);
 			} else {
 				if(coap_option_value_is_string(key)) {
 					const char* option_name = coap_option_key_to_cstr(key, false);
 					char header[strlen(option_name)+value_len+3];
 					strcpy(header,option_name);
 					strcat(header,": ");
-					strlcat(header,(const char*)value,value_len);
+					strncat(header,(const char*)value,value_len);
+					assert_printf("CuRL HEADER: \"%s\"",header);
 					headerlist = curl_slist_append(headerlist, header);
 				}
 			}
 		}
 	}
+
+	require_noerr(ret,bail);
 
 	if(smcp_inbound_get_content_len()) {
 		size_t len = smcp_inbound_get_content_len();
@@ -243,10 +252,10 @@ smcp_curl_proxy_node_request_handler(
 		curl_easy_setopt(request->curl, CURLOPT_READDATA, (void *)request);
 	}
 
-	curl_easy_setopt(request->curl, CURLOPT_HTTPHEADER, headerlist);
+	curl_easy_setopt(request->curl, CURLOPT_USERAGENT, "smcp-curl-proxy/1.0");
+	curl_easy_setopt(request->curl, CURLOPT_HTTPHEADER, headerlist),headerlist=NULL;
 	curl_easy_setopt(request->curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 	curl_easy_setopt(request->curl, CURLOPT_WRITEDATA, (void *)request);
-	curl_easy_setopt(request->curl, CURLOPT_USERAGENT, "smcp-curl-proxy/1.0");
 
 	ret = smcp_start_async_response(&request->async_response,0);
 	require_noerr(ret,bail);
@@ -297,6 +306,12 @@ smcp_curl_proxy_node_init(
 
 	self->curl_multi_handle = multi_handle;
 	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_curl_proxy_node_request_handler;
+
+	// Now set the proxy path
+	char path[64];
+	if(0==smcp_node_get_path(&self->node,path,sizeof(path))) {
+		smcp_set_proxy_url((smcp_t)smcp_node_get_root(&self->node), path);
+	}
 
 bail:
 	return self;

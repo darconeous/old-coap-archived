@@ -1,3 +1,4 @@
+#define HAVE_FGETLN 0
 
 #ifndef ASSERT_MACROS_USE_SYSLOG
 #define ASSERT_MACROS_USE_SYSLOG 1
@@ -23,6 +24,10 @@
 #include <missing/fgetln.h>
 #include <smcp/smcp-timer_node.h>
 #include "help.h"
+
+#if HAS_LIBCURL
+#include <smcp/smcp-curl_proxy.h>
+#endif
 
 #ifndef PREFIX
 #define PREFIX "/usr/local/"
@@ -71,6 +76,21 @@ signal_SIGHUP(int sig) {
 	syslog(LOG_NOTICE,"Caught SIGHUP!");
 }
 
+#if HAS_LIBCURL
+static smcp_curl_proxy_node_t curl_proxy_node;
+
+static CURLM*
+get_curl_multi_handle() {
+	static CURLM* curl_multi_handle;
+
+	if(!curl_multi_handle) {
+		curl_global_init(CURL_GLOBAL_ALL);
+		curl_multi_handle = curl_multi_init();
+	}
+	return curl_multi_handle;
+}
+#endif
+
 static char* get_next_arg(char *buf, char **rest) {
 	char* ret = NULL;
 
@@ -113,6 +133,12 @@ bail:
 	return ret;
 }
 
+static int
+strlinelen(const char* line) {
+	int ret = 0;
+	for(;line[0] && line[0]!='\n';line++,ret++);
+	return ret;
+}
 #define strcaseequal(x,y)	(strcasecmp(x,y)==0)
 
 static int
@@ -124,17 +150,19 @@ read_configuration(smcp_t smcp,const char* filename) {
 	char* line = NULL;
 	size_t line_len = 0;
 	smcp_node_t node = smcp_get_root_node(smcp);
+	int line_number = 0;
 
 	require(file!=NULL,bail);
 
 	while(!feof(file) && (line=fgetln(file,&line_len))) {
 		char *cmd = get_next_arg(line,&line);
+		line_number++;
 		if(!cmd)
 			continue;
 		else if(strcaseequal(cmd,"Port")) {
 			char* arg = get_next_arg(line,&line);
 			if(!arg) {
-				syslog(LOG_ERR,"Config option \"%s\" requires an argument.",cmd);
+				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
 			}
 			// Not really supported at the moment.
@@ -143,24 +171,28 @@ read_configuration(smcp_t smcp,const char* filename) {
 		} else if(strcaseequal(cmd,"CoAPProxyURL")) {
 			char* arg = get_next_arg(line,&line);
 			if(!arg) {
-				syslog(LOG_ERR,"Config option \"%s\" requires an argument.",cmd);
+				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
 			}
 			smcp_set_proxy_url(smcp,arg);
 		} else if(strcaseequal(cmd,"<node")) {
 			// Fix trailing '>'
-			int linelen = strlen(line);
+			int linelen = strlinelen(line);
+			//syslog(LOG_DEBUG,"LINE-BEFORE: \"%s\"",line);
 			while(isspace(line[linelen-1])) line[--linelen]=0;
 			if(line[linelen-1]=='>') {
-				line[linelen-1]=0;
+				line[--linelen]=0;
 			} else {
-				syslog(LOG_ERR,"Missing '>'");
+				syslog(LOG_ERR,"%s:%d: Missing '>'",filename,line_number);
 				goto bail;
 			}
+			//syslog(LOG_DEBUG,"LINE-AFTER: \"%s\"",line);
 			char* arg = get_next_arg(line,&line);
 			char* arg2 = get_next_arg(line,&line);
+			//syslog(LOG_DEBUG,"ARG1: \"%s\"",arg);
+			//syslog(LOG_DEBUG,"ARG2: \"%s\"",arg2);
 			if(!arg) {
-				syslog(LOG_ERR,"Config option \"%s\" requires an argument.",cmd);
+				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
 			}
 
@@ -169,8 +201,24 @@ read_configuration(smcp_t smcp,const char* filename) {
 			if(arg2) {
 				if(strcaseequal(arg2,"timer")) {
 					if(!next_node) next_node = smcp_timer_node_init(NULL,node,strdup(arg));
+#if HAS_LIBCURL
+				} else if(strcaseequal(arg2,"curl-proxy")) {
+					if(curl_proxy_node && curl_proxy_node!=next_node) {
+						syslog(LOG_ERR,"%s:%d: You may only have one instance of \"%s\".",filename,line_number,arg2);
+						goto bail;
+					}
+					else if(!next_node) {
+						curl_proxy_node = smcp_curl_proxy_node_init(
+							NULL,
+							node,
+							strdup(arg),
+							get_curl_multi_handle()
+						);
+						next_node = (smcp_node_t)curl_proxy_node;
+					}
+#endif //HAS_LIBCURL
 				} else {
-					syslog(LOG_ERR,"Unknown node type \"%s\".",arg2);
+					syslog(LOG_ERR,"%s:%d: Unknown node type \"%s\".",filename,line_number,arg2);
 					goto bail;
 				}
 			} else {
@@ -264,6 +312,10 @@ main(
 
 	syslog(LOG_NOTICE,"Starting smcpd . . .");
 
+#if HAS_LIBCURL
+	syslog(LOG_NOTICE,"Built with libcurl support.");
+#endif
+
 	smcp = smcp_create(port);
 
 	if(!smcp) {
@@ -272,16 +324,65 @@ main(
 		goto bail;
 	}
 
+	smcp_pairing_init(
+		smcp_get_root_node(smcp),
+		SMCP_PAIRING_DEFAULT_ROOT_PATH
+	);
+
 	smcp_set_proxy_url(smcp,getenv("COAP_PROXY_URL"));
 
 	read_configuration(smcp,config_file);
 
 	syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_get_port(smcp));
 
+
 	do {
-		while(!gRet) {
-			smcp_process(smcp, 1000);
+		int fds_ready = 0, max_fd = -1;
+		struct fd_set read_fd_set,write_fd_set,error_fd_set;
+		long cms_timeout = 600000;
+		struct timeval timeout = {};
+
+		FD_ZERO(&read_fd_set);
+		FD_ZERO(&write_fd_set);
+		FD_ZERO(&error_fd_set);
+#if HAS_LIBCURL
+		if(curl_proxy_node) {
+			curl_multi_fdset(
+				curl_proxy_node->curl_multi_handle,
+				&read_fd_set,
+				&write_fd_set,
+				&error_fd_set,
+				&max_fd
+			);
+			curl_multi_timeout(
+				curl_proxy_node->curl_multi_handle,
+				&cms_timeout
+			);
+
+			if(cms_timeout==-1)
+				cms_timeout = 600000;
 		}
+#endif
+		cms_timeout = MIN(smcp_get_timeout(smcp),cms_timeout);
+		max_fd = MAX(smcp_get_fd(smcp),max_fd);
+		FD_SET(smcp_get_fd(smcp),&read_fd_set);
+		FD_SET(smcp_get_fd(smcp),&error_fd_set);
+
+		timeout.tv_sec = cms_timeout/1000;
+		timeout.tv_usec = (cms_timeout%1000)*1000;
+
+		fds_ready = select(max_fd+1,&read_fd_set,&write_fd_set,&error_fd_set,&timeout);
+		if(fds_ready < 0 && errno!=EINTR)
+			break;
+
+		smcp_process(smcp, 0);
+
+#if HAS_LIBCURL
+		if(curl_proxy_node) {
+			int running_curl_handles;
+			curl_multi_perform(curl_proxy_node->curl_multi_handle, &running_curl_handles);
+		}
+#endif
 
 		if(gRet == ERRORCODE_SIGHUP) {
 			gRet = 0;

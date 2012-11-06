@@ -272,8 +272,12 @@ smcp_get_udp_conn(smcp_t self) {
 
 void
 smcp_set_proxy_url(smcp_t self,const char* url) {
-	DEBUG_PRINTF("CoAP Proxy URL set to %s",url);
-	self->proxy_url = url;
+	free(self->proxy_url);
+	if(url)
+		self->proxy_url = strdup(url);
+	else
+		self->proxy_url = NULL;
+	DEBUG_PRINTF("CoAP Proxy URL set to %s",self->proxy_url);
 }
 
 #if !SMCP_EMBEDDED
@@ -1262,6 +1266,7 @@ const char* smcp_status_to_cstr(int x) {
 	case SMCP_STATUS_DUPE: return "Duplicate"; break;
 
 	case SMCP_STATUS_RESET: return "Transaction Reset"; break;
+	case SMCP_STATUS_URI_PARSE_FAILURE: return "URI Parse Failure"; break;
 
 	case SMCP_STATUS_ERRNO:
 #if SMCP_USE_BSD_SOCKETS
