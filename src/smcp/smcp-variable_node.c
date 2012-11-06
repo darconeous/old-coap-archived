@@ -176,6 +176,11 @@ smcp_variable_request_handler(
 
 			smcp_outbound_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 
+#if SMCP_ENABLE_PAIRING
+			ret = smcp_pair_inbound_observe_update();
+			check_string(ret==0,smcp_status_to_cstr(ret));
+#endif
+
 			content_ptr = smcp_outbound_get_content_ptr(&content_len);
 			content_end_ptr = content_ptr+content_len;
 
