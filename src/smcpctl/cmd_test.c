@@ -255,14 +255,13 @@ tool_cmd_test(
 
 #if HAS_LIBCURL
 	struct smcp_curl_proxy_node_s proxy_node = {};
-	curl_global_init(CURL_GLOBAL_ALL);
+//	curl_global_init(CURL_GLOBAL_ALL);
 
-	CURLM* curl_multi_handle = curl_multi_init();
+//	CURLM* curl_multi_handle = curl_multi_init();
 	smcp_curl_proxy_node_init(
 		&proxy_node,
 		smcp_get_root_node(smcp),
-		"proxy",
-		curl_multi_handle
+		"proxy"
 	);
 #endif
 
@@ -428,16 +427,11 @@ tool_cmd_test(
 		smcp_process(smcp, 10);
 		smcp_process(smcp2, 10);
 #if HAS_LIBCURL
-		int runningHandles;
-		if(curl_multi_handle)
-			curl_multi_perform(curl_multi_handle, &runningHandles);
+		smcp_curl_proxy_node_process(&proxy_node);
 #endif
 	}
 
 bail:
-#if HAS_LIBCURL
-	curl_multi_cleanup(curl_multi_handle);
-#endif
 
 	return 0;
 }

@@ -631,7 +631,7 @@ url_change(
 			path_str
 		);
 #endif
-
+/*
 		if(!proto_str) {
 #if VERBOSE_DEBUG
 			fprintf(stderr, "Must cd into full URL first\n");
@@ -647,10 +647,10 @@ url_change(
 			ret = false;
 			goto bail;
 		}
-
+*/
 		url[0] = 0;
 
-		if(proto_str) {
+		if(proto_str && addr_str) {
 			strcat(url, proto_str);
 			strcat(url, "://");
 

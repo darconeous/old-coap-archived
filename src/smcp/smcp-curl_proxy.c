@@ -293,8 +293,7 @@ smcp_curl_proxy_node_t
 smcp_curl_proxy_node_init(
 	smcp_curl_proxy_node_t	self,
 	smcp_node_t			parent,
-	const char*			name,
-	CURLM*	multi_handle
+	const char*			name
 ) {
 	require(self || (self = smcp_smcp_curl_proxy_node_alloc()), bail);
 
@@ -304,7 +303,8 @@ smcp_curl_proxy_node_init(
 			name
 	), bail);
 
-	self->curl_multi_handle = multi_handle;
+	curl_global_init(CURL_GLOBAL_ALL);
+	self->curl_multi_handle = curl_multi_init();
 	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_curl_proxy_node_request_handler;
 
 	// Now set the proxy path
@@ -316,3 +316,45 @@ smcp_curl_proxy_node_init(
 bail:
 	return self;
 }
+
+smcp_status_t
+smcp_curl_proxy_node_update_fdset(
+	smcp_curl_proxy_node_t self,
+    fd_set *read_fd_set,
+    fd_set *write_fd_set,
+    fd_set *error_fd_set,
+    int *max_fd,
+	cms_t *timeout
+) {
+	int fd = *max_fd;
+	cms_t cms_timeout = *timeout;
+
+	curl_multi_fdset(
+		self->curl_multi_handle,
+		read_fd_set,
+		write_fd_set,
+		error_fd_set,
+		&fd
+	);
+
+	*max_fd = MAX(*max_fd,fd);
+
+	curl_multi_timeout(
+		self->curl_multi_handle,
+		&cms_timeout
+	);
+
+	if(cms_timeout!=-1) {
+		*timeout = MIN(*timeout,cms_timeout);
+	}
+
+	return SMCP_STATUS_OK;
+}
+
+smcp_status_t
+smcp_curl_proxy_node_process(smcp_curl_proxy_node_t self) {
+	int running_curl_handles;
+	curl_multi_perform(self->curl_multi_handle, &running_curl_handles);
+	return SMCP_STATUS_OK;
+}
+

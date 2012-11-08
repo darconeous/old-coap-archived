@@ -29,6 +29,7 @@
 #ifndef __SMCP_CURL_PROXY_H__
 #define __SMCP_CURL_PROXY_H__ 1
 
+#include "smcp.h"
 #include "smcp-node.h"
 #include <curl/curl.h>
 
@@ -42,8 +43,19 @@ extern smcp_curl_proxy_node_t smcp_smcp_curl_proxy_node_alloc();
 extern smcp_curl_proxy_node_t smcp_curl_proxy_node_init(
 	smcp_curl_proxy_node_t	self,
 	smcp_node_t			parent,
-	const char*			name,
-	CURLM *multi_handle
+	const char*			name
 );
+
+extern smcp_status_t smcp_curl_proxy_node_update_fdset(
+	smcp_curl_proxy_node_t node,
+    fd_set *read_fd_set,
+    fd_set *write_fd_set,
+    fd_set *exc_fd_set,
+    int *max_fd,
+	cms_t *timeout
+);
+
+extern smcp_status_t smcp_curl_proxy_node_process(smcp_curl_proxy_node_t node);
+
 
 #endif //__SMCP_TIMER_NODE_H__

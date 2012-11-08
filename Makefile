@@ -4,11 +4,18 @@ SMCP_VERSION=0.5
 HAS_LIBREADLINE=1
 HAS_LIBCURL=1
 
+INCLUDE_GE_SYSTEM_NODE=0
+
 INSTALL=install
 PREFIX=/usr/local
 
 SMCP_SOURCE_PATH=src/smcp
 SMCP_SOURCE_FILES=smcp.c smcp-list.c smcp-send.c smcp-node.c smcp-pairing.c btree.c url-helpers.c coap.c smcp-timer.c smcp-timer_node.c smcp-variable_node.c
+
+GE_SYSTEM_SOURCE_FILES=ge-rs232.c ge-system-node.c
+
+GE_SYSTEM_SOURCE_PATH=../ge-rs232
+GE_SYSTEM_OBJECT_FILES=${addprefix $(GE_SYSTEM_SOURCE_PATH)/,${subst .c,.o,$(GE_SYSTEM_SOURCE_FILES)}}
 
 ifeq ($(HAS_LIBREADLINE),1)
 CFLAGS+=-DHAS_LIBREADLINE=1
@@ -36,11 +43,18 @@ endif
 
 CFLAGS+=-Isrc
 
+#LFLAGS+=-shared
+LFLAGS+=-rdynamic
+
 SMCP_OBJECT_FILES=${addprefix $(SMCP_SOURCE_PATH)/,${subst .c,.o,$(SMCP_SOURCE_FILES)}}
 
 SMCPD_SOURCE_PATH=src/smcpd
 SMCPD_SOURCE_FILES=main.c
 SMCPD_OBJECT_FILES=${addprefix $(SMCPD_SOURCE_PATH)/,${subst .c,.o,$(SMCPD_SOURCE_FILES)}}
+
+ifeq ($(INCLUDE_GE_SYSTEM_NODE),1)
+SMCPD_OBJECT_FILES+=$(GE_SYSTEM_OBJECT_FILES)
+endif
 
 SMCPCTL_SOURCE_PATH=src/smcpctl
 SMCPCTL_SOURCE_FILES=main.c cmd_list.c cmd_test.c cmd_get.c cmd_post.c cmd_pair.c help.c cmd_repeat.c cmd_delete.c cmd_monitor.c
