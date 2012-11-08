@@ -304,6 +304,20 @@ smcp_variable_node_did_change(smcp_variable_node_t node, int i) {
 			nodename
 		);
 		require_noerr(ret,bail);
+
+/*
+		// Now, if we can, trigger an event with the value.
+		strlcat(nodename,"!v=",SMCP_VARIABLE_MAX_KEY_LENGTH);
+
+#warning FIX THIS OVERFLOW
+		require_noerr(node->func(node,SMCP_VAR_GET_VALUE,i,nodename+strlen(nodename)),bail);
+		ret = smcp_trigger_event_with_node(
+			(smcp_t)smcp_node_get_root(&node->node),
+			(smcp_node_t)node,
+			nodename
+		);
+		require_noerr(ret,bail);
+*/
 	}
 
 	// Also trigger the event on parent.
