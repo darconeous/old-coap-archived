@@ -72,7 +72,7 @@ extern smcp_status_t smcp_variable_request_handler(
 );
 
 #if SMCP_ENABLE_PAIRING
-extern smcp_status_t smcp_variable_node_did_change(smcp_variable_node_t node, int i/*, const char* suffix*/);
+extern smcp_status_t smcp_variable_node_did_change(smcp_variable_node_t node, int i, const char* suffix);
 #endif
 
 __END_DECLS

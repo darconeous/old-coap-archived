@@ -421,7 +421,7 @@ tool_cmd_test(
 #if 1
 		if((i - 1) % 250 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
-			smcp_variable_node_did_change(&device_node,0);
+			smcp_variable_node_did_change(&device_node,0,NULL);
 		}
 #endif
 		smcp_process(smcp, 10);
