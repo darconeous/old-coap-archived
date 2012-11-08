@@ -398,7 +398,7 @@ main(
 	int argc, char * argv[]
 ) {
 	int i, debug_mode = 0;
-	int port = 5683;
+	int port = 0;
 	const char* config_file = ETC_PREFIX "smcp.conf";
 
 	openlog(basename(argv[0]),LOG_PERROR|LOG_PID|LOG_CONS,LOG_DAEMON);

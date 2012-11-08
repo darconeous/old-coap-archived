@@ -49,7 +49,7 @@ LFLAGS+=-rdynamic
 SMCP_OBJECT_FILES=${addprefix $(SMCP_SOURCE_PATH)/,${subst .c,.o,$(SMCP_SOURCE_FILES)}}
 
 SMCPD_SOURCE_PATH=src/smcpd
-SMCPD_SOURCE_FILES=main.c
+SMCPD_SOURCE_FILES=main.c system-node.c
 SMCPD_OBJECT_FILES=${addprefix $(SMCPD_SOURCE_PATH)/,${subst .c,.o,$(SMCPD_SOURCE_FILES)}}
 
 ifeq ($(INCLUDE_GE_SYSTEM_NODE),1)

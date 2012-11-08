@@ -279,7 +279,7 @@ tool_cmd_test(
 
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
-	smcp_node_init_variable(
+	smcp_variable_node_init(
 		&device_node,
 		smcp_get_root_node(smcp),
 		"device"
@@ -288,7 +288,7 @@ tool_cmd_test(
 
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
-	smcp_node_init_variable(
+	smcp_variable_node_init(
 		NULL,
 		smcp_get_root_node(smcp2),
 		"device"
