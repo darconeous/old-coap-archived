@@ -23,7 +23,7 @@ enum {
 	SYS_NODE_PATH_COUNT
 };
 
-#if __LINUX__
+#if __linux__
 #include <sys/sysinfo.h>
 static time_t uptime() {
 	struct sysinfo info;
