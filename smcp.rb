@@ -1,32 +1,32 @@
 require 'formula'
 
-# Documentation: https://github.com/mxcl/homebrew/wiki/Formula-Cookbook
-# PLEASE REMOVE ALL GENERATED COMMENTS BEFORE SUBMITTING YOUR PULL REQUEST!
-
 class Smcp < Formula
   homepage 'https://github.com/darconeous/smcp'
-  url 'https://github.com/darconeous/smcp.git'
+  url 'https://github.com/darconeous/smcp.git', :tag => 'latest-release'
+  head 'https://github.com/darconeous/smcp.git', :using => :git, :branch => 'master'
   sha1 ''
   version '0.5'
 
-  # depends_on 'cmake' => :build
-  #depends_on :x11 # if your formula requires any X11/XQuartz components
+#  depends_on 'readline' => :recommended
+#  depends_on 'curl' => :recommended
+
+  if build.head?
+    depends_on 'autoconf' => :build
+	depends_on 'automake' => :build
+	depends_on 'libtool' => :build
+  end
 
   def install
-    # ENV.j1  # if your formula's build system can't parallelize
 
-    #system "./configure", "--disable-debug", "--disable-dependency-tracking",
-    #                      "--prefix=#{prefix}"
-    # system "cmake", ".", *std_cmake_args
-	system "mkdir -p #{prefix}/bin"
-	system "mkdir -p #{prefix}/share/man/man1"
-    system "make install HAS_LIBCURL=1 HAS_LIBREADLINE=1 PREFIX=#{prefix}" # if this fails, try separate make/make install steps
+	system "[ -x configure ] || PATH=\"#{HOMEBREW_PREFIX}/bin:$PATH\" ./bootstrap.sh" if build.head?
+    system "./configure",
+		"--disable-debug",
+		"--disable-dependency-tracking",
+        "--prefix=#{prefix}"
+    system "make install"
   end
 
   def test
-    # This test will fail and we won't accept that! It's enough to just replace
-    # "false" with the main program this formula installs, but it'd be nice if you
-    # were more thorough. Run the test with `brew test smcp`.
-    system "false"
+    system "smcpctl -p 10342 cat -i coap://localhost:10342/"
   end
 end
