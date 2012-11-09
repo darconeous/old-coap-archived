@@ -1,6 +1,8 @@
 INCLUDES = -I.. -I$(top_srcdir)/src
 #AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 
+AM_LDFLAGS = @LDFLAGS@ -all_load
+
 bin_PROGRAMS = smcpd
 
 smcpd_SOURCES = main.c system-node.c
