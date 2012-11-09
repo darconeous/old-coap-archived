@@ -12457,7 +12457,7 @@ fi
 done
 
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile"
+ac_config_files="$ac_config_files Makefile src/smcpd/smcpd.conf src/Makefile docs/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -13481,7 +13481,9 @@ do
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "src/config.h") CONFIG_HEADERS="$CONFIG_HEADERS src/config.h" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "src/smcpd/smcpd.conf") CONFIG_FILES="$CONFIG_FILES src/smcpd/smcpd.conf" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
+    "docs/Makefile") CONFIG_FILES="$CONFIG_FILES docs/Makefile" ;;
     "src/smcp/Makefile") CONFIG_FILES="$CONFIG_FILES src/smcp/Makefile" ;;
     "src/smcpctl/Makefile") CONFIG_FILES="$CONFIG_FILES src/smcpctl/Makefile" ;;
     "src/smcpd/Makefile") CONFIG_FILES="$CONFIG_FILES src/smcpd/Makefile" ;;
