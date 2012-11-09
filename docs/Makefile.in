@@ -218,6 +218,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 man_MANS = smcpctl.1
+EXTRA_DIST = smcpctl.1 smcpd.example.conf
 pkgdata_DATA = smcpd.example.conf
 all: all-am
 

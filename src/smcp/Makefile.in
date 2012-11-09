@@ -72,7 +72,10 @@ libsmcp_la_LIBADD =
 am__libsmcp_la_SOURCES_DIST = smcp.c smcp-list.c smcp-send.c \
 	smcp-node.c smcp-pairing.c btree.c url-helpers.c coap.c \
 	smcp-timer.c smcp-timer_node.c smcp-variable_node.c \
-	smcp-curl_proxy.c
+	assert_macros.h btree.h coap.h ll.h smcp-curl_proxy.h \
+	smcp-helpers.h smcp-internal.h smcp-logging.h smcp-node.h \
+	smcp-opts.h smcp-pairing.h smcp-timer.h smcp-timer_node.h \
+	smcp-variable_node.h smcp.h url-helpers.h smcp-curl_proxy.c
 @HAVE_LIBCURL_TRUE@am__objects_1 = smcp-curl_proxy.lo
 am_libsmcp_la_OBJECTS = smcp.lo smcp-list.lo smcp-send.lo smcp-node.lo \
 	smcp-pairing.lo btree.lo url-helpers.lo coap.lo smcp-timer.lo \
@@ -220,7 +223,11 @@ INCLUDES = -I.. -I$(top_srcdir)/src
 noinst_LTLIBRARIES = libsmcp.la
 libsmcp_la_SOURCES = smcp.c smcp-list.c smcp-send.c smcp-node.c \
 	smcp-pairing.c btree.c url-helpers.c coap.c smcp-timer.c \
-	smcp-timer_node.c smcp-variable_node.c $(am__append_1)
+	smcp-timer_node.c smcp-variable_node.c assert_macros.h btree.h \
+	coap.h ll.h smcp-curl_proxy.h smcp-helpers.h smcp-internal.h \
+	smcp-logging.h smcp-node.h smcp-opts.h smcp-pairing.h \
+	smcp-timer.h smcp-timer_node.h smcp-variable_node.h smcp.h \
+	url-helpers.h $(am__append_1)
 DISTCLEANFILES = .deps Makefile
 all: all-am
 

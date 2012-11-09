@@ -227,6 +227,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = smcp smcpctl smcpd
 DISTCLEANFILES = .deps Makefile
+EXTRA_DIST = missing/fgetln.h missing/fls.h
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
