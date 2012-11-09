@@ -65,6 +65,7 @@
 #define ERRORCODE_QUIT          (7)
 #define ERRORCODE_INTERRUPT     (8)
 #define ERRORCODE_SIGHUP		(9)
+#define ERRORCODE_BADCONFIG		(10)
 
 #define strcaseequal(x,y)	(strcasecmp(x,y)==0)
 
@@ -136,12 +137,13 @@ smcpd_modules_update_fdset(
 
 smcp_status_t
 smcpd_modules_process() {
+	smcp_status_t status = 0;
 	int i;
-	for(i=0;i<async_io_module_count;i++) {
+	for(i=0;i<async_io_module_count && !status;i++) {
 		if(async_io_module[i].process)
-			async_io_module[i].process(async_io_module[i].node);
+			status = async_io_module[i].process(async_io_module[i].node);
 	}
-	return SMCP_STATUS_OK;
+	return status;
 }
 
 smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* name) {
@@ -470,12 +472,14 @@ main(
 
 	smcp_set_proxy_url(smcp,getenv("COAP_PROXY_URL"));
 
-	read_configuration(smcp,config_file);
+	if(0!=read_configuration(smcp,config_file)) {
+		syslog(LOG_NOTICE,"Error processing configuration file!");
+		gRet = ERRORCODE_BADCONFIG;
+	} else {
+		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_get_port(smcp));
+	}
 
-	syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_get_port(smcp));
-
-
-	do {
+	while(!gRet) {
 		int fds_ready = 0, max_fd = -1;
 		fd_set read_fd_set,write_fd_set,error_fd_set;
 		long cms_timeout = 600000;
@@ -506,13 +510,16 @@ main(
 
 		smcp_process(smcp, 0);
 
-		smcpd_modules_process();
+		if(smcpd_modules_process()!=SMCP_STATUS_OK) {
+			syslog(LOG_ERR,"Module process error.");
+			gRet = ERRORCODE_UNKNOWN;
+		}
 
 		if(gRet == ERRORCODE_SIGHUP) {
 			gRet = 0;
 			read_configuration(smcp,config_file);
 		}
-	} while(!gRet);
+	}
 
 bail:
 
