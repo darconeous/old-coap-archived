@@ -7,6 +7,11 @@
  *
  */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include "smcpctl.h"
 #include <smcp/assert_macros.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,9 +26,8 @@
 #include <smcp/smcp-variable_node.h>
 #include <smcp/smcp-pairing.h>
 #include "help.h"
-#include "smcpctl.h"
 #include "cmd_test.h"
-#if HAS_LIBCURL
+#if HAVE_LIBCURL
 #include <smcp/smcp-curl_proxy.h>
 #endif
 
@@ -253,7 +257,7 @@ tool_cmd_test(
 
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
-#if HAS_LIBCURL
+#if HAVE_LIBCURL
 	struct smcp_curl_proxy_node_s proxy_node = {};
 //	curl_global_init(CURL_GLOBAL_ALL);
 
@@ -426,7 +430,7 @@ tool_cmd_test(
 #endif
 		smcp_process(smcp, 10);
 		smcp_process(smcp2, 10);
-#if HAS_LIBCURL
+#if HAVE_LIBCURL
 		smcp_curl_proxy_node_process(&proxy_node);
 #endif
 	}

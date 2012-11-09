@@ -6,6 +6,10 @@
 //  Copyright (c) 2012 deepdarc. All rights reserved.
 //
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <smcp/assert_macros.h>
 #include <stdio.h>
 #include <stdlib.h>

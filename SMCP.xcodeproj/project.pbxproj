@@ -52,7 +52,6 @@
 /* Begin PBXFileReference section */
 		8DD76FB20486AB0100D96B5E /* smcpctl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = smcpctl; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6030637163AE4BC00B0AA6C /* fgetln.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fgetln.h; sourceTree = "<group>"; };
-		A6030639163AE4D100B0AA6C /* config-parser.l */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.lex; path = "config-parser.l"; sourceTree = "<group>"; };
 		A603063A163AE4D100B0AA6C /* help.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = help.h; sourceTree = "<group>"; };
 		A603063B163AE4D100B0AA6C /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		A6030647164595E500B0AA6C /* fls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fls.h; sourceTree = "<group>"; };
@@ -112,10 +111,18 @@
 		A67646A9156479E50074028C /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		A67646AA156479E50074028C /* smcp-simple.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "smcp-simple.c"; sourceTree = "<group>"; };
 		A6770026156AA2BF00592868 /* smcp-opts.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-opts.h"; path = "src/smcp/smcp-opts.h"; sourceTree = "<group>"; };
-		A6770028156AA92300592868 /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		A679FFB7164BD4F700736F58 /* system-node.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "system-node.c"; sourceTree = "<group>"; };
 		A6A27BA1127B934F003708DF /* cmd_delete.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_delete.h; path = src/smcpctl/cmd_delete.h; sourceTree = "<group>"; };
 		A6A27BA2127B934F003708DF /* cmd_delete.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_delete.c; path = src/smcpctl/cmd_delete.c; sourceTree = "<group>"; };
+		A6BE9A39164CC63C00473330 /* configure.ac */ = {isa = PBXFileReference; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
+		A6BE9A3A164CC63C00473330 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
+		A6BE9A3B164CC64800473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
+		A6BE9A3C164CC66100473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = src/smcpctl/Makefile.am; sourceTree = "<group>"; };
+		A6BE9A3D164CC67D00473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = src/smcp/Makefile.am; sourceTree = "<group>"; };
+		A6BE9A3E164CC86B00473330 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; name = smcpctl.1; path = docs/smcpctl.1; sourceTree = "<group>"; };
+		A6BE9A3F164CC86B00473330 /* smcpd.example.conf */ = {isa = PBXFileReference; lastKnownFileType = text; name = smcpd.example.conf; path = docs/smcpd.example.conf; sourceTree = "<group>"; };
+		A6BE9A40164CC87F00473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = docs/Makefile.am; sourceTree = "<group>"; };
+		A6BE9A41164CD28A00473330 /* smcpd.conf.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = smcpd.conf.in; sourceTree = "<group>"; };
 		A6CD695D1283463900254A8B /* btreetest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = btreetest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-curl_proxy.c"; path = "src/smcp/smcp-curl_proxy.c"; sourceTree = "<group>"; };
 		A6F536ED155F0E5200E0E324 /* smcp-curl_proxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-curl_proxy.h"; path = "src/smcp/smcp-curl_proxy.h"; sourceTree = "<group>"; };
@@ -148,9 +155,10 @@
 		08FB7794FE84155DC02AAC07 /* SHAP */ = {
 			isa = PBXGroup;
 			children = (
+				A6BE9A39164CC63C00473330 /* configure.ac */,
+				A6BE9A3A164CC63C00473330 /* Makefile.am */,
 				A6030638163AE4D100B0AA6C /* smcpd */,
 				A6030636163AE4BC00B0AA6C /* missing */,
-				A6770028156AA92300592868 /* Makefile */,
 				A6C6C483121B2EE200CAB3A3 /* Tool Source */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				A6764685156474380074028C /* contiki-src */,
@@ -165,6 +173,7 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				A6BE9A3D164CC67D00473330 /* Makefile.am */,
 				A60D0DB312795ADF00C04B8C /* Utils */,
 				A63EA6F41278B16D00B24867 /* smcp.c */,
 				A6770026156AA2BF00592868 /* smcp-opts.h */,
@@ -213,7 +222,8 @@
 		A6030638163AE4D100B0AA6C /* smcpd */ = {
 			isa = PBXGroup;
 			children = (
-				A6030639163AE4D100B0AA6C /* config-parser.l */,
+				A6BE9A41164CD28A00473330 /* smcpd.conf.in */,
+				A6BE9A3B164CC64800473330 /* Makefile.am */,
 				A603063A163AE4D100B0AA6C /* help.h */,
 				A603063B163AE4D100B0AA6C /* main.c */,
 				A679FFB7164BD4F700736F58 /* system-node.c */,
@@ -281,6 +291,7 @@
 		A6C6C483121B2EE200CAB3A3 /* Tool Source */ = {
 			isa = PBXGroup;
 			children = (
+				A6BE9A3C164CC66100473330 /* Makefile.am */,
 				A63EA6CD1278B13800B24867 /* cmd_get.c */,
 				A63EA6CE1278B13800B24867 /* cmd_get.h */,
 				A63EA6CF1278B13800B24867 /* cmd_list.c */,
@@ -308,6 +319,9 @@
 		C6A0FF2B0290797F04C91782 /* Documentation */ = {
 			isa = PBXGroup;
 			children = (
+				A6BE9A3E164CC86B00473330 /* smcpctl.1 */,
+				A6BE9A40164CC87F00473330 /* Makefile.am */,
+				A6BE9A3F164CC86B00473330 /* smcpd.example.conf */,
 				C6A0FF2C0290799A04C91782 /* smcpctl.1 */,
 				A60BF11B158D425F00D39B5C /* COPYING */,
 				A60BF11C158D425F00D39B5C /* README.md */,
@@ -408,6 +422,7 @@
 				A6F536EE155F0E5200E0E324 /* smcp-curl_proxy.c in Sources */,
 				A6F536F3155F255000E0E324 /* smcp-send.c in Sources */,
 				A6F536F81561B7A600E0E324 /* smcp-list.c in Sources */,
+				A679FFB9164BDD9700736F58 /* system-node.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

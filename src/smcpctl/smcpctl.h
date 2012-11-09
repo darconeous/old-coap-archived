@@ -10,6 +10,12 @@
 #ifndef __SMCPCTL_H__
 #define __SMCPCTL_H__ 1
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <smcp/smcp.h>
+
 #define ERRORCODE_OK            (0)
 #define ERRORCODE_HELP          (1)
 #define ERRORCODE_BADARG        (2)

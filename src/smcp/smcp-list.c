@@ -29,6 +29,10 @@
 /*	TODO: This function should be re-written using the new design patterns.
 */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifndef VERBOSE_DEBUG
 #define VERBOSE_DEBUG 1
 #endif

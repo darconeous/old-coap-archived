@@ -26,6 +26,10 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifndef VERBOSE_DEBUG
 #define VERBOSE_DEBUG 0
 #endif

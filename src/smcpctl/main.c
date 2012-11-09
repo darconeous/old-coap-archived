@@ -1,4 +1,8 @@
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <smcp/assert_macros.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +21,7 @@
 #include <missing/fgetln.h>
 #endif
 
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
@@ -281,7 +285,7 @@ bail:
 	return ret;
 }
 
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 static bool history_disabled;
 #endif
 
@@ -294,7 +298,7 @@ void process_input_line(char *l) {
 	if(!l[0])
 		goto bail;
 	l = strdup(l);
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 	if(!history_disabled)
 		add_history(l);
 #endif
@@ -314,7 +318,7 @@ void process_input_line(char *l) {
 		else if(gRet && (gRet != ERRORCODE_HELP))
 			fprintf(stderr,"Error %d\n", gRet);
 
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 		if(!history_disabled)
 			write_history(getenv("SMCP_HISTORY_FILE"));
 #endif
@@ -339,7 +343,7 @@ static char* get_current_prompt() {
 	return prompt;
 }
 
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 void process_input_readline(char *l) {
 	process_input_line(l);
 	if(istty) {
@@ -356,7 +360,7 @@ void process_input_readline(char *l) {
 
 #pragma mark -
 
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 
 char *
 smcp_command_generator(
@@ -598,7 +602,7 @@ main(
 	BEGIN_SHORT_ARGUMENTS(gRet)
 	HANDLE_SHORT_ARGUMENT('p') port = strtol(argv[++i], NULL, 0);
 	HANDLE_SHORT_ARGUMENT('d') debug_mode++;
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 	HANDLE_SHORT_ARGUMENT('f') {
 		stdin = fopen(argv[++i], "r");
 		if(!stdin) {
@@ -641,7 +645,7 @@ main(
 		        strncmp(argv[i], "smcp:",
 					5)) && (0 != strncmp(argv[i], "coap:", 5))) {
 			gRet = exec_command(smcp, argc - i, argv + i);
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 			if(gRet || (0 != strcmp(argv[i], "cd")))
 #endif
 			goto bail;
@@ -652,24 +656,24 @@ main(
 
 	if(istty) {
 		fprintf(stderr,"Listening on port %d.\n",smcp_get_port(smcp));
-#if !HAS_LIBREADLINE
+#if !HAVE_LIBREADLINE
 		print_arg_list_help(option_list,
 			argv[0],
 			"[options] <sub-command> [args]");
 		print_commands();
 		gRet = ERRORCODE_NOCOMMAND;
 		goto bail;
-#else   // HAS_LIBREADLINE
+#else   // HAVE_LIBREADLINE
 		setenv("SMCP_HISTORY_FILE", tilde_expand("~/.smcp_history"), 0);
 
 		require_noerr(gRet = initialize_readline(),bail);
 
-#endif  // HAS_LIBREADLINE
+#endif  // HAVE_LIBREADLINE
 	}
 
 	// Command mode.
 	while((gRet != ERRORCODE_QUIT) && !feof(stdin)) {
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 		if(istty) {
 			struct pollfd polltable[2] = {
 				{ fileno(stdin), POLLIN | POLLHUP, 0 },
@@ -683,7 +687,7 @@ main(
 			if(polltable[0].revents)
 				rl_callback_read_char();
 		} else
-#endif  // HAS_LIBREADLINE
+#endif  // HAVE_LIBREADLINE
 		{
 			char linebuffer[200];
 			fgets(linebuffer, sizeof(linebuffer), stdin);
@@ -694,9 +698,9 @@ main(
 	}
 
 bail:
-#if HAS_LIBREADLINE
+#if HAVE_LIBREADLINE
 	rl_callback_handler_remove();
-#endif  // HAS_LIBREADLINE
+#endif  // HAVE_LIBREADLINE
 	if(gRet == ERRORCODE_QUIT)
 		gRet = 0;
 

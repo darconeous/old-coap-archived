@@ -1,8 +1,13 @@
-#define HAVE_FGETLN 0
+
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #ifndef ASSERT_MACROS_USE_SYSLOG
 #define ASSERT_MACROS_USE_SYSLOG 1
 #endif
+
+#define HAVE_FGETLN 0
 
 #include <smcp/assert_macros.h>
 
@@ -41,9 +46,9 @@
 #endif
 #endif
 
-#undef HAS_LIBCURL
+#undef HAVE_LIBCURL
 
-#if HAS_LIBCURL
+#if HAVE_LIBCURL
 #include <smcp/smcp-curl_proxy.h>
 #endif
 
@@ -163,7 +168,7 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 		init_func = &smcp_node_init;
 	} else if(strcaseequal(type,"timer")) {
 		init_func = &smcp_timer_node_init;
-#if HAS_LIBCURL
+#if HAVE_LIBCURL
 	} else if(false && strcaseequal(type,"curl_proxy")) {
 		init_func = &smcp_curl_proxy_node_init;
 		update_fdset_func = &smcp_curl_proxy_node_update_fdset;
@@ -453,7 +458,7 @@ main(
 
 	syslog(LOG_NOTICE,"Starting smcpd . . .");
 
-#if HAS_LIBCURL
+#if HAVE_LIBCURL
 	syslog(LOG_NOTICE,"Built with libcurl support.");
 #endif
 
