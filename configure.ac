@@ -73,7 +73,7 @@ fi
 dnl echo LOAD_ALL_SYMBOLS_FLAG = $LOAD_ALL_SYMBOLS_FLAG
 AC_SUBST(LOAD_ALL_SYMBOLS_FLAG)
 
-AC_CONFIG_SRCDIR([src/])
+AC_CONFIG_SRCDIR([src/smcp/smcp.c])
 AM_CONFIG_HEADER([src/config.h])
 
 AM_MAINTAINER_MODE
@@ -115,10 +115,10 @@ AC_CHECK_FUNCS([memset])
 
 
 AC_CACHE_CHECK([for ge_rs232],[smcp_cv_have_ge_rs232],[
-	smcp_cv_have_ge_rs232=false
-	test ${top_srcdir}/../ge-rs232/ge-system-node.c && smcp_cv_have_ge_rs232=true
+	smcp_cv_have_ge_rs232=no
+	test -f "${srcdir}/../ge-rs232/ge-system-node.c" && smcp_cv_have_ge_rs232=yes
 ])
-AM_CONDITIONAL([HAVE_GE_RS232],[$smcp_cv_have_ge_rs232])
+AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
 
 AC_CONFIG_FILES(Makefile src/smcpd/smcpd.conf src/Makefile docs/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile)
 AC_OUTPUT

@@ -631,6 +631,12 @@ main(
 	istty = isatty(fileno(stdin));
 
 	smcp = smcp_create(port);
+
+	if(!smcp) {
+		fprintf(stderr,"%s: FATAL-ERROR: Unable to initialize smcp instance! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
+		return ERRORCODE_INIT_FAILURE;
+	}
+
 	setenv("SMCP_CURRENT_PATH", "coap://localhost/", 0);
 
 	smcp_set_proxy_url(smcp,getenv("COAP_PROXY_URL"));

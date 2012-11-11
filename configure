@@ -628,7 +628,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_unique_file="src/"
+ac_unique_file="src/smcp/smcp.c"
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
@@ -13512,13 +13512,13 @@ if ${smcp_cv_have_ge_rs232+:} false; then :
   $as_echo_n "(cached) " >&6
 else
 
-	smcp_cv_have_ge_rs232=false
-	test ${top_srcdir}/../ge-rs232/ge-system-node.c && smcp_cv_have_ge_rs232=true
+	smcp_cv_have_ge_rs232=no
+	test -f "${srcdir}/../ge-rs232/ge-system-node.c" && smcp_cv_have_ge_rs232=yes
 
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $smcp_cv_have_ge_rs232" >&5
 $as_echo "$smcp_cv_have_ge_rs232" >&6; }
- if $smcp_cv_have_ge_rs232; then
+ if test "$smcp_cv_have_ge_rs232" = yes; then
   HAVE_GE_RS232_TRUE=
   HAVE_GE_RS232_FALSE='#'
 else
