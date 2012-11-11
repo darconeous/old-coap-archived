@@ -66,9 +66,10 @@
 #define ERRORCODE_BADCOMMAND    (5)
 #define ERRORCODE_NOREADLINE    (6)
 #define ERRORCODE_QUIT          (7)
-#define ERRORCODE_INTERRUPT     (8)
-#define ERRORCODE_SIGHUP		(9)
-#define ERRORCODE_BADCONFIG		(10)
+#define ERRORCODE_BADCONFIG		(8)
+
+#define ERRORCODE_INTERRUPT     (128+SIGINT)
+#define ERRORCODE_SIGHUP		(128+SIGHUP)
 
 #define strcaseequal(x,y)	(strcasecmp(x,y)==0)
 

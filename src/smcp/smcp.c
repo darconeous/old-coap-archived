@@ -143,10 +143,22 @@ smcp_init(
 	// Set up the UDP port for listening.
 #if SMCP_USE_BSD_SOCKETS
 	uint16_t attempts = 0x7FFF;
-	ret->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
-	require_action_string(ret->fd > 0, bail, { smcp_release(
-				ret); ret = NULL; }, "Failed to create socket");
+	ret->mcfd = -1;
+	ret->fd = -1;
+	errno = 0;
+
+	ret->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	int prev_errno = errno;
+
+	require_action_string(
+		ret->fd >= 0,
+		bail, (
+			smcp_release(ret),
+			ret = NULL
+		),
+		strerror(prev_errno)
+	);
 
 	// Keep attempting to bind until we find a port that works.
 	while(bind(ret->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
@@ -234,8 +246,10 @@ smcp_release(smcp_t self) {
 	smcp_node_delete(smcp_get_root_node(self));
 
 #if SMCP_USE_BSD_SOCKETS
-	close(self->fd);
-	close(self->mcfd);
+	if(self->fd>=0)
+		close(self->fd);
+	if(self->mcfd>=0)
+		close(self->mcfd);
 #elif CONTIKI
 	if(self->udp_conn)
 		uip_udp_remove(self->udp_conn);
@@ -276,6 +290,7 @@ smcp_get_udp_conn(smcp_t self) {
 
 void
 smcp_set_proxy_url(smcp_t self,const char* url) {
+	assert(self);
 	free(self->proxy_url);
 	if(url)
 		self->proxy_url = strdup(url);
