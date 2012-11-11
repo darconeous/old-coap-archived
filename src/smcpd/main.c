@@ -46,8 +46,6 @@
 #endif
 #endif
 
-#undef HAVE_LIBCURL
-
 #if HAVE_LIBCURL
 #include <smcp/smcp-curl_proxy.h>
 #endif
@@ -178,7 +176,7 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 	} else if(strcaseequal(type,"timer")) {
 		init_func = &smcp_timer_node_init;
 #if HAVE_LIBCURL
-	} else if(false && strcaseequal(type,"curl_proxy")) {
+	} else if(strcaseequal(type,"curl_proxy")) {
 		init_func = &smcp_curl_proxy_node_init;
 		update_fdset_func = &smcp_curl_proxy_node_update_fdset;
 		process_func = &smcp_curl_proxy_node_process;
