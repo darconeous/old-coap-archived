@@ -1,1 +1,1 @@
-/usr/local/Cellar/libtool/2.4/share/aclocal/ltsugar.m4
+/usr/share/aclocal/ltsugar.m4
