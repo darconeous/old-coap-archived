@@ -86,14 +86,23 @@ static smcp_t smcp;
 static int gRet;
 
 static const char* gProcessName = "smcpd";
+static const char* gPIDFilename = NULL;
 
 static sig_t gPreviousHandlerForSIGINT;
+static sig_t gPreviousHandlerForSIGTERM;
 
 static void
 signal_SIGINT(int sig) {
 	gRet = ERRORCODE_INTERRUPT;
 	syslog(LOG_NOTICE,"Caught SIGINT!");
 	signal(SIGINT, gPreviousHandlerForSIGINT);
+}
+
+static void
+signal_SIGTERM(int sig) {
+	gRet = ERRORCODE_INTERRUPT;
+	syslog(LOG_NOTICE,"Caught SIGTERM!");
+	signal(SIGTERM, gPreviousHandlerForSIGTERM);
 }
 
 static void
@@ -297,6 +306,24 @@ read_configuration(smcp_t smcp,const char* filename) {
 			// Not really supported at the moment.
 			if(smcp_get_port(smcp)!=atoi(arg))
 				syslog(LOG_ERR,"ListenPort doesn't match current listening port.");
+		} else if(strcaseequal(cmd,"PIDFile")) {
+			char* arg = get_next_arg(line,&line);
+			if(!arg) {
+				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
+				goto bail;
+			}
+			if(gPIDFilename) {
+				syslog(LOG_ERR,"%s:%d: Config option \"%s\" can only appear once.",filename,line_number,cmd);
+				goto bail;
+			}
+			gPIDFilename = strdup(arg);
+			unlink(gPIDFilename);
+			FILE* pidfile = fopen(gPIDFilename,"w");
+			if(!pidfile) {
+				syslog(LOG_ERR,"%s:%d: Unable to open PID file \"%s\".",filename,line_number,gPIDFilename);
+			}
+			fprintf(pidfile,"%d\n",getpid());
+			fclose(pidfile);
 		} else if(strcaseequal(cmd,"CoAPProxyURL")) {
 			char* arg = get_next_arg(line,&line);
 			if(!arg) {
@@ -411,6 +438,7 @@ main(
 	openlog(basename(argv[0]),LOG_PERROR|LOG_PID|LOG_CONS,LOG_DAEMON);
 
 	gPreviousHandlerForSIGINT = signal(SIGINT, &signal_SIGINT);
+	gPreviousHandlerForSIGTERM = signal(SIGINT, &signal_SIGTERM);
 	signal(SIGHUP, &signal_SIGHUP);
 
 	srandom(time(NULL));
@@ -533,6 +561,9 @@ bail:
 
 	if(smcp) {
 		syslog(LOG_NOTICE,"Stopping smcpd . . .");
+
+		if(gPIDFilename)
+			unlink(gPIDFilename);
 
 		smcp_release(smcp);
 
