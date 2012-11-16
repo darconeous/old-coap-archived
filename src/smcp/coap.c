@@ -217,7 +217,7 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 coap_content_type_t
 coap_content_type_from_cstr(const char* x) {
 	if(!x)
-		return 0;
+		return COAP_CONTENT_TYPE_UNKNOWN;
 
 	if(strhasprefix_const(x, "application/x-coap-"))
 		x += sizeof("application/x-coap-") - 1;
@@ -261,7 +261,7 @@ coap_option_value_is_string(coap_option_key_t key) {
 		case COAP_HEADER_URI_PATH:
 			return true;
 			break;
-		deafult:
+		default:
 			break;
 	}
 	return false;

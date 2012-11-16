@@ -230,7 +230,7 @@ smcp_curl_proxy_node_request_handler(
 				strcat(header,": ");
 				strcat(header,value_string);
 				headerlist = curl_slist_append(headerlist, header);
-				assert_printf(,"CuRL HEADER: \"%s\"",header);
+				assert_printf("CuRL HEADER: \"%s\"",header);
 			} else {
 				if(coap_option_value_is_string(key)) {
 					const char* option_name = coap_option_key_to_cstr(key, false);

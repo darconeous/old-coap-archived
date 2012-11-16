@@ -343,6 +343,12 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	struct addrinfo *results = NULL;
 	struct addrinfo *iter = NULL;
 
+//	if(strcasecmp(addr_str, "all-smcp-devices")==0)
+//		addr_str = SMCP_IPV6_MULTICAST_ADDRESS;
+//
+//	if(strcasecmp(addr_str, "all-coap-devices")==0)
+//		addr_str = SMCP_IPV6_MULTICAST_ADDRESS;
+
 	int error = getaddrinfo(addr_str, NULL, &hint, &results);
 
 	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
@@ -388,6 +394,13 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 		saddr.sin6_addr.s6_addr[11] = 0xFF;
 		memcpy(&saddr.sin6_addr.s6_addr[12], &v4addr->sin_addr.s_addr, 4);
 	} else {
+		if(saddr.sin6_addr.s6_addr[0]==0xFF) {
+			smcp_t const self = smcp_get_current_instance();
+			check(self->outbound.packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
+			if(self->outbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
+				self->outbound.packet->tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
+			}
+		}
 		memcpy(&saddr, iter->ai_addr, iter->ai_addrlen);
 	}
 	saddr.sin6_port = toport;
@@ -649,7 +662,10 @@ smcp_status_t
 smcp_outbound_send() {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	smcp_t const self = smcp_get_current_instance();
+
+	// Note that this next line will "finish" the packet.
 	const size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
+
 #if VERBOSE_DEBUG
 	DEBUG_PRINTF("Outbound: tt=%d",smcp_get_current_instance()->outbound.packet->tt);
 	coap_dump_header(

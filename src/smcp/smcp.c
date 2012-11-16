@@ -291,7 +291,7 @@ smcp_get_udp_conn(smcp_t self) {
 void
 smcp_set_proxy_url(smcp_t self,const char* url) {
 	assert(self);
-	free(self->proxy_url);
+	free((void*)self->proxy_url);
 	if(url)
 		self->proxy_url = strdup(url);
 	else
@@ -464,6 +464,7 @@ smcp_handle_inbound_packet(
 #endif
 
 	// TODO: Set `self->inbound.was_sent_to_multicast` properly!
+	// self->inbound.was_sent_to_multicast = ???
 
 	{
 		// Update dupe hash.
@@ -1062,6 +1063,7 @@ smcp_handle_response(
 	}
 
 	// TODO: Make sure this packet didn't originate from multicast.
+	// ...Or do what?
 
 	if(!handler) {
 		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {

@@ -427,6 +427,7 @@ url_parse(
 				|| (tmp == '[')
 				|| (tmp == ']')
 				|| (tmp == ':')
+				|| (tmp == '%')		// Necessary for scoped addresses
 				|| (tmp == '@')
 			)
 		) {
@@ -542,7 +543,8 @@ url_is_root(const char* url) {
 	bool ret = false;
 
 	require(url, bail);
-	require(isalpha(url[0]),bail);
+
+	if(!isalpha(url[0])) goto bail;
 
 	if(url_is_absolute(url)) {
 		while(*url && isalpha(*url) && (*url != ':')) {

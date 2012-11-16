@@ -31,7 +31,7 @@ static arg_list_item_t option_list[] = {
 	{ 'f', "follow",  NULL, "follow redirects"			},
 	{ 'O', "observe",  NULL, "Observe changes"			},
 	{ 0  , "timeout",  "seconds", "Change timeout period (Default: 30 Seconds)" },
-
+	{ 'a', "accept", "mime-type/coap-number", "hint to the server the content-type you want" },
 	{ 0 }
 };
 
@@ -62,6 +62,7 @@ static coap_transaction_id_t tokenid;
 static int last_observe_value = -1;
 static int last_block = -1;
 static int block_key = COAP_HEADER_BLOCK2;
+static coap_content_type_t request_accept_type = -1;
 
 static void
 get_response_handler(int statuscode, void* context) {
@@ -189,6 +190,11 @@ resend_get_request(void* context) {
 	status = smcp_outbound_add_option(COAP_HEADER_TOKEN, (void*)&tokenid, sizeof(tokenid));
 	require_noerr(status,bail);
 
+	if(request_accept_type!=COAP_CONTENT_TYPE_UNKNOWN) {
+		status = smcp_outbound_add_option(COAP_HEADER_ACCEPT, (void*)&request_accept_type, sizeof(request_accept_type));
+		require_noerr(status,bail);
+	}
+
 	if(next_len != ((size_t)(-1))) {
 		status = smcp_outbound_add_option(
 			block_key,
@@ -288,6 +294,7 @@ tool_cmd_get(
 	get_timeout = 30*1000; // Default timeout is 30 seconds.
 	last_observe_value = -1;
 	last_block = -1;
+	request_accept_type = COAP_CONTENT_TYPE_UNKNOWN;
 
 	if(strcmp(argv[0],"observe")==0 || strcmp(argv[0],"obs")==0) {
 		get_observe = true;
@@ -301,6 +308,15 @@ tool_cmd_get(
 	HANDLE_LONG_ARGUMENT("slice-size") size_request = htons(strtol(argv[++i], NULL, 0));
 	HANDLE_LONG_ARGUMENT("timeout") get_timeout = 1000*strtof(argv[++i], NULL);
 	HANDLE_LONG_ARGUMENT("observe") get_observe = true;
+	HANDLE_LONG_ARGUMENT("accept") {
+		i++;
+		if(!argv[i]) {
+			fprintf(stderr, "Missing argument for \"%s\"\n", argv[i-1]);
+			gRet = ERRORCODE_BADARG;
+			goto bail;
+		}
+		request_accept_type = coap_content_type_from_cstr(argv[i]);
+	}
 
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");
@@ -311,6 +327,15 @@ tool_cmd_get(
 	HANDLE_SHORT_ARGUMENT('i') get_show_headers = true;
 	HANDLE_SHORT_ARGUMENT('f') redirect_count = 10;
 	HANDLE_SHORT_ARGUMENT('O') get_observe = true;
+	HANDLE_SHORT_ARGUMENT('a') {
+		i++;
+		if(!argv[i]) {
+			fprintf(stderr, "Missing argument for \"%s\"\n", argv[i-1]);
+			gRet = ERRORCODE_BADARG;
+			goto bail;
+		}
+		request_accept_type = coap_content_type_from_cstr(argv[i]);
+	}
 
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
 		print_arg_list_help(option_list, argv[0], "[args] <uri>");
