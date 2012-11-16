@@ -118,7 +118,7 @@ get_response_handler(int statuscode, void* context) {
 				else observe_value = 0;
 			}
 
-			if((key == COAP_HEADER_09_BLOCK1 || key == COAP_HEADER_BLOCK2) && value_len) {
+			if((key == COAP_HEADER_BLOCK2) && value_len) {
 				static uint8_t tmp[5];
 				next_len = value_len<3?value_len:3;
 				memcpy(tmp,value,next_len);

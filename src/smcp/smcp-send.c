@@ -215,8 +215,7 @@ smcp_outbound_add_option_(
 #warning TODO: Check for overflow!
 
 	if(key<self->outbound.last_option_key) {
-		assert_printf("Out of order header: %s",coap_option_key_to_cstr(key, self->is_responding));
-		return SMCP_STATUS_INVALID_ARGUMENT;
+		assert_printf("warning: Out of order header: %s",coap_option_key_to_cstr(key, self->is_responding));
 	}
 
 	if(len == HEADER_CSTR_LEN)
@@ -227,20 +226,31 @@ smcp_outbound_add_option_(
 
 	option_count = self->outbound.packet->option_count;
 
-	self->outbound.content_ptr = (char*)coap_encode_option(
+	self->outbound.content_ptr += coap_insert_option(
+		(uint8_t*)self->outbound.packet->options,
 		(uint8_t*)self->outbound.content_ptr,
-		&option_count,
-		self->outbound.last_option_key,
 		key,
 		(const uint8_t*)value,
 		len
 	);
 
-	self->outbound.last_option_key = key;
+	option_count++;
+
+	if(key>self->outbound.last_option_key)
+		self->outbound.last_option_key = key;
 	self->outbound.packet->option_count = MIN(15,option_count);
 
 	if(self->outbound.packet->option_count==0xF)
 		*self->outbound.content_ptr++ = 0xF0;  // Add end-of-options marker
+
+#if VERBOSE_DEBUG
+	coap_dump_header(
+		SMCP_DEBUG_OUT_FILE,
+		"Option-Debug >>> ",
+		self->outbound.packet,
+		0
+	);
+#endif
 
 	return SMCP_STATUS_OK;
 }
@@ -260,8 +270,8 @@ smcp_outbound_add_options_up_to_key_(
 			// For sending a response.
 			const uint8_t* value;
 			size_t len;
-			coap_decode_option(self->inbound.token_option, NULL, &value, &len);
-			return smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
+			if(coap_decode_option(self->inbound.token_option, NULL, &value, &len))
+				return smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
 		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
 			return smcp_outbound_add_option_(
@@ -596,7 +606,7 @@ smcp_outbound_set_uri(
 	}
 
 bail:
-	DEBUG_PRINTF(
+	if(ret) DEBUG_PRINTF(
 		"URI Parse failed for URI: \"%s\"",
 		uri
 	);

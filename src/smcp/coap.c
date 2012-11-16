@@ -37,9 +37,45 @@
 
 #include "smcp-helpers.h"
 
-const uint8_t*
+uint8_t*
 coap_decode_option(const uint8_t* buffer, coap_option_key_t* key, const uint8_t** value, size_t* lenP) {
-	uint16_t len = (*buffer & 0x0F);
+	uint16_t len;
+
+again:
+
+	len = (*buffer & 0x0F);
+
+	if((*buffer >> 4) == 0xF) {
+		// Special option.
+		switch(len) {
+			case 1:
+				// Delta = 15
+				*key += 15;
+				buffer += 1;
+				goto again;
+				break;
+			case 2:
+				*key += 16+(buffer[1]*8);
+				buffer += 2;
+				goto again;
+				break;
+			case 3:
+				*key += 2064+(buffer[1]*8*256)+(buffer[2]*8);
+				buffer += 3;
+				goto again;
+				break;
+			default:
+				// Unknown special options marker.
+				assert_printf("Unknown special option, \"%d\"",(*buffer >> 4));
+			case 0:
+				// End of options marker.
+				if(key)*key = COAP_HEADER_INVALID;
+				if(value)*value = NULL;
+				if(lenP)*lenP = 0;
+				return NULL;
+				break;
+		}
+	}
 
 	if(key)
 		*key += (*buffer >> 4);
@@ -48,6 +84,16 @@ coap_decode_option(const uint8_t* buffer, coap_option_key_t* key, const uint8_t*
 
 	if(len == 0xF)
 		len += *buffer++;
+
+	if(len == 270)
+		len += *buffer++;
+
+	if(len == 525)
+		len += *buffer++;
+
+	if(len == 780)
+		len += *buffer++;
+
 
 	if(lenP) *lenP = len;
 	if(value) *value = buffer;
@@ -58,46 +104,138 @@ coap_decode_option(const uint8_t* buffer, coap_option_key_t* key, const uint8_t*
 uint8_t*
 coap_encode_option(
 	uint8_t* buffer,
-	uint8_t* option_count,
 	coap_option_key_t prev_key,
 	coap_option_key_t key,
 	const uint8_t* value,
 	size_t len
 ) {
-	int option_delta = key - prev_key;
-	while(option_delta>14) {
-		option_delta = (prev_key / 14 * 14 + 14) - prev_key;
-		*buffer++ = (option_delta << 4);
+	uint16_t option_delta = key - prev_key;
 
-		if(option_count)
-			(*option_count)++;
-
-		prev_key = (prev_key / 14 * 14 + 14);
-		option_delta = key - prev_key;
+	if(option_delta>14) {
+		if(option_delta < 15+15) {
+			*buffer++ = 0xF1;
+			option_delta -= 15;
+		} else if(option_delta<2064) {
+			*buffer++ = 0xF2;
+			*buffer++ = (option_delta/8)-2;
+			option_delta -= (option_delta/8)*8;
+		} else {
+			uint16_t d = (option_delta/8)-258;
+			*buffer++ = 0xF3;
+			*buffer++ = (d>>8);
+			*buffer++ = (d&0xFF);
+			option_delta -= (option_delta/8)*8;
+		}
 	}
 
-	check(len <= (270));
+	check(len <= (COAP_MAX_OPTION_VALUE_SIZE));
 
-	if(len > 270)
-		len = 270;
+	if(len > COAP_MAX_OPTION_VALUE_SIZE)
+		len = COAP_MAX_OPTION_VALUE_SIZE;
 
-	if(len > 14) {
-		*buffer++ = (option_delta << 4) | 0xF;
-		*buffer++ = len - 15;
-		memcpy(buffer, value, len);
-		buffer += len;
-	} else {
+	if(len<16) {
 		*buffer++ = (option_delta << 4) | len;
-		memcpy(buffer, value, len);
-		buffer += len;
+	} else {
+		*buffer++ = (option_delta << 4) | 0xF;
+		if(len>=780) {
+			*buffer++ = 0xFF;
+			*buffer++ = 0xFF;
+			*buffer++ = 0xFF;
+			*buffer++ = len-780;
+		} else if(len>=525) {
+			*buffer++ = 0xFF;
+			*buffer++ = 0xFF;
+			*buffer++ = len-525;
+		} else if(len>=270) {
+			*buffer++ = 0xFF;
+			*buffer++ = len-270;
+		} else {
+			*buffer++ = len-15;
+			*buffer++ = len;
+		}
 	}
 
-	if(option_count)
-		(*option_count)++;
+	memcpy(buffer, value, len);
+	buffer += len;
 
 	return buffer;
 }
 
+extern size_t coap_insert_option(
+	uint8_t* start_of_options,
+	uint8_t* end_of_options,
+	coap_option_key_t key,
+	const uint8_t* value,
+	size_t len
+) {
+	size_t size_diff = 0;
+	uint8_t* iter = start_of_options;
+	uint8_t* insertion_point = start_of_options;
+	coap_option_key_t prev_key = 0;
+	coap_option_key_t iter_key = 0;
+
+	// Find out insertion point.
+	if(start_of_options==end_of_options) {
+		iter = NULL;
+	} else {
+		do {
+			iter = coap_decode_option(iter, &iter_key, NULL, NULL);
+			if(iter_key<=key) {
+				insertion_point = iter;
+				prev_key = iter_key;
+			}
+			if(iter_key>key)
+				break;
+		} while(iter && iter<end_of_options);
+	}
+
+	if(iter && (iter_key>key || iter<end_of_options)) {
+		size_diff += len + 1;
+
+		// Compensate for jump option before insert
+		if(key-prev_key>2064) {
+			size_diff+=3;
+		} else if(key-prev_key>15) {
+			size_diff+=2;
+		} else if(key-prev_key==15) {
+			size_diff+=1;
+		}
+
+		// Compensate for jump option after insert
+		if((insertion_point[0]&0xF0) == 0xF0) {
+			size_diff -= (insertion_point[0]&0xF);
+		}
+		if(iter_key-key>2064) {
+			size_diff+=3;
+		} else if(iter_key-key>15) {
+			size_diff+=2;
+		} else if(iter_key-key==15) {
+			size_diff+=1;
+		}
+
+		// Move higher options
+		if(size_diff)
+			memmove(insertion_point+size_diff,insertion_point,end_of_options-insertion_point);
+
+		// encode new option
+		iter = coap_encode_option(insertion_point, prev_key, key, value, len);
+
+		// TODO: There may be a bug here when inserting values that cause a jump option to be removed!
+
+		// Update fisrt option after
+		{
+			coap_decode_option(insertion_point+size_diff, &prev_key, &value, &len);
+			coap_encode_option(iter, key, prev_key, value, len);
+		}
+
+	} else {
+		// encode new option
+		size_diff = coap_encode_option(end_of_options, prev_key, key, value, len) - end_of_options;
+	}
+
+bail:
+	return size_diff;
+}
 
 uint16_t coap_to_http_code(uint8_t x) { return COAP_TO_HTTP_CODE(x); }
 
@@ -109,7 +247,8 @@ coap_option_strequal(const char* optionptr,const char* cstr) {
 	const char* value;
 	size_t value_len;
 	size_t i;
-	coap_decode_option((const uint8_t*)optionptr, NULL, (const uint8_t**)&value, &value_len);
+	if(!coap_decode_option((const uint8_t*)optionptr, NULL, (const uint8_t**)&value, &value_len))
+		return false;
 
 	for(i=0;i<value_len;i++) {
 		if(!cstr[i] || (value[i]!=cstr[i]))
@@ -172,8 +311,6 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 		    "application/x-bxml"; break;
 	case COAP_CONTENT_TYPE_APPLICATION_FASTINFOSET: content_type_string =
 		    "application/fastinfoset"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_SOAP_FASTINFOSET:
-		content_type_string = "application/soap+fastinfoset"; break;
 	case COAP_CONTENT_TYPE_APPLICATION_JSON: content_type_string =
 		    "application/json"; break;
 
@@ -300,8 +437,8 @@ coap_option_key_to_cstr(
 		case COAP_HEADER_BLOCK1: ret = "Block1"; break;
 		case COAP_HEADER_BLOCK2: ret = "Block2"; break;
 
-		case COAP_HEADER_09_BLOCK1: ret = "Draft-9-Block1"; break;
-		case COAP_HEADER_09_BLOCK2: ret = "Draft-9-Block2"; break;
+//		case COAP_HEADER_09_BLOCK1: ret = "Draft-9-Block1"; break;
+//		case COAP_HEADER_09_BLOCK2: ret = "Draft-9-Block2"; break;
 
 /* -- EXPERIMENTAL AFTER THIS POINT -- */
 
@@ -313,7 +450,7 @@ coap_option_key_to_cstr(
 
 
 		case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
-		case COAP_HEADER_RANGE: ret = "Range"; break;
+//		case COAP_HEADER_RANGE: ret = "Range"; break;
 //		case COAP_HEADER_BLOCK: ret = "Block"; break;
 //		case COAP_HEADER_ALLOW: ret = "Allow"; break;
 
@@ -367,18 +504,18 @@ coap_option_key_from_cstr(const char* key) {
 
 	else if(strcasecmp(key, "Cseq") == 0)
 		return SMCP_HEADER_CSEQ;
-	else if(strcasecmp(key, "Range") == 0)
-		return COAP_HEADER_RANGE;
+//	else if(strcasecmp(key, "Range") == 0)
+//		return COAP_HEADER_RANGE;
 
 	else if(strcasecmp(key, "Block1") == 0)
 		return COAP_HEADER_BLOCK1;
 	else if(strcasecmp(key, "Block2") == 0)
 		return COAP_HEADER_BLOCK2;
 
-	else if(strcasecmp(key, "Draft-9-Block1") == 0)
-		return COAP_HEADER_09_BLOCK1;
-	else if(strcasecmp(key, "Draft-9-Block2") == 0)
-		return COAP_HEADER_09_BLOCK2;
+//	else if(strcasecmp(key, "Draft-9-Block1") == 0)
+//		return COAP_HEADER_09_BLOCK1;
+//	else if(strcasecmp(key, "Draft-9-Block2") == 0)
+//		return COAP_HEADER_09_BLOCK2;
 	else if(strcasecmp(key, "Origin") == 0)
 		return SMCP_HEADER_ORIGIN;
 
@@ -438,11 +575,11 @@ http_code_to_cstr(int x) {
 	case HTTP_RESULT_CODE_PROXYING_NOT_SUPPORTED: return
 		    "PROXYING_NOT_SUPPORTED"; break;
 
-	case HTTP_RESULT_CODE_TOKEN_REQUIRED: return "TOKEN_REQUIRED"; break;
-	case HTTP_RESULT_CODE_URI_AUTHORITY_REQUIRED: return
-		    "URI_AUTHORITY_REQUIRED"; break;
-	case HTTP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION: return
-		    "UNSUPPORTED_CRITICAL_OPTION"; break;
+//	case HTTP_RESULT_CODE_TOKEN_REQUIRED: return "TOKEN_REQUIRED"; break;
+//	case HTTP_RESULT_CODE_URI_AUTHORITY_REQUIRED: return
+//		    "URI_AUTHORITY_REQUIRED"; break;
+//	case HTTP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION: return
+//		    "UNSUPPORTED_CRITICAL_OPTION"; break;
 	default:  break;
 	}
 	return "UNKNOWN";
@@ -484,12 +621,22 @@ coap_dump_header(
 		);
 	}
 
-	for(;option_count && (option_count!=15 || option_ptr[0]!=0xF0);) {
+	for(;option_ptr && option_count && (option_count!=15 || option_ptr[0]!=0xF0);) {
 		option_ptr = coap_decode_option(option_ptr, &key, &value, &value_len);
-		if(option_count!=15)
+		if(option_count!=15) {
 			--option_count;
-		if(!(key%14))
-			continue;
+			if(!option_ptr) {
+				fputs(prefix, outstream);
+				fprintf(outstream,"OPTIONS ARE CORRUPTED.");
+				break;
+			}
+		} else {
+			if(!option_ptr) {
+				break;
+			}
+		}
+//		if(!(key%14))
+//			continue;
 		fputs(prefix, outstream);
 		fprintf(outstream, "%s: ",
 			coap_option_key_to_cstr(key, header->code >= COAP_RESULT_100));
@@ -522,8 +669,8 @@ coap_dump_header(
 		break;
 		case COAP_HEADER_BLOCK1:
 		case COAP_HEADER_BLOCK2:
-		case COAP_HEADER_09_BLOCK1:
-		case COAP_HEADER_09_BLOCK2:
+//		case COAP_HEADER_09_BLOCK1:
+//		case COAP_HEADER_09_BLOCK2:
 		{
 			uint32_t block;
 			if(value_len==1)

@@ -640,12 +640,12 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 			DEBUG_PRINTF("Pushing path component \"%s\"",component);
 			option = coap_encode_option(
 				option,
-				&option_count,
 				prev_key,
 				COAP_HEADER_URI_PATH,
 				(uint8_t*)component,
 				strlen(component)
 			);
+			option_count++;
 			prev_key = COAP_HEADER_URI_PATH;
 		}
 		if(option_count>=0xF) {

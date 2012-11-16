@@ -42,7 +42,6 @@ documenting.
 
 ## Test Servers ##
 
-	* <coap://ns.tzi.org/> (Currently down...?)
-	* <coap://vs0.inf.ethz.ch/> (Only IPv4 responds...?)
-	* <coap://129.132.15.80/> - IPv4 address for vs0.inf.ethz.ch
+	* <coap://coap.me/>
+	* <coap://vs0.inf.ethz.ch/> (But doesn't seem to support CoAP-12 yet...)
 
