@@ -196,9 +196,15 @@ list_response_handler(
 								break;
 							if(*iter == '"') {
 								iter++;
-								value = strsep(&iter, "\"");
+								value = iter;
+								while(iter) {
+									iter = strstr(iter,"\"");
+									if(!iter || iter[-1]!='\\')
+										break;
+								}
 								if(!iter)
 									break;
+								*iter++ = 0;
 								endchar = *iter++;
 							} else {
 								value = iter;
@@ -225,7 +231,8 @@ list_response_handler(
 									}
 								}
 							}
-							url_decode_cstr_inplace(value);
+							// TODO: Unquote...?
+							//url_decode_cstr_inplace(value);
 							if(0 == strcmp(key, "n"))
 								name = value;
 							else if(!name && 0 == strcmp(key, "rt"))

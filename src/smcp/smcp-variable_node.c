@@ -211,7 +211,7 @@ smcp_variable_request_handler(
 				if(!ret) {
 					strcpy(content_ptr,";v=");
 					content_ptr += 3;
-					content_ptr += url_encode_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
+					content_ptr += quoted_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
 				}
 
 				ret = node->func(node,SMCP_VAR_GET_LF_TITLE,key_index,buffer);
@@ -224,7 +224,7 @@ smcp_variable_request_handler(
 				if(!ret) {
 					strcpy(content_ptr,";title=");
 					content_ptr += 7;
-					content_ptr += url_encode_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
+					content_ptr += quoted_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
 				}
 
 				*content_ptr++ = ',';

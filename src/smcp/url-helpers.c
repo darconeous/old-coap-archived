@@ -272,6 +272,43 @@ url_decode_cstr_inplace(char *str) {
 }
 
 size_t
+quoted_cstr(
+	char *dest,
+	const char* src,		// Must be zero-terminated.
+	size_t dest_max_size
+) {
+	char* ret = dest;
+
+	require(dest_max_size,bail);
+	dest_max_size--;		// For zero termination.
+
+	require(dest_max_size,bail);
+	*dest++ = '"';
+	dest_max_size--;
+
+	require(dest_max_size,bail);
+
+	while(dest_max_size-1) {
+		char src_char = *src++;
+
+		if(!src_char)
+			break;
+
+		if((src_char == '/') && src[0] == '"')
+			src_char = *src++;
+		*dest++ = src_char;
+		dest_max_size--;
+	}
+
+	*dest++ = '"';
+	dest_max_size--;
+bail:
+	*dest = 0;
+
+	return dest-ret;
+}
+
+size_t
 url_form_next_value(
 	char** form_string, char** key, char** value
 ) {
