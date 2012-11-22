@@ -40,6 +40,8 @@ extern smcp_status_t smcp_auth_verify_request();
 
 extern smcp_status_t smcp_auth_add_options();
 
+extern smcp_status_t smcp_auth_outbound_set_credentials(const char* username, const char* password);
+
 extern smcp_status_t smcp_auth_outbound_finish();
 
 extern smcp_status_t smcp_auth_handle_response(smcp_transaction_t transaction);

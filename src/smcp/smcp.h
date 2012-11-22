@@ -98,6 +98,7 @@ enum {
 	SMCP_STATUS_DUPE				= -22,
 	SMCP_STATUS_RESET				= -23,
 	SMCP_STATUS_ASYNC_RESPONSE		= -24,
+	SMCP_STATUS_UNAUTHORIZED		= -25,
 };
 
 typedef int smcp_status_t;

@@ -178,11 +178,27 @@ smcp_auth_verify_request() {
 	coap_option_key_t key;
 	const uint8_t* authvalue;
 	size_t authvalue_len;
+
+	// For testing purposes only!
+	if(smcp_inbound_get_packet()->code >1 && smcp_inbound_get_packet()->code<COAP_RESULT_100) {
+		ret = SMCP_STATUS_UNAUTHORIZED;
+	}
+
 	while((key = smcp_inbound_next_option(&authvalue,&authvalue_len))!=COAP_HEADER_INVALID) {
 		if(key==COAP_HEADER_AUTHENTICATE) {
-			
+			// For testing purposes only!
+			ret = SMCP_STATUS_OK;
 			// writeme!
 		}
+	}
+
+	ret = SMCP_STATUS_OK;
+
+	// For testing purposes only!
+	if(ret==SMCP_STATUS_UNAUTHORIZED) {
+		smcp_outbound_begin_response(COAP_RESULT_401_UNAUTHORIZED);
+		smcp_outbound_add_option(COAP_HEADER_AUTHENTICATE,NULL,0);
+		smcp_outbound_send();
 	}
 
 	return ret;
@@ -208,6 +224,14 @@ smcp_auth_outbound_finish() {
 	// TODO: Writeme!
 
 	return SMCP_STATUS_OK;
+}
+
+smcp_status_t
+smcp_auth_outbound_set_credentials(const char* username, const char* password) {
+	// TODO: Writeme!
+
+	// Just do something stupid for now.
+	return smcp_outbound_add_option(COAP_HEADER_AUTHENTICATE, NULL, 0);
 }
 
 const char*

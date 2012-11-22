@@ -50,17 +50,17 @@ again:
 		switch(len) {
 			case 1:
 				// Delta = 15
-				*key += 15;
+				if(key)*key += 15;
 				buffer += 1;
 				goto again;
 				break;
 			case 2:
-				*key += 16+(buffer[1]*8);
+				if(key)*key += 16+(buffer[1]*8);
 				buffer += 2;
 				goto again;
 				break;
 			case 3:
-				*key += 2064+(buffer[1]*8*256)+(buffer[2]*8);
+				if(key)*key += 2064+(buffer[1]*8*256)+(buffer[2]*8);
 				buffer += 3;
 				goto again;
 				break;
@@ -190,6 +190,9 @@ extern size_t coap_insert_option(
 	}
 
 	if(iter && (iter_key>key || iter<end_of_options)) {
+		const uint8_t* next_value=NULL;
+		size_t next_len=0;
+
 		size_diff += len + 1;
 
 		// Compensate for jump option before insert
@@ -217,17 +220,13 @@ extern size_t coap_insert_option(
 		if(size_diff)
 			memmove(insertion_point+size_diff,insertion_point,end_of_options-insertion_point);
 
+		coap_decode_option(insertion_point+size_diff, NULL, &next_value, &next_len);
+
 		// encode new option
 		iter = coap_encode_option(insertion_point, prev_key, key, value, len);
 
-		// TODO: There may be a bug here when inserting values that cause a jump option to be removed!
-
 		// Update fisrt option after
-		{
-			coap_decode_option(insertion_point+size_diff, &prev_key, &value, &len);
-			coap_encode_option(iter, key, prev_key, value, len);
-		}
-
+		coap_encode_option(iter, key, iter_key, next_value, next_len);
 	} else {
 		// encode new option
 		size_diff = coap_encode_option(end_of_options, prev_key, key, value, len) - end_of_options;
@@ -456,7 +455,7 @@ coap_option_key_to_cstr(
 
 //		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
 //		case COAP_HEADER_CONTINUATION_RESPONSE: ret = "Continuation-response"; break;
-
+		case COAP_HEADER_AUTHENTICATE: ret = for_response?"Authenticate":"Authorization"; break;
 		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
 		case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
 

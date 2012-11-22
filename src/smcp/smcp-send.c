@@ -503,6 +503,8 @@ smcp_outbound_set_uri(
 	char* path_str = NULL;
 	char* query_str = NULL;
 	char* uri_copy = NULL;
+	char* username_str = NULL;
+	char* password_str = NULL;
 	uint16_t toport = SMCP_DEFAULT_PORT;
 
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
@@ -520,8 +522,8 @@ smcp_outbound_set_uri(
 			url_parse(
 				uri_copy,
 				&proto_str,
-				NULL,
-				NULL,
+				&username_str,
+				&password_str,
 				&addr_str,
 				&port_str,
 				&path_str,
@@ -586,6 +588,11 @@ smcp_outbound_set_uri(
 		&& addr_str && addr_str[0]!=0
 	) {
 		ret = smcp_outbound_set_destaddr_from_host_and_port(addr_str,toport);
+		require_noerr(ret, bail);
+	}
+
+	if(username_str) {
+		ret = smcp_auth_outbound_set_credentials(username_str, password_str);
 		require_noerr(ret, bail);
 	}
 

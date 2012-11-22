@@ -443,9 +443,10 @@ url_parse(
 		}
 
 		for(;
-		        (addr_end >= addr_begin) && (*addr_end != '@') &&
-		        (*addr_end != '[');
-		    addr_end--) {
+			(addr_end >= addr_begin) && (*addr_end != '@') &&
+			(*addr_end != '[');
+		    addr_end--
+		) {
 			if(*addr_end == ']') {
 				*addr_end = 0;
 				got_port = true;
@@ -458,6 +459,24 @@ url_parse(
 		}
 		if(host)
 			*host = addr_end + 1;
+
+		if(*addr_end=='@' && (username || password)) {
+			*addr_end = 0;
+			for(;
+				(addr_end >= addr_begin) && (*addr_end != '/');
+				addr_end--
+			) {
+				if(*addr_end==':') {
+					*addr_end = 0;
+					if(password)
+						*password = addr_end + 1;
+				}
+			}
+			if(*addr_end=='/') {
+				if(username)
+					*username = addr_end + 1;
+			}
+		}
 	}
 
 skip_absolute_url_stuff:
@@ -602,6 +621,8 @@ url_change(
 		char* path_str = NULL;
 		char* addr_str = NULL;
 		char* port_str = NULL;
+		char* username_str = NULL;
+		char* password_str = NULL;
 
 #if HAS_C99_VLA
 		char new_url[strlen(new_url_) + 1];
@@ -615,8 +636,8 @@ url_change(
 		url_parse(
 			current_path,
 			&proto_str,
-			NULL,
-			NULL,
+			&username_str,
+			&password_str,
 			&addr_str,
 			&port_str,
 			&path_str,
@@ -655,6 +676,14 @@ url_change(
 		if(proto_str && addr_str) {
 			strcat(url, proto_str);
 			strcat(url, "://");
+			if(username_str) {
+				strcat(url, username_str);
+				if(password_str) {
+					strcat(url, ":");
+					strcat(url, password_str);
+				}
+				strcat(url, "@");
+			}
 
 			// Path is absolute. Must drop the path from the URL.
 			if(string_contains_colons(addr_str)) {
