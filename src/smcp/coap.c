@@ -371,7 +371,7 @@ coap_content_type_from_cstr(const char* x) {
 	if(strhasprefix_const(x, "text/html"))
 		return COAP_CONTENT_TYPE_TEXT_HTML;
 	if(strhasprefix_const(x, "text/xml"))
-		return COAP_CONTENT_TYPE_TEXT_XML;
+		return COAP_CONTENT_TYPE_APPLICATION_XML;
 	if(strhasprefix_const(x, "text/"))
 		return COAP_CONTENT_TYPE_TEXT_PLAIN;
 	if(strhasprefix_const(x, "application/x-www-form-urlencoded"))
@@ -547,7 +547,7 @@ http_code_to_cstr(int x) {
 	case HTTP_RESULT_CODE_DELETED: return "DELETED"; break;
 	case HTTP_RESULT_CODE_PARTIAL_CONTENT: return "PARTIAL_CONTENT"; break;
 	case HTTP_RESULT_CODE_BAD_OPTION: return "BAD_OPTION"; break;
-
+	case HTTP_RESULT_CODE_NOT_ACCEPTABLE: return "NOT_ACCEPTABLE"; break;
 	case HTTP_RESULT_CODE_NOT_MODIFIED: return "NOT_MODIFIED"; break;
 	case HTTP_RESULT_CODE_SEE_OTHER: return "SEE_OTHER"; break;
 	case HTTP_RESULT_CODE_TEMPORARY_REDIRECT: return "TEMPORARY_REDIRECT";
