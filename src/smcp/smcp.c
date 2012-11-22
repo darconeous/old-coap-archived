@@ -38,6 +38,8 @@
 #define DEBUG VERBOSE_DEBUG
 #endif
 
+#define __APPLE_USE_RFC_3542 1
+
 #include "assert_macros.h"
 
 #if CONTIKI
@@ -176,6 +178,17 @@ smcp_init(
 
 		saddr.sin6_port = htons(port);
 	}
+
+#ifdef IPV6_PREFER_TEMPADDR
+#ifndef IP6PO_TEMPADDR_NOTPREFER
+#define IP6PO_TEMPADDR_NOTPREFER 0
+#endif
+	{
+		int value = IP6PO_TEMPADDR_NOTPREFER;
+		setsockopt(ret->fd, IPPROTO_IPV6, IPV6_PREFER_TEMPADDR, &value, sizeof(value));
+	}
+#endif
+
 #elif CONTIKI
 	ret->udp_conn = udp_new(NULL, 0, NULL);
 	uip_udp_bind(ret->udp_conn, htons(port));
