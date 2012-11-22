@@ -151,7 +151,6 @@ coap_encode_option(
 			*buffer++ = len-270;
 		} else {
 			*buffer++ = len-15;
-			*buffer++ = len;
 		}
 	}
 
@@ -194,6 +193,14 @@ extern size_t coap_insert_option(
 		size_t next_len=0;
 
 		size_diff += len + 1;
+		if(len>=15)
+			size_diff++;
+		if(len>=270)
+			size_diff++;
+		if(len>=525)
+			size_diff++;
+		if(len>=780)
+			size_diff++;
 
 		// Compensate for jump option before insert
 		if(key-prev_key>2064) {

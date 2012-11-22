@@ -185,6 +185,10 @@ smcp_auth_verify_request() {
 	}
 
 	while((key = smcp_inbound_next_option(&authvalue,&authvalue_len))!=COAP_HEADER_INVALID) {
+		if(key==COAP_HEADER_PROXY_URI) {
+			// For testing purposes only!
+			ret = SMCP_STATUS_OK;
+		}
 		if(key==COAP_HEADER_AUTHENTICATE) {
 			// For testing purposes only!
 			ret = SMCP_STATUS_OK;
