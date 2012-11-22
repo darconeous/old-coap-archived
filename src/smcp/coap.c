@@ -647,30 +647,25 @@ coap_dump_header(
 		fprintf(outstream, "%s: ",
 			coap_option_key_to_cstr(key, header->code >= COAP_RESULT_100));
 		switch(key) {
-		case COAP_HEADER_CONTENT_TYPE:
-			fprintf(outstream, "%s",
-				coap_content_type_to_cstr((unsigned char)value[0]));
-			break;
 		case COAP_HEADER_CASCADE_COUNT:
 		case COAP_HEADER_MAX_AGE:
 		case COAP_HEADER_URI_PORT:
 		{
-			unsigned long age = 0;
+			unsigned long v = 0;
 			uint8_t i;
 			for(i = 0; i < value_len; i++)
-				age = (age << 8) + value[i];
-			fprintf(outstream, "%lu", age);
+				v = (v << 8) + value[i];
+			fprintf(outstream, "%lu", v);
 		}
 		break;
+		case COAP_HEADER_CONTENT_TYPE:
 		case COAP_HEADER_ACCEPT:
 		{
-			size_t i;
-			for(i = 0; i < value_len; i++) {
-				if(i)
-					fputc(',', outstream);
-				fprintf(outstream, "%s",
-					    coap_content_type_to_cstr((uint8_t)value[i]));
-			}
+			unsigned long v = 0;
+			uint8_t i;
+			for(i = 0; i < value_len; i++)
+				v = (v << 8) + value[i];
+			fprintf(outstream, "%s",coap_content_type_to_cstr(v));
 		}
 		break;
 		case COAP_HEADER_BLOCK1:

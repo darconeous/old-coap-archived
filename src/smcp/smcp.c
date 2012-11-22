@@ -546,7 +546,10 @@ smcp_handle_inbound_packet(
 				if((self->inbound.token_option[0]&0xF0)==0xF0)
 					self->inbound.token_option+=self->inbound.token_option[0]&0xf;
 			} else if(key==COAP_HEADER_CONTENT_TYPE) {
-				self->inbound.content_type = self->inbound.this_option[1];
+				uint8_t i;
+				self->inbound.content_type = 0;
+				for(i = 0; i < value_len; i++)
+					self->inbound.content_type = (self->inbound.content_type << 8) + value[i];
 			} else if(key==COAP_HEADER_OBSERVE) {
 				self->inbound.has_observe_option = 1;
 			} else if(key==COAP_HEADER_MAX_AGE) {
