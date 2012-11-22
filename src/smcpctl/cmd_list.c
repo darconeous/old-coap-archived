@@ -30,9 +30,9 @@
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",		 NULL,	 "Print Help"				 },
 	{ 'i', "include",	 NULL,	 "include headers in output" },
-	{ 0,   "slice-size", "size", "writeme"					 },
-	{ 0,   "follow",	 NULL,	 "writeme"					 },
-	{ 0,   "no-follow",	 NULL,	 "writeme"					 },
+//	{ 0,   "slice-size", "size", "writeme"					 },
+//	{ 0,   "follow",	 NULL,	 "writeme"					 },
+//	{ 0,   "no-follow",	 NULL,	 "writeme"					 },
 	{ 0,   "filename-only",	NULL, "Only print out the resulting filenames." },
 	{ 't',   "timeout",	"cms", "Timeout value, in milliseconds" },
 	{ 0 }
@@ -119,10 +119,6 @@ list_response_handler(
 		size_t next_len;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
-//			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
-//				next_value = value;
-//				next_len = value_len;
-//			}
 			if(key == COAP_HEADER_BLOCK2 && value_len) {
 				static uint8_t tmp[5];
 				next_len = value_len<3?value_len:3;
@@ -156,7 +152,7 @@ list_response_handler(
 
 		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
 			if(!list_filename_only) {
-				if(statuscode >= 300) {
+				if(statuscode >= COAP_RESULT_300) {
 					fwrite(content, content_length, 1, stdout);
 					if((content[content_length - 1] != '\n'))
 						fprintf(stdout,"\n");
@@ -183,6 +179,9 @@ list_response_handler(
 
 					uri = strsep(&iter, ">");
 					//uri_len = iter - uri - 1;
+
+					if(!iter)
+						goto finished_parsing;
 
 					// Skip past any arguments
 					if(iter && *iter == ';') {
@@ -300,12 +299,13 @@ list_response_handler(
 					iter++;
 				}
 			}
+finished_parsing:
 
-			// Kinda naughty.
-			if(content[content_length - 1] == '\n')
-				content[--content_length] = 0;
-			else
-				content[content_length] = 0;
+//			// Kinda naughty.
+//			if(content[content_length - 1] == '\n')
+//				content[--content_length] = 0;
+//			else
+//				content[content_length] = 0;
 
 			if(next_value &&
 			    send_list_request(self, (const char*)context, (const char*)next_value,

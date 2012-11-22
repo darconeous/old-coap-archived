@@ -462,7 +462,7 @@ coap_option_key_to_cstr(
 
 //		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
 //		case COAP_HEADER_CONTINUATION_RESPONSE: ret = "Continuation-response"; break;
-		case COAP_HEADER_AUTHENTICATE: ret = for_response?"Authenticate":"Authorization"; break;
+		case COAP_HEADER_AUTHENTICATE: ret = for_response?"X-Authenticate":"X-Authorization"; break;
 		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
 		case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
 
