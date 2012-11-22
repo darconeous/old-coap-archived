@@ -34,7 +34,13 @@ so:
 
 ## Installing via Homebrew on OS X ##
 
+To get the "latest-release":
+
 	brew install https://raw.github.com/darconeous/smcp/formula/smcp.rb
+
+To get the bleeding-edge release:
+
+	brew install https://raw.github.com/darconeous/smcp/formula/smcp.rb --HEAD
 
 ## SMCPCTL ##
 
