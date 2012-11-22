@@ -26,6 +26,9 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#ifndef __SMCP_INTERNAL_H__
+#define __SMCP_INTERNAL_H__ 1
+
 #include "smcp.h"
 #include "smcp-timer.h"
 
@@ -186,3 +189,6 @@ extern void fasthash_feed(const uint8_t* data, uint8_t len);
 extern uint32_t fasthash_finish_uint32();
 extern uint16_t fasthash_finish_uint16();
 extern uint8_t fasthash_finish_uint8();
+
+
+#endif // __SMCP_INTERNAL_H__

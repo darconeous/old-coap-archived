@@ -28,6 +28,7 @@
 		A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EB2881278CBB100B24867 /* cmd_repeat.c */; };
 		A65258371528F45300E389EC /* cmd_monitor.c in Sources */ = {isa = PBXBuildFile; fileRef = A65258361528F45300E389EC /* cmd_monitor.c */; };
 		A679FFB9164BDD9700736F58 /* system-node.c in Sources */ = {isa = PBXBuildFile; fileRef = A679FFB7164BD4F700736F58 /* system-node.c */; };
+		A686D69E16557F3100B14B54 /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A27BA2127B934F003708DF /* cmd_delete.c */; };
 		A6CD69621283466B00254A8B /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E21278B16D00B24867 /* btree.c */; };
 		A6F536EE155F0E5200E0E324 /* smcp-curl_proxy.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */; };
@@ -112,6 +113,8 @@
 		A67646AA156479E50074028C /* smcp-simple.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "smcp-simple.c"; sourceTree = "<group>"; };
 		A6770026156AA2BF00592868 /* smcp-opts.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-opts.h"; path = "src/smcp/smcp-opts.h"; sourceTree = "<group>"; };
 		A679FFB7164BD4F700736F58 /* system-node.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "system-node.c"; sourceTree = "<group>"; };
+		A686D69C16557F3100B14B54 /* smcp-auth.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-auth.h"; path = "src/smcp/smcp-auth.h"; sourceTree = "<group>"; };
+		A686D69D16557F3100B14B54 /* smcp-auth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-auth.c"; path = "src/smcp/smcp-auth.c"; sourceTree = "<group>"; };
 		A6A27BA1127B934F003708DF /* cmd_delete.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_delete.h; path = src/smcpctl/cmd_delete.h; sourceTree = "<group>"; };
 		A6A27BA2127B934F003708DF /* cmd_delete.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_delete.c; path = src/smcpctl/cmd_delete.c; sourceTree = "<group>"; };
 		A6BE9A39164CC63C00473330 /* configure.ac */ = {isa = PBXFileReference; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
@@ -173,6 +176,8 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				A686D69C16557F3100B14B54 /* smcp-auth.h */,
+				A686D69D16557F3100B14B54 /* smcp-auth.c */,
 				A6BE9A3D164CC67D00473330 /* Makefile.am */,
 				A60D0DB312795ADF00C04B8C /* Utils */,
 				A63EA6F41278B16D00B24867 /* smcp.c */,
@@ -423,6 +428,7 @@
 				A6F536F3155F255000E0E324 /* smcp-send.c in Sources */,
 				A6F536F81561B7A600E0E324 /* smcp-list.c in Sources */,
 				A679FFB9164BDD9700736F58 /* system-node.c in Sources */,
+				A686D69E16557F3100B14B54 /* smcp-auth.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,0 +1,133 @@
+
+Notes on CoAP Authentication
+============================
+
+This document outlines an experimental CoAP authentication mechanism
+that is compatible with HTTP authentication.
+
+It is implemented as a new optional CoAP option, which can be
+interpreted as slightly different depending on if it is a request or
+a response:
+
+	Request: Authorization (Client->Server)
+	Response: [WWW-]Authenticate (Server->Client)
+
+Semantics are largely identical to HTTP authentication, but differ
+in details in order to reduce packet size.
+
+Each option is broken up into several CoAP options.  The first option
+describes the authentication scheme being used, and the
+subsequent options describe the parameters for that scheme. Multiple
+schemes can be represented (so that the most appropate scheme may be
+chosen by the receiver) because the first option describing the scheme
+is differentiated from scheme parameters by a flag in the first byte.
+
+The first byte of the option describes what this option is: either the
+start of a new authentication scheme or a parameter for a scheme
+that was identified in a prior option.
+
+First byte bit map:
+
+	[7|6|5|4|3|2|1|0]
+	 P T T K K K K K
+
+	* 'P'
+		: If set, this option is a scheme parameter.
+		: If not set, this option describes the scheme. If a
+		  scheme has already been set, then this starts a new
+		  authentication scheme.
+	* 'T' (Value Type)
+		: Invalid if P is not set.
+	* 'K' (Key Index)
+		: If P is set, indexes into key table.
+		: If P is not set, indexes into scheme table.
+
+For a key/value option, the value is the data immediately after the first
+byte, with one exception: In the case of P=1;K=0x1F, the key is a
+zero-terminated string after the first byte. The value of the pair
+is after the zero termination.
+
+(K) Scheme Encodings: (5 bits)
+	0x00	-	Literal (text after this byte describes the mechanism)
+	0x01	-	Basic
+	0x02	-	Digest
+	0x03	-	SASL
+	0x04	-	NTLM
+	0x05	-	Negotiate (SPNEGO/Kerberos)
+
+(K) Key encodings: (5 bits)
+	0x00	-	<no-key,value-only>
+	0x01	-	realm
+	0x02	-	username
+	0x03	-	nonce
+	0x04	-	response
+	0x05	-	opaque
+	0x06	-	cnonce
+	0x07	-	nc
+	0x08	-	uri
+	0x09	-	qop
+	0x0a	-	challenge
+	0x0b	-	mechanisms
+	0x0c	-	id
+	0x0d	-	credentials
+	0x1f	-	<custom-key>
+
+(T) Value Types: (2 bits)
+	0x00	-	string-literal
+	0x01	-	integer (zero-filled in HTTP to at least 8 digits)
+	0x02	-	binary-blob (base16 encoded in HTTP)
+	0x03	-	binary-blob (base64 encoded in HTTP)
+
+
+
+
+
+
+Notes on SMCP Authentication Interface
+======================================
+
+## Inbound Requests ##
+
+The interface for per-request authentication in SMCP should be as
+generic and simple as possible. Perhaps a simple hook early on in
+the request handling pipeline that would allow the authentication
+subsystem to examine the request and determine if it should procede
+or not.
+
+	smcp_status_t smcp_auth_verify_request();
+	const char* smcp_auth_get_username();
+
+The `smcp_auth_verify()` method would use the `smcp_inbound_*` methods
+to query information about the inbound request. If the requirements
+for the inbound request are not met, then it will go ahead and send
+the appropriate response and return an error. Otherwise it will allow
+processing to continue by returning SMCP_STATUS_OK.
+
+## Outbound Requests ##
+
+We should probably add functionality adding authentication information to
+pending transactions. We also need to add a hook for examining the
+responses to our requests. Perhaps something like this:
+
+	smcp_status_t smcp_auth_handle_response();
+
+We should add another flag for transactions, something like `AUTO_AUTH`,
+which would instruct the transaction engine to automatically handle 4.01
+response codes.
+
+A general callback mechanism would be necessary for providing necessary
+authentication credentials. The prototype would look something like this:
+
+	smcp_status_t smcp_auth_get_cred(
+		const char* realm,
+		const char* url,
+		int key,
+		uint8_t* value,
+		size_t value_size
+	);
+
+Keys could be:
+
+	SMCP_AUTH_CRED_USERNAME
+	SMCP_AUTH_CRED_PASSWORD
+	SMCP_AUTH_CRED_DIGEST_HA1

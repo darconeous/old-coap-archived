@@ -50,6 +50,7 @@
 #include "smcp-internal.h"
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
+#include "smcp-auth.h"
 #include "smcp.h"
 #include "ll.h"
 #include "url-helpers.h"
@@ -259,6 +260,8 @@ static smcp_status_t
 smcp_outbound_add_options_up_to_key_(
 	coap_option_key_t key
 ) {
+	smcp_status_t ret = SMCP_STATUS_OK;
+
 	smcp_t const self = smcp_get_current_instance();
 	if(	self->outbound.last_option_key<COAP_HEADER_TOKEN
 		&& key>COAP_HEADER_TOKEN
@@ -271,10 +274,10 @@ smcp_outbound_add_options_up_to_key_(
 			const uint8_t* value;
 			size_t len;
 			if(coap_decode_option(self->inbound.token_option, NULL, &value, &len))
-				return smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
+				ret = smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
 		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
-			return smcp_outbound_add_option_(
+			ret = smcp_outbound_add_option_(
 				COAP_HEADER_TOKEN,
 				(void*)&self->outbound.packet->tid,
 				sizeof(self->outbound.packet->tid)
@@ -289,12 +292,18 @@ smcp_outbound_add_options_up_to_key_(
 		if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
 			uint8_t zero = 0;
-			return smcp_outbound_add_option_(
+			ret = smcp_outbound_add_option_(
 				COAP_HEADER_OBSERVE,
 				(void*)&zero,
 				1
 			);
 		}
+	}
+
+	if(	self->outbound.last_option_key<COAP_HEADER_AUTHENTICATE
+		&& key>COAP_HEADER_AUTHENTICATE
+	) {
+		ret = smcp_auth_add_options();
 	}
 
 #if SMCP_USE_CASCADE_COUNT
@@ -309,7 +318,8 @@ smcp_outbound_add_options_up_to_key_(
 		);
 	}
 #endif
-	return SMCP_STATUS_OK;
+
+	return ret;
 }
 
 smcp_status_t
@@ -686,6 +696,11 @@ smcp_outbound_send() {
 	);
 	DEBUG_PRINTF("Outbound: packet length = %d",header_len+smcp_get_current_instance()->outbound.content_len);
 #endif
+
+	if(self->outbound.packet->code) {
+		ret = smcp_auth_outbound_finish();
+		require_noerr(ret,bail);
+	}
 
 #if SMCP_USE_BSD_SOCKETS
 

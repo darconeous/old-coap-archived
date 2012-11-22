@@ -62,6 +62,7 @@ extern uint16_t uip_slen;
 #include "url-helpers.h"
 #include "smcp-node.h"
 #include "smcp-logging.h"
+#include "smcp-auth.h"
 
 #if SMCP_USE_BSD_SOCKETS
 #include <poll.h>
@@ -945,7 +946,11 @@ smcp_handle_request(
 	smcp_node_t node = smcp_get_root_node(self);
 	smcp_inbound_handler_func request_handler = &smcp_default_request_handler;
 
-	// TODO: Add authentication here!
+	// Authenticate this request.
+	ret = smcp_auth_verify_request();
+	require_noerr(ret,bail);
+
+	smcp_inbound_reset_next_option();
 
 	{
 		const uint8_t* prev_option_ptr = self->inbound.this_option;
@@ -1088,6 +1093,12 @@ smcp_handle_response(
 		DEBUG_PRINTF("Inbound: Async Response");
 		handler->waiting_for_async_response = true;
 	} else if(handler->callback) {
+		// Handle any authentication heaers.
+		ret = smcp_auth_handle_response(handler);
+		require_noerr(ret,bail);
+
+		smcp_inbound_reset_next_option();
+
 		if(handler->flags & SMCP_TRANSACTION_OBSERVE) {
 			(*handler->callback)(
 				self->inbound.packet->tt==COAP_TRANS_TYPE_RESET?SMCP_STATUS_RESET:self->inbound.packet->code,
