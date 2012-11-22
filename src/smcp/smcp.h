@@ -211,6 +211,8 @@ extern const struct coap_header_s* smcp_inbound_get_packet();
 
 extern bool smcp_inbound_is_dupe();
 
+extern bool smcp_inbound_origin_is_local();
+
 /*! Guaranteed to be NUL-terminated */
 extern const char* smcp_inbound_get_content_ptr();
 

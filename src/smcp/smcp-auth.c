@@ -192,6 +192,10 @@ smcp_auth_verify_request() {
 		}
 	}
 
+	if(smcp_inbound_origin_is_local()) {
+		ret = SMCP_STATUS_OK;
+	}
+
 	ret = SMCP_STATUS_OK;
 
 	// For testing purposes only!

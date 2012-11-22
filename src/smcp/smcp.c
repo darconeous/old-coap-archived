@@ -430,6 +430,18 @@ smcp_inbound_is_dupe() {
 	return smcp_get_current_instance()->inbound.is_dupe;
 }
 
+bool
+smcp_inbound_origin_is_local() {
+#if SMCP_USE_BSD_SOCKETS
+	struct sockaddr_in6* const saddr = (struct sockaddr_in6*)smcp_inbound_get_saddr();
+	// Is this adequate?
+	return IN6_IS_ADDR_LOOPBACK(&saddr->sin6_addr)
+		&& saddr->sin6_port==htonl(smcp_get_port(smcp_get_current_instance()));
+#else
+	return false;
+#endif
+}
+
 #pragma mark -
 
 smcp_status_t
