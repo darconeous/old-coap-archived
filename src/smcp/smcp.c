@@ -291,7 +291,7 @@ smcp_get_udp_conn(smcp_t self) {
 void
 smcp_set_proxy_url(smcp_t self,const char* url) {
 	assert(self);
-	free(self->proxy_url);
+	free((void*)self->proxy_url);
 	if(url)
 		self->proxy_url = strdup(url);
 	else
@@ -327,9 +327,8 @@ smcp_inbound_next_option_(const uint8_t** value, size_t* len) {
 			value,
 			len
 		);
-
-		// TODO: Handle when this options are unlimited;
-		self->inbound.options_left--;
+		if(self->inbound.options_left!=15)
+			self->inbound.options_left--;
 	} else {
 		self->inbound.last_option_key = COAP_HEADER_INVALID;
 	}
@@ -464,6 +463,7 @@ smcp_handle_inbound_packet(
 #endif
 
 	// TODO: Set `self->inbound.was_sent_to_multicast` properly!
+	// self->inbound.was_sent_to_multicast = ???
 
 	{
 		// Update dupe hash.
@@ -517,6 +517,8 @@ smcp_handle_inbound_packet(
 			key = smcp_inbound_peek_option(&value,&value_len);
 			if(key==COAP_HEADER_TOKEN) {
 				self->inbound.token_option = self->inbound.this_option;
+				if((self->inbound.token_option[0]&0xF0)==0xF0)
+					self->inbound.token_option+=self->inbound.token_option[0]&0xf;
 			} else if(key==COAP_HEADER_CONTENT_TYPE) {
 				self->inbound.content_type = self->inbound.this_option[1];
 			} else if(key==COAP_HEADER_OBSERVE) {
@@ -1062,6 +1064,7 @@ smcp_handle_response(
 	}
 
 	// TODO: Make sure this packet didn't originate from multicast.
+	// ...Or do what?
 
 	if(!handler) {
 		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {

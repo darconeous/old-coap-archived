@@ -150,12 +150,14 @@ struct {
 		&tool_cmd_delete
 	},
 	{ "rm",	 NULL, &tool_cmd_delete, 1 },
+	{ "del",	 NULL, &tool_cmd_delete, 1 },
 	{
 		"list",
 		"Displays the contents of a folder.",
 		&tool_cmd_list
 	},
 	{ "ls",	 NULL, &tool_cmd_list, 1 },
+	{ "dir",	 NULL, &tool_cmd_list, 1 },
 	{
 		"observe",
 		"observes changes in the value of a resource.",
@@ -686,9 +688,19 @@ main(
 				{ smcp_get_fd(smcp), POLLIN | POLLHUP, 0 },
 			};
 
-			if(poll(polltable, 2,
-					smcp_get_timeout(smcp)) < 0)
-				break;
+			if(poll(
+					polltable,
+					2,
+					smcp_get_timeout(smcp)
+				) < 0
+			) {
+				if(errno == EINTR) {
+					// We just caught a signal.
+					// Do nothing.
+				} else {
+					break;
+				}
+			}
 
 			if(polltable[0].revents)
 				rl_callback_read_char();

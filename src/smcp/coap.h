@@ -58,6 +58,8 @@
 
 #define COAP_MAX_TOKEN_SIZE		(8)
 
+#define COAP_MAX_OPTION_VALUE_SIZE		(1034)
+
 typedef char coap_transaction_type_t;
 typedef uint16_t coap_transaction_id_t;
 
@@ -143,9 +145,9 @@ enum {
 	HTTP_RESULT_CODE_GATEWAY_TIMEOUT = 504,
 	HTTP_RESULT_CODE_PROXYING_NOT_SUPPORTED = 505,
 
-	HTTP_RESULT_CODE_TOKEN_REQUIRED = COAP_TO_HTTP_CODE(240),
-	HTTP_RESULT_CODE_URI_AUTHORITY_REQUIRED = COAP_TO_HTTP_CODE(241),
-	HTTP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION = COAP_TO_HTTP_CODE(242),
+//	HTTP_RESULT_CODE_TOKEN_REQUIRED = COAP_TO_HTTP_CODE(240),
+//	HTTP_RESULT_CODE_URI_AUTHORITY_REQUIRED = COAP_TO_HTTP_CODE(241),
+//	HTTP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION = HTTP_RESULT_CODE_BAD_OPTION,
 
 	// Unofficial result codes, taken from HTTP
 	HTTP_RESULT_CODE_CONTINUE = 100,
@@ -161,70 +163,35 @@ enum {
 #define COAP_HEADER_IS_REQUIRED(x)		((x)&1)
 
 typedef enum {
-	COAP_HEADER_INVALID = 255,		//!< Somewhat arbitrary value.
+	COAP_HEADER_INVALID				= -1,		//!< Somewhat arbitrary value.
 
-	COAP_HEADER_TERI = 0,           //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
-	COAP_HEADER_CONTENT_TYPE = 1,
-	COAP_HEADER_MAX_AGE = 2,
-	COAP_HEADER_PROXY_URI = 3,     //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
-	COAP_HEADER_ETAG = 4,
-	COAP_HEADER_URI_HOST = 5,
-	COAP_HEADER_LOCATION_PATH = 6,
-	COAP_HEADER_URI_PORT = 7,   //!< draft-bormann-coap-misc-06, reserved in draft-ietf-core-coap-03
-	COAP_HEADER_LOCATION_QUERY = 8,                 //!< draft-bormann-coap-misc-06
-	COAP_HEADER_URI_PATH = 9,
+	COAP_HEADER_IF_MATCH			= 1,
+	COAP_HEADER_URI_HOST			= 3,
+	COAP_HEADER_ETAG				= 4,
+	COAP_HEADER_IF_NONE_MATCH		= 5,
+	COAP_HEADER_OBSERVE				= 6,
+	COAP_HEADER_URI_PORT			= 7,
+	COAP_HEADER_LOCATION_PATH		= 8,
+	COAP_HEADER_URI_PATH			= 11,
+	COAP_HEADER_CONTENT_TYPE		= 12,
+	COAP_HEADER_MAX_AGE				= 14,
+	COAP_HEADER_URI_QUERY			= 15,
+	COAP_HEADER_ACCEPT				= 16,
+	COAP_HEADER_TOKEN				= 19,
+	COAP_HEADER_LOCATION_QUERY		= 20,
+	COAP_HEADER_BLOCK2				= 23,	/* draft-ietf-core-block-10 */
+	COAP_HEADER_BLOCK1				= 27,	/* draft-ietf-core-block-10 */
+	COAP_HEADER_SIZE				= 28,	/* draft-ietf-core-block-10 */
+	COAP_HEADER_PROXY_URI			= 35,
 
-	COAP_HEADER_OBSERVE = 10, //!< draft-ietf-core-observe
+	//////////////////////////////////////////////////////////////////////
+	// Experimental after this point. Experimentals start at 2048.
 
-	COAP_HEADER_TOKEN = 11,
-	COAP_HEADER_ACCEPT = 12,
-	COAP_HEADER_IF_MATCH = 13,
-	COAP_HEADER_URI_QUERY = 15,
-	COAP_HEADER_IF_NONE_MATCH = 21,
+	COAP_HEADER_CASCADE_COUNT = 2048 + 1,    //!< Used for preventing pairing loops.
+	COAP_HEADER_AUTHENTICATE = 2048 + 2,
 
-	COAP_HEADER_FENCEPOST_1 = 14*1,
-	COAP_HEADER_FENCEPOST_2 = 14*2,
-	COAP_HEADER_FENCEPOST_3 = 14*3,
-	COAP_HEADER_FENCEPOST_4 = 14*4,
-	COAP_HEADER_FENCEPOST_5 = 14*5,
-
-	/* draft-ietf-core-block-9 */
-	COAP_HEADER_09_BLOCK1 = 17,
-	COAP_HEADER_09_BLOCK2 = 19,
-
-	/* draft-ietf-core-block-10 */
-	COAP_HEADER_BLOCK1 = 27,
-	COAP_HEADER_BLOCK2 = 23,
-
-
-//	COAP_HEADER_MESSAGE_SIZE = 16,                  //!< draft-bormann-core-coap-block-01
-//	COAP_HEADER_BLOCK = 13,         //!< draft-bormann-core-coap-block-00
-//	COAP_HEADER_CONTINUATION_REQUEST = 17,          //!< draft-bormann-core-coap-block-01
-//	COAP_HEADER_SIZE_REQUEST = 18,                  //!< draft-bormann-core-coap-block-01
-//	COAP_HEADER_CONTINUATION_RESPONSE = 19,         //!< draft-bormann-core-coap-block-01
-//	COAP_HEADER_CONTINUATION_REQUIRED = 21,         //!< draft-bormann-core-coap-block-01
-//#define USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT    0
-//
-//#if USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
-//	COAP_HEADER_MESSAGE_SIZE = 16,
-//	COAP_HEADER_CONTINUATION_REQUEST = 17,
-//	COAP_HEADER_SIZE_REQUEST = 16,
-//	COAP_HEADER_CONTINUATION_RESPONSE = 17,
-//
-//	COAP_HEADER_NEXT = 17,                          //!< Experimental alternative to draft-bormann-core-coap-block-00
-//#else
-//
-//	COAP_HEADER_NEXT = COAP_HEADER_FENCEPOST_2 + 3, //!< Experimental alternative to draft-bormann-core-coap-block-00
-//#endif
-
-	COAP_HEADER_RANGE = COAP_HEADER_FENCEPOST_2 + 2, //!< Experimental alternative to draft-bormann-core-coap-block-00
-
-	// Experimental after this point
-
-	COAP_HEADER_CASCADE_COUNT = COAP_HEADER_FENCEPOST_2 + 1,    //!< Used for preventing pairing loops.
-	SMCP_HEADER_ORIGIN = COAP_HEADER_FENCEPOST_2 + 4,           //!< Used for SMCP Pairing.
-	SMCP_HEADER_CSEQ = COAP_HEADER_FENCEPOST_2 + 6,             //!< Used for SMCP Pairing.
-	SMCP_HEADER_AUTHENTICATE = COAP_HEADER_FENCEPOST_2 + 10,    //!< Used for SMCP Pairing.
+	SMCP_HEADER_ORIGIN = 2048 + 4,           //!< Used for SMCP Pairing.
+	SMCP_HEADER_CSEQ = 2048 + 6,             //!< Used for SMCP Pairing.
 } coap_option_key_t;
 
 
@@ -234,9 +201,10 @@ enum {
 	COAP_CONTENT_TYPE_APPLICATION_XML=41,
 	COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM=42,
 	COAP_CONTENT_TYPE_APPLICATION_EXI=47,
-	COAP_CONTENT_TYPE_APPLICATION_JSON=51,
+	COAP_CONTENT_TYPE_APPLICATION_JSON=50,
 
-	// UNOFFICIAL AFTER THIS POINT.
+	//////////////////////////////////////////////////////////////////////
+	// Unofficial after this point
 
 	COAP_CONTENT_TYPE_TEXT_XML=1,
 	COAP_CONTENT_TYPE_TEXT_CSV=2,
@@ -256,8 +224,8 @@ enum {
 	COAP_CONTENT_TYPE_APPLICATION_XMPP_XML=46,
 	COAP_CONTENT_TYPE_APPLICATION_X_BXML=48,
 	COAP_CONTENT_TYPE_APPLICATION_FASTINFOSET=49,
-	COAP_CONTENT_TYPE_APPLICATION_SOAP_FASTINFOSET=50,
 
+	//////////////////////////////////////////////////////////////////////
 	// Experimental after this point. Experimentals start at 201.
 
 	SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED=205,  //!< SMCP Specific
@@ -277,7 +245,7 @@ struct coap_header_s {
 	uint8_t options[0];
 };
 
-extern const uint8_t* coap_decode_option(
+extern uint8_t* coap_decode_option(
 	const uint8_t* buffer,
 	coap_option_key_t* key,
 	const uint8_t** value,
@@ -286,8 +254,17 @@ extern const uint8_t* coap_decode_option(
 
 extern uint8_t* coap_encode_option(
 	uint8_t* buffer,
-	uint8_t* option_count,
 	coap_option_key_t prev_key,
+	coap_option_key_t key,
+	const uint8_t* value,
+	size_t len
+);
+
+// Correctly inserts an option maintining order.
+// Returns the number of bytes inserted into the options.
+extern size_t coap_insert_option(
+	uint8_t* start_of_options,
+	uint8_t* end_of_options,
 	coap_option_key_t key,
 	const uint8_t* value,
 	size_t len

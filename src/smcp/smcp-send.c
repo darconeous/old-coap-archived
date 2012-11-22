@@ -215,8 +215,7 @@ smcp_outbound_add_option_(
 #warning TODO: Check for overflow!
 
 	if(key<self->outbound.last_option_key) {
-		assert_printf("Out of order header: %s",coap_option_key_to_cstr(key, self->is_responding));
-		return SMCP_STATUS_INVALID_ARGUMENT;
+		assert_printf("warning: Out of order header: %s",coap_option_key_to_cstr(key, self->is_responding));
 	}
 
 	if(len == HEADER_CSTR_LEN)
@@ -227,20 +226,31 @@ smcp_outbound_add_option_(
 
 	option_count = self->outbound.packet->option_count;
 
-	self->outbound.content_ptr = (char*)coap_encode_option(
+	self->outbound.content_ptr += coap_insert_option(
+		(uint8_t*)self->outbound.packet->options,
 		(uint8_t*)self->outbound.content_ptr,
-		&option_count,
-		self->outbound.last_option_key,
 		key,
 		(const uint8_t*)value,
 		len
 	);
 
-	self->outbound.last_option_key = key;
+	option_count++;
+
+	if(key>self->outbound.last_option_key)
+		self->outbound.last_option_key = key;
 	self->outbound.packet->option_count = MIN(15,option_count);
 
 	if(self->outbound.packet->option_count==0xF)
 		*self->outbound.content_ptr++ = 0xF0;  // Add end-of-options marker
+
+#if VERBOSE_DEBUG
+	coap_dump_header(
+		SMCP_DEBUG_OUT_FILE,
+		"Option-Debug >>> ",
+		self->outbound.packet,
+		0
+	);
+#endif
 
 	return SMCP_STATUS_OK;
 }
@@ -260,8 +270,8 @@ smcp_outbound_add_options_up_to_key_(
 			// For sending a response.
 			const uint8_t* value;
 			size_t len;
-			coap_decode_option(self->inbound.token_option, NULL, &value, &len);
-			return smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
+			if(coap_decode_option(self->inbound.token_option, NULL, &value, &len))
+				return smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
 		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
 			return smcp_outbound_add_option_(
@@ -343,6 +353,12 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	struct addrinfo *results = NULL;
 	struct addrinfo *iter = NULL;
 
+//	if(strcasecmp(addr_str, "all-smcp-devices")==0)
+//		addr_str = SMCP_IPV6_MULTICAST_ADDRESS;
+//
+//	if(strcasecmp(addr_str, "all-coap-devices")==0)
+//		addr_str = SMCP_IPV6_MULTICAST_ADDRESS;
+
 	int error = getaddrinfo(addr_str, NULL, &hint, &results);
 
 	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
@@ -388,6 +404,13 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 		saddr.sin6_addr.s6_addr[11] = 0xFF;
 		memcpy(&saddr.sin6_addr.s6_addr[12], &v4addr->sin_addr.s_addr, 4);
 	} else {
+		if(saddr.sin6_addr.s6_addr[0]==0xFF) {
+			smcp_t const self = smcp_get_current_instance();
+			check(self->outbound.packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
+			if(self->outbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
+				self->outbound.packet->tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
+			}
+		}
 		memcpy(&saddr, iter->ai_addr, iter->ai_addrlen);
 	}
 	saddr.sin6_port = toport;
@@ -583,7 +606,7 @@ smcp_outbound_set_uri(
 	}
 
 bail:
-	DEBUG_PRINTF(
+	if(ret) DEBUG_PRINTF(
 		"URI Parse failed for URI: \"%s\"",
 		uri
 	);
@@ -649,7 +672,10 @@ smcp_status_t
 smcp_outbound_send() {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	smcp_t const self = smcp_get_current_instance();
+
+	// Note that this next line will "finish" the packet.
 	const size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
+
 #if VERBOSE_DEBUG
 	DEBUG_PRINTF("Outbound: tt=%d",smcp_get_current_instance()->outbound.packet->tt);
 	coap_dump_header(

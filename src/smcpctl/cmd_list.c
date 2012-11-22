@@ -25,6 +25,7 @@
 #include <math.h>
 #include <signal.h>
 #include "smcpctl.h"
+#include <unistd.h>
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",		 NULL,	 "Print Help"				 },
@@ -122,7 +123,7 @@ list_response_handler(
 //				next_value = value;
 //				next_len = value_len;
 //			}
-			if(key == COAP_HEADER_09_BLOCK1 && value_len) {
+			if(key == COAP_HEADER_BLOCK2 && value_len) {
 				static uint8_t tmp[5];
 				next_len = value_len<3?value_len:3;
 				memcpy(tmp,value,next_len);
@@ -332,7 +333,7 @@ resend_list_request(void* context) {
 
 	if(next_len != ((size_t)(-1))) {
 		status = smcp_outbound_add_option(
-			COAP_HEADER_09_BLOCK1,
+			COAP_HEADER_BLOCK2,
 			next_data,
 			next_len
 		);
