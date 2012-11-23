@@ -75,14 +75,19 @@ smcp_variable_request_handler(
 	SMCP_NON_RECURSIVE char buffer[SMCP_VARIABLE_MAX_VALUE_LENGTH+1];
 	SMCP_NON_RECURSIVE coap_content_type_t reply_content_type;
 	uint8_t key_index = BAD_KEY_INDEX;
+	size_t value_len;
+	bool needs_prefix = true;
 
 	reply_content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
 
 	require(node, bail);
 
 	// Look up the key index.
-	if(smcp_inbound_peek_option(NULL,NULL)==COAP_HEADER_URI_PATH) {
-		for(key_index=0;key_index<BAD_KEY_INDEX;key_index++) {
+	if(smcp_inbound_peek_option(NULL,&value_len)==COAP_HEADER_URI_PATH) {
+		if(!value_len) {
+			needs_prefix = false;
+			smcp_inbound_next_option(NULL,NULL);
+		} else for(key_index=0;key_index<BAD_KEY_INDEX;key_index++) {
 			ret = node->func(node,SMCP_VAR_GET_KEY,key_index,buffer);
 			require_action(ret==0,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH, buffer)) {
@@ -95,7 +100,7 @@ smcp_variable_request_handler(
 	{
 		coap_option_key_t key;
 		const uint8_t* value;
-		size_t value_len;
+//		size_t value_len;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key==COAP_HEADER_URI_QUERY) {
@@ -198,6 +203,10 @@ smcp_variable_request_handler(
 				}
 
 				*content_ptr++ = '<';
+				if(needs_prefix) {
+					content_ptr = stpncpy(content_ptr,node->node.name,(content_end_ptr-content_ptr)-1);
+					content_ptr = stpncpy(content_ptr,"/",(content_end_ptr-content_ptr)-1);
+				}
 				content_ptr += url_encode_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
 				*content_ptr++ = '>';
 

@@ -598,15 +598,20 @@ smcp_outbound_set_uri(
 
 	if(path_str) {
 		char* component;
+		bool has_trailing_slash = path_str[0]?('/' == path_str[strlen(path_str)-1]):false;
 
 		// Move past any preceding slashes.
 		while(path_str[0] == '/')
 			path_str++;
 
 		while(url_path_next_component(&path_str,&component)) {
-			int len = strlen(component);
-			if(len)
-				ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, component, HEADER_CSTR_LEN);
+			//int len = strlen(component);
+			//if(len)
+			ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, component, HEADER_CSTR_LEN);
+			require_noerr(ret,bail);
+		}
+		if(has_trailing_slash) {
+			ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, "", HEADER_CSTR_LEN);
 			require_noerr(ret,bail);
 		}
 	}

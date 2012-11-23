@@ -68,7 +68,7 @@ smcp_handle_list(
 	smcp_status_t ret = 0;
 	char* replyContent;
 	size_t content_break_threshold = 256;
-	const char* prefix = NULL;
+	const char* prefix = node->name;
 
 	// The path "/.well-known/core" is a special case. If we get here,
 	// we know that it isn't being handled explicitly, so we just
@@ -78,12 +78,18 @@ smcp_handle_list(
 			smcp_inbound_next_option(NULL, NULL);
 			if(smcp_inbound_option_strequal_const(COAP_HEADER_URI_PATH,"core")) {
 				smcp_inbound_next_option(NULL, NULL);
-				prefix = "/";
+				prefix = "";
 			} else {
 				ret = SMCP_STATUS_NOT_ALLOWED;
 				goto bail;
 			}
 		}
+	}
+
+	if(smcp_inbound_option_strequal_const(COAP_HEADER_URI_PATH,"")) {
+		// Handle trailing '/'.
+		smcp_inbound_next_option(NULL, NULL);
+		prefix = NULL;
 	}
 
 	// Check over the headers to make sure they are sane.
@@ -160,8 +166,10 @@ smcp_handle_list(
 
 		strlcat(replyContent, "<", content_break_threshold);
 
-		if(prefix)
+		if(prefix) {
 			strlcat(replyContent, prefix, content_break_threshold);
+			strlcat(replyContent, "/", content_break_threshold);
+		}
 
 		{
 			size_t len = strlen(replyContent);

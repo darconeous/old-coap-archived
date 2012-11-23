@@ -101,6 +101,9 @@ tool_cmd_cd(
 			ret = ERRORCODE_BADARG;
 			goto bail;
 		}
+		if(url[0] && '/'!=url[strlen(url)-1]) {
+			strcat(url,"/");
+		}
 
 		char* url_check = strdup(url);
 		char* host = NULL;

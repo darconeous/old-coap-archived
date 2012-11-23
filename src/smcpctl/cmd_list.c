@@ -205,6 +205,9 @@ list_response_handler(
 								if(!iter)
 									break;
 								*iter++ = 0;
+//								value = strsep(&iter, "\"");
+//								if(!iter)
+//									break;
 								endchar = *iter++;
 							} else {
 								value = iter;
@@ -463,6 +466,9 @@ tool_cmd_list(
 			if(getenv("SMCP_CURRENT_PATH")) {
 				strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
 				url_change(url, argv[i]);
+				if(url[0] && '/'!=url[strlen(url)-1]) {
+					strcat(url,"/");
+				}
 			} else {
 				strncpy(url, argv[i], sizeof(url));
 			}

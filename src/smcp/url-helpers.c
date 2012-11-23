@@ -653,6 +653,7 @@ url_change(
 	}
 
 	{
+		bool has_trailing_slash = new_url_[0]?('/' == new_url_[strlen(new_url_)-1]):false;
 		char current_path[MAX_URL_SIZE];
 		char* proto_str = NULL;
 		char* path_str = NULL;
@@ -776,7 +777,8 @@ url_change(
 				strcat(url, "/");
 				strcat(url, *pp);
 			}
-			//strcat(url,"/");
+			if(has_trailing_slash)
+				strcat(url,"/");
 		}
 
 		ret = true;
