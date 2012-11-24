@@ -44,6 +44,7 @@ enum {
 	SMCP_VAR_GET_VALUE,
 	SMCP_VAR_GET_LF_TITLE,
 	SMCP_VAR_GET_MAX_AGE,
+	SMCP_VAR_GET_OBSERVABLE,
 };
 
 typedef smcp_status_t (*smcp_variable_node_func)(

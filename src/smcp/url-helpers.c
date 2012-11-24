@@ -738,6 +738,11 @@ url_change(
 			}
 		}
 
+		{	// Remove the basename if the starting URL doesn't end with a slash.
+			int path_len = strlen(path_str);
+			for(;path_len && path_str[path_len-1]!='/';path_len--);
+		}
+
 		{
 			char* path_components[URL_HELPERS_MAX_URL_COMPONENTS];
 			char** pp = path_components;

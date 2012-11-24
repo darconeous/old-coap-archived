@@ -167,6 +167,7 @@ list_response_handler(
 
 			while(iter && (iter < end)) {
 				if(*iter == '<') {
+					bool has_trailing_slash = false;
 					char* uri = 0;
 					char* name = 0;
 					char* desc = 0;
@@ -191,9 +192,21 @@ list_response_handler(
 							char endchar;
 
 							iter++;
-							key = strsep(&iter, "=");
-							if(!iter)
+							key=iter;
+							while(*iter && *iter!='=' && *iter!=';' && *iter!=',') {
+								iter++;
+							}
+
+							if(*iter==';') {
+								*iter = 0;
+								continue;
+							}
+
+							if(!*iter || *iter==',')
 								break;
+
+							*iter++ = 0;
+
 							if(*iter == '"') {
 								iter++;
 								value = iter;
@@ -265,6 +278,11 @@ list_response_handler(
 					}
 					url_shorten_reference((const char*)original_url, uri);
 
+					// Strip the trailing slash.
+					while(uri[0] && uri[strlen(uri)-1]=='/') {
+						has_trailing_slash = true;
+						uri[strlen(uri)-1] = 0;
+					}
 
 					if(istty && !list_filename_only && type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
 						uri_len = fprintf(stdout,
@@ -276,7 +294,7 @@ list_response_handler(
 						) - 1;
 					else
 						uri_len = fprintf(stdout,"%s", uri) - 1;
-					if(type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
+					if(has_trailing_slash || type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
 						fprintf(stdout,"/");
 					if(!list_filename_only) {
 						if(v)

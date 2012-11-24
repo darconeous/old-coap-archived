@@ -197,17 +197,17 @@ smcp_pair_inbound_observe_update() {
 		pairing->flags = SMCP_PARING_FLAG_OBSERVE|SMCP_PARING_FLAG_RELIABILITY_ASAP|SMCP_PARING_FLAG_RELIABILITY_ASAP;
 
 #if SMCP_CONF_USE_SEQ
-#if DEBUG
-		pairing->seq = pairing->ack = 0;
-#else
-		pairing->seq = pairing->ack = SMCP_FUNC_RANDOM_UINT32();
-#endif
+//#if DEBUG
+		pairing->seq = pairing->ack = htons(1);
+//#else
+//		pairing->seq = pairing->ack = SMCP_FUNC_RANDOM_UINT32();
+//#endif
 		ret = smcp_outbound_add_option(
 			COAP_HEADER_OBSERVE,
 			(char*)&pairing->seq,
 			sizeof(smcp_pairing_seq_t)
 		);
-		pairing->seq = ntohl(pairing->seq);
+		pairing->seq = ntohs(pairing->seq);
 #else
 		ret = smcp_outbound_add_option(
 			COAP_HEADER_OBSERVE,

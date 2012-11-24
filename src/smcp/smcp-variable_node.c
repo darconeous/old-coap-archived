@@ -204,7 +204,7 @@ smcp_variable_request_handler(
 
 				*content_ptr++ = '<';
 				if(needs_prefix) {
-					content_ptr = stpncpy(content_ptr,node->node.name,(content_end_ptr-content_ptr)-1);
+					content_ptr += url_encode_cstr(content_ptr, node->node.name, (content_end_ptr-content_ptr)-1);
 					content_ptr = stpncpy(content_ptr,"/",(content_end_ptr-content_ptr)-1);
 				}
 				content_ptr += url_encode_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
@@ -235,6 +235,10 @@ smcp_variable_request_handler(
 					content_ptr += 7;
 					content_ptr += quoted_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
 				}
+
+				// Observation flag
+				if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,NULL))
+					content_ptr = stpncpy(content_ptr,";obs",(content_end_ptr-content_ptr)-1);
 
 				*content_ptr++ = ',';
 			}

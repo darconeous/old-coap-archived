@@ -167,7 +167,9 @@ smcp_handle_list(
 		strlcat(replyContent, "<", content_break_threshold);
 
 		if(prefix) {
-			strlcat(replyContent, prefix, content_break_threshold);
+			size_t len = strlen(replyContent);
+			if(content_break_threshold-1>len)
+				url_encode_cstr(replyContent+len, prefix, content_break_threshold - len);
 			strlcat(replyContent, "/", content_break_threshold);
 		}
 
@@ -176,6 +178,9 @@ smcp_handle_list(
 			if(content_break_threshold-1>len)
 				url_encode_cstr(replyContent+len, node_name, content_break_threshold - len);
 		}
+
+		if(node->children)
+			strlcat(replyContent, "/", content_break_threshold);
 
 		strlcat(replyContent, ">", content_break_threshold);
 
