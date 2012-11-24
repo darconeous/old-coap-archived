@@ -234,15 +234,11 @@ list_response_handler(
 							{	// Convert all line feeds into " | ".
 								char* value_iter = value;
 								for(;*value_iter;value_iter++) {
-									if(0==strncmp(value_iter,"%0A",3)) {
-										if(value_iter[3]) {
-											value_iter[0]=' ';
-											value_iter[1]='|';
-											value_iter[2]=' ';
+									if(0==strncmp(value_iter,"\n",1)) {
+										if(value_iter[1]) {
+											value_iter[0]='|';
 										} else {
 											value_iter[0]=0;
-											value_iter[1]=0;
-											value_iter[2]=0;
 										}
 									}
 								}
