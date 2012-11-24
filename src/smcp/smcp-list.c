@@ -89,7 +89,7 @@ smcp_handle_list(
 	if(smcp_inbound_option_strequal_const(COAP_HEADER_URI_PATH,"")) {
 		// Handle trailing '/'.
 		smcp_inbound_next_option(NULL, NULL);
-		prefix = NULL;
+		if(prefix[0]) prefix = NULL;
 	}
 
 	// Check over the headers to make sure they are sane.
