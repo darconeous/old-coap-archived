@@ -133,7 +133,7 @@ coap_encode_option(
 	if(len > COAP_MAX_OPTION_VALUE_SIZE)
 		len = COAP_MAX_OPTION_VALUE_SIZE;
 
-	if(len<16) {
+	if(len<15) {
 		*buffer++ = (option_delta << 4) | len;
 	} else {
 		*buffer++ = (option_delta << 4) | 0xF;
