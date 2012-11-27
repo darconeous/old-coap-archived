@@ -395,7 +395,7 @@ send_list_request(
 	bool ret = false;
 	smcp_status_t status = 0;
 
-	tid = smcp_get_next_tid(smcp,NULL);
+	tid = smcp_get_next_msg_id(smcp,NULL);
 	gRet = ERRORCODE_INPROGRESS;
 
 	retries = 0;
@@ -407,7 +407,7 @@ send_list_request(
 		next_len = ((size_t)(-1));
 	}
 
-	status = smcp_begin_transaction(
+	status = smcp_begin_transaction_old(
 		smcp,
 		tid,
 		timeout_cms,	// Retry for thirty seconds.
@@ -420,7 +420,7 @@ send_list_request(
 	if(status) {
 		check(!status);
 		fprintf(stderr,
-			"smcp_begin_transaction() returned %d(%s).\n",
+			"smcp_begin_transaction_old() returned %d(%s).\n",
 			status,
 			smcp_status_to_cstr(status));
 		goto bail;
@@ -511,7 +511,7 @@ tool_cmd_list(
 		smcp_process(smcp, 50);
 
 bail:
-	smcp_invalidate_transaction(smcp, tid);
+	smcp_invalidate_transaction_old(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

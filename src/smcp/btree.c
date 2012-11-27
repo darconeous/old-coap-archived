@@ -459,6 +459,23 @@ self_test_node_compare(
 	return strcmp(lhs->name, rhs->name);
 }
 
+bt_compare_result_t
+self_test_node_compare_cstr(
+	self_test_node_t lhs,
+	self_test_node_t rhs,
+	void* context
+) {
+	(void)context; // This parameter is not used. Supress warning.
+
+	if(lhs->name == rhs)
+		return 0;
+	if(!lhs->name)
+		return 1;
+	if(!rhs)
+		return -1;
+	return strcmp(lhs->name, rhs);
+}
+
 void
 forward_traversal_test(self_test_node_t root) {
 	int j = 0;
@@ -554,6 +571,8 @@ again:
 	forward_traversal_test(root);
 	reverse_traversal_test(root);
 
+	bt_find((void**)&root, "item_1", &self_test_node_compare_cstr, &nodes_alive);
+
 	i = bt_rebalance((void**)&root);
 	printf("Rebalance operation took %u rotations\n", i);
 
@@ -648,6 +667,8 @@ again:
 			(bt_delete_func_t)&self_test_node_delete,
 			&nodes_alive
 		);
+
+	bt_find((void**)&root, "item_1", &self_test_node_compare_cstr, &nodes_alive);
 
 	printf("Adding more nodes...\n");
 	{

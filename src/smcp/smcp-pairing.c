@@ -699,7 +699,7 @@ smcp_trigger_event(
 	    iter;
 	    iter = smcp_next_pairing(iter)
 	) {
-		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_tid(self,NULL);
+		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_msg_id(self,NULL);
 		smcp_status_t status;
 
 		if(!event) {
@@ -717,7 +717,7 @@ smcp_trigger_event(
 
 		if(iter->currentEvent) {
 			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
-			smcp_invalidate_transaction(self, iter->last_tid);
+			smcp_invalidate_transaction_old(self, iter->last_tid);
 		}
 
 #if SMCP_CONF_USE_SEQ
@@ -726,7 +726,7 @@ smcp_trigger_event(
 #endif
 		iter->currentEvent = event;
 
-		status = smcp_begin_transaction(
+		status = smcp_begin_transaction_old(
 			self,
 			tid,
 			(iter->flags&SMCP_PARING_FLAG_RELIABILITY_MASK)?30000:100,
@@ -804,7 +804,7 @@ smcp_trigger_custom_event(
 	    iter;
 	    iter = smcp_next_pairing(iter)
 	) {
-		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_tid(self,NULL);
+		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_msg_id(self,NULL);
 		smcp_status_t status;
 		if(!event) {
 			// Allocate this lazily.
@@ -820,7 +820,7 @@ smcp_trigger_custom_event(
 
 		if(iter->currentEvent) {
 			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
-			smcp_invalidate_transaction(self, iter->last_tid);
+			smcp_invalidate_transaction_old(self, iter->last_tid);
 		}
 
 #if SMCP_CONF_USE_SEQ
@@ -829,7 +829,7 @@ smcp_trigger_custom_event(
 #endif
 		iter->currentEvent = event;
 
-		status = smcp_begin_transaction(
+		status = smcp_begin_transaction_old(
 			self,
 			tid,
 			(iter->flags&SMCP_PARING_FLAG_RELIABILITY_MASK)?30000:10,
@@ -902,7 +902,7 @@ smcp_delete_pairing(smcp_pairing_node_t pairing) {
 	if(pairing->currentEvent) {
 		smcp_t const self = (smcp_t)smcp_node_get_root(&pairing->node.node);
 		smcp_event_tracker_release(pairing->currentEvent);
-		smcp_invalidate_transaction(self, pairing->last_tid);
+		smcp_invalidate_transaction_old(self, pairing->last_tid);
 	}
 	smcp_node_delete(&pairing->node.node);
 	if(parent && !parent->children) {

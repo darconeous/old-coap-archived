@@ -130,7 +130,7 @@ tool_cmd_monitor(
 		smcp_process(smcp, 50);
 
 bail:
-	smcp_invalidate_transaction(smcp, tid);
+	smcp_invalidate_transaction_old(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

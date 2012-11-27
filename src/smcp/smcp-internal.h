@@ -62,20 +62,31 @@ extern void smcp_set_current_instance(smcp_t x);
 
 struct smcp_transaction_s {
 	struct bt_item_s			bt_item;
+
 	smcp_inbound_resend_func	resendCallback;
 	smcp_response_handler_func	callback;
 	void*						context;
-	coap_transaction_id_t		tid;
-	uint8_t						flags;
-	uint8_t						attemptCount;
+
+	// This expiration field has different meaning depending on
+	// if this is an observable transaction or not. If it is
+	// not observable, the expiration is when the transaction should
+	// be "timed out". If it is observable, it is when the
+	// max-age expires and we need to restart observing.
 	struct timeval				expiration;
 	struct smcp_timer_s			timer;
 
-	uint16_t token;
-	uint8_t waiting_for_async_response:1;
-};
+	coap_transaction_id_t		token;
+	coap_transaction_id_t		msg_id;
 
-typedef struct smcp_transaction_s *smcp_transaction_t;
+	uint32_t					last_observe;
+
+	uint8_t						flags;
+	uint8_t						attemptCount:4,
+								waiting_for_async_response:1,
+								should_dealloc:1,
+								active:1,
+								needs_to_close_observe:1;
+};
 
 // Consider members of this struct to be private!
 struct smcp_s {
@@ -127,7 +138,9 @@ struct smcp_s {
 								is_dupe:1,
 								has_observe_option:1;
 
-		uint32_t transaction_hash;
+		uint32_t				observe_value;
+
+		uint32_t				transaction_hash;
 
 #if SMCP_USE_BSD_SOCKETS
 		struct sockaddr*		saddr;
@@ -161,7 +174,7 @@ struct smcp_s {
 		coap_code_t code;
 	} dupe[SMCP_CONF_DUPE_BUFFER_SIZE];
 
-#if SMCP_CONF_DUPE_BUFFER_SIZE<=255
+#if SMCP_CONF_DUPE_BUFFER_SIZE<=256
 	uint8_t dupe_index;
 #else
 	uint16_t dupe_index;

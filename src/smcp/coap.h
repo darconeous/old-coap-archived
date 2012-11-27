@@ -145,10 +145,6 @@ enum {
 	HTTP_RESULT_CODE_GATEWAY_TIMEOUT = 504,
 	HTTP_RESULT_CODE_PROXYING_NOT_SUPPORTED = 505,
 
-//	HTTP_RESULT_CODE_TOKEN_REQUIRED = COAP_TO_HTTP_CODE(240),
-//	HTTP_RESULT_CODE_URI_AUTHORITY_REQUIRED = COAP_TO_HTTP_CODE(241),
-//	HTTP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION = HTTP_RESULT_CODE_BAD_OPTION,
-
 	// Unofficial result codes, taken from HTTP
 	HTTP_RESULT_CODE_CONTINUE = 100,
 	HTTP_RESULT_CODE_OK = 200,			// Not valid in recent CoAP versions
@@ -241,7 +237,7 @@ struct coap_header_s {
 		tt:2,
 		version:2;
 	coap_code_t code:8;
-	coap_transaction_id_t tid; // Always in network order.
+	coap_transaction_id_t msg_id; // Always in network order.
 	uint8_t options[0];
 };
 

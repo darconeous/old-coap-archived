@@ -106,7 +106,7 @@ smcp_outbound_begin(
 #endif
 
 	self->outbound.packet->tt = tt;
-	self->outbound.packet->tid = self->outbound.next_tid;
+	self->outbound.packet->msg_id = self->outbound.next_tid;
 	self->outbound.packet->code = code;
 	self->outbound.packet->version = COAP_VERSION;
 	self->outbound.packet->option_count = 0;
@@ -140,12 +140,12 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 	require(!self->is_responding,bail);
 
 	if(self->is_processing_message)
-		self->outbound.next_tid = self->inbound.packet->tid;
+		self->outbound.next_tid = smcp_inbound_get_msg_id();
 	smcp_outbound_begin(self,code,COAP_TRANS_TYPE_ACK);
 	self->is_responding = true;
 
 	if(self->is_processing_message)
-		smcp_outbound_set_tid(self->inbound.packet->tid);
+		smcp_outbound_set_msg_id(smcp_inbound_get_msg_id());
 
 	if(self->is_processing_message) {
 #if SMCP_USE_BSD_SOCKETS
@@ -166,9 +166,9 @@ bail:
 }
 
 smcp_status_t
-smcp_outbound_set_tid(coap_transaction_id_t tid) {
+smcp_outbound_set_msg_id(coap_transaction_id_t tid) {
 	assert(smcp_get_current_instance()->outbound.packet);
-	smcp_get_current_instance()->outbound.packet->tid = tid;
+	smcp_get_current_instance()->outbound.packet->msg_id = tid;
 	return SMCP_STATUS_OK;
 }
 
@@ -279,8 +279,8 @@ smcp_outbound_add_options_up_to_key_(
 			// For sending a request.
 			ret = smcp_outbound_add_option_(
 				COAP_HEADER_TOKEN,
-				(void*)&self->outbound.packet->tid,
-				sizeof(self->outbound.packet->tid)
+				(void*)&self->outbound.packet->msg_id,
+				sizeof(self->outbound.packet->msg_id)
 			);
 		}
 	}

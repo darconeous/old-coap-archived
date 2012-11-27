@@ -147,7 +147,7 @@ send_pair_request(
 	url_[0] = url;
 	url_[1] = url2;
 
-	tid = smcp_get_next_tid(smcp,NULL);
+	tid = smcp_get_next_msg_id(smcp,NULL);
 	//static char tid_str[30];
 
 	gRet = ERRORCODE_INPROGRESS;
@@ -159,7 +159,7 @@ send_pair_request(
 
 	printf("Pairing \"%s\" to \"%s\"...\n", url, url2);
 
-	require_noerr(smcp_begin_transaction(
+	require_noerr(smcp_begin_transaction_old(
 			smcp,
 			tid,
 			30*1000,	// Retry for thirty seconds.
@@ -236,7 +236,7 @@ tool_cmd_pair(
 		smcp_process(smcp, -1);
 
 bail:
-	smcp_invalidate_transaction(smcp, tid);
+	smcp_invalidate_transaction_old(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

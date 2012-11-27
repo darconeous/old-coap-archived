@@ -31,6 +31,7 @@
 		A686D69E16557F3100B14B54 /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A27BA2127B934F003708DF /* cmd_delete.c */; };
 		A6CD69621283466B00254A8B /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E21278B16D00B24867 /* btree.c */; };
+		A6D0C8C31661CC3C00E9F440 /* cgi-node.c in Sources */ = {isa = PBXBuildFile; fileRef = A6D0C8C21661CC3C00E9F440 /* cgi-node.c */; };
 		A6F536EE155F0E5200E0E324 /* smcp-curl_proxy.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */; };
 		A6F536F1155F0EC700E0E324 /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
 		A6F536F3155F255000E0E324 /* smcp-send.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-send.c */; };
@@ -127,6 +128,7 @@
 		A6BE9A40164CC87F00473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = docs/Makefile.am; sourceTree = "<group>"; };
 		A6BE9A41164CD28A00473330 /* smcpd.conf.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = smcpd.conf.in; sourceTree = "<group>"; };
 		A6CD695D1283463900254A8B /* btreetest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = btreetest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6D0C8C21661CC3C00E9F440 /* cgi-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "cgi-node.c"; sourceTree = "<group>"; };
 		A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-curl_proxy.c"; path = "src/smcp/smcp-curl_proxy.c"; sourceTree = "<group>"; };
 		A6F536ED155F0E5200E0E324 /* smcp-curl_proxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-curl_proxy.h"; path = "src/smcp/smcp-curl_proxy.h"; sourceTree = "<group>"; };
 		A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = ../../../../usr/lib/libcurl.4.dylib; sourceTree = "<group>"; };
@@ -180,12 +182,12 @@
 				A686D69D16557F3100B14B54 /* smcp-auth.c */,
 				A6BE9A3D164CC67D00473330 /* Makefile.am */,
 				A60D0DB312795ADF00C04B8C /* Utils */,
+				A63EA6F51278B16D00B24867 /* smcp.h */,
+				A63EA6E81278B16D00B24867 /* smcp-internal.h */,
 				A63EA6F41278B16D00B24867 /* smcp.c */,
 				A6770026156AA2BF00592868 /* smcp-opts.h */,
 				A6F536F71561B7A600E0E324 /* smcp-list.c */,
 				A6F536F2155F255000E0E324 /* smcp-send.c */,
-				A63EA6F51278B16D00B24867 /* smcp.h */,
-				A63EA6E81278B16D00B24867 /* smcp-internal.h */,
 				A63EA6E41278B16D00B24867 /* coap.c */,
 				A63EA6E51278B16D00B24867 /* coap.h */,
 				A63EA6E91278B16D00B24867 /* smcp-logging.h */,
@@ -232,6 +234,7 @@
 				A603063A163AE4D100B0AA6C /* help.h */,
 				A603063B163AE4D100B0AA6C /* main.c */,
 				A679FFB7164BD4F700736F58 /* system-node.c */,
+				A6D0C8C21661CC3C00E9F440 /* cgi-node.c */,
 			);
 			name = smcpd;
 			path = src/smcpd;
@@ -429,6 +432,7 @@
 				A6F536F81561B7A600E0E324 /* smcp-list.c in Sources */,
 				A679FFB9164BDD9700736F58 /* system-node.c in Sources */,
 				A686D69E16557F3100B14B54 /* smcp-auth.c in Sources */,
+				A6D0C8C31661CC3C00E9F440 /* cgi-node.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

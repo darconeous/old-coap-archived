@@ -645,7 +645,6 @@ url_change(
 #if !HAS_C99_VLA
 	char *new_url = NULL;
 #endif
-
 	if(url_is_absolute(new_url_)) {
 		strcpy(url, new_url_);
 		ret = true;
@@ -692,23 +691,6 @@ url_change(
 			path_str
 		);
 #endif
-/*
-		if(!proto_str) {
-#if VERBOSE_DEBUG
-			fprintf(stderr, "Must cd into full URL first\n");
-#endif
-			ret = false;
-			goto bail;
-		}
-
-		if(!addr_str) {
-#if VERBOSE_DEBUG
-			fprintf(stderr, "Bad base URL.\n");
-#endif
-			ret = false;
-			goto bail;
-		}
-*/
 		url[0] = 0;
 
 		if(proto_str && addr_str) {

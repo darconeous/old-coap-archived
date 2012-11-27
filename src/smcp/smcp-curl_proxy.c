@@ -64,7 +64,7 @@ smcp_curl_request_release(smcp_curl_request_t x) {
 smcp_curl_request_t
 smcp_curl_request_create(void) {
 	smcp_curl_request_t ret = calloc(1,sizeof(*ret));
-	ret->tid = smcp_get_next_tid(smcp_get_current_instance(),NULL);
+	ret->tid = smcp_get_next_msg_id(smcp_get_current_instance(),NULL);
 	ret->curl = curl_easy_init();
 	if(!ret->curl) {
 		smcp_curl_request_release(ret);
@@ -166,7 +166,7 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 	request->content_len += realsize;
 	request->content[request->content_len] = 0;
 
-	smcp_begin_transaction(
+	smcp_begin_transaction_old(
 		(smcp_t)smcp_node_get_root(&request->proxy_node->node),
 		request->tid,
 		10*1000,	// Retry for thirty seconds.
