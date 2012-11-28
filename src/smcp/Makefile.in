@@ -70,14 +70,16 @@ libsmcp_a_LIBADD =
 am__libsmcp_a_SOURCES_DIST = smcp.c smcp-list.c smcp-send.c \
 	smcp-node.c smcp-pairing.c btree.c url-helpers.c coap.c \
 	smcp-timer.c smcp-timer_node.c smcp-variable_node.c \
-	assert_macros.h btree.h coap.h ll.h smcp-curl_proxy.h \
-	smcp-helpers.h smcp-internal.h smcp-logging.h smcp-node.h \
-	smcp-opts.h smcp-pairing.h smcp-timer.h smcp-timer_node.h \
-	smcp-variable_node.h smcp.h url-helpers.h smcp-curl_proxy.c
+	smcp-auth.c assert_macros.h btree.h coap.h ll.h \
+	smcp-curl_proxy.h smcp-helpers.h smcp-internal.h \
+	smcp-logging.h smcp-node.h smcp-opts.h smcp-pairing.h \
+	smcp-timer.h smcp-timer_node.h smcp-variable_node.h smcp.h \
+	url-helpers.h smcp-auth.h smcp-curl_proxy.c
 @HAVE_LIBCURL_TRUE@am__objects_1 = smcp-curl_proxy.lo
 am_libsmcp_a_OBJECTS = smcp.lo smcp-list.lo smcp-send.lo smcp-node.lo \
 	smcp-pairing.lo btree.lo url-helpers.lo coap.lo smcp-timer.lo \
-	smcp-timer_node.lo smcp-variable_node.lo $(am__objects_1)
+	smcp-timer_node.lo smcp-variable_node.lo smcp-auth.lo \
+	$(am__objects_1)
 libsmcp_a_OBJECTS = $(am_libsmcp_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/m4/depcomp
@@ -223,11 +225,12 @@ INCLUDES = -I.. -I$(top_srcdir)/src
 noinst_LTLIBRARIES = libsmcp.a
 libsmcp_a_SOURCES = smcp.c smcp-list.c smcp-send.c smcp-node.c \
 	smcp-pairing.c btree.c url-helpers.c coap.c smcp-timer.c \
-	smcp-timer_node.c smcp-variable_node.c assert_macros.h btree.h \
-	coap.h ll.h smcp-curl_proxy.h smcp-helpers.h smcp-internal.h \
-	smcp-logging.h smcp-node.h smcp-opts.h smcp-pairing.h \
-	smcp-timer.h smcp-timer_node.h smcp-variable_node.h smcp.h \
-	url-helpers.h $(am__append_1)
+	smcp-timer_node.c smcp-variable_node.c smcp-auth.c \
+	assert_macros.h btree.h coap.h ll.h smcp-curl_proxy.h \
+	smcp-helpers.h smcp-internal.h smcp-logging.h smcp-node.h \
+	smcp-opts.h smcp-pairing.h smcp-timer.h smcp-timer_node.h \
+	smcp-variable_node.h smcp.h url-helpers.h smcp-auth.h \
+	$(am__append_1)
 DISTCLEANFILES = .deps Makefile
 all: all-am
 
@@ -285,6 +288,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/coap.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-auth.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-curl_proxy.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-list.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-node.Plo@am__quote@
