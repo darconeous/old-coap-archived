@@ -26,6 +26,7 @@
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",				  NULL, "Print Help" },
+	{ 'i', "include",	 NULL,	 "include headers in output" },
 //	{ 'c', "content-file",NULL,"Use content from the specified input source" },
 	{ 0,   "outbound-slice-size", NULL, "writeme"	 },
 	{ 0,   "content-type",		  NULL, "writeme"	 },
@@ -72,11 +73,12 @@ post_response_handler(
 		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
-	if(content && content_length) {
-		if(content_length && (content[content_length - 1] == '\n'))
-			content[--content_length] = 0;
 
-		printf("%s\n", content);
+	if(content && content_length) {
+		printf("%s", content);
+		// Only print a newline if the content doesn't already print one.
+		if((content[content_length - 1] != '\n'))
+			printf("\n");
 	}
 
 	if(gRet == ERRORCODE_INPROGRESS)
@@ -136,7 +138,7 @@ send_post_request(
 	request = calloc(1,sizeof(*request));
 	require(request!=NULL,bail);
 	request->url = strdup(url);
-	request->content = calloc(1,sizeof(content_len));
+	request->content = calloc(1,content_len);
 	memcpy(request->content,content,content_len);
 	request->content_len = content_len;
 	request->content_type = content_type;

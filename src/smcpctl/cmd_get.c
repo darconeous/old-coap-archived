@@ -161,6 +161,7 @@ get_response_handler(int statuscode, void* context) {
 			fflush(stdout);
 			return;
 		} else if(last_block) {
+			// Only print a newline if the content doesn't already print one.
 			if((content[content_length - 1] != '\n'))
 				printf("\n");
 		}

@@ -38,6 +38,8 @@
 #define DEBUG VERBOSE_DEBUG
 #endif
 
+#define __APPLE_USE_RFC_3542 1
+
 #include "assert_macros.h"
 
 #if CONTIKI
@@ -62,6 +64,7 @@ extern uint16_t uip_slen;
 #include "url-helpers.h"
 #include "smcp-node.h"
 #include "smcp-logging.h"
+#include "smcp-auth.h"
 
 #if SMCP_USE_BSD_SOCKETS
 #include <poll.h>
@@ -175,6 +178,17 @@ smcp_init(
 
 		saddr.sin6_port = htons(port);
 	}
+
+#ifdef IPV6_PREFER_TEMPADDR
+#ifndef IP6PO_TEMPADDR_NOTPREFER
+#define IP6PO_TEMPADDR_NOTPREFER 0
+#endif
+	{
+		int value = IP6PO_TEMPADDR_NOTPREFER;
+		setsockopt(ret->fd, IPPROTO_IPV6, IPV6_PREFER_TEMPADDR, &value, sizeof(value));
+	}
+#endif
+
 #elif CONTIKI
 	ret->udp_conn = udp_new(NULL, 0, NULL);
 	uip_udp_bind(ret->udp_conn, htons(port));
@@ -429,6 +443,18 @@ smcp_inbound_is_dupe() {
 	return smcp_get_current_instance()->inbound.is_dupe;
 }
 
+bool
+smcp_inbound_origin_is_local() {
+#if SMCP_USE_BSD_SOCKETS
+	struct sockaddr_in6* const saddr = (struct sockaddr_in6*)smcp_inbound_get_saddr();
+	// Is this adequate?
+	return IN6_IS_ADDR_LOOPBACK(&saddr->sin6_addr)
+		&& saddr->sin6_port==htonl(smcp_get_port(smcp_get_current_instance()));
+#else
+	return false;
+#endif
+}
+
 #pragma mark -
 
 smcp_status_t
@@ -520,7 +546,10 @@ smcp_handle_inbound_packet(
 				if((self->inbound.token_option[0]&0xF0)==0xF0)
 					self->inbound.token_option+=self->inbound.token_option[0]&0xf;
 			} else if(key==COAP_HEADER_CONTENT_TYPE) {
-				self->inbound.content_type = self->inbound.this_option[1];
+				uint8_t i;
+				self->inbound.content_type = 0;
+				for(i = 0; i < value_len; i++)
+					self->inbound.content_type = (self->inbound.content_type << 8) + value[i];
 			} else if(key==COAP_HEADER_OBSERVE) {
 				self->inbound.has_observe_option = 1;
 			} else if(key==COAP_HEADER_MAX_AGE) {
@@ -945,7 +974,11 @@ smcp_handle_request(
 	smcp_node_t node = smcp_get_root_node(self);
 	smcp_inbound_handler_func request_handler = &smcp_default_request_handler;
 
-	// TODO: Add authentication here!
+	// Authenticate this request.
+	ret = smcp_auth_verify_request();
+	require_noerr(ret,bail);
+
+	smcp_inbound_reset_next_option();
 
 	{
 		const uint8_t* prev_option_ptr = self->inbound.this_option;
@@ -1088,6 +1121,12 @@ smcp_handle_response(
 		DEBUG_PRINTF("Inbound: Async Response");
 		handler->waiting_for_async_response = true;
 	} else if(handler->callback) {
+		// Handle any authentication heaers.
+		ret = smcp_auth_handle_response(handler);
+		require_noerr(ret,bail);
+
+		smcp_inbound_reset_next_option();
+
 		if(handler->flags & SMCP_TRANSACTION_OBSERVE) {
 			(*handler->callback)(
 				self->inbound.packet->tt==COAP_TRANS_TYPE_RESET?SMCP_STATUS_RESET:self->inbound.packet->code,

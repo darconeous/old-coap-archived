@@ -272,6 +272,43 @@ url_decode_cstr_inplace(char *str) {
 }
 
 size_t
+quoted_cstr(
+	char *dest,
+	const char* src,		// Must be zero-terminated.
+	size_t dest_max_size
+) {
+	char* ret = dest;
+
+	require(dest_max_size,bail);
+	dest_max_size--;		// For zero termination.
+
+	require(dest_max_size,bail);
+	*dest++ = '"';
+	dest_max_size--;
+
+	require(dest_max_size,bail);
+
+	while(dest_max_size-1) {
+		char src_char = *src++;
+
+		if(!src_char)
+			break;
+
+		if((src_char == '/') && src[0] == '"')
+			src_char = *src++;
+		*dest++ = src_char;
+		dest_max_size--;
+	}
+
+	*dest++ = '"';
+	dest_max_size--;
+bail:
+	*dest = 0;
+
+	return dest-ret;
+}
+
+size_t
 url_form_next_value(
 	char** form_string, char** key, char** value
 ) {
@@ -443,9 +480,10 @@ url_parse(
 		}
 
 		for(;
-		        (addr_end >= addr_begin) && (*addr_end != '@') &&
-		        (*addr_end != '[');
-		    addr_end--) {
+			(addr_end >= addr_begin) && (*addr_end != '@') &&
+			(*addr_end != '[');
+		    addr_end--
+		) {
 			if(*addr_end == ']') {
 				*addr_end = 0;
 				got_port = true;
@@ -458,6 +496,24 @@ url_parse(
 		}
 		if(host)
 			*host = addr_end + 1;
+
+		if(*addr_end=='@' && (username || password)) {
+			*addr_end = 0;
+			for(;
+				(addr_end >= addr_begin) && (*addr_end != '/');
+				addr_end--
+			) {
+				if(*addr_end==':') {
+					*addr_end = 0;
+					if(password)
+						*password = addr_end + 1;
+				}
+			}
+			if(*addr_end=='/') {
+				if(username)
+					*username = addr_end + 1;
+			}
+		}
 	}
 
 skip_absolute_url_stuff:
@@ -597,11 +653,14 @@ url_change(
 	}
 
 	{
+		bool has_trailing_slash = new_url_[0]?('/' == new_url_[strlen(new_url_)-1]):false;
 		char current_path[MAX_URL_SIZE];
 		char* proto_str = NULL;
 		char* path_str = NULL;
 		char* addr_str = NULL;
 		char* port_str = NULL;
+		char* username_str = NULL;
+		char* password_str = NULL;
 
 #if HAS_C99_VLA
 		char new_url[strlen(new_url_) + 1];
@@ -615,8 +674,8 @@ url_change(
 		url_parse(
 			current_path,
 			&proto_str,
-			NULL,
-			NULL,
+			&username_str,
+			&password_str,
 			&addr_str,
 			&port_str,
 			&path_str,
@@ -655,6 +714,14 @@ url_change(
 		if(proto_str && addr_str) {
 			strcat(url, proto_str);
 			strcat(url, "://");
+			if(username_str) {
+				strcat(url, username_str);
+				if(password_str) {
+					strcat(url, ":");
+					strcat(url, password_str);
+				}
+				strcat(url, "@");
+			}
 
 			// Path is absolute. Must drop the path from the URL.
 			if(string_contains_colons(addr_str)) {
@@ -669,6 +736,11 @@ url_change(
 				strcat(url, ":");
 				strcat(url, port_str);
 			}
+		}
+
+		{	// Remove the basename if the starting URL doesn't end with a slash.
+			int path_len = strlen(path_str);
+			for(;path_len && path_str[path_len-1]!='/';path_len--);
 		}
 
 		{
@@ -710,7 +782,8 @@ url_change(
 				strcat(url, "/");
 				strcat(url, *pp);
 			}
-			//strcat(url,"/");
+			if(has_trailing_slash)
+				strcat(url,"/");
 		}
 
 		ret = true;

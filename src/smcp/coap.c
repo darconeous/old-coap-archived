@@ -50,17 +50,17 @@ again:
 		switch(len) {
 			case 1:
 				// Delta = 15
-				*key += 15;
+				if(key)*key += 15;
 				buffer += 1;
 				goto again;
 				break;
 			case 2:
-				*key += 16+(buffer[1]*8);
+				if(key)*key += 16+(buffer[1]*8);
 				buffer += 2;
 				goto again;
 				break;
 			case 3:
-				*key += 2064+(buffer[1]*8*256)+(buffer[2]*8);
+				if(key)*key += 2064+(buffer[1]*8*256)+(buffer[2]*8);
 				buffer += 3;
 				goto again;
 				break;
@@ -133,7 +133,7 @@ coap_encode_option(
 	if(len > COAP_MAX_OPTION_VALUE_SIZE)
 		len = COAP_MAX_OPTION_VALUE_SIZE;
 
-	if(len<16) {
+	if(len<15) {
 		*buffer++ = (option_delta << 4) | len;
 	} else {
 		*buffer++ = (option_delta << 4) | 0xF;
@@ -151,7 +151,6 @@ coap_encode_option(
 			*buffer++ = len-270;
 		} else {
 			*buffer++ = len-15;
-			*buffer++ = len;
 		}
 	}
 
@@ -190,7 +189,18 @@ extern size_t coap_insert_option(
 	}
 
 	if(iter && (iter_key>key || iter<end_of_options)) {
+		const uint8_t* next_value=NULL;
+		size_t next_len=0;
+
 		size_diff += len + 1;
+		if(len>=15)
+			size_diff++;
+		if(len>=270)
+			size_diff++;
+		if(len>=525)
+			size_diff++;
+		if(len>=780)
+			size_diff++;
 
 		// Compensate for jump option before insert
 		if(key-prev_key>2064) {
@@ -217,17 +227,13 @@ extern size_t coap_insert_option(
 		if(size_diff)
 			memmove(insertion_point+size_diff,insertion_point,end_of_options-insertion_point);
 
+		coap_decode_option(insertion_point+size_diff, NULL, &next_value, &next_len);
+
 		// encode new option
 		iter = coap_encode_option(insertion_point, prev_key, key, value, len);
 
-		// TODO: There may be a bug here when inserting values that cause a jump option to be removed!
-
 		// Update fisrt option after
-		{
-			coap_decode_option(insertion_point+size_diff, &prev_key, &value, &len);
-			coap_encode_option(iter, key, prev_key, value, len);
-		}
-
+		coap_encode_option(iter, key, iter_key, next_value, next_len);
 	} else {
 		// encode new option
 		size_diff = coap_encode_option(end_of_options, prev_key, key, value, len) - end_of_options;
@@ -456,7 +462,7 @@ coap_option_key_to_cstr(
 
 //		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
 //		case COAP_HEADER_CONTINUATION_RESPONSE: ret = "Continuation-response"; break;
-
+		case COAP_HEADER_AUTHENTICATE: ret = for_response?"X-Authenticate":"X-Authorization"; break;
 		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
 		case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
 
@@ -641,30 +647,25 @@ coap_dump_header(
 		fprintf(outstream, "%s: ",
 			coap_option_key_to_cstr(key, header->code >= COAP_RESULT_100));
 		switch(key) {
-		case COAP_HEADER_CONTENT_TYPE:
-			fprintf(outstream, "%s",
-				coap_content_type_to_cstr((unsigned char)value[0]));
-			break;
 		case COAP_HEADER_CASCADE_COUNT:
 		case COAP_HEADER_MAX_AGE:
 		case COAP_HEADER_URI_PORT:
 		{
-			unsigned long age = 0;
+			unsigned long v = 0;
 			uint8_t i;
 			for(i = 0; i < value_len; i++)
-				age = (age << 8) + value[i];
-			fprintf(outstream, "%lu", age);
+				v = (v << 8) + value[i];
+			fprintf(outstream, "%lu", v);
 		}
 		break;
+		case COAP_HEADER_CONTENT_TYPE:
 		case COAP_HEADER_ACCEPT:
 		{
-			size_t i;
-			for(i = 0; i < value_len; i++) {
-				if(i)
-					fputc(',', outstream);
-				fprintf(outstream, "%s",
-					    coap_content_type_to_cstr((uint8_t)value[i]));
-			}
+			unsigned long v = 0;
+			uint8_t i;
+			for(i = 0; i < value_len; i++)
+				v = (v << 8) + value[i];
+			fprintf(outstream, "%s",coap_content_type_to_cstr(v));
 		}
 		break;
 		case COAP_HEADER_BLOCK1:

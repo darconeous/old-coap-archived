@@ -1,4 +1,4 @@
-/*	@file smcp-variable_node.h
+/*	@file smcp-auth.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -26,56 +26,34 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_VARIABLE_NODE_H__
-#define __SMCP_VARIABLE_NODE_H__ 1
+#ifndef __SMCP_AUTH_H__
+#define __SMCP_AUTH_H__ 1
 
-#include "smcp-node.h"
-#include "smcp-opts.h"
+#include "smcp.h"
+#include "smcp-internal.h"
 
-__BEGIN_DECLS
+#define	SMCP_AUTH_CRED_USERNAME		(0)
+#define SMCP_AUTH_CRED_PASSWORD		(1)
+#define SMCP_AUTH_CRED_DIGEST_HA1	(2)
 
-struct smcp_variable_node_s;
-typedef struct smcp_variable_node_s *smcp_variable_node_t;
+extern smcp_status_t smcp_auth_verify_request();
 
-enum {
-	SMCP_VAR_GET_KEY,
-	SMCP_VAR_CHECK_KEY,
-	SMCP_VAR_SET_VALUE,
-	SMCP_VAR_GET_VALUE,
-	SMCP_VAR_GET_LF_TITLE,
-	SMCP_VAR_GET_MAX_AGE,
-	SMCP_VAR_GET_OBSERVABLE,
-};
+extern smcp_status_t smcp_auth_add_options();
 
-typedef smcp_status_t (*smcp_variable_node_func)(
-	smcp_variable_node_t node,
-	uint8_t action,
-	uint8_t i,
-	char* value
+extern smcp_status_t smcp_auth_outbound_set_credentials(const char* username, const char* password);
+
+extern smcp_status_t smcp_auth_outbound_finish();
+
+extern smcp_status_t smcp_auth_handle_response(smcp_transaction_t transaction);
+
+extern const char* smcp_auth_get_username();
+
+extern smcp_status_t smcp_auth_get_cred(
+	const char* realm,
+	const char* url,
+	int key,
+	uint8_t* value,
+	size_t value_size
 );
 
-struct smcp_variable_node_s {
-	struct smcp_node_s node;
-	smcp_variable_node_func func;
-};
-
-#define smcp_node_init_variable smcp_variable_node_init
-
-extern smcp_variable_node_t smcp_variable_node_init(
-	smcp_variable_node_t self,
-	smcp_node_t parent,
-	const char* name
-);
-
-extern smcp_status_t smcp_variable_request_handler(
-	smcp_variable_node_t		node,
-	smcp_method_t	method
-);
-
-#if SMCP_ENABLE_PAIRING
-extern smcp_status_t smcp_variable_node_did_change(smcp_variable_node_t node, int i, const char* suffix);
-#endif
-
-__END_DECLS
-
-#endif //__SMCP_TIMER_NODE_H__
+#endif // __SMCP_AUTH_H__

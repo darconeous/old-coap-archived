@@ -537,8 +537,10 @@ main(
 		timeout.tv_usec = (cms_timeout%1000)*1000;
 
 		fds_ready = select(max_fd+1,&read_fd_set,&write_fd_set,&error_fd_set,&timeout);
-		if(fds_ready < 0 && errno!=EINTR)
+		if(fds_ready < 0 && errno!=EINTR) {
+			syslog(LOG_ERR,"select() errno=\"%s\" (%d)",strerror(errno),errno);
 			break;
+		}
 
 		smcp_process(smcp, 0);
 

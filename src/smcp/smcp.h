@@ -98,6 +98,7 @@ enum {
 	SMCP_STATUS_DUPE				= -22,
 	SMCP_STATUS_RESET				= -23,
 	SMCP_STATUS_ASYNC_RESPONSE		= -24,
+	SMCP_STATUS_UNAUTHORIZED		= -25,
 };
 
 typedef int smcp_status_t;
@@ -209,6 +210,8 @@ extern const struct coap_header_s* smcp_inbound_get_packet();
 #define smcp_inbound_get_tid()	(smcp_inbound_get_packet()->tid)
 
 extern bool smcp_inbound_is_dupe();
+
+extern bool smcp_inbound_origin_is_local();
 
 /*! Guaranteed to be NUL-terminated */
 extern const char* smcp_inbound_get_content_ptr();

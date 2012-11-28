@@ -42,6 +42,15 @@ extern size_t url_decode_cstr(
 
 extern void url_decode_cstr_inplace(char *str);
 
+
+extern size_t quoted_cstr(
+	char *dest,
+	const char* src,		// Must be zero-terminated.
+	size_t dest_max_size
+);
+
+
+
 extern size_t url_form_next_value(
 	char** form_string, char** key, char** value);
 

@@ -1,29 +1,31 @@
-SMTP — A C-Based CoAP Stack
+SMCP — A C-Based CoAP Stack
 ===========================
 
-SMTP is a C-based CoAP stack which is suitable for embedded
+SMCP is a C-based CoAP stack which is suitable for embedded
 environments. Features include:
 
+ * Supports draft-ietf-core-coap-12.
  * Fully asynchronous.
  * Supports both Contiki and BSD sockets.
  * Supports sending and receiving asynchronous responses.
+ * Supports observing resources and offering observable resources.
+ * Supports retransmission of confirmable packets.
  * Supports "pairing", which allows you to make POSTs to arbitrary
    URLs when a value chagnes.
- * Supports retransmission of confirmable packets.
  * CoAP-to-HTTP proxy, based on CuRL (incomplete, but kinda working)
- * Supports more than 14 options in the header.
- * Low stack usage. (With continuing work to make it lower)
-
-Features which are in progress:
-
- * Observing. (Will be based on the current pairing implementaiton)
+ * Designed for low stack usage. (but some bloat has snuck in, will
+   improve in the future)
 
 Initial focus is on correctness of implementation. Stack usage and other
 performance optimizations will become the focus later on.
 
+## Why is it called SMCP? ##
+
+Historical reasons. Don't think about it too much.
+
 ## Contiki Support ##
 
-SMTP fully supports Contiki. To build the contiki examples, just make
+SMCP fully supports Contiki. To build the contiki examples, just make
 sure that the CONTIKI variable is set point to your contiki root, like
 so:
 
@@ -32,7 +34,13 @@ so:
 
 ## Installing via Homebrew on OS X ##
 
+To get the "latest-release":
+
 	brew install https://raw.github.com/darconeous/smcp/formula/smcp.rb
+
+To get the bleeding-edge release:
+
+	brew install https://raw.github.com/darconeous/smcp/formula/smcp.rb --HEAD
 
 ## SMCPCTL ##
 

@@ -30,9 +30,9 @@
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",		 NULL,	 "Print Help"				 },
 	{ 'i', "include",	 NULL,	 "include headers in output" },
-	{ 0,   "slice-size", "size", "writeme"					 },
-	{ 0,   "follow",	 NULL,	 "writeme"					 },
-	{ 0,   "no-follow",	 NULL,	 "writeme"					 },
+//	{ 0,   "slice-size", "size", "writeme"					 },
+//	{ 0,   "follow",	 NULL,	 "writeme"					 },
+//	{ 0,   "no-follow",	 NULL,	 "writeme"					 },
 	{ 0,   "filename-only",	NULL, "Only print out the resulting filenames." },
 	{ 't',   "timeout",	"cms", "Timeout value, in milliseconds" },
 	{ 0 }
@@ -119,10 +119,6 @@ list_response_handler(
 		size_t next_len;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
-//			if(key == COAP_HEADER_CONTINUATION_REQUEST) {
-//				next_value = value;
-//				next_len = value_len;
-//			}
 			if(key == COAP_HEADER_BLOCK2 && value_len) {
 				static uint8_t tmp[5];
 				next_len = value_len<3?value_len:3;
@@ -156,7 +152,7 @@ list_response_handler(
 
 		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
 			if(!list_filename_only) {
-				if(statuscode >= 300) {
+				if(statuscode >= COAP_RESULT_300) {
 					fwrite(content, content_length, 1, stdout);
 					if((content[content_length - 1] != '\n'))
 						fprintf(stdout,"\n");
@@ -171,6 +167,7 @@ list_response_handler(
 
 			while(iter && (iter < end)) {
 				if(*iter == '<') {
+					bool has_trailing_slash = false;
 					char* uri = 0;
 					char* name = 0;
 					char* desc = 0;
@@ -184,6 +181,9 @@ list_response_handler(
 					uri = strsep(&iter, ">");
 					//uri_len = iter - uri - 1;
 
+					if(!iter)
+						goto finished_parsing;
+
 					// Skip past any arguments
 					if(iter && *iter == ';') {
 						while(iter && (iter < end)) {
@@ -192,14 +192,35 @@ list_response_handler(
 							char endchar;
 
 							iter++;
-							key = strsep(&iter, "=");
-							if(!iter)
+							key=iter;
+							while(*iter && *iter!='=' && *iter!=';' && *iter!=',') {
+								iter++;
+							}
+
+							if(*iter==';') {
+								*iter = 0;
+								continue;
+							}
+
+							if(!*iter || *iter==',')
 								break;
+
+							*iter++ = 0;
+
 							if(*iter == '"') {
 								iter++;
-								value = strsep(&iter, "\"");
+								value = iter;
+								while(iter) {
+									iter = strstr(iter,"\"");
+									if(!iter || iter[-1]!='\\')
+										break;
+								}
 								if(!iter)
 									break;
+								*iter++ = 0;
+//								value = strsep(&iter, "\"");
+//								if(!iter)
+//									break;
 								endchar = *iter++;
 							} else {
 								value = iter;
@@ -213,20 +234,17 @@ list_response_handler(
 							{	// Convert all line feeds into " | ".
 								char* value_iter = value;
 								for(;*value_iter;value_iter++) {
-									if(0==strncmp(value_iter,"%0A",3)) {
-										if(value_iter[3]) {
-											value_iter[0]=' ';
-											value_iter[1]='|';
-											value_iter[2]=' ';
+									if(0==strncmp(value_iter,"\n",1)) {
+										if(value_iter[1]) {
+											value_iter[0]='|';
 										} else {
 											value_iter[0]=0;
-											value_iter[1]=0;
-											value_iter[2]=0;
 										}
 									}
 								}
 							}
-							url_decode_cstr_inplace(value);
+							// TODO: Unquote...?
+							//url_decode_cstr_inplace(value);
 							if(0 == strcmp(key, "n"))
 								name = value;
 							else if(!name && 0 == strcmp(key, "rt"))
@@ -256,6 +274,11 @@ list_response_handler(
 					}
 					url_shorten_reference((const char*)original_url, uri);
 
+					// Strip the trailing slash.
+					while(uri[0] && uri[strlen(uri)-1]=='/') {
+						has_trailing_slash = true;
+						uri[strlen(uri)-1] = 0;
+					}
 
 					if(istty && !list_filename_only && type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
 						uri_len = fprintf(stdout,
@@ -267,7 +290,7 @@ list_response_handler(
 						) - 1;
 					else
 						uri_len = fprintf(stdout,"%s", uri) - 1;
-					if(type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
+					if(has_trailing_slash || type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
 						fprintf(stdout,"/");
 					if(!list_filename_only) {
 						if(v)
@@ -300,12 +323,13 @@ list_response_handler(
 					iter++;
 				}
 			}
+finished_parsing:
 
-			// Kinda naughty.
-			if(content[content_length - 1] == '\n')
-				content[--content_length] = 0;
-			else
-				content[content_length] = 0;
+//			// Kinda naughty.
+//			if(content[content_length - 1] == '\n')
+//				content[--content_length] = 0;
+//			else
+//				content[content_length] = 0;
 
 			if(next_value &&
 			    send_list_request(self, (const char*)context, (const char*)next_value,
@@ -456,6 +480,9 @@ tool_cmd_list(
 			if(getenv("SMCP_CURRENT_PATH")) {
 				strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
 				url_change(url, argv[i]);
+				if(url[0] && '/'!=url[strlen(url)-1]) {
+					strcat(url,"/");
+				}
 			} else {
 				strncpy(url, argv[i], sizeof(url));
 			}
