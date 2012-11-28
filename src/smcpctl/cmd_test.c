@@ -54,6 +54,7 @@ smcp_status_t device_func(
 				break;
 		}
 	} else if(action==SMCP_VAR_GET_MAX_AGE && i==0) {
+		strcpy(value,"5");
 	} else if(action==SMCP_VAR_GET_VALUE) {
 		switch(i) {
 			case 0:
@@ -64,8 +65,6 @@ smcp_status_t device_func(
 						bail,
 						ret = SMCP_STATUS_FAILURE
 					);
-
-					smcp_outbound_add_option(COAP_HEADER_MAX_AGE,"\x0F", 1);
 
 					require_action(
 						(size_t)snprintf(
@@ -131,7 +130,7 @@ bail:
 }
 
 
-static void
+static smcp_status_t
 list_response_handler(
 	int			statuscode,
 	void*		context
@@ -145,6 +144,7 @@ list_response_handler(
 	if(content) {
 		printf("   * CONTENT = \"%s\"\n", content);
 	}
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t

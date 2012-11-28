@@ -64,7 +64,7 @@ static bool list_filename_only;
 
 static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
 
-static void
+static smcp_status_t
 list_response_handler(
 	int statuscode, void* context
 ) {
@@ -72,6 +72,11 @@ list_response_handler(
 	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 	bool istty = isatty(fileno(stdout));
+
+	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
+		gRet = 0;
+		return SMCP_STATUS_TRANSACTION_INVALIDATED;
+	}
 
 	if((statuscode >= COAP_RESULT_100) && list_show_headers) {
 		if(next_len != ((size_t)(-1)))
@@ -117,38 +122,38 @@ list_response_handler(
 		size_t value_len;
 		const uint8_t* next_value = NULL;
 		size_t next_len;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
-
-			if(key == COAP_HEADER_BLOCK2 && value_len) {
-				static uint8_t tmp[5];
-				next_len = value_len<3?value_len:3;
-				memcpy(tmp,value,next_len);
-				if(tmp[next_len-1]&(1<<3)) {
-					uint32_t block = 0;
-					if(next_len==1)
-						block = (tmp[0]>>4);
-					else if(next_len==2)
-						block = (tmp[0]<<4)+(tmp[1]>>4);
-					else if(next_len==3)
-						block = (tmp[1]<<12)+(tmp[1]<<4)+(tmp[2]>>4);
-
-					block++;
-
-					if(next_len==1) {
-						tmp[0] = (tmp[0]&0xf)| ((block&0xf)<<4);
-					} else if(next_len==2) {
-						tmp[0] = ((block>>4)&0xf);
-						tmp[1] = (tmp[1]&0xf)| ((block&0xf)<<4);
-					} else if(next_len==3) {
-						tmp[0] = ((block>>12)&0xf);
-						tmp[1] = ((block>>4)&0xf);
-						tmp[2] = (tmp[2]&0xf)| ((block&0xf)<<4);
-					}
-
-					next_value = tmp;
-				}
-			}
-		}
+//		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
+//
+//			if(key == COAP_HEADER_BLOCK2 && value_len) {
+//				static uint8_t tmp[5];
+//				next_len = value_len<3?value_len:3;
+//				memcpy(tmp,value,next_len);
+//				if(tmp[next_len-1]&(1<<3)) {
+//					uint32_t block = 0;
+//					if(next_len==1)
+//						block = (tmp[0]>>4);
+//					else if(next_len==2)
+//						block = (tmp[0]<<4)+(tmp[1]>>4);
+//					else if(next_len==3)
+//						block = (tmp[1]<<12)+(tmp[1]<<4)+(tmp[2]>>4);
+//
+//					block++;
+//
+//					if(next_len==1) {
+//						tmp[0] = (tmp[0]&0xf)| ((block&0xf)<<4);
+//					} else if(next_len==2) {
+//						tmp[0] = ((block>>4)&0xf);
+//						tmp[1] = (tmp[1]&0xf)| ((block&0xf)<<4);
+//					} else if(next_len==3) {
+//						tmp[0] = ((block>>12)&0xf);
+//						tmp[1] = ((block>>4)&0xf);
+//						tmp[2] = (tmp[2]&0xf)| ((block&0xf)<<4);
+//					}
+//
+//					next_value = tmp;
+//				}
+//			}
+//		}
 
 		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
 			if(!list_filename_only) {
@@ -158,6 +163,8 @@ list_response_handler(
 						fprintf(stdout,"\n");
 				} else {
 					fprintf(stderr, " *** Not a directory\n");
+					gRet = 0;
+					return SMCP_STATUS_TRANSACTION_INVALIDATED;
 				}
 			}
 		} else {
@@ -331,15 +338,16 @@ finished_parsing:
 //			else
 //				content[content_length] = 0;
 
-			if(next_value &&
-			    send_list_request(self, (const char*)context, (const char*)next_value,
-					next_len))
-				return;
+//			if(next_value &&
+//			    send_list_request(self, (const char*)context, (const char*)next_value,
+//					next_len))
+			return SMCP_STATUS_OK;
 		}
 	}
 bail:
-	if(gRet == ERRORCODE_INPROGRESS)
-		gRet = 0;
+//	if(gRet == ERRORCODE_INPROGRESS)
+//		gRet = 0;
+	return SMCP_STATUS_OK;
 }
 
 static smcp_status_t
@@ -355,14 +363,14 @@ resend_list_request(void* context) {
 	char expected_content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
 	status = smcp_outbound_add_option(COAP_HEADER_ACCEPT,&expected_content_type,1);
 
-	if(next_len != ((size_t)(-1))) {
-		status = smcp_outbound_add_option(
-			COAP_HEADER_BLOCK2,
-			next_data,
-			next_len
-		);
-		require_noerr(status,bail);
-	}
+//	if(next_len != ((size_t)(-1))) {
+//		status = smcp_outbound_add_option(
+//			COAP_HEADER_BLOCK2,
+//			next_data,
+//			next_len
+//		);
+//		require_noerr(status,bail);
+//	}
 
 //	if(size_request) {
 //		smcp_outbound_add_option(
@@ -411,7 +419,7 @@ send_list_request(
 		smcp,
 		tid,
 		timeout_cms,	// Retry for thirty seconds.
-		0, // Flags
+		SMCP_TRANSACTION_ALWAYS_INVALIDATE, // Flags
 		(void*)&resend_list_request,
 		(void*)&list_response_handler,
 		(void*)url_data

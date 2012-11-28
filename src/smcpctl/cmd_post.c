@@ -52,7 +52,7 @@ struct post_request_s {
 };
 
 
-static void
+static smcp_status_t
 post_response_handler(
 	int			statuscode,
 	struct post_request_s *request
@@ -86,6 +86,7 @@ post_response_handler(
 	free(request->content);
 	free(request->url);
 	free(request);
+	return SMCP_STATUS_OK;
 }
 
 

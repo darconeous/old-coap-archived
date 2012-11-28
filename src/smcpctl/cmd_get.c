@@ -69,7 +69,7 @@ static coap_content_type_t request_accept_type = -1;
 
 static struct smcp_transaction_s transaction;
 
-static void
+static smcp_status_t
 get_response_handler(int statuscode, void* context) {
 	smcp_t const self = smcp_get_current_instance();
 	const char* content = smcp_inbound_get_content_ptr();
@@ -112,50 +112,19 @@ get_response_handler(int statuscode, void* context) {
 		size_t next_len;
 		bool has_observe_option = false, last_block = true;
 		int observe_value = -1;
-		int block = -1;
+		bool has_block = 0;
 
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
-			if(key == COAP_HEADER_OBSERVE) {
+			if(key == COAP_HEADER_BLOCK2) {
+				last_block = !(value[value_len-1]&(1<<3));
+			} else if(key == COAP_HEADER_OBSERVE) {
 				has_observe_option = true;
 				if(value_len)
 					observe_value = value[0];
 				else observe_value = 0;
 			}
 
-			if((key == COAP_HEADER_BLOCK2) && value_len) {
-				static uint8_t tmp[5];
-				next_len = value_len<3?value_len:3;
-				memcpy(tmp,value,next_len);
-				block_key = key;
-				last_block = !(tmp[next_len-1]&(1<<3));
-
-				if(!last_block) {
-					if(next_len==1)
-						block = (tmp[0]>>4);
-					else if(next_len==2)
-						block = (tmp[0]<<4)+(tmp[1]>>4);
-					else if(next_len==3)
-						block = (tmp[1]<<12)+(tmp[1]<<4)+(tmp[2]>>4);
-
-					block++;
-
-					if(next_len==1) {
-						tmp[0] = (tmp[0]&0xf)| ((block&0xf)<<4);
-					} else if(next_len==2) {
-						tmp[0] = ((block>>4)&0xf);
-						tmp[1] = (tmp[1]&0xf)| ((block&0xf)<<4);
-					} else if(next_len==3) {
-						tmp[0] = ((block>>12)&0xf);
-						tmp[1] = ((block>>4)&0xf);
-						tmp[2] = (tmp[2]&0xf)| ((block&0xf)<<4);
-					}
-
-					next_value = tmp;
-
-					block--;
-				}
-			}
 		}
 
 		fwrite(content, content_length, 1, stdout);
@@ -164,23 +133,22 @@ get_response_handler(int statuscode, void* context) {
 			require(send_get_request(self, (const char*)context,
 					(const char*)next_value, next_len), bail);
 			fflush(stdout);
-			return;
+			return SMCP_STATUS_OK;
 		} else if(last_block) {
 			// Only print a newline if the content doesn't already print one.
-			if((content[content_length - 1] != '\n'))
+			if(content_length && (content[content_length - 1] != '\n'))
 				printf("\n");
 		}
 
 		fflush(stdout);
 
-		last_block = block;
 		last_observe_value = observe_value;
 	}
 
 bail:
-	if(!get_observe && gRet == ERRORCODE_INPROGRESS)
-		gRet = 0;
-	return;
+//	if(!get_observe && gRet == ERRORCODE_INPROGRESS)
+//		gRet = 0;
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
@@ -193,28 +161,16 @@ resend_get_request(void* context) {
 	status = smcp_outbound_set_uri(url_data, 0);
 	require_noerr(status,bail);
 
-	status = smcp_outbound_add_option(COAP_HEADER_TOKEN, (void*)&tokenid, sizeof(tokenid));
-	require_noerr(status,bail);
-
 	if(request_accept_type!=COAP_CONTENT_TYPE_UNKNOWN) {
 		status = smcp_outbound_add_option(COAP_HEADER_ACCEPT, (void*)&request_accept_type, sizeof(request_accept_type));
 		require_noerr(status,bail);
 	}
 
-	if(next_len != ((size_t)(-1))) {
-		status = smcp_outbound_add_option(
-			block_key,
-			next_data,
-			next_len
-		);
-		require_noerr(status,bail);
-	}
-
-//	if(size_request) {
+//	if(next_len != ((size_t)(-1))) {
 //		status = smcp_outbound_add_option(
-//			COAP_HEADER_SIZE_REQUEST,
-//			(void*)&size_request,
-//			sizeof(size_request)
+//			block_key,
+//			next_data,
+//			next_len
 //		);
 //		require_noerr(status,bail);
 //	}
@@ -240,7 +196,7 @@ send_get_request(
 ) {
 	bool ret = false;
 	smcp_status_t status = 0;
-	int flags = 0;
+	int flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE;
 	tid = smcp_get_next_msg_id(smcp,NULL);
 	gRet = ERRORCODE_INPROGRESS;
 
@@ -257,7 +213,7 @@ send_get_request(
 	}
 
 	if(get_observe)
-		flags |= SMCP_TRANSACTION_OBSERVE|SMCP_TRANSACTION_ALWAYS_INVALIDATE;
+		flags |= SMCP_TRANSACTION_OBSERVE;
 	if(get_keep_alive)
 		flags |= SMCP_TRANSACTION_KEEPALIVE;
 
@@ -269,9 +225,12 @@ send_get_request(
 		(void*)&get_response_handler,
 		(void*)url_data
 	);
-	transaction.token = tokenid;
-	tid = transaction.msg_id;
 	status = smcp_transaction_begin(smcp, &transaction, get_timeout);
+	if(next)
+		transaction.token = tokenid;
+	else
+		tokenid = transaction.token;
+	tid = transaction.msg_id;
 
 	if(status) {
 		check(!status);

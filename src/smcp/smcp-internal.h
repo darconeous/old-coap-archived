@@ -79,6 +79,7 @@ struct smcp_transaction_s {
 	coap_transaction_id_t		msg_id;
 
 	uint32_t					last_observe;
+	uint32_t					next_block2;
 
 	uint8_t						flags;
 	uint8_t						attemptCount:4,
@@ -139,6 +140,7 @@ struct smcp_s {
 								has_observe_option:1;
 
 		uint32_t				observe_value;
+		uint32_t				block2_value;
 
 		uint32_t				transaction_hash;
 

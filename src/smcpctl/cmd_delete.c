@@ -48,7 +48,7 @@ signal_interrupt(int sig) {
 	signal(SIGINT, previous_sigint_handler);
 }
 
-static void
+static smcp_status_t
 delete_response_handler(
 	int			statuscode,
 	void*		context
@@ -77,6 +77,7 @@ delete_response_handler(
 
 	if(gRet == ERRORCODE_INPROGRESS)
 		gRet = 0;
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t

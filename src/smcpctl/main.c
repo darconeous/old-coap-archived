@@ -334,6 +334,7 @@ bail:
 	return;
 }
 
+#if HAVE_LIBREADLINE
 static char* get_current_prompt() {
 	static char prompt[MAX_URL_SIZE+40] = {};
 	char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
@@ -348,7 +349,6 @@ static char* get_current_prompt() {
 	return prompt;
 }
 
-#if HAVE_LIBREADLINE
 void process_input_readline(char *l) {
 	process_input_line(l);
 	if(istty) {

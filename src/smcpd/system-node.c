@@ -85,6 +85,23 @@ static smcp_status_t device_func(
 			[SYS_NODE_PATH_UPTIME]="uptime",
 		};
 		strcpy(value,path_names[path]);
+	} else if(action==SMCP_VAR_GET_MAX_AGE) {
+		int max_age = 0;
+		switch(path) {
+			case SYS_NODE_PATH_LOADAVG_1:
+			case SYS_NODE_PATH_LOADAVG_5:
+			case SYS_NODE_PATH_LOADAVG_15:
+				max_age = 5;
+				break;
+			case SYS_NODE_PATH_UPTIME:
+				max_age = 1;
+				break;
+		}
+		if(max_age) {
+			sprintf(value,"%d",max_age);
+		} else {
+			return SMCP_STATUS_FAILURE;
+		}
 	} else if(action==SMCP_VAR_GET_VALUE) {
 		switch(path) {
 			case SYS_NODE_PATH_LOADAVG_1:

@@ -256,12 +256,31 @@ smcp_variable_request_handler(
 			if(reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 
+				if(0==node->func(node,SMCP_VAR_GET_MAX_AGE,key_index,buffer)) {
+					uint32_t max_age = strtol(buffer,NULL,0)&0xFFFFFF;
+					if(max_age>65535) {
+						max_age = htonl(max_age);
+						smcp_outbound_add_option(COAP_HEADER_MAX_AGE, ((char*)&max_age)+1,3);
+					} else if(max_age>255) {
+						max_age = htonl(max_age);
+						smcp_outbound_add_option(COAP_HEADER_MAX_AGE, ((char*)&max_age)+2,2);
+					} else if(max_age) {
+						max_age = htonl(max_age);
+						smcp_outbound_add_option(COAP_HEADER_MAX_AGE, ((char*)&max_age)+3,1);
+					} else {
+						max_age = htonl(max_age);
+						smcp_outbound_add_option(COAP_HEADER_MAX_AGE, NULL,0);
+					}
+				}
+
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
 
 #if SMCP_ENABLE_PAIRING
-				ret = smcp_pair_inbound_observe_update();
-				check_string(ret==0,smcp_status_to_cstr(ret));
+				if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,buffer)) {
+					ret = smcp_pair_inbound_observe_update();
+					check_string(ret==0,smcp_status_to_cstr(ret));
+				}
 #endif
 				replyContent = smcp_outbound_get_content_ptr(&replyContentLength);
 

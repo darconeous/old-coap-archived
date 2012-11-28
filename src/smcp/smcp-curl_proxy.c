@@ -127,13 +127,14 @@ bail:
 	return ret;
 }
 
-static void
+static smcp_status_t
 async_response_ack_handler(int statuscode, void* context) {
 	smcp_curl_request_t request = (smcp_curl_request_t)context;
 	struct smcp_async_response_s* async_response = &request->async_response;
 
 	smcp_finish_async_response(async_response);
 	smcp_curl_request_release(request);
+	return SMCP_STATUS_OK;
 }
 
 static size_t
@@ -331,7 +332,7 @@ smcp_curl_proxy_node_update_fdset(
 	cms_t *timeout
 ) {
 	int fd = *max_fd;
-	cms_t cms_timeout = *timeout;
+	long cms_timeout = *timeout;
 
 	curl_multi_fdset(
 		self->curl_multi_handle,

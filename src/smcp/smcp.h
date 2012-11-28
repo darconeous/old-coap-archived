@@ -116,7 +116,10 @@ typedef int32_t cms_t;
 
 #define CMS_DISTANT_FUTURE		(cms_t)((1<<(8*sizeof(cms_t)-1))-1)
 
-typedef void (*smcp_response_handler_func)(
+
+// Returning pretty much anything here except SMCP_STATUS_OK will
+// cause the handler to invalidate.
+typedef smcp_status_t (*smcp_response_handler_func)(
 	int statuscode,
 	void* context
 );

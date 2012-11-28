@@ -592,7 +592,7 @@ coap_dump_header(
 		);
 	} else {
 		fputs(prefix, outstream);
-		fprintf(outstream, "%s(%d) /", coap_code_to_cstr(header->code),header->code);
+		fprintf(outstream, "%s(%d) /", (header->tt==COAP_TRANS_TYPE_RESET)?"RESET":coap_code_to_cstr(header->code),header->code);
 
 		fprintf(outstream, " CoAP/1.0 tt=%d tid=%d\n",
 			header->tt,header->msg_id

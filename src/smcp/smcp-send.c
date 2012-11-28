@@ -244,14 +244,14 @@ smcp_outbound_add_option_(
 	if(self->outbound.packet->option_count==0xF)
 		*self->outbound.content_ptr++ = 0xF0;  // Add end-of-options marker
 
-#if VERBOSE_DEBUG
-	coap_dump_header(
-		SMCP_DEBUG_OUT_FILE,
-		"Option-Debug >>> ",
-		self->outbound.packet,
-		0
-	);
-#endif
+//#if VERBOSE_DEBUG
+//	coap_dump_header(
+//		SMCP_DEBUG_OUT_FILE,
+//		"Option-Debug >>> ",
+//		self->outbound.packet,
+//		0
+//	);
+//#endif
 
 	return SMCP_STATUS_OK;
 }
@@ -275,14 +275,27 @@ smcp_outbound_add_options_up_to_key_(
 			size_t len;
 			if(coap_decode_option(self->inbound.token_option, NULL, &value, &len))
 				ret = smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
-		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
+		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100 && self->current_transaction) {
 			// For sending a request.
 			ret = smcp_outbound_add_option_(
 				COAP_HEADER_TOKEN,
-				(void*)&self->outbound.packet->msg_id,
-				sizeof(self->outbound.packet->msg_id)
+				(void*)&self->current_transaction->token,
+				sizeof(self->current_transaction->token)
 			);
 		}
+	}
+
+	if(	(self->current_transaction && self->current_transaction->next_block2)
+		&& self->outbound.last_option_key<COAP_HEADER_BLOCK2
+		&& key>COAP_HEADER_BLOCK2
+	) {
+		uint32_t block2 = htonl(self->current_transaction->next_block2);
+		uint8_t size = 3; // TODO: calculate this properly
+		ret = smcp_outbound_add_option_(
+			COAP_HEADER_BLOCK2,
+			(char*)&block2+sizeof(block2)-size,
+			size
+		);
 	}
 
 	if(	(self->current_transaction && self->current_transaction->flags&SMCP_TRANSACTION_OBSERVE)
@@ -291,11 +304,10 @@ smcp_outbound_add_options_up_to_key_(
 	) {
 		if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
-			uint8_t zero = 0;
 			ret = smcp_outbound_add_option_(
 				COAP_HEADER_OBSERVE,
-				(void*)&zero,
-				1
+				(void*)NULL,
+				0
 			);
 		}
 	}

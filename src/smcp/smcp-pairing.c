@@ -137,7 +137,7 @@ smcp_pair_inbound_observe_update() {
 		smcp_node_t path_node = NULL;
 		smcp_pairing_node_t pairing = NULL;
 
-		if(self->inbound.is_fake) {
+		if(self->inbound.is_fake || self->inbound.is_dupe) {
 			return 0;
 		}
 
@@ -185,6 +185,12 @@ smcp_pair_inbound_observe_update() {
 			uri=strdup(token_str);
 		}
 		DEBUG_PRINTF("\"%s\" -> \"%s\"",path,uri);
+
+		if(smcp_node_find(path_node, uri, strlen(uri))) {
+			DEBUG_PRINTF("Pairing already found...!");
+			ret = SMCP_STATUS_DUPE;
+			goto bail;
+		}
 
 		pairing = (void*)smcp_variable_node_init(&pairing->node, path_node, uri);
 
@@ -479,7 +485,7 @@ smcp_event_tracker_release(smcp_event_tracker_t event) {
 	}
 }
 
-static void
+static smcp_status_t
 smcp_event_response_handler(
 	int statuscode, smcp_pairing_node_t pairing
 ) {
@@ -500,7 +506,7 @@ smcp_event_response_handler(
 				pairing->currentEvent = NULL;
 				smcp_event_tracker_release(event);
 				smcp_delete_pairing(pairing);
-				return;
+				return SMCP_STATUS_OK;
 			}
 			smcp_trigger_event_with_node(
 				smcp_get_current_instance(),
@@ -528,6 +534,7 @@ smcp_event_response_handler(
 	smcp_event_tracker_t event = pairing->currentEvent;
 	pairing->currentEvent = NULL;
 	smcp_event_tracker_release(event);
+	return SMCP_STATUS_OK;
 }
 
 static smcp_status_t
