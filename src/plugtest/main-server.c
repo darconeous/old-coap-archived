@@ -37,7 +37,7 @@
 #include "plugtest-server.h"
 
 int
-main(const char* argc[],int argv) {
+main(int argc, char * argv[]) {
 	smcp_t smcp = smcp_create(0);
 	struct plugtest_server_s plugtest_server;
 

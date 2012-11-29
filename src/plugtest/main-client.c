@@ -29,6 +29,6 @@
 
 
 int
-main(const char* argc[],int argv) {
+main(int argc, char * argv[]) {
 	return -1;
 }
