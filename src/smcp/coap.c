@@ -413,6 +413,7 @@ coap_option_value_is_string(coap_option_key_t key) {
 		case SMCP_HEADER_CSEQ:
 		case COAP_HEADER_ETAG:
 		case COAP_HEADER_URI_HOST:
+		case COAP_HEADER_URI_QUERY:
 		case COAP_HEADER_LOCATION_PATH:
 		case COAP_HEADER_LOCATION_QUERY:
 		case COAP_HEADER_URI_PATH:

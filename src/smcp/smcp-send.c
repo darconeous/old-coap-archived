@@ -351,6 +351,13 @@ bail:
 }
 
 smcp_status_t
+smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value) {
+	value = htonl(value);
+	return smcp_outbound_add_option(key, ((char*)&value)+1, 3);
+}
+
+
+smcp_status_t
 smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t toport) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 

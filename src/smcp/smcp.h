@@ -286,8 +286,11 @@ extern smcp_status_t smcp_outbound_set_code(coap_code_t code);
 
 extern smcp_status_t smcp_outbound_set_content_type(coap_content_type_t t);
 
-/*! Note that options MUST be added in order! */
+/*! Note that options MUST be added in order!
+**	OK, that's a lie, but it's much faster if done this way! */
 extern smcp_status_t smcp_outbound_add_option(coap_option_key_t key,const char* value,size_t len);
+
+extern smcp_status_t smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value);
 
 extern smcp_status_t smcp_outbound_set_destaddr(
 #if SMCP_USE_BSD_SOCKETS

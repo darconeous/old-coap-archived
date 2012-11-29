@@ -35,6 +35,7 @@
 #include <stdlib.h>
 
 #include <smcp/smcp.h>
+#include <smcp/smcp-pairing.h>
 #include "plugtest-server.h"
 
 
@@ -67,32 +68,33 @@ plugtest_test_handler(
 		goto bail;
 	}
 
-	ret = smcp_outbound_set_content_len(
-		snprintf(content,max_len,"Plugtest! Method = %d\n",method)
-	);
-	if(ret) goto bail;
+	snprintf(content,max_len,"Plugtest!\nMethod = %s\n",coap_code_to_cstr(method));
+
+	{
+		const uint8_t* value;
+		size_t value_len;
+		coap_option_key_t key;
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
+			strlcat(content,coap_option_key_to_cstr(key,1),max_len);
+			strlcat(content,": ",max_len);
+			if(coap_option_value_is_string(key)) {
+				size_t argh = strlen(content)+value_len;
+				strlcat(content,(char*)value,MIN(max_len,value_len+1));
+				content[argh] = 0;
+			} else {
+				strlcat(content,"...",max_len);
+			}
+			strlcat(content,"\n",max_len);
+		}
+	}
+
+	smcp_outbound_set_content_len(strlen(content));
 
 	ret = smcp_outbound_send();
 
 bail:
 	return ret;
 }
-
-smcp_status_t
-plugtest_query_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
-) {
-	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
-
-	// TODO: Writeme!
-
-bail:
-	return ret;
-}
-
-
-
 
 smcp_status_t
 plugtest_separate_async_resend_response(void* context) {
@@ -190,45 +192,6 @@ bail:
 }
 
 smcp_status_t
-plugtest_large_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
-) {
-	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
-
-	// TODO: Writeme!
-
-bail:
-	return ret;
-}
-
-smcp_status_t
-plugtest_large_update_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
-) {
-	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
-
-	// TODO: Writeme!
-
-bail:
-	return ret;
-}
-
-smcp_status_t
-plugtest_large_create_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
-) {
-	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
-
-	// TODO: Writeme!
-
-bail:
-	return ret;
-}
-
-smcp_status_t
 plugtest_obs_handler(
 	smcp_node_t		node,
 	smcp_method_t	method
@@ -279,6 +242,114 @@ plugtest_obs_timer_callback(smcp_t smcp, void* context) {
 }
 
 smcp_status_t
+plugtest_large_handler(
+	smcp_node_t		node,
+	smcp_method_t	method
+) {
+	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+	char* content = NULL;
+	size_t max_len = 0;
+	uint32_t block_option = 0x03;
+	uint32_t block_start = 0;
+	uint32_t block_stop = 0;
+	uint32_t resource_length = 2000;
+
+	if(method==COAP_METHOD_GET) {
+		ret = 0;
+	}
+
+	require_noerr(ret,bail);
+
+	{
+		const uint8_t* value;
+		size_t value_len;
+		coap_option_key_t key;
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
+			if(key == COAP_HEADER_BLOCK2) {
+				uint8_t i;
+				block_option = 0;
+				for(i = 0; i < value_len; i++)
+					block_option = (block_option << 8) + value[i];
+			}
+		}
+	}
+
+	block_start = (block_option>>4) * (1<<((block_option&0x7)+4));
+	block_stop = block_start + (1<<((block_option&0x7)+4));
+
+	require_action(block_start<resource_length,bail,ret=SMCP_STATUS_INVALID_ARGUMENT);
+
+	if(block_stop>=resource_length)
+		block_option &= ~(1<<3);
+	else
+		block_option |= (1<<3);
+
+	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+	if(ret) goto bail;
+
+	ret = smcp_outbound_set_content_type(0);
+	require_noerr(ret,bail);
+
+	ret = smcp_outbound_add_option_uint(COAP_HEADER_BLOCK2,block_option);
+	require_noerr(ret,bail);
+
+	ret = smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE,60*60);
+	require_noerr(ret,bail);
+
+	content = smcp_outbound_get_content_ptr(&max_len);
+	if(!content) {
+		ret = SMCP_STATUS_FAILURE;
+		goto bail;
+	}
+
+	{
+		uint32_t i;
+		for(i=block_start;i<block_stop;i++) {
+			if(!((i+1)%64))
+				content[i-block_start] = '\n';
+			else
+				content[i-block_start] = '0'+(i%10);
+		}
+	}
+
+	ret = smcp_outbound_set_content_len(MIN(block_stop-block_start,resource_length-block_start));
+	if(ret) goto bail;
+
+	ret = smcp_outbound_send();
+
+bail:
+	return ret;
+}
+
+/*
+smcp_status_t
+plugtest_large_update_handler(
+	smcp_node_t		node,
+	smcp_method_t	method
+) {
+	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+
+	// TODO: Writeme!
+
+bail:
+	return ret;
+}
+
+smcp_status_t
+plugtest_large_create_handler(
+	smcp_node_t		node,
+	smcp_method_t	method
+) {
+	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+
+	// TODO: Writeme!
+
+bail:
+	return ret;
+}
+*/
+
+smcp_status_t
 plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 
 	bzero(self,sizeof(*self));
@@ -294,13 +365,13 @@ plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 	smcp_node_init(&self->separate,root,"separate");
 	self->separate.request_handler = &plugtest_separate_handler;
 
-/*
 	smcp_node_init(&self->query,root,"query");
-	self->query.request_handler = &plugtest_query_handler;
+	self->query.request_handler = &plugtest_test_handler;
 
 	smcp_node_init(&self->large,root,"large");
 	self->large.request_handler = &plugtest_large_handler;
 
+/*
 	smcp_node_init(&self->large_update,root,"large_update");
 	self->large_update.request_handler = &plugtest_large_update_handler;
 
