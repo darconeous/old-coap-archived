@@ -109,7 +109,7 @@ AC_C_VOLATILE
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNCS([memset stpncpy strtol strdup strlcpy vsnprintf vsprintf snprintf])
 
 
 
@@ -120,5 +120,5 @@ AC_CACHE_CHECK([for ge_rs232],[smcp_cv_have_ge_rs232],[
 ])
 AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
 
-AC_CONFIG_FILES(Makefile src/smcpd/smcpd.conf src/Makefile docs/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile)
+AC_CONFIG_FILES(Makefile src/smcpd/smcpd.conf src/Makefile docs/Makefile src/plugtest/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile)
 AC_OUTPUT

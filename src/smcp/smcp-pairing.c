@@ -613,7 +613,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 #endif // !SMCP_CONF_OBSERVING_ONLY
 	}
 
-#if HAS_ALLOCA
+#if HAVE_ALLOCA
 	packet = alloca(4+strlen(smcp_pairing_get_path_cstr(pairing))+5);
 #else
 	{
@@ -936,7 +936,7 @@ smcp_pairing_path_request_handler(
 	) {
 		const char* value = NULL;
 		size_t value_len;
-#if HAS_ALLOCA
+#if HAVE_ALLOCA
 		char* path = NULL;
 		char* uri = NULL;
 #else
@@ -948,14 +948,14 @@ smcp_pairing_path_request_handler(
 				COAP_HEADER_URI_PATH==smcp_inbound_next_option((const uint8_t**)&value, &value_len),
 				bail
 			);
-#if HAS_ALLOCA
+#if HAVE_ALLOCA
 			path = alloca(value_len+1);
 #endif
 			memcpy(path,value,value_len);
 			path[value_len] = 0;
 
 		} else if(node->parent == self->root_pairing_node) {
-#if HAS_ALLOCA
+#if HAVE_ALLOCA
 			path = (char*)node->name;
 #else
 			strcpy(path,(char*)node->name);
@@ -967,7 +967,7 @@ smcp_pairing_path_request_handler(
 				bail,
 				ret = SMCP_STATUS_NOT_ALLOWED
 			);
-#if HAS_ALLOCA
+#if HAVE_ALLOCA
 			uri = alloca(value_len+1);
 #endif
 			memcpy(uri,value,value_len);

@@ -9,15 +9,15 @@
 #include <malloc.h>
 #endif
 
-#ifndef HAS_C99_VLA
-#define HAS_C99_VLA	!defined(__SDCC)
+#ifndef HAVE_C99_VLA
+#define HAVE_C99_VLA	!defined(__SDCC)
 #endif
 
-#ifndef HAS_STRSEP
-#define HAS_STRSEP	!defined(__SDCC)
+#ifndef HAVE_STRSEP
+#define HAVE_STRSEP	!defined(__SDCC)
 #endif
 
-#if !defined(strsep) && !HAS_STRSEP
+#if !defined(strsep) && !HAVE_STRSEP
 /* ---------------------------------------------------------------- */
 /* BEGIN BSD SECTION */
 /*-
@@ -642,7 +642,7 @@ url_change(
 	// TODO: This function is inefficient. Optimize it!
 
 	bool ret = false;
-#if !HAS_C99_VLA
+#if !HAVE_C99_VLA
 	char *new_url = NULL;
 #endif
 	if(url_is_absolute(new_url_)) {
@@ -661,7 +661,7 @@ url_change(
 		char* username_str = NULL;
 		char* password_str = NULL;
 
-#if HAS_C99_VLA
+#if HAVE_C99_VLA
 		char new_url[strlen(new_url_) + 1];
 		strcpy(new_url, new_url_);
 #else
@@ -771,7 +771,7 @@ url_change(
 		ret = true;
 	}
 bail:
-#if !HAS_C99_VLA
+#if !HAVE_C99_VLA
 	free(new_url);
 #endif
 
@@ -788,7 +788,7 @@ url_shorten_reference(
 	const char* current_url, char* new_url
 ) {
 	// TODO: This function is a mess! Clean it up!
-#if !HAS_C99_VLA
+#if !HAVE_C99_VLA
 	char* temp2 = NULL;
 #endif
 
@@ -825,7 +825,7 @@ make_relative:
 		char* new_path;
 		char* new_query = NULL;
 		char* curr_path;
-#if HAS_C99_VLA
+#if HAVE_C99_VLA
 		char temp2[strlen(current_url) + 1];
 		strcpy(temp2, current_url);
 #else
@@ -911,7 +911,7 @@ make_relative:
 		}
 	}
 bail:
-#if !HAS_C99_VLA
+#if !HAVE_C99_VLA
 	free(temp2);
 #endif
 	return;

@@ -522,7 +522,7 @@ smcp_outbound_set_uri(
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
 	{
-#if HAS_ALLOCA
+#if HAVE_ALLOCA
 		uri_copy = alloca(strlen(uri) + 1);
 		strcpy(uri_copy, uri);
 #else
@@ -644,7 +644,7 @@ bail:
 		"URI Parse failed for URI: \"%s\"",
 		uri
 	);
-#if !HAS_ALLOCA
+#if !HAVE_ALLOCA
 	free(uri_copy);
 #endif
 	return ret;
