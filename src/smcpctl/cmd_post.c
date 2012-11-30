@@ -20,6 +20,7 @@
 #include <sys/errno.h>
 #include "help.h"
 #include "cmd_post.h"
+#include <smcp/smcp-helpers.h>
 #include <smcp/url-helpers.h>
 #include <signal.h>
 #include "smcpctl.h"

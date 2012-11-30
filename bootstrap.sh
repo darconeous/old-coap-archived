@@ -18,3 +18,9 @@ AUTOMAKE=automake\ --foreign autoreconf --verbose --force --install || die autor
 #autoheader || die autoheader
 #autoconf || die autoconf
 #automake --force-missing --foreign --add-missing --copy || die automake
+
+set +x
+
+echo
+echo Success.
+
