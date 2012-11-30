@@ -12,6 +12,8 @@
 #endif
 
 #include <smcp/assert_macros.h>
+#include <stdint.h>
+#include <smcp/smcp-helpers.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -20,7 +22,6 @@
 #include <sys/errno.h>
 #include "help.h"
 #include "cmd_post.h"
-#include <smcp/smcp-helpers.h>
 #include <smcp/url-helpers.h>
 #include <signal.h>
 #include "smcpctl.h"

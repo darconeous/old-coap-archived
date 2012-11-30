@@ -109,7 +109,7 @@ AC_C_VOLATILE
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-AC_CHECK_FUNCS([memset stpncpy strtol strdup strlcpy vsnprintf vsprintf snprintf])
+AC_CHECK_FUNCS([memset strtol strdup strlcpy strlcat stpncpy vsnprintf vsprintf snprintf])
 
 
 
