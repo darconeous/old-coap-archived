@@ -334,7 +334,7 @@ bt_splay(void** bt, void* root) {
 	if(*bt==root)
 		goto bail;
 
-	while((item!=*bt) && item->parent&& item->parent->parent) {
+	while((item!=*bt) && item && item->parent&& item->parent->parent) {
 		void** pivot;
 
 		if(item->parent->parent->lhs==item->parent)

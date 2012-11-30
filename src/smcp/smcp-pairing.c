@@ -226,49 +226,49 @@ smcp_pair_inbound_observe_update() {
 		ret = smcp_outbound_add_option_uint(COAP_HEADER_OBSERVE, 0);
 #endif
 	} else {
-		// Look up and remove the pairing if it exists.
-		const char* path = NULL;
-		char* uri = NULL;
-		smcp_node_t path_node = NULL;
-		smcp_pairing_node_t pairing = NULL;
-
-		path = smcp_inbound_get_path(NULL);
-		require(path && path[0], bail);
-
-		while(path[0] == '/' && path[1] != 0) path++;
-
-		path_node = smcp_node_find(
-			self->root_pairing_node,
-			path,
-			strlen(path)
-		);
-
-		free((void*)path);
-
-		if(!path_node) {
-			return 0;
-		}
-
-		path = path_node->name;
-
-		{
-			char token_str[COAP_MAX_TOKEN_SIZE*2+2+1];
-			int i;
-			token_str[0]='o';
-			token_str[1]='-';
-			for(i=0;i<pairing->async_response.token_len;i++)
-				sprintf(token_str+i*2+2,"%02x",pairing->async_response.token_value[i]);
-			uri=strdup(token_str);
-		}
-
-		pairing = (smcp_pairing_node_t)smcp_node_find(path_node, uri, strlen(uri));
-
-		if(pairing) {
-			DEBUG_PRINTF("Removing observer from \"%s\" . . .",path);
-			smcp_delete_pairing(pairing);
-		}
-
-		free(uri);
+//		// Look up and remove the pairing if it exists.
+//		const char* path = NULL;
+//		char* uri = NULL;
+//		smcp_node_t path_node = NULL;
+//		smcp_pairing_node_t pairing = NULL;
+//
+//		path = smcp_inbound_get_path(NULL);
+//		require(path && path[0], bail);
+//
+//		while(path[0] == '/' && path[1] != 0) path++;
+//
+//		path_node = smcp_node_find(
+//			self->root_pairing_node,
+//			path,
+//			strlen(path)
+//		);
+//
+//		free((void*)path);
+//
+//		if(!path_node) {
+//			return 0;
+//		}
+//
+//		path = path_node->name;
+//
+//		{
+//			char token_str[COAP_MAX_TOKEN_SIZE*2+2+1];
+//			int i;
+//			token_str[0]='o';
+//			token_str[1]='-';
+//			for(i=0;i<pairing->async_response.token_len;i++)
+//				sprintf(token_str+i*2+2,"%02x",pairing->async_response.token_value[i]);
+//			uri=strdup(token_str);
+//		}
+//
+//		pairing = (smcp_pairing_node_t)smcp_node_find(path_node, uri, strlen(uri));
+//
+//		if(pairing) {
+//			DEBUG_PRINTF("Removing observer from \"%s\" . . .",path);
+//			smcp_delete_pairing(pairing);
+//		}
+//
+//		free(uri);
 	}
 
 bail:
