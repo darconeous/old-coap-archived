@@ -43,7 +43,7 @@
 #endif
 
 #ifndef HAVE_STRLCAT
-#define HAVE_STRLCAT (defined(linux) || (!defined(__APPLE__) && !defined(__AVR__)))
+#define HAVE_STRLCAT ((defined(__APPLE__) || defined(__AVR__)))
 #endif
 
 #ifndef HAVE_STPNCPY
