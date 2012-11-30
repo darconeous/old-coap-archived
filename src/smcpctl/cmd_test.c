@@ -54,6 +54,7 @@ smcp_status_t device_func(
 				break;
 		}
 	} else if(action==SMCP_VAR_GET_MAX_AGE && i==0) {
+		strcpy(value,"5");
 	} else if(action==SMCP_VAR_GET_VALUE) {
 		switch(i) {
 			case 0:
@@ -64,8 +65,6 @@ smcp_status_t device_func(
 						bail,
 						ret = SMCP_STATUS_FAILURE
 					);
-
-					smcp_outbound_add_option(COAP_HEADER_MAX_AGE,"\x0F", 1);
 
 					require_action(
 						(size_t)snprintf(
@@ -131,7 +130,7 @@ bail:
 }
 
 
-static void
+static smcp_status_t
 list_response_handler(
 	int			statuscode,
 	void*		context
@@ -145,6 +144,7 @@ list_response_handler(
 	if(content) {
 		printf("   * CONTENT = \"%s\"\n", content);
 	}
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
@@ -216,9 +216,9 @@ async_request_handler(
 		}
 		require_noerr(ret, bail);
 
-		ret = smcp_begin_transaction(
+		ret = smcp_begin_transaction_old(
 			smcp_get_current_instance(),
-			smcp_get_next_tid(smcp_get_current_instance(),NULL),
+			smcp_get_next_msg_id(smcp_get_current_instance(),NULL),
 			30*1000,	// Retry for thirty seconds.
 			SMCP_TRANSACTION_DELAY_START, // Flags
 			(void*)&resend_async_response,
@@ -384,7 +384,7 @@ tool_cmd_test(
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 	{
-		coap_transaction_id_t tid = smcp_get_next_tid(smcp2,NULL);
+		coap_transaction_id_t tid = smcp_get_next_msg_id(smcp2,NULL);
 
 		char url[256];
 
@@ -400,7 +400,7 @@ tool_cmd_test(
 			smcp_get_port(smcp));
 #endif
 
-		smcp_begin_transaction(
+		smcp_begin_transaction_old(
 			smcp2,
 			tid,
 			5 * MSEC_PER_SEC,
@@ -411,7 +411,7 @@ tool_cmd_test(
 		);
 
 		smcp_outbound_begin(smcp2,COAP_METHOD_GET,COAP_TRANS_TYPE_CONFIRMABLE);
-			smcp_outbound_set_tid(tid);
+			smcp_outbound_set_msg_id(tid);
 			smcp_outbound_set_uri(url, 0);
 		smcp_outbound_send();
 

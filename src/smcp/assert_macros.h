@@ -55,7 +55,7 @@
 #include <syslog.h>
 #endif
 
-#if HAS_ASSERTMACROS_H
+#if HAVE_ASSERTMACROS_H
  #include <AssertMacros.h>
 #else
 #include <stdio.h>

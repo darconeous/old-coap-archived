@@ -1,15 +1,15 @@
 SMCP — A C-Based CoAP Stack
 ===========================
 
-SMCP is a C-based CoAP stack which is suitable for embedded
-environments. Features include:
+SMCP is a C-based CoAP stack which is suitable for embedded environments.
+Features include:
 
  * Supports draft-ietf-core-coap-12.
- * Fully asynchronous.
+ * Fully asynchronous I/O.
  * Supports both Contiki and BSD sockets.
- * Supports sending and receiving asynchronous responses.
+ * Supports sending and receiving asynchronous CoAP responses.
  * Supports observing resources and offering observable resources.
- * Supports retransmission of confirmable packets.
+ * Supports retransmission of confirmable transactions.
  * Supports "pairing", which allows you to make POSTs to arbitrary
    URLs when a value chagnes.
  * CoAP-to-HTTP proxy, based on CuRL (incomplete, but kinda working)
@@ -51,5 +51,5 @@ documenting.
 ## Test Servers ##
 
 	* <coap://coap.me/>
-	* <coap://vs0.inf.ethz.ch/> (But doesn't seem to support CoAP-12 yet...)
+	* <coap://vs0.inf.ethz.ch/>
 

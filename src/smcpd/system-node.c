@@ -1,10 +1,30 @@
-//
-//  system-node.c
-//  SMCP
-//
-//  Created by Robert Quattlebaum on 11/8/12.
-//  Copyright (c) 2012 deepdarc. All rights reserved.
-//
+/*	@file system-node.c
+**	@author Robert Quattlebaum <darco@deepdarc.com>
+**
+**	Copyright (C) 2011,2012 Robert Quattlebaum
+**
+**	Permission is hereby granted, free of charge, to any person
+**	obtaining a copy of this software and associated
+**	documentation files (the "Software"), to deal in the
+**	Software without restriction, including without limitation
+**	the rights to use, copy, modify, merge, publish, distribute,
+**	sublicense, and/or sell copies of the Software, and to
+**	permit persons to whom the Software is furnished to do so,
+**	subject to the following conditions:
+**
+**	The above copyright notice and this permission notice shall
+**	be included in all copies or substantial portions of the
+**	Software.
+**
+**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 #if HAVE_CONFIG_H
 #include <config.h>
@@ -65,6 +85,23 @@ static smcp_status_t device_func(
 			[SYS_NODE_PATH_UPTIME]="uptime",
 		};
 		strcpy(value,path_names[path]);
+	} else if(action==SMCP_VAR_GET_MAX_AGE) {
+		int max_age = 0;
+		switch(path) {
+			case SYS_NODE_PATH_LOADAVG_1:
+			case SYS_NODE_PATH_LOADAVG_5:
+			case SYS_NODE_PATH_LOADAVG_15:
+				max_age = 5;
+				break;
+			case SYS_NODE_PATH_UPTIME:
+				max_age = 1;
+				break;
+		}
+		if(max_age) {
+			sprintf(value,"%d",max_age);
+		} else {
+			return SMCP_STATUS_FAILURE;
+		}
 	} else if(action==SMCP_VAR_GET_VALUE) {
 		switch(path) {
 			case SYS_NODE_PATH_LOADAVG_1:
@@ -77,8 +114,6 @@ static smcp_status_t device_func(
 						bail,
 						ret = SMCP_STATUS_FAILURE
 					);
-
-					//smcp_outbound_add_option(COAP_HEADER_MAX_AGE,"\x0F", 1);
 
 					require_action(
 						(size_t)snprintf(
@@ -94,7 +129,6 @@ static smcp_status_t device_func(
 				break;
 
 			case SYS_NODE_PATH_UPTIME:
-				//smcp_outbound_add_option(COAP_HEADER_MAX_AGE,"\x01", 1);
 				require_action(
 					(size_t)snprintf(
 						value,

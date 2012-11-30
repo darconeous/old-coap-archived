@@ -24,12 +24,15 @@
 #include <signal.h>
 #include "smcpctl.h"
 #include <sys/sysctl.h>
+#include <smcp/smcp-internal.h>
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",	  NULL, "Print Help"				},
 	{ 'i', "include", NULL, "include headers in output" },
 	{ 'f', "follow",  NULL, "follow redirects"			},
 	{ 'O', "observe",  NULL, "Observe changes"			},
+	{ 'k', "keep-alive",  NULL, "Send keep-alive packets" },
+	{ 0, "size-request", NULL, "writeme" },
 	{ 0  , "timeout",  "seconds", "Change timeout period (Default: 30 Seconds)" },
 	{ 'a', "accept", "mime-type/coap-number", "hint to the server the content-type you want" },
 	{ 0 }
@@ -40,7 +43,7 @@ typedef void (*sig_t)(int);
 static int gRet;
 static sig_t previous_sigint_handler;
 static coap_transaction_id_t tid;
-static bool get_show_headers, get_observe;
+static bool get_show_headers, get_observe, get_keep_alive;
 static uint16_t size_request;
 static cms_t get_timeout;
 
@@ -64,7 +67,9 @@ static int last_block = -1;
 static int block_key = COAP_HEADER_BLOCK2;
 static coap_content_type_t request_accept_type = -1;
 
-static void
+static struct smcp_transaction_s transaction;
+
+static smcp_status_t
 get_response_handler(int statuscode, void* context) {
 	smcp_t const self = smcp_get_current_instance();
 	const char* content = smcp_inbound_get_content_ptr();
@@ -107,75 +112,43 @@ get_response_handler(int statuscode, void* context) {
 		size_t next_len;
 		bool has_observe_option = false, last_block = true;
 		int observe_value = -1;
-		int block = -1;
+		bool has_block = 0;
 
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
-			if(key == COAP_HEADER_OBSERVE) {
+			if(key == COAP_HEADER_BLOCK2) {
+				last_block = !(value[value_len-1]&(1<<3));
+			} else if(key == COAP_HEADER_OBSERVE) {
 				has_observe_option = true;
 				if(value_len)
 					observe_value = value[0];
 				else observe_value = 0;
 			}
 
-			if((key == COAP_HEADER_BLOCK2) && value_len) {
-				static uint8_t tmp[5];
-				next_len = value_len<3?value_len:3;
-				memcpy(tmp,value,next_len);
-				block_key = key;
-				last_block = !(tmp[next_len-1]&(1<<3));
-
-				if(!last_block) {
-					if(next_len==1)
-						block = (tmp[0]>>4);
-					else if(next_len==2)
-						block = (tmp[0]<<4)+(tmp[1]>>4);
-					else if(next_len==3)
-						block = (tmp[1]<<12)+(tmp[1]<<4)+(tmp[2]>>4);
-
-					block++;
-
-					if(next_len==1) {
-						tmp[0] = (tmp[0]&0xf)| ((block&0xf)<<4);
-					} else if(next_len==2) {
-						tmp[0] = ((block>>4)&0xf);
-						tmp[1] = (tmp[1]&0xf)| ((block&0xf)<<4);
-					} else if(next_len==3) {
-						tmp[0] = ((block>>12)&0xf);
-						tmp[1] = ((block>>4)&0xf);
-						tmp[2] = (tmp[2]&0xf)| ((block&0xf)<<4);
-					}
-
-					next_value = tmp;
-
-					block--;
-				}
-			}
 		}
 
 		fwrite(content, content_length, 1, stdout);
 
-		if(!(get_observe && observe_value>=0) && next_value) {
+		if(!(get_observe || observe_value>=0) && next_value) {
 			require(send_get_request(self, (const char*)context,
 					(const char*)next_value, next_len), bail);
 			fflush(stdout);
-			return;
+			return SMCP_STATUS_OK;
 		} else if(last_block) {
 			// Only print a newline if the content doesn't already print one.
-			if((content[content_length - 1] != '\n'))
+			if(content_length && (content[content_length - 1] != '\n'))
 				printf("\n");
 		}
 
 		fflush(stdout);
 
-		last_block = block;
 		last_observe_value = observe_value;
 	}
 
 bail:
-	if(!get_observe && gRet == ERRORCODE_INPROGRESS)
-		gRet = 0;
-	return;
+//	if(!get_observe && gRet == ERRORCODE_INPROGRESS)
+//		gRet = 0;
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
@@ -188,28 +161,16 @@ resend_get_request(void* context) {
 	status = smcp_outbound_set_uri(url_data, 0);
 	require_noerr(status,bail);
 
-	status = smcp_outbound_add_option(COAP_HEADER_TOKEN, (void*)&tokenid, sizeof(tokenid));
-	require_noerr(status,bail);
-
 	if(request_accept_type!=COAP_CONTENT_TYPE_UNKNOWN) {
-		status = smcp_outbound_add_option(COAP_HEADER_ACCEPT, (void*)&request_accept_type, sizeof(request_accept_type));
+		status = smcp_outbound_add_option_uint(COAP_HEADER_ACCEPT, request_accept_type);
 		require_noerr(status,bail);
 	}
 
-	if(next_len != ((size_t)(-1))) {
-		status = smcp_outbound_add_option(
-			block_key,
-			next_data,
-			next_len
-		);
-		require_noerr(status,bail);
-	}
-
-//	if(size_request) {
+//	if(next_len != ((size_t)(-1))) {
 //		status = smcp_outbound_add_option(
-//			COAP_HEADER_SIZE_REQUEST,
-//			(void*)&size_request,
-//			sizeof(size_request)
+//			block_key,
+//			next_data,
+//			next_len
 //		);
 //		require_noerr(status,bail);
 //	}
@@ -235,8 +196,8 @@ send_get_request(
 ) {
 	bool ret = false;
 	smcp_status_t status = 0;
-
-	tid = smcp_get_next_tid(smcp,NULL);
+	int flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE;
+	tid = smcp_get_next_msg_id(smcp,NULL);
 	gRet = ERRORCODE_INPROGRESS;
 
 	if(!next)
@@ -251,20 +212,30 @@ send_get_request(
 		next_len = ((size_t)(-1));
 	}
 
-	status = smcp_begin_transaction(
-		smcp,
-		tid,
-		get_timeout,
-		get_observe?(SMCP_TRANSACTION_OBSERVE|SMCP_TRANSACTION_ALWAYS_TIMEOUT):0, // Flags
+	if(get_observe)
+		flags |= SMCP_TRANSACTION_OBSERVE;
+	if(get_keep_alive)
+		flags |= SMCP_TRANSACTION_KEEPALIVE;
+
+	smcp_transaction_end(smcp,&transaction);
+	smcp_transaction_init(
+		&transaction,
+		flags, // Flags
 		(void*)&resend_get_request,
 		(void*)&get_response_handler,
 		(void*)url_data
 	);
+	status = smcp_transaction_begin(smcp, &transaction, get_timeout);
+	if(next)
+		transaction.token = tokenid;
+	else
+		tokenid = transaction.token;
+	tid = transaction.msg_id;
 
 	if(status) {
 		check(!status);
 		fprintf(stderr,
-			"smcp_begin_transaction() returned %d(%s).\n",
+			"smcp_begin_transaction_old() returned %d(%s).\n",
 			status,
 			smcp_status_to_cstr(status));
 		goto bail;
@@ -292,6 +263,7 @@ tool_cmd_get(
 	redirect_count = 0;
 	size_request = 0;
 	get_observe = false;
+	get_keep_alive = false;
 	get_timeout = 30*1000; // Default timeout is 30 seconds.
 	last_observe_value = -1;
 	last_block = -1;
@@ -309,6 +281,9 @@ tool_cmd_get(
 	HANDLE_LONG_ARGUMENT("slice-size") size_request = htons(strtol(argv[++i], NULL, 0));
 	HANDLE_LONG_ARGUMENT("timeout") get_timeout = 1000*strtof(argv[++i], NULL);
 	HANDLE_LONG_ARGUMENT("observe") get_observe = true;
+	HANDLE_LONG_ARGUMENT("no-observe") get_observe = false;
+	HANDLE_LONG_ARGUMENT("keep-alive") get_keep_alive = true;
+	HANDLE_LONG_ARGUMENT("no-keep-alive") get_keep_alive = false;
 	HANDLE_LONG_ARGUMENT("accept") {
 		i++;
 		if(!argv[i]) {
@@ -368,13 +343,18 @@ tool_cmd_get(
 		goto bail;
 	}
 
-	require(send_get_request(smcp, url, NULL, 0), bail);
+	if(size_request) {
+		char block[] = {1};
+		require(send_get_request(smcp, url, block, 1), bail);
+	} else {
+		require(send_get_request(smcp, url, NULL, 0), bail);
+	}
 
 	while(gRet == ERRORCODE_INPROGRESS)
 		smcp_process(smcp, 50);
 
 bail:
-	smcp_invalidate_transaction(smcp, tid);
+	smcp_transaction_end(smcp,&transaction);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

@@ -22,43 +22,6 @@
 #endif
 #endif
 
-#if !defined(strlcat) && (defined(linux) || (!defined(__APPLE__) && !defined(__AVR__)))
-#define strlcat(a, b, len)    strncat(a, b, len-strlen(a)-1)
-#endif
-
-#ifndef HAS_STRDUP
-#define HAS_STRDUP !defined(__SDCC)
-#endif
-
-#ifndef HAS_ALLOCA
-#define HAS_ALLOCA !defined(__SDCC)
-#endif
-
-#ifndef HAS_STRTOL
-#define HAS_STRTOL !defined(__SDCC)
-#endif
-
-#ifndef HAS_VSNPRINTF
-#define HAS_VSNPRINTF !defined(__SDCC)
-#endif
-
-#if !HAS_VSNPRINTF && !defined(vsnprintf)
-#warning VSNPRINTF NOT IMPLEMENTED, VSPRINTF COULD OVERFLOW!
-#define vsnprintf(d,n,fmt,lst) vsprintf(d,fmt,lst)
-#endif
-
-#if !HAS_STRDUP && !defined(strdup)
-#define strdup strdup
-static inline char*
-strdup(const char* cstr) {
-	size_t len = strlen(cstr);
-	char* ret = malloc(len+1);
-	memcpy(ret,cstr,len);
-	ret[len]=0;
-	return ret;
-}
-#endif
-
 #ifndef MIN
 #if !defined(__SDCC)
 #define MIN(a, \
@@ -79,6 +42,59 @@ strdup(const char* cstr) {
 #endif
 #endif
 
+#ifndef HAVE_STRLCAT
+#define HAVE_STRLCAT (defined(linux) || (!defined(__APPLE__) && !defined(__AVR__)))
+#endif
+
+#ifndef HAVE_STPNCPY
+#define HAVE_STPNCPY (defined(linux) || (!defined(__APPLE__) && !defined(__AVR__)))
+#endif
+
+#ifndef HAVE_STRDUP
+#define HAVE_STRDUP !defined(__SDCC)
+#endif
+
+#ifndef HAVE_ALLOCA
+#define HAVE_ALLOCA !defined(__SDCC)
+#endif
+
+#ifndef HAVE_STRTOL
+#define HAVE_STRTOL !defined(__SDCC)
+#endif
+
+#ifndef HAVE_VSNPRINTF
+#define HAVE_VSNPRINTF !defined(__SDCC)
+#endif
+
+#if !HAVE_VSNPRINTF && !defined(vsnprintf)
+#warning VSNPRINTF NOT IMPLEMENTED, VSPRINTF COULD OVERFLOW!
+#define vsnprintf(d,n,fmt,lst) vsprintf(d,fmt,lst)
+#endif
+
+#if !HAVE_STRDUP && !defined(strdup)
+#define strdup strdup__
+static inline char*
+strdup(const char* cstr) {
+	size_t len = strlen(cstr);
+	char* ret = malloc(len+1);
+	memcpy(ret,cstr,len);
+	ret[len]=0;
+	return ret;
+}
+#endif
+
+#if !HAVE_STPNCPY && !defined(stpncpy)
+#define stpncpy stpncpy__
+static inline char*
+stpncpy(char* dest, const char* src, size_t len) {
+	return strncpy(dest,src,len)+MIN(len,strlen(src));
+}
+#endif
+
+#if !HAVE_STRLCAT && !defined(strlcat)
+#define strlcat(a, b, len)    strncat(a, b, len-strlen(a)-1)
+#endif
+
 #if defined(__GCC_VERSION__)
 #define SMCP_PURE_FUNC __attribute__((pure))
 #else
@@ -96,6 +112,13 @@ uint32_to_hex(char *str,uint32_t v) {
 	*str=0;
 	return ret;
 }
+
+#if CONTIKI && !defined(htonl)
+#define htonl(x)		uip_htonl(x)
+#define ntohl(x)		uip_ntohl(x)
+#define htons(x)		uip_htons(x)
+#define ntohs(x)		uip_ntohs(x)
+#endif
 
 #if __AVR__
 #include <avr/pgmspace.h>

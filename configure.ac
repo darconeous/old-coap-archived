@@ -82,20 +82,20 @@ AM_MAINTAINER_MODE
 AC_PROG_CC
 
 # Checks for libraries.
-AC_CHECK_LIB([curl], [curl_multi_perform],, )
-AC_CHECK_LIB([readline], [readline],, )
 
+AC_CHECK_HEADER([curl/curl.h],AC_CHECK_LIB([curl], [curl_multi_perform]))
 AM_CONDITIONAL([HAVE_LIBCURL],$HAVE_LIBCURL)
+
+AC_CHECK_HEADER([readline/readline.h],AC_CHECK_LIB([readline], [readline]))
 AM_CONDITIONAL([HAVE_LIBREADLINE],$HAVE_LIBREADLINE)
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h])
+AC_CHECK_HEADERS([stdlib.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h])
 
 AC_CHECK_HEADERS([alloca.h])
 AC_FUNC_ALLOCA
 dnl AC_FUNC_GETLOADAVG
-AC_CHECK_HEADER_STDBOOL
 AC_HEADER_TIME
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -109,7 +109,7 @@ AC_C_VOLATILE
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNCS([memset stpncpy strtol strdup strlcpy vsnprintf vsprintf snprintf])
 
 
 
@@ -120,5 +120,5 @@ AC_CACHE_CHECK([for ge_rs232],[smcp_cv_have_ge_rs232],[
 ])
 AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
 
-AC_CONFIG_FILES(Makefile src/smcpd/smcpd.conf src/Makefile docs/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile)
+AC_CONFIG_FILES(Makefile src/smcpd/smcpd.conf src/Makefile docs/Makefile src/plugtest/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile)
 AC_OUTPUT

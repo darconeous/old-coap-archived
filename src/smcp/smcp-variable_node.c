@@ -256,12 +256,19 @@ smcp_variable_request_handler(
 			if(reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 
+				if(0==node->func(node,SMCP_VAR_GET_MAX_AGE,key_index,buffer)) {
+					uint32_t max_age = strtol(buffer,NULL,0)&0xFFFFFF;
+					smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE, max_age);
+				}
+
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
 
 #if SMCP_ENABLE_PAIRING
-				ret = smcp_pair_inbound_observe_update();
-				check_string(ret==0,smcp_status_to_cstr(ret));
+				if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,buffer)) {
+					ret = smcp_pair_inbound_observe_update();
+					check_string(ret==0,smcp_status_to_cstr(ret));
+				}
 #endif
 				replyContent = smcp_outbound_get_content_ptr(&replyContentLength);
 

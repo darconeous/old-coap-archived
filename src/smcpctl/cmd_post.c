@@ -20,6 +20,7 @@
 #include <sys/errno.h>
 #include "help.h"
 #include "cmd_post.h"
+#include <smcp/smcp-helpers.h>
 #include <smcp/url-helpers.h>
 #include <signal.h>
 #include "smcpctl.h"
@@ -52,7 +53,7 @@ struct post_request_s {
 };
 
 
-static void
+static smcp_status_t
 post_response_handler(
 	int			statuscode,
 	struct post_request_s *request
@@ -86,6 +87,7 @@ post_response_handler(
 	free(request->content);
 	free(request->url);
 	free(request);
+	return SMCP_STATUS_OK;
 }
 
 
@@ -144,11 +146,11 @@ send_post_request(
 	request->content_type = content_type;
 	request->method = method;
 
-	tid = smcp_get_next_tid(smcp,NULL);
+	tid = smcp_get_next_msg_id(smcp,NULL);
 
 	gRet = ERRORCODE_INPROGRESS;
 
-	require_noerr(smcp_begin_transaction(
+	require_noerr(smcp_begin_transaction_old(
 			smcp,
 			tid,
 			30*1000,	// Retry for thirty seconds.
@@ -248,7 +250,7 @@ tool_cmd_post(
 		smcp_process(smcp, -1);
 
 bail:
-	smcp_invalidate_transaction(smcp, tid);
+	smcp_invalidate_transaction_old(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

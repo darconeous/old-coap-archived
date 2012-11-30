@@ -98,7 +98,7 @@ again:
 	if(lenP) *lenP = len;
 	if(value) *value = buffer;
 
-	return buffer + len;
+	return (uint8_t*)buffer + len;
 }
 
 uint8_t*
@@ -111,7 +111,7 @@ coap_encode_option(
 ) {
 	uint16_t option_delta = key - prev_key;
 
-	if(option_delta>14) {
+	if(option_delta>=15) {
 		if(option_delta < 15+15) {
 			*buffer++ = 0xF1;
 			option_delta -= 15;
@@ -267,14 +267,45 @@ const char*
 coap_content_type_to_cstr(coap_content_type_t content_type) {
 	const char* content_type_string = NULL;
 
-//	if((content_type>255) || (content_type<0))
-//		content_type = COAP_CONTENT_TYPE_UNKNOWN;
-
 	switch(content_type) {
 	case COAP_CONTENT_TYPE_UNKNOWN: content_type_string = "unknown"; break;
 
 	case COAP_CONTENT_TYPE_TEXT_PLAIN: content_type_string = "text/plain;charset=utf-8";
 		break;
+
+
+
+	case COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT: content_type_string =
+		    "application/link-format"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_XML: content_type_string =
+		    "application/xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM: content_type_string =
+		    "application/octet-stream"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_EXI: content_type_string =
+		    "application/exi"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_JSON: content_type_string =
+		    "application/json"; break;
+
+	case SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED:
+		content_type_string = "application/x-www-form-urlencoded"; break;
+
+
+
+
+#if 0
+	case COAP_CONTENT_TYPE_APPLICATION_RDF_XML: content_type_string =
+		    "application/rdf+xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_SOAP_XML: content_type_string =
+		    "application/soap+xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_ATOM_XML: content_type_string =
+		    "application/atom+xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_XMPP_XML: content_type_string =
+		    "application/xmpp+xml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_X_BXML: content_type_string =
+		    "application/x-bxml"; break;
+	case COAP_CONTENT_TYPE_APPLICATION_FASTINFOSET: content_type_string =
+		    "application/fastinfoset"; break;
+
 	case COAP_CONTENT_TYPE_TEXT_XML: content_type_string = "text/xml";
 		break;
 	case COAP_CONTENT_TYPE_TEXT_CSV: content_type_string = "text/csv";
@@ -295,33 +326,7 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 		break;
 	case COAP_CONTENT_TYPE_VIDEO_RAW: content_type_string = "video/raw";
 		break;
-
-	case COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT: content_type_string =
-		    "application/link-format"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_XML: content_type_string =
-		    "application/xml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM: content_type_string =
-		    "application/octet-stream"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_RDF_XML: content_type_string =
-		    "application/rdf+xml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_SOAP_XML: content_type_string =
-		    "application/soap+xml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_ATOM_XML: content_type_string =
-		    "application/atom+xml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_XMPP_XML: content_type_string =
-		    "application/xmpp+xml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_EXI: content_type_string =
-		    "application/exi"; break;
-
-	case COAP_CONTENT_TYPE_APPLICATION_X_BXML: content_type_string =
-		    "application/x-bxml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_FASTINFOSET: content_type_string =
-		    "application/fastinfoset"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_JSON: content_type_string =
-		    "application/json"; break;
-
-	case SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED:
-		content_type_string = "application/x-www-form-urlencoded"; break;
+#endif
 
 	default: break;
 	}
@@ -372,22 +377,31 @@ coap_content_type_from_cstr(const char* x) {
 	if(isdigit(x[0]))
 		return atoi(x);
 
+	// Standard-defined.
 	if(strhasprefix_const(x, "text/plain"))
 		return COAP_CONTENT_TYPE_TEXT_PLAIN;
-	if(strhasprefix_const(x, "text/html"))
-		return COAP_CONTENT_TYPE_TEXT_HTML;
-	if(strhasprefix_const(x, "text/xml"))
-		return COAP_CONTENT_TYPE_APPLICATION_XML;
-	if(strhasprefix_const(x, "text/"))
+	if(strhasprefix_const(x, "application/xml"))
 		return COAP_CONTENT_TYPE_TEXT_PLAIN;
-	if(strhasprefix_const(x, "application/x-www-form-urlencoded"))
-		return SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
+	if(strhasprefix_const(x, "application/exi"))
+		return COAP_CONTENT_TYPE_APPLICATION_EXI;
 	if(strhasprefix_const(x, "application/link-format"))
 		return COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
 	if(strhasprefix_const(x, "application/octet-stream"))
 		return COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM;
+	if(strhasprefix_const(x, "application/json"))
+		return COAP_CONTENT_TYPE_APPLICATION_JSON;
 
-	// TODO: Add the others!
+	// Non-standard.
+	if(strhasprefix_const(x, "text/xml"))
+		return COAP_CONTENT_TYPE_APPLICATION_XML;
+	if(strhasprefix_const(x, "text/html"))
+		return COAP_CONTENT_TYPE_TEXT_HTML;
+	if(strhasprefix_const(x, "application/x-www-form-urlencoded"))
+		return SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
+
+	// Fallbacks.
+	if(strhasprefix_const(x, "text/"))
+		return COAP_CONTENT_TYPE_TEXT_PLAIN;
 
 	return COAP_CONTENT_TYPE_UNKNOWN;
 }
@@ -399,6 +413,7 @@ coap_option_value_is_string(coap_option_key_t key) {
 		case SMCP_HEADER_CSEQ:
 		case COAP_HEADER_ETAG:
 		case COAP_HEADER_URI_HOST:
+		case COAP_HEADER_URI_QUERY:
 		case COAP_HEADER_LOCATION_PATH:
 		case COAP_HEADER_LOCATION_QUERY:
 		case COAP_HEADER_URI_PATH:
@@ -416,14 +431,6 @@ coap_option_key_to_cstr(
 ) {
 	const char* ret = NULL;
 
-	if(for_response) switch(key) {
-#ifdef USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
-		case COAP_HEADER_MESSAGE_SIZE: ret = "Message-size"; break;
-		case COAP_HEADER_CONTINUATION_REQUEST: ret =
-			    "Continuation-request"; break;
-#endif
-		default: break;
-		}
 	if(!ret) switch(key) {
 		case COAP_HEADER_CONTENT_TYPE: ret = "Content-type"; break;
 		case COAP_HEADER_MAX_AGE: ret = "Max-age"; break;
@@ -443,25 +450,9 @@ coap_option_key_to_cstr(
 		case COAP_HEADER_BLOCK1: ret = "Block1"; break;
 		case COAP_HEADER_BLOCK2: ret = "Block2"; break;
 
-//		case COAP_HEADER_09_BLOCK1: ret = "Draft-9-Block1"; break;
-//		case COAP_HEADER_09_BLOCK2: ret = "Draft-9-Block2"; break;
-
 /* -- EXPERIMENTAL AFTER THIS POINT -- */
 
-//#if !USE_DRAFT_BORMANN_CORE_COAP_BLOCK_01_ALT
-//		case COAP_HEADER_MESSAGE_SIZE: ret = "Message-size"; break;
-//		case COAP_HEADER_NEXT: ret = "Next"; break;
-//#endif
-
-
-
 		case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
-//		case COAP_HEADER_RANGE: ret = "Range"; break;
-//		case COAP_HEADER_BLOCK: ret = "Block"; break;
-//		case COAP_HEADER_ALLOW: ret = "Allow"; break;
-
-//		case COAP_HEADER_SIZE_REQUEST: ret = "Size-request"; break;
-//		case COAP_HEADER_CONTINUATION_RESPONSE: ret = "Continuation-response"; break;
 		case COAP_HEADER_AUTHENTICATE: ret = for_response?"X-Authenticate":"X-Authorization"; break;
 		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
 		case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
@@ -507,29 +498,16 @@ coap_option_key_from_cstr(const char* key) {
 		return COAP_HEADER_URI_PATH;
 	else if(strcasecmp(key, "Accept") == 0)
 		return COAP_HEADER_ACCEPT;
-
-	else if(strcasecmp(key, "Cseq") == 0)
-		return SMCP_HEADER_CSEQ;
-//	else if(strcasecmp(key, "Range") == 0)
-//		return COAP_HEADER_RANGE;
-
 	else if(strcasecmp(key, "Block1") == 0)
 		return COAP_HEADER_BLOCK1;
 	else if(strcasecmp(key, "Block2") == 0)
 		return COAP_HEADER_BLOCK2;
 
-//	else if(strcasecmp(key, "Draft-9-Block1") == 0)
-//		return COAP_HEADER_09_BLOCK1;
-//	else if(strcasecmp(key, "Draft-9-Block2") == 0)
-//		return COAP_HEADER_09_BLOCK2;
+
+	else if(strcasecmp(key, "Cseq") == 0)
+		return SMCP_HEADER_CSEQ;
 	else if(strcasecmp(key, "Origin") == 0)
 		return SMCP_HEADER_ORIGIN;
-
-//	else if(strcasecmp(key, "Next") == 0)
-//		return COAP_HEADER_NEXT;
-//	else if(strcasecmp(key, "Allow") == 0)
-//		return COAP_HEADER_ALLOW;
-
 
 	return 0;
 }
@@ -581,11 +559,6 @@ http_code_to_cstr(int x) {
 	case HTTP_RESULT_CODE_PROXYING_NOT_SUPPORTED: return
 		    "PROXYING_NOT_SUPPORTED"; break;
 
-//	case HTTP_RESULT_CODE_TOKEN_REQUIRED: return "TOKEN_REQUIRED"; break;
-//	case HTTP_RESULT_CODE_URI_AUTHORITY_REQUIRED: return
-//		    "URI_AUTHORITY_REQUIRED"; break;
-//	case HTTP_RESULT_CODE_UNSUPPORTED_CRITICAL_OPTION: return
-//		    "UNSUPPORTED_CRITICAL_OPTION"; break;
 	default:  break;
 	}
 	return "UNKNOWN";
@@ -606,24 +579,37 @@ coap_dump_header(
 	size_t value_len;
 	int option_count = header->option_count;
 	const uint8_t* option_ptr = header->options;
+	const char* tt_str = NULL;
 
 	if(!prefix)
 		prefix = "";
 
+	switch(header->tt) {
+		case COAP_TRANS_TYPE_CONFIRMABLE: tt_str = "CON(0)"; break;
+		case COAP_TRANS_TYPE_NONCONFIRMABLE: tt_str = "NON(1)"; break;
+		case COAP_TRANS_TYPE_ACK: tt_str = "ACK(2)"; break;
+		case COAP_TRANS_TYPE_RESET: tt_str = "RES(3)"; break;
+	}
+
 	if(header->code >= COAP_RESULT_100) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
-			"CoAP/1.0 %d %s tt=%d tid=%d\n",
+			"CoAP/1.0 %d %s tt=%s tid=%d\n",
 			coap_to_http_code(header->code),
 			coap_code_to_cstr(header->code),
-			header->tt,header->tid
+			tt_str,header->msg_id
 		);
 	} else {
 		fputs(prefix, outstream);
-		fprintf(outstream, "%s(%d) /", coap_code_to_cstr(header->code),header->code);
+		fprintf(outstream, "%s(%d) ", (header->tt==COAP_TRANS_TYPE_RESET)?"RESET":coap_code_to_cstr(header->code),header->code);
 
-		fprintf(outstream, " CoAP/1.0 tt=%d tid=%d\n",
-			header->tt,header->tid
+		if(header->code) {
+			// TODO: output path and query!
+			fputs("? ", outstream);
+		}
+
+		fprintf(outstream, "CoAP/1.0 tt=%s tid=%d\n",
+			tt_str,header->msg_id
 		);
 	}
 
@@ -633,7 +619,7 @@ coap_dump_header(
 			--option_count;
 			if(!option_ptr) {
 				fputs(prefix, outstream);
-				fprintf(outstream,"OPTIONS ARE CORRUPTED.");
+				fprintf(outstream,"OPTIONS ARE CORRUPTED!\n");
 				break;
 			}
 		} else {
@@ -641,8 +627,6 @@ coap_dump_header(
 				break;
 			}
 		}
-//		if(!(key%14))
-//			continue;
 		fputs(prefix, outstream);
 		fprintf(outstream, "%s: ",
 			coap_option_key_to_cstr(key, header->code >= COAP_RESULT_100));
@@ -650,6 +634,7 @@ coap_dump_header(
 		case COAP_HEADER_CASCADE_COUNT:
 		case COAP_HEADER_MAX_AGE:
 		case COAP_HEADER_URI_PORT:
+		case COAP_HEADER_OBSERVE:
 		{
 			unsigned long v = 0;
 			uint8_t i;
@@ -670,8 +655,6 @@ coap_dump_header(
 		break;
 		case COAP_HEADER_BLOCK1:
 		case COAP_HEADER_BLOCK2:
-//		case COAP_HEADER_09_BLOCK1:
-//		case COAP_HEADER_09_BLOCK2:
 		{
 			uint32_t block;
 			if(value_len==1)
@@ -700,7 +683,7 @@ coap_dump_header(
 		case SMCP_HEADER_CSEQ:
 
 			fprintf(outstream, "\"");
-			if(value_len > 270)
+			if(value_len > COAP_MAX_OPTION_VALUE_SIZE)
 				fprintf(outstream, "%s",value);
 			else
 				fwrite(value, value_len, 1, outstream);
@@ -710,7 +693,7 @@ coap_dump_header(
 		default:
 		{
 			size_t i;
-			if(value_len > 270) {
+			if(value_len > COAP_MAX_OPTION_VALUE_SIZE) {
 				fprintf(outstream, "***VALUE LENGTH OVERFLOW***");
 			} else
 			for(i = 0; i < value_len; i++) {

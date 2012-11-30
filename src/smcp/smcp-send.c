@@ -106,7 +106,7 @@ smcp_outbound_begin(
 #endif
 
 	self->outbound.packet->tt = tt;
-	self->outbound.packet->tid = self->outbound.next_tid;
+	self->outbound.packet->msg_id = self->outbound.next_tid;
 	self->outbound.packet->code = code;
 	self->outbound.packet->version = COAP_VERSION;
 	self->outbound.packet->option_count = 0;
@@ -140,12 +140,12 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 	require(!self->is_responding,bail);
 
 	if(self->is_processing_message)
-		self->outbound.next_tid = self->inbound.packet->tid;
+		self->outbound.next_tid = smcp_inbound_get_msg_id();
 	smcp_outbound_begin(self,code,COAP_TRANS_TYPE_ACK);
 	self->is_responding = true;
 
 	if(self->is_processing_message)
-		smcp_outbound_set_tid(self->inbound.packet->tid);
+		smcp_outbound_set_msg_id(smcp_inbound_get_msg_id());
 
 	if(self->is_processing_message) {
 #if SMCP_USE_BSD_SOCKETS
@@ -166,9 +166,9 @@ bail:
 }
 
 smcp_status_t
-smcp_outbound_set_tid(coap_transaction_id_t tid) {
+smcp_outbound_set_msg_id(coap_transaction_id_t tid) {
 	assert(smcp_get_current_instance()->outbound.packet);
-	smcp_get_current_instance()->outbound.packet->tid = tid;
+	smcp_get_current_instance()->outbound.packet->msg_id = tid;
 	return SMCP_STATUS_OK;
 }
 
@@ -244,14 +244,14 @@ smcp_outbound_add_option_(
 	if(self->outbound.packet->option_count==0xF)
 		*self->outbound.content_ptr++ = 0xF0;  // Add end-of-options marker
 
-#if VERBOSE_DEBUG
-	coap_dump_header(
-		SMCP_DEBUG_OUT_FILE,
-		"Option-Debug >>> ",
-		self->outbound.packet,
-		0
-	);
-#endif
+//#if VERBOSE_DEBUG
+//	coap_dump_header(
+//		SMCP_DEBUG_OUT_FILE,
+//		"Option-Debug >>> ",
+//		self->outbound.packet,
+//		0
+//	);
+//#endif
 
 	return SMCP_STATUS_OK;
 }
@@ -275,14 +275,27 @@ smcp_outbound_add_options_up_to_key_(
 			size_t len;
 			if(coap_decode_option(self->inbound.token_option, NULL, &value, &len))
 				ret = smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
-		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
+		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100 && self->current_transaction) {
 			// For sending a request.
 			ret = smcp_outbound_add_option_(
 				COAP_HEADER_TOKEN,
-				(void*)&self->outbound.packet->tid,
-				sizeof(self->outbound.packet->tid)
+				(void*)&self->current_transaction->token,
+				sizeof(self->current_transaction->token)
 			);
 		}
+	}
+
+	if(	(self->current_transaction && self->current_transaction->next_block2)
+		&& self->outbound.last_option_key<COAP_HEADER_BLOCK2
+		&& key>COAP_HEADER_BLOCK2
+	) {
+		uint32_t block2 = htonl(self->current_transaction->next_block2);
+		uint8_t size = 3; // TODO: calculate this properly
+		ret = smcp_outbound_add_option_(
+			COAP_HEADER_BLOCK2,
+			(char*)&block2+sizeof(block2)-size,
+			size
+		);
 	}
 
 	if(	(self->current_transaction && self->current_transaction->flags&SMCP_TRANSACTION_OBSERVE)
@@ -291,11 +304,10 @@ smcp_outbound_add_options_up_to_key_(
 	) {
 		if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
-			uint8_t zero = 0;
 			ret = smcp_outbound_add_option_(
 				COAP_HEADER_OBSERVE,
-				(void*)&zero,
-				1
+				(void*)NULL,
+				0
 			);
 		}
 	}
@@ -337,6 +349,18 @@ smcp_outbound_add_option(
 bail:
 	return ret;
 }
+
+smcp_status_t
+smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value) {
+	if(value>65535)
+		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+1, 3);
+	else if(value>255)
+		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+2, 2);
+	else if(value)
+		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+3, 1);
+	return smcp_outbound_add_option(key, NULL, 0);
+}
+
 
 smcp_status_t
 smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t toport) {
@@ -510,7 +534,7 @@ smcp_outbound_set_uri(
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
 	{
-#if HAS_ALLOCA
+#if HAVE_ALLOCA
 		uri_copy = alloca(strlen(uri) + 1);
 		strcpy(uri_copy, uri);
 #else
@@ -632,7 +656,7 @@ bail:
 		"URI Parse failed for URI: \"%s\"",
 		uri
 	);
-#if !HAS_ALLOCA
+#if !HAVE_ALLOCA
 	free(uri_copy);
 #endif
 	return ret;
@@ -686,7 +710,6 @@ smcp_outbound_get_content_ptr(size_t* max_len) {
 smcp_status_t
 smcp_outbound_set_content_len(size_t len) {
 	smcp_get_current_instance()->outbound.content_len = len;
-	DEBUG_PRINTF("Outbound: content length = %d",len);
 	return SMCP_STATUS_OK;
 }
 
@@ -699,14 +722,13 @@ smcp_outbound_send() {
 	const size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 
 #if VERBOSE_DEBUG
-	DEBUG_PRINTF("Outbound: tt=%d",smcp_get_current_instance()->outbound.packet->tt);
 	coap_dump_header(
 		SMCP_DEBUG_OUT_FILE,
-		"Outbound: ",
+		"Outbound:\t",
 		self->outbound.packet,
 		header_len
 	);
-	DEBUG_PRINTF("Outbound: packet length = %d",header_len+smcp_get_current_instance()->outbound.content_len);
+	DEBUG_PRINTF("Outbound:\tpacket length = %d",header_len+smcp_get_current_instance()->outbound.content_len);
 #endif
 
 	if(self->outbound.packet->code) {
@@ -770,7 +792,7 @@ bail:
 
 smcp_status_t
 smcp_outbound_set_content_type(coap_content_type_t t) {
-	return smcp_outbound_add_option(COAP_HEADER_CONTENT_TYPE, (char*)&t, 1);
+	return smcp_outbound_add_option_uint(COAP_HEADER_CONTENT_TYPE, t);
 }
 
 smcp_status_t

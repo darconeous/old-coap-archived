@@ -59,7 +59,7 @@ struct bt_item_s {
 	bt_item_t	parent;
 };
 
-typedef char bt_compare_result_t;
+typedef signed char bt_compare_result_t;
 
 typedef bt_compare_result_t (*bt_compare_func_t)(const void* lhs,
     const void* rhs, void* context);

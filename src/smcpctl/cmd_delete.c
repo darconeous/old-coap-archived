@@ -48,7 +48,7 @@ signal_interrupt(int sig) {
 	signal(SIGINT, previous_sigint_handler);
 }
 
-static void
+static smcp_status_t
 delete_response_handler(
 	int			statuscode,
 	void*		context
@@ -77,6 +77,7 @@ delete_response_handler(
 
 	if(gRet == ERRORCODE_INPROGRESS)
 		gRet = 0;
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
@@ -103,9 +104,9 @@ coap_transaction_id_t
 send_delete_request(
 	smcp_t smcp, const char* url
 ) {
-	coap_transaction_id_t tid = smcp_get_next_tid(smcp,NULL);
+	coap_transaction_id_t tid = smcp_get_next_msg_id(smcp,NULL);
 
-	require_noerr(smcp_begin_transaction(
+	require_noerr(smcp_begin_transaction_old(
 			smcp,
 			tid,
 			30*1000,	// Retry for thirty seconds.
@@ -156,7 +157,7 @@ tool_cmd_delete(
 		smcp_process(smcp, -1);
 
 bail:
-	smcp_invalidate_transaction(smcp, tid);
+	smcp_invalidate_transaction_old(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

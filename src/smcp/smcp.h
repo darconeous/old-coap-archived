@@ -109,19 +109,17 @@ typedef struct smcp_s *smcp_t;
 struct smcp_node_s;
 typedef struct smcp_node_s *smcp_node_t;
 
-
-enum {
-	SMCP_TRANSACTION_ALWAYS_TIMEOUT = (1 << 0),
-	SMCP_TRANSACTION_OBSERVE = (1 << 1),
-	SMCP_TRANSACTION_KEEPALIVE = (1 << 2),		//!< Send keep-alive packets when observing
-	SMCP_TRANSACTION_DELAY_START = (1 << 8),
-};
+struct smcp_transaction_s;
+typedef struct smcp_transaction_s *smcp_transaction_t;
 
 typedef int32_t cms_t;
 
 #define CMS_DISTANT_FUTURE		(cms_t)((1<<(8*sizeof(cms_t)-1))-1)
 
-typedef void (*smcp_response_handler_func)(
+
+// Returning pretty much anything here except SMCP_STATUS_OK will
+// cause the handler to invalidate.
+typedef smcp_status_t (*smcp_response_handler_func)(
 	int statuscode,
 	void* context
 );
@@ -187,7 +185,34 @@ extern smcp_status_t smcp_handle_inbound_packet(
 #pragma mark -
 #pragma mark Transaction API
 
-extern smcp_status_t smcp_begin_transaction(
+enum {
+	SMCP_TRANSACTION_ALWAYS_INVALIDATE = (1 << 0),
+	SMCP_TRANSACTION_OBSERVE = (1 << 1),
+	SMCP_TRANSACTION_KEEPALIVE = (1 << 2),		//!< Send keep-alive packets when observing
+	SMCP_TRANSACTION_DELAY_START = (1 << 8),
+};
+
+extern smcp_transaction_t smcp_transaction_init(
+	smcp_transaction_t transaction,
+	int	flags,
+	smcp_inbound_resend_func requestResend,
+	smcp_response_handler_func responseHandler,
+	void* context
+);
+
+extern smcp_status_t smcp_transaction_begin(
+	smcp_t self,
+	smcp_transaction_t transaction,
+	cms_t expiration
+);
+
+extern smcp_status_t smcp_transaction_end(
+	smcp_t self,
+	smcp_transaction_t transaction
+);
+
+//! DEPRECATED.
+extern smcp_status_t smcp_begin_transaction_old(
 	smcp_t self,
 	coap_transaction_id_t tid,
 	cms_t cmsExpiration,
@@ -197,7 +222,8 @@ extern smcp_status_t smcp_begin_transaction(
 	void* context
 );
 
-extern smcp_status_t smcp_invalidate_transaction(
+//! DEPRECATED.
+extern smcp_status_t smcp_invalidate_transaction_old(
 	smcp_t self,
 	coap_transaction_id_t tid
 );
@@ -207,7 +233,7 @@ extern smcp_status_t smcp_invalidate_transaction(
 
 extern const struct coap_header_s* smcp_inbound_get_packet();
 
-#define smcp_inbound_get_tid()	(smcp_inbound_get_packet()->tid)
+#define smcp_inbound_get_msg_id()	(smcp_inbound_get_packet()->msg_id)
 
 extern bool smcp_inbound_is_dupe();
 
@@ -254,14 +280,17 @@ extern void smcp_outbound_drop();
 
 extern smcp_status_t smcp_outbound_begin_response(coap_code_t code);
 
-extern smcp_status_t smcp_outbound_set_tid(coap_transaction_id_t tid);
+extern smcp_status_t smcp_outbound_set_msg_id(coap_transaction_id_t tid);
 
 extern smcp_status_t smcp_outbound_set_code(coap_code_t code);
 
 extern smcp_status_t smcp_outbound_set_content_type(coap_content_type_t t);
 
-/*! Note that options MUST be added in order! */
+/*! Note that options MUST be added in order!
+**	OK, that's a lie, but it's much faster if done this way! */
 extern smcp_status_t smcp_outbound_add_option(coap_option_key_t key,const char* value,size_t len);
+
+extern smcp_status_t smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value);
 
 extern smcp_status_t smcp_outbound_set_destaddr(
 #if SMCP_USE_BSD_SOCKETS
@@ -381,7 +410,7 @@ extern smcp_status_t smcp_default_request_handler(
 #pragma mark -
 #pragma mark Helper Functions
 
-extern coap_transaction_id_t smcp_get_next_tid(smcp_t self, void* context);
+extern coap_transaction_id_t smcp_get_next_msg_id(smcp_t self, void* context);
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 

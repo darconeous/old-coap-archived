@@ -101,7 +101,7 @@ tool_cmd_cd(
 			ret = ERRORCODE_BADARG;
 			goto bail;
 		}
-		if(url[0] && '/'!=url[strlen(url)-1]) {
+		if(url[0] && '/'!=url[strlen(url)-1] && !strchr(url,'?')) {
 			strcat(url,"/");
 		}
 
@@ -334,6 +334,7 @@ bail:
 	return;
 }
 
+#if HAVE_LIBREADLINE
 static char* get_current_prompt() {
 	static char prompt[MAX_URL_SIZE+40] = {};
 	char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
@@ -348,7 +349,6 @@ static char* get_current_prompt() {
 	return prompt;
 }
 
-#if HAVE_LIBREADLINE
 void process_input_readline(char *l) {
 	process_input_line(l);
 	if(istty) {
@@ -451,17 +451,6 @@ smcp_directory_generator(
 		char* cmdline = NULL;
 		FILE* real_stdout = stdout;
 
-		asprintf(&cmdline, "list --filename-only --timeout 1000 \"%s\"",prefix);
-		require(cmdline,bail);
-		//fprintf(stderr,"\n[cmd=\"%s\"] ",cmdline);
-
-		stdout = temp_file;
-		if(strequal_const(fragment, "."))
-			fprintf(temp_file,"../\n");
-		process_input_line(cmdline);
-		stdout = real_stdout;
-		free(cmdline);
-
 		if(url_is_root(getenv("SMCP_CURRENT_PATH")) && !url_is_root(prefix)) {
 			if(!i) {
 				asprintf(&cmdline, "list --filename-only --timeout 750 /.well-known/core");
@@ -478,6 +467,16 @@ smcp_directory_generator(
 				if(strequal_const(prefix, ".well-known"))
 					fprintf(temp_file,"core/\n");
 			}
+		} else {
+			asprintf(&cmdline, "list --filename-only --timeout 1000 \"%s\"",prefix);
+			require(cmdline,bail);
+
+			stdout = temp_file;
+			if(strequal_const(fragment, "."))
+				fprintf(temp_file,"../\n");
+			process_input_line(cmdline);
+			stdout = real_stdout;
+			free(cmdline);
 		}
 
 		rewind(temp_file);
