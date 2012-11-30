@@ -352,8 +352,13 @@ bail:
 
 smcp_status_t
 smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value) {
-	value = htonl(value);
-	return smcp_outbound_add_option(key, ((char*)&value)+1, 3);
+	if(value>65535)
+		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+1, 3);
+	else if(value>255)
+		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+2, 2);
+	else if(value)
+		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+3, 1);
+	return smcp_outbound_add_option(key, NULL, 0);
 }
 
 
@@ -705,7 +710,6 @@ smcp_outbound_get_content_ptr(size_t* max_len) {
 smcp_status_t
 smcp_outbound_set_content_len(size_t len) {
 	smcp_get_current_instance()->outbound.content_len = len;
-	DEBUG_PRINTF("Outbound: content length = %d",len);
 	return SMCP_STATUS_OK;
 }
 
@@ -718,14 +722,13 @@ smcp_outbound_send() {
 	const size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 
 #if VERBOSE_DEBUG
-	DEBUG_PRINTF("Outbound: tt=%d",smcp_get_current_instance()->outbound.packet->tt);
 	coap_dump_header(
 		SMCP_DEBUG_OUT_FILE,
-		"Outbound: ",
+		"Outbound:\t",
 		self->outbound.packet,
 		header_len
 	);
-	DEBUG_PRINTF("Outbound: packet length = %d",header_len+smcp_get_current_instance()->outbound.content_len);
+	DEBUG_PRINTF("Outbound:\tpacket length = %d",header_len+smcp_get_current_instance()->outbound.content_len);
 #endif
 
 	if(self->outbound.packet->code) {
@@ -789,7 +792,7 @@ bail:
 
 smcp_status_t
 smcp_outbound_set_content_type(coap_content_type_t t) {
-	return smcp_outbound_add_option(COAP_HEADER_CONTENT_TYPE, (char*)&t, 1);
+	return smcp_outbound_add_option_uint(COAP_HEADER_CONTENT_TYPE, t);
 }
 
 smcp_status_t

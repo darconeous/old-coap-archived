@@ -210,8 +210,7 @@ plugtest_obs_handler(
 		ret = smcp_pair_inbound_observe_update();
 		if(ret) goto bail;
 
-		// Kind of a silly way to set the max-age to '10'.
-		ret = smcp_outbound_add_option(COAP_HEADER_MAX_AGE,"\x0a",1);
+		ret = smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE,10);
 		if(ret) goto bail;
 
 		content = smcp_outbound_get_content_ptr(&max_len);
@@ -221,7 +220,7 @@ plugtest_obs_handler(
 		}
 
 		ret = smcp_outbound_set_content_len(
-			snprintf(content,max_len,"%d",time(NULL))
+			snprintf(content,max_len,"%d",(int)time(NULL))
 		);
 		if(ret) goto bail;
 

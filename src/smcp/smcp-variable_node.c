@@ -258,19 +258,7 @@ smcp_variable_request_handler(
 
 				if(0==node->func(node,SMCP_VAR_GET_MAX_AGE,key_index,buffer)) {
 					uint32_t max_age = strtol(buffer,NULL,0)&0xFFFFFF;
-					if(max_age>65535) {
-						max_age = htonl(max_age);
-						smcp_outbound_add_option(COAP_HEADER_MAX_AGE, ((char*)&max_age)+1,3);
-					} else if(max_age>255) {
-						max_age = htonl(max_age);
-						smcp_outbound_add_option(COAP_HEADER_MAX_AGE, ((char*)&max_age)+2,2);
-					} else if(max_age) {
-						max_age = htonl(max_age);
-						smcp_outbound_add_option(COAP_HEADER_MAX_AGE, ((char*)&max_age)+3,1);
-					} else {
-						max_age = htonl(max_age);
-						smcp_outbound_add_option(COAP_HEADER_MAX_AGE, NULL,0);
-					}
+					smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE, max_age);
 				}
 
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);

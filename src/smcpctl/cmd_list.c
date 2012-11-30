@@ -58,7 +58,7 @@ static char next_data[256];
 static size_t next_len = ((size_t)(-1));
 static bool list_show_headers = false;
 static int redirect_count = 0;
-static const char* original_url;
+static const char original_url[SMCP_MAX_URI_LENGTH+1];
 static int timeout_cms;
 static bool list_filename_only;
 
@@ -117,11 +117,11 @@ list_response_handler(
 
 	if(content && content_length) {
 		coap_content_type_t content_type = smcp_inbound_get_content_type();
-		coap_option_key_t key;
-		const uint8_t* value;
-		size_t value_len;
-		const uint8_t* next_value = NULL;
-		size_t next_len;
+//		coap_option_key_t key;
+//		const uint8_t* value;
+//		size_t value_len;
+//		const uint8_t* next_value = NULL;
+//		size_t next_len;
 //		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 //
 //			if(key == COAP_HEADER_BLOCK2 && value_len) {
@@ -282,6 +282,7 @@ list_response_handler(
 					url_shorten_reference((const char*)original_url, uri);
 
 					// Strip the trailing slash.
+					if(!strchr(uri,'?'))
 					while(uri[0] && uri[strlen(uri)-1]=='/') {
 						has_trailing_slash = true;
 						uri[strlen(uri)-1] = 0;
@@ -360,8 +361,7 @@ resend_list_request(void* context) {
 	status = smcp_outbound_set_uri(url_data, 0);
 	require_noerr(status,bail);
 
-	char expected_content_type = COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT;
-	status = smcp_outbound_add_option(COAP_HEADER_ACCEPT,&expected_content_type,1);
+	status = smcp_outbound_add_option_uint(COAP_HEADER_ACCEPT,COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 
 //	if(next_len != ((size_t)(-1))) {
 //		status = smcp_outbound_add_option(
@@ -445,7 +445,7 @@ tool_cmd_list(
 	smcp_t smcp, int argc, char* argv[]
 ) {
 	int i;
-	char url[1000];
+	char url[SMCP_MAX_URI_LENGTH+1];
 
 	gRet = ERRORCODE_INPROGRESS;
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
@@ -488,7 +488,7 @@ tool_cmd_list(
 			if(getenv("SMCP_CURRENT_PATH")) {
 				strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
 				url_change(url, argv[i]);
-				if(url[0] && '/'!=url[strlen(url)-1]) {
+				if(url[0] && '/'!=url[strlen(url)-1] && !strchr(url,'?')) {
 					strcat(url,"/");
 				}
 			} else {
@@ -511,7 +511,11 @@ tool_cmd_list(
 		goto bail;
 	}
 
-	original_url = url;
+	strcpy(original_url,url);
+
+	// Remove query component.
+	if(strchr(original_url,'?'))
+		strchr(original_url,'?')[0] = 0;
 
 	require(send_list_request(smcp, url, NULL, 0), bail);
 

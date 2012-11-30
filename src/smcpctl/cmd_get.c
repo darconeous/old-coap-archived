@@ -162,7 +162,7 @@ resend_get_request(void* context) {
 	require_noerr(status,bail);
 
 	if(request_accept_type!=COAP_CONTENT_TYPE_UNKNOWN) {
-		status = smcp_outbound_add_option(COAP_HEADER_ACCEPT, (void*)&request_accept_type, sizeof(request_accept_type));
+		status = smcp_outbound_add_option_uint(COAP_HEADER_ACCEPT, request_accept_type);
 		require_noerr(status,bail);
 	}
 

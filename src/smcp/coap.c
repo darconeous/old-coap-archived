@@ -579,24 +579,37 @@ coap_dump_header(
 	size_t value_len;
 	int option_count = header->option_count;
 	const uint8_t* option_ptr = header->options;
+	const char* tt_str = NULL;
 
 	if(!prefix)
 		prefix = "";
 
+	switch(header->tt) {
+		case COAP_TRANS_TYPE_CONFIRMABLE: tt_str = "CON(0)"; break;
+		case COAP_TRANS_TYPE_NONCONFIRMABLE: tt_str = "NON(1)"; break;
+		case COAP_TRANS_TYPE_ACK: tt_str = "ACK(2)"; break;
+		case COAP_TRANS_TYPE_RESET: tt_str = "RES(3)"; break;
+	}
+
 	if(header->code >= COAP_RESULT_100) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
-			"CoAP/1.0 %d %s tt=%d tid=%d\n",
+			"CoAP/1.0 %d %s tt=%s tid=%d\n",
 			coap_to_http_code(header->code),
 			coap_code_to_cstr(header->code),
-			header->tt,header->msg_id
+			tt_str,header->msg_id
 		);
 	} else {
 		fputs(prefix, outstream);
-		fprintf(outstream, "%s(%d) /", (header->tt==COAP_TRANS_TYPE_RESET)?"RESET":coap_code_to_cstr(header->code),header->code);
+		fprintf(outstream, "%s(%d) ", (header->tt==COAP_TRANS_TYPE_RESET)?"RESET":coap_code_to_cstr(header->code),header->code);
 
-		fprintf(outstream, " CoAP/1.0 tt=%d tid=%d\n",
-			header->tt,header->msg_id
+		if(header->code) {
+			// TODO: output path and query!
+			fputs("? ", outstream);
+		}
+
+		fprintf(outstream, "CoAP/1.0 tt=%s tid=%d\n",
+			tt_str,header->msg_id
 		);
 	}
 
@@ -606,7 +619,7 @@ coap_dump_header(
 			--option_count;
 			if(!option_ptr) {
 				fputs(prefix, outstream);
-				fprintf(outstream,"OPTIONS ARE CORRUPTED.");
+				fprintf(outstream,"OPTIONS ARE CORRUPTED!\n");
 				break;
 			}
 		} else {
@@ -621,6 +634,7 @@ coap_dump_header(
 		case COAP_HEADER_CASCADE_COUNT:
 		case COAP_HEADER_MAX_AGE:
 		case COAP_HEADER_URI_PORT:
+		case COAP_HEADER_OBSERVE:
 		{
 			unsigned long v = 0;
 			uint8_t i;
@@ -669,7 +683,7 @@ coap_dump_header(
 		case SMCP_HEADER_CSEQ:
 
 			fprintf(outstream, "\"");
-			if(value_len > 270)
+			if(value_len > COAP_MAX_OPTION_VALUE_SIZE)
 				fprintf(outstream, "%s",value);
 			else
 				fwrite(value, value_len, 1, outstream);
@@ -679,7 +693,7 @@ coap_dump_header(
 		default:
 		{
 			size_t i;
-			if(value_len > 270) {
+			if(value_len > COAP_MAX_OPTION_VALUE_SIZE) {
 				fprintf(outstream, "***VALUE LENGTH OVERFLOW***");
 			} else
 			for(i = 0; i < value_len; i++) {

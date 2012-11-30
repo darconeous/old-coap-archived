@@ -469,7 +469,19 @@ smcp_handle_inbound_packet(
 
 	smcp_set_current_instance(self);
 
-	DEBUG_PRINTF(CSTR("%p: Inbound packet!"), self);
+#if VERBOSE_DEBUG
+	{
+		char addr_str[50] = "???";
+		uint16_t port = 0;
+#if SMCP_USE_BSD_SOCKETS
+		inet_ntop(AF_INET6,&((struct sockaddr_in6*)saddr)->sin6_addr,addr_str,sizeof(addr_str)-1);
+		port = ntohs(((struct sockaddr_in6*)saddr)->sin6_port);
+#elif CONTIKI
+		port = ntohs(toport);
+#endif
+		DEBUG_PRINTF(CSTR("smcp(%p): Inbound packet from [%s]:%d"), self,addr_str,(int)port);
+	}
+#endif
 
 	// Reset all inbound packet state.
 	memset(&self->inbound,0,sizeof(self->inbound));
@@ -530,8 +542,8 @@ smcp_handle_inbound_packet(
 		);
 	}
 
-	DEBUG_PRINTF(CSTR("%p: tt=%d"), self,packet->tt);
-	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"),self,coap_to_http_code(packet->code),packet->code);
+//	DEBUG_PRINTF(CSTR("%p: tt=%d"), self,packet->tt);
+//	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"),self,coap_to_http_code(packet->code),packet->code);
 
 	smcp_inbound_reset_next_option();
 
@@ -874,7 +886,11 @@ smcp_internal_transaction_timeout_(
 			status = handler->resendCallback(context);
 
 			if(status == SMCP_STATUS_OK) {
-				cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount++));
+				if(self->outbound.packet->tt!=COAP_TRANS_TYPE_NONCONFIRMABLE
+					|| handler->attemptCount<2
+				) {
+					cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount++));
+				}
 			} else if(status == SMCP_STATUS_WAIT_FOR_DNS) {
 				cms = 100;
 				status = SMCP_STATUS_OK;
@@ -1130,12 +1146,13 @@ smcp_handle_request(
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		DEBUG_PRINTF(
-			"smcp(%p): Incoming request!",
-			self
+			"smcp(%p): %sIncoming request!",
+			self,
+			(self->inbound.is_fake)?"(FAKE) ":""
 		);
 		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
-			"    ",
+			"Inbound:\t",
 			self->inbound.packet,
 			0
 		);
@@ -1235,7 +1252,7 @@ smcp_handle_response(
 		);
 		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
-			"    ",
+			"Inbound:\t",
 			self->inbound.packet,
 			0
 		);
@@ -1262,8 +1279,8 @@ smcp_handle_response(
 	// ...Or do what?
 
 	if(!handler) {
-		DEBUG_PRINTF("Inbound: Unknown Response, sending reset. . .");
 		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {
+			DEBUG_PRINTF("Inbound: Unknown Response, sending reset. . .");
 			// We don't know what they are talking
 			// about, so send them a reset so that they
 			// will shut up.

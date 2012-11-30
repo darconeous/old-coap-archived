@@ -115,8 +115,6 @@ static smcp_status_t device_func(
 						ret = SMCP_STATUS_FAILURE
 					);
 
-					//smcp_outbound_add_option(COAP_HEADER_MAX_AGE,"\x0F", 1);
-
 					require_action(
 						(size_t)snprintf(
 							value,
@@ -131,7 +129,6 @@ static smcp_status_t device_func(
 				break;
 
 			case SYS_NODE_PATH_UPTIME:
-				//smcp_outbound_add_option(COAP_HEADER_MAX_AGE,"\x01", 1);
 				require_action(
 					(size_t)snprintf(
 						value,

@@ -720,7 +720,8 @@ url_change(
 			}
 		}
 
-		{	// Remove the basename if the starting URL doesn't end with a slash.
+		if(new_url_[0]!='?' && new_url_[0]!='#') {
+			// Remove the basename if the starting URL doesn't end with a slash.
 			int path_len = strlen(path_str);
 			for(;path_len && path_str[path_len-1]!='/';path_len--);
 		}
