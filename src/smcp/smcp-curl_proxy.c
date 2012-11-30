@@ -190,9 +190,9 @@ smcp_curl_proxy_node_request_handler(
 	smcp_curl_request_t request = NULL;
 	struct curl_slist *headerlist=NULL;
 
-	require_action(method<=COAP_METHOD_DELETE,bail,ret = SMCP_STATUS_NOT_ALLOWED);
+	//require_action(method<=COAP_METHOD_DELETE,bail,ret = SMCP_STATUS_NOT_ALLOWED);
 
-	require_action(COAP_HEADER_URI_PATH!=smcp_inbound_peek_option(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
+	//require_action(COAP_HEADER_URI_PATH!=smcp_inbound_peek_option(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
 
 	smcp_inbound_reset_next_option();
 
@@ -202,8 +202,13 @@ smcp_curl_proxy_node_request_handler(
 	require_action(request!=NULL,bail,ret = SMCP_STATUS_MALLOC_FAILURE);
 
 	switch(method) {
+		case COAP_METHOD_GET: curl_easy_setopt(request->curl, CURLOPT_CUSTOMREQUEST, "GET"); break;
 		case COAP_METHOD_PUT: curl_easy_setopt(request->curl, CURLOPT_PUT, 1L); break;
 		case COAP_METHOD_POST: curl_easy_setopt(request->curl, CURLOPT_POST, 1L); break;
+		case COAP_METHOD_DELETE: curl_easy_setopt(request->curl, CURLOPT_CUSTOMREQUEST, "DELETE"); break;
+		default:
+			ret = SMCP_STATUS_NOT_ALLOWED;
+			break;
 	}
 
 	{
