@@ -12630,7 +12630,10 @@ fi
 
 
 # Checks for libraries.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for curl_multi_perform in -lcurl" >&5
+
+ac_fn_c_check_header_mongrel "$LINENO" "curl/curl.h" "ac_cv_header_curl_curl_h" "$ac_includes_default"
+if test "x$ac_cv_header_curl_curl_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for curl_multi_perform in -lcurl" >&5
 $as_echo_n "checking for curl_multi_perform in -lcurl... " >&6; }
 if ${ac_cv_lib_curl_curl_multi_perform+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -12675,7 +12678,21 @@ _ACEOF
 
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for readline in -lreadline" >&5
+fi
+
+
+ if $HAVE_LIBCURL; then
+  HAVE_LIBCURL_TRUE=
+  HAVE_LIBCURL_FALSE='#'
+else
+  HAVE_LIBCURL_TRUE='#'
+  HAVE_LIBCURL_FALSE=
+fi
+
+
+ac_fn_c_check_header_mongrel "$LINENO" "readline/readline.h" "ac_cv_header_readline_readline_h" "$ac_includes_default"
+if test "x$ac_cv_header_readline_readline_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for readline in -lreadline" >&5
 $as_echo_n "checking for readline in -lreadline... " >&6; }
 if ${ac_cv_lib_readline_readline+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -12720,14 +12737,8 @@ _ACEOF
 
 fi
 
-
- if $HAVE_LIBCURL; then
-  HAVE_LIBCURL_TRUE=
-  HAVE_LIBCURL_FALSE='#'
-else
-  HAVE_LIBCURL_TRUE='#'
-  HAVE_LIBCURL_FALSE=
 fi
+
 
  if $HAVE_LIBREADLINE; then
   HAVE_LIBREADLINE_TRUE=
@@ -12851,7 +12862,7 @@ $as_echo "#define STDC_HEADERS 1" >>confdefs.h
 
 fi
 
-for ac_header in stdlib.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h
+for ac_header in stdlib.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -13073,93 +13084,6 @@ _ACEOF
 
 
 fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for stdbool.h that conforms to C99" >&5
-$as_echo_n "checking for stdbool.h that conforms to C99... " >&6; }
-if ${ac_cv_header_stdbool_h+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-             #include <stdbool.h>
-             #ifndef bool
-              "error: bool is not defined"
-             #endif
-             #ifndef false
-              "error: false is not defined"
-             #endif
-             #if false
-              "error: false is not 0"
-             #endif
-             #ifndef true
-              "error: true is not defined"
-             #endif
-             #if true != 1
-              "error: true is not 1"
-             #endif
-             #ifndef __bool_true_false_are_defined
-              "error: __bool_true_false_are_defined is not defined"
-             #endif
-
-             struct s { _Bool s: 1; _Bool t; } s;
-
-             char a[true == 1 ? 1 : -1];
-             char b[false == 0 ? 1 : -1];
-             char c[__bool_true_false_are_defined == 1 ? 1 : -1];
-             char d[(bool) 0.5 == true ? 1 : -1];
-             /* See body of main program for 'e'.  */
-             char f[(_Bool) 0.0 == false ? 1 : -1];
-             char g[true];
-             char h[sizeof (_Bool)];
-             char i[sizeof s.t];
-             enum { j = false, k = true, l = false * true, m = true * 256 };
-             /* The following fails for
-                HP aC++/ANSI C B3910B A.05.55 [Dec 04 2003]. */
-             _Bool n[m];
-             char o[sizeof n == m * sizeof n[0] ? 1 : -1];
-             char p[-1 - (_Bool) 0 < 0 && -1 - (bool) 0 < 0 ? 1 : -1];
-             /* Catch a bug in an HP-UX C compiler.  See
-                http://gcc.gnu.org/ml/gcc-patches/2003-12/msg02303.html
-                http://lists.gnu.org/archive/html/bug-coreutils/2005-11/msg00161.html
-              */
-             _Bool q = true;
-             _Bool *pq = &q;
-
-int
-main ()
-{
-
-             bool e = &s;
-             *pq |= q;
-             *pq |= ! q;
-             /* Refer to every declared value, to avoid compiler optimizations.  */
-             return (!a + !b + !c + !d + !e + !f + !g + !h + !i + !!j + !k + !!l
-                     + !m + !n + !o + !p + !q + !pq);
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_cv_header_stdbool_h=yes
-else
-  ac_cv_header_stdbool_h=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_header_stdbool_h" >&5
-$as_echo "$ac_cv_header_stdbool_h" >&6; }
-   ac_fn_c_check_type "$LINENO" "_Bool" "ac_cv_type__Bool" "$ac_includes_default"
-if test "x$ac_cv_type__Bool" = xyes; then :
-
-cat >>confdefs.h <<_ACEOF
-#define HAVE__BOOL 1
-_ACEOF
-
-
-fi
-
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether time.h and sys/time.h may both be included" >&5
 $as_echo_n "checking whether time.h and sys/time.h may both be included... " >&6; }
@@ -13509,12 +13433,13 @@ test $ac_cv_func_memcmp_working = no && case " $LIBOBJS " in
 esac
 
 
-for ac_func in memset
+for ac_func in memset stpncpy strtol strdup strlcpy vsnprintf vsprintf snprintf
 do :
-  ac_fn_c_check_func "$LINENO" "memset" "ac_cv_func_memset"
-if test "x$ac_cv_func_memset" = xyes; then :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_MEMSET 1
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
 _ACEOF
 
 fi
@@ -13545,7 +13470,7 @@ else
 fi
 
 
-ac_config_files="$ac_config_files Makefile src/smcpd/smcpd.conf src/Makefile docs/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile"
+ac_config_files="$ac_config_files Makefile src/smcpd/smcpd.conf src/Makefile docs/Makefile src/plugtest/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -14576,6 +14501,7 @@ do
     "src/smcpd/smcpd.conf") CONFIG_FILES="$CONFIG_FILES src/smcpd/smcpd.conf" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "docs/Makefile") CONFIG_FILES="$CONFIG_FILES docs/Makefile" ;;
+    "src/plugtest/Makefile") CONFIG_FILES="$CONFIG_FILES src/plugtest/Makefile" ;;
     "src/smcp/Makefile") CONFIG_FILES="$CONFIG_FILES src/smcp/Makefile" ;;
     "src/smcpctl/Makefile") CONFIG_FILES="$CONFIG_FILES src/smcpctl/Makefile" ;;
     "src/smcpd/Makefile") CONFIG_FILES="$CONFIG_FILES src/smcpd/Makefile" ;;
