@@ -356,5 +356,6 @@ tool_cmd_get(
 bail:
 	smcp_transaction_end(smcp,&transaction);
 	signal(SIGINT, previous_sigint_handler);
+	url_data = NULL;
 	return gRet;
 }

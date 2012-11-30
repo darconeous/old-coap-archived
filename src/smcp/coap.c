@@ -656,7 +656,7 @@ coap_dump_header(
 		case COAP_HEADER_BLOCK1:
 		case COAP_HEADER_BLOCK2:
 		{
-			uint32_t block;
+			uint32_t block = 0;
 			if(value_len==1)
 				block = (value[0]>>4);
 			else if(value_len==2)

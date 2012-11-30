@@ -300,8 +300,10 @@ void process_input_line(char *l) {
 	char **ap = argv2;
 	int argc2 = 0;
 
-	if(!l[0])
+	if(!l[0]) {
+		l = NULL;
 		goto bail;
+	}
 	l = strdup(l);
 #if HAVE_LIBREADLINE
 	if(!history_disabled)

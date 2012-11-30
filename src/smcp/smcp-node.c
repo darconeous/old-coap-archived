@@ -255,7 +255,7 @@ smcp_node_find_next_with_path(
 		// We should evaluate the liklihood of blowing
 		// the stack here. TODO: Investigate potential oveflow!
 		{
-#if HAVE_ALLOCA
+#if HAVE_C99_VLA
 			char unescaped_name[namelen+1];
 //#elif SMCP_NO_MALLOC
 //			static char unescaped_name[SMCP_MAX_PATH_LENGTH+1];
@@ -273,7 +273,7 @@ smcp_node_find_next_with_path(
 				unescaped_name,
 				escaped_len
 			);
-#if HAVE_ALLOCA // && !SMCP_NO_MALLOC
+#if !HAVE_C99_VLA // && !SMCP_NO_MALLOC
 			free(unescaped_name);
 #endif
 		}

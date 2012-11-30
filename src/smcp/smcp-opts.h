@@ -65,7 +65,8 @@
 #ifndef SMCP_MAX_URI_LENGTH
 // I can't for the life of me remember where I got these numbers from.
 // TODO: Determine where these numbers come from!
-#define SMCP_MAX_URI_LENGTH (SMCP_MAX_PATH_LENGTH + 7 + 6 + 8 * 4 + 7 + 2)
+//#define SMCP_MAX_URI_LENGTH (SMCP_MAX_PATH_LENGTH + 7 + 6 + 8 * 4 + 7 + 2)
+#define SMCP_MAX_URI_LENGTH (1024)
 #endif
 
 #if !defined(SMCP_MAX_PACKET_LENGTH) && !defined(SMCP_MAX_CONTENT_LENGTH)

@@ -58,7 +58,7 @@ static char next_data[256];
 static size_t next_len = ((size_t)(-1));
 static bool list_show_headers = false;
 static int redirect_count = 0;
-static const char original_url[SMCP_MAX_URI_LENGTH+1];
+static char original_url[SMCP_MAX_URI_LENGTH+1];
 static int timeout_cms;
 static bool list_filename_only;
 
@@ -511,7 +511,7 @@ tool_cmd_list(
 		goto bail;
 	}
 
-	strcpy(original_url,url);
+	strlcpy(original_url,url,SMCP_MAX_URI_LENGTH);
 
 	// Remove query component.
 	if(strchr(original_url,'?'))
@@ -525,5 +525,6 @@ tool_cmd_list(
 bail:
 	smcp_invalidate_transaction_old(smcp, tid);
 	signal(SIGINT, previous_sigint_handler);
+	url_data = NULL;
 	return gRet;
 }
