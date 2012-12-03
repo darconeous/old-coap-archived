@@ -82,11 +82,33 @@ AM_MAINTAINER_MODE
 AC_PROG_CC
 
 # Checks for libraries.
-
-AC_CHECK_HEADER([curl/curl.h],AC_CHECK_LIB([curl], [curl_multi_perform]))
+HAVE_LIBCURL=false
+AC_ARG_ENABLE(libcurl,
+    [  --disable-libcurl  Do not use libcurl],
+	smcp_check_for_libcurl="$enableval",
+	smcp_check_for_libcurl=yes
+)
+if test x"$smcp_check_for_libcurl" = xyes
+then
+	AC_CHECK_HEADER([curl/curl.h],AC_CHECK_LIB([curl],[curl_multi_perform]))
+	if test "x$ac_cv_lib_curl_curl_multi_perform" = xyes; then :
+		HAVE_LIBCURL=true
+	fi
+fi
 AM_CONDITIONAL([HAVE_LIBCURL],$HAVE_LIBCURL)
 
-AC_CHECK_HEADER([readline/readline.h],AC_CHECK_LIB([readline], [readline]))
+HAVE_LIBREADLINE=false
+AC_ARG_ENABLE(libreadline,
+    [  --disable-libreadline  Do not use libreadline],
+	smcp_check_for_libreadline="$enableval",
+	smcp_check_for_libreadline=yes
+)
+if test x"$smcp_check_for_libreadline" = xyes; then :
+	AC_CHECK_HEADER([readline/readline.h],AC_CHECK_LIB([readline], [readline]))
+	if test "x$ac_cv_lib_readline_readline" = xyes; then :
+		HAVE_LIBREADLINE=true
+	fi
+fi
 AM_CONDITIONAL([HAVE_LIBREADLINE],$HAVE_LIBREADLINE)
 
 # Checks for header files.
@@ -109,7 +131,7 @@ AC_C_VOLATILE
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-AC_CHECK_FUNCS([memset strtol strdup strlcpy strlcat stpncpy vsnprintf vsprintf snprintf])
+AC_CHECK_FUNCS([memset strtol strdup strndup getline strlcpy strlcat stpncpy vsnprintf vsprintf snprintf])
 
 
 

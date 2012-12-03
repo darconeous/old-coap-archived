@@ -83,6 +83,20 @@ strdup(const char* cstr) {
 }
 #endif
 
+#if !HAVE_STRNDUP && !defined(strndup)
+#define strndup strndup__
+static inline char*
+strndup(const char* cstr,size_t maxlen) {
+	size_t len = strlen(cstr);
+	if(maxlen<len)
+		len = maxlen;
+	char* ret = malloc(len+1);
+	memcpy(ret,cstr,len);
+	ret[len]=0;
+	return ret;
+}
+#endif
+
 #if !HAVE_STPNCPY && !defined(stpncpy)
 #define stpncpy stpncpy__
 static inline char*
