@@ -12,6 +12,8 @@
 #endif
 
 #include <smcp/assert_macros.h>
+#include <stdint.h>
+#include <smcp/smcp-helpers.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -511,7 +513,7 @@ tool_cmd_list(
 		goto bail;
 	}
 
-	strlcpy(original_url,url,SMCP_MAX_URI_LENGTH);
+	strncpy(original_url,url,SMCP_MAX_URI_LENGTH);
 
 	// Remove query component.
 	if(strchr(original_url,'?'))
