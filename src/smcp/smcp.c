@@ -982,7 +982,7 @@ smcp_transaction_init(
 #endif
 		handler->should_dealloc = 1;
 	} else {
-		bzero(handler, sizeof(*handler));
+		memset(handler, sizeof(*handler),0);
 	}
 
 	require(handler!=NULL, bail);
@@ -1003,6 +1003,14 @@ smcp_status_t smcp_transaction_begin(
 	cms_t expiration
 ) {
 	require(handler!=NULL, bail);
+
+	bt_remove(
+		(void**)&self->transactions,
+		(void*)handler,
+		(bt_compare_func_t)smcp_transaction_compare,
+		NULL,
+		self
+	);
 
 	handler->token = smcp_get_next_msg_id(self, NULL);
 	handler->msg_id = handler->token;
@@ -1514,6 +1522,7 @@ smcp_finish_async_response(struct smcp_async_response_s* x) {
 
 coap_transaction_id_t
 smcp_get_next_msg_id(smcp_t self, void* context) {
+#if 0
 	static uint16_t table[16];
 	uint8_t hash;
 
@@ -1527,6 +1536,14 @@ smcp_get_next_msg_id(smcp_t self, void* context) {
 	table[hash] = table[hash]*23873+41;
 
 	return table[hash];
+#else
+	static coap_transaction_id_t next_msg_id;
+
+	if(!next_msg_id)
+		next_msg_id = SMCP_FUNC_RANDOM_UINT32();
+
+	return next_msg_id++;
+#endif
 }
 
 const char* smcp_status_to_cstr(int x) {
@@ -1624,7 +1641,7 @@ fasthash_feed_block(uint32_t blk) {
 
 void
 fasthash_start(uint32_t salt) {
-	bzero((void*)&global_fasthash_state,sizeof(global_fasthash_state));
+	memset((void*)&global_fasthash_state,sizeof(global_fasthash_state),0);
 	fasthash_feed_block(salt);
 }
 
