@@ -53,7 +53,7 @@ host_triplet = @host@
 @HAVE_LIBCURL_TRUE@am__append_1 = smcp-curl_proxy.c
 subdir = src/smcp
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(top_srcdir)/m4/depcomp
+	$(top_srcdir)/m4/depcomp $(top_srcdir)/src/missing/getline.c
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -68,7 +68,8 @@ CONFIG_CLEAN_VPATH_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 ARFLAGS = cru
 libsmcp_a_AR = $(AR) $(ARFLAGS)
-libsmcp_a_LIBADD =
+LIBOBJDIR = ../../src/missing//
+libsmcp_a_DEPENDENCIES = $(LIBOBJS)
 am__libsmcp_a_SOURCES_DIST = smcp.c smcp-list.c smcp-send.c \
 	smcp-node.c smcp-pairing.c btree.c url-helpers.c coap.c \
 	smcp-timer.c smcp-timer_node.c smcp-variable_node.c \
@@ -109,7 +110,6 @@ ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
-ALLOCA = @ALLOCA@
 AMTAR = @AMTAR@
 AR = @AR@
 AUTOCONF = @AUTOCONF@
@@ -227,7 +227,6 @@ top_srcdir = @top_srcdir@
 INCLUDES = -I.. -I$(top_srcdir)/src
 #AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 AUTOMAKE_OPTIONS = subdir-objects
-LDADD = $(LIBOBJS) $(ALLOCA)
 noinst_LIBRARIES = libsmcp.a
 libsmcp_a_SOURCES = smcp.c smcp-list.c smcp-send.c smcp-node.c \
 	smcp-pairing.c btree.c url-helpers.c coap.c smcp-timer.c \
@@ -237,6 +236,7 @@ libsmcp_a_SOURCES = smcp.c smcp-list.c smcp-send.c smcp-node.c \
 	smcp-logging.h smcp-node.h smcp-opts.h smcp-pairing.h \
 	smcp-timer.h smcp-timer_node.h smcp-variable_node.h smcp.h \
 	url-helpers.h smcp-auth.h smcp-transaction.h $(am__append_1)
+libsmcp_a_LIBADD = $(LIBOBJS) $(ALLOCA)
 DISTCLEANFILES = .deps Makefile
 all: all-am
 
@@ -286,6 +286,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@../../src/missing//$(DEPDIR)/getline.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/coap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-auth.Po@am__quote@
@@ -451,6 +452,7 @@ install-strip:
 	    "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'" install; \
 	fi
 mostlyclean-generic:
+	-test -z "$(LIBOBJS)" || rm -f $(LIBOBJS)
 
 clean-generic:
 
@@ -468,7 +470,7 @@ clean-am: clean-generic clean-libtool clean-noinstLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../../src/missing//$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -514,7 +516,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../../src/missing//$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
