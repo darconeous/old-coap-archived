@@ -232,10 +232,17 @@ enum {
 typedef unsigned char coap_content_type_t;
 
 struct coap_header_s {
+#if __BIG_ENDIAN__
+	uint8_t
+		version:2,
+		tt:2,
+		option_count:4;
+#else
 	uint8_t
 		option_count:4,
 		tt:2,
 		version:2;
+#endif
 	coap_code_t code:8;
 	coap_transaction_id_t msg_id; // Always in network order.
 	uint8_t options[0];
