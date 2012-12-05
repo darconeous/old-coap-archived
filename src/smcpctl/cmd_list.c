@@ -70,7 +70,7 @@ static smcp_status_t
 list_response_handler(
 	int statuscode, void* context
 ) {
-	smcp_t const self = smcp_get_current_instance();
+//	smcp_t const self = smcp_get_current_instance();
 	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 	bool istty = isatty(fileno(stdout));

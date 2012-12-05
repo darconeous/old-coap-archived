@@ -109,8 +109,6 @@ typedef struct smcp_s *smcp_t;
 struct smcp_node_s;
 typedef struct smcp_node_s *smcp_node_t;
 
-struct smcp_transaction_s;
-typedef struct smcp_transaction_s *smcp_transaction_t;
 
 typedef int32_t cms_t;
 
@@ -130,6 +128,9 @@ typedef smcp_status_t (*smcp_inbound_handler_func)(
 );
 
 typedef smcp_status_t (*smcp_inbound_resend_func)(void* context);
+
+struct smcp_transaction_s;
+typedef struct smcp_transaction_s *smcp_transaction_t;
 
 #pragma mark -
 #pragma mark SMCP Daemon methods

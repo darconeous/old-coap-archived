@@ -839,7 +839,6 @@ smcp_transaction_new_msg_id(
 		self
 	);
 
-//	handler->token = msg_id;
 	handler->msg_id = msg_id;
 
 	bt_insert(
@@ -1068,6 +1067,12 @@ smcp_status_t smcp_transaction_end(
 	smcp_t self,
 	smcp_transaction_t transaction
 ) {
+	if(transaction->flags&SMCP_TRANSACTION_OBSERVE) {
+		// If we are an observing transaction, we need to clean up
+		// first by sending one last request without an observe option.
+		// TODO: Implement this!
+	}
+
 	if(transaction->active)
 		bt_remove(
 			(void**)&self->transactions,
@@ -1110,7 +1115,7 @@ smcp_begin_transaction_old(
 	require_noerr(ret,bail);
 	require(transaction!=NULL,bail);
 
-	smcp_transaction_new_msg_id(self, transaction,tid);
+	transaction->token = tid;
 
 bail:
 	return ret;

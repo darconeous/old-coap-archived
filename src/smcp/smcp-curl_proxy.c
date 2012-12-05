@@ -38,6 +38,7 @@
 #include "smcp.h"
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
+#include "smcp-internal.h"
 #include "coap.h"
 #include "smcp-curl_proxy.h"
 #include <stdio.h>
@@ -45,8 +46,8 @@
 
 typedef struct smcp_curl_request_s {
 	CURL* curl;
-	coap_transaction_id_t tid;
 	struct smcp_async_response_s async_response;
+	struct smcp_transaction_s async_transaction;
 	smcp_curl_proxy_node_t proxy_node;
 	char* content;
 	size_t content_len;
@@ -64,7 +65,6 @@ smcp_curl_request_release(smcp_curl_request_t x) {
 smcp_curl_request_t
 smcp_curl_request_create(void) {
 	smcp_curl_request_t ret = calloc(1,sizeof(*ret));
-	ret->tid = smcp_get_next_msg_id(smcp_get_current_instance(),NULL);
 	ret->curl = curl_easy_init();
 	if(!ret->curl) {
 		smcp_curl_request_release(ret);
@@ -167,14 +167,18 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 	request->content_len += realsize;
 	request->content[request->content_len] = 0;
 
-	smcp_begin_transaction_old(
-		(smcp_t)smcp_node_get_root(&request->proxy_node->node),
-		request->tid,
-		10*1000,	// Retry for thirty seconds.
+	smcp_transaction_init(
+		&request->async_transaction,
 		0, // Flags
 		(void*)&resend_async_response,
 		(void*)&async_response_ack_handler,
 		(void*)request
+	);
+
+	smcp_transaction_begin(
+		(smcp_t)smcp_node_get_root(&request->proxy_node->node),
+		&request->async_transaction,
+		10*1000	// Retry for thirty seconds.
 	);
 
 bail:

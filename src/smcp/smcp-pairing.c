@@ -772,7 +772,6 @@ smcp_trigger_event(
 	    iter;
 	    iter = smcp_next_pairing(iter)
 	) {
-		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_msg_id(self,NULL);
 		smcp_status_t status;
 
 		if(!event) {
@@ -790,28 +789,32 @@ smcp_trigger_event(
 
 		if(iter->currentEvent) {
 			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
-			smcp_invalidate_transaction_old(self, iter->last_tid);
+			smcp_transaction_end(self,&iter->transaction);
 		}
 
 #if SMCP_CONF_USE_SEQ
 		iter->seq++;
 		event->seq = iter->seq;
 #endif
-		iter->currentEvent = event;
 
-		status = smcp_begin_transaction_old(
-			self,
-			tid,
-			SHOULD_CONFIRM_EVENT_FOR_PAIRING(iter)?SMCP_PAIRING_CON_EVENT_EXPIRATION:SMCP_PAIRING_NON_EVENT_EXPIRATION,
+		smcp_transaction_init(
+			&iter->transaction,
 			0, // Flags
 			(void*)&smcp_retry_event,
 			(void*)&smcp_event_response_handler,
 			(void*)iter
 		);
+
+		status = smcp_transaction_begin(
+			self,
+			&iter->transaction,
+			SHOULD_CONFIRM_EVENT_FOR_PAIRING(iter)?SMCP_PAIRING_CON_EVENT_EXPIRATION:SMCP_PAIRING_NON_EVENT_EXPIRATION
+		);
+
 		if(status)
 			continue;
 
-		iter->last_tid = tid;
+		iter->currentEvent = event;
 		event->refCount++;
 		DEBUG_PRINTF("Event:%p: retain",event);
 
@@ -877,7 +880,6 @@ smcp_trigger_custom_event(
 	    iter;
 	    iter = smcp_next_pairing(iter)
 	) {
-		coap_transaction_id_t tid = (coap_transaction_id_t)smcp_get_next_msg_id(self,NULL);
 		smcp_status_t status;
 		if(!event) {
 			// Allocate this lazily.
@@ -893,28 +895,32 @@ smcp_trigger_custom_event(
 
 		if(iter->currentEvent) {
 			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
-			smcp_invalidate_transaction_old(self, iter->last_tid);
+			smcp_transaction_end(self, &iter->transaction);
 		}
 
 #if SMCP_CONF_USE_SEQ
 		iter->seq++;
 		event->seq = iter->seq;
 #endif
-		iter->currentEvent = event;
 
-		status = smcp_begin_transaction_old(
-			self,
-			tid,
-			SHOULD_CONFIRM_EVENT_FOR_PAIRING(iter)?SMCP_PAIRING_CON_EVENT_EXPIRATION:SMCP_PAIRING_NON_EVENT_EXPIRATION,
+		smcp_transaction_init(
+			&iter->transaction,
 			0, // Flags
 			(void*)&smcp_retry_custom_event,
 			(void*)&smcp_event_response_handler,
 			(void*)iter
 		);
+
+		status = smcp_transaction_begin(
+			self,
+			&iter->transaction,
+			SHOULD_CONFIRM_EVENT_FOR_PAIRING(iter)?SMCP_PAIRING_CON_EVENT_EXPIRATION:SMCP_PAIRING_NON_EVENT_EXPIRATION
+		);
+
 		if(status)
 			continue;
 
-		iter->last_tid = tid;
+		iter->currentEvent = event;
 		event->refCount++;
 		DEBUG_PRINTF("Event:%p: retain",event);
 
@@ -966,17 +972,16 @@ smcp_trigger_custom_event_with_node(
 extern smcp_status_t
 smcp_delete_pairing(smcp_pairing_node_t pairing) {
 	smcp_node_t parent = (smcp_node_t)pairing->node.node.parent;
+	smcp_t const self = (smcp_t)smcp_node_get_root(&pairing->node.node);
 
 	DEBUG_PRINTF("Deleting pairing \"%s\"",pairing->node.node.name);
 
 	if(pairing->flags&SMCP_PARING_FLAG_OBSERVE)
 		smcp_finish_async_response(&pairing->async_response);
 
-	if(pairing->currentEvent) {
-		smcp_t const self = (smcp_t)smcp_node_get_root(&pairing->node.node);
+	if(pairing->currentEvent)
 		smcp_event_tracker_release(pairing->currentEvent);
-		smcp_invalidate_transaction_old(self, pairing->last_tid);
-	}
+	smcp_transaction_end(self,&pairing->transaction);
 	free((char*)pairing->node.node.name);
 	smcp_node_delete(&pairing->node.node);
 	if(parent && !parent->children) {

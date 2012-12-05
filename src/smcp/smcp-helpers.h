@@ -11,6 +11,8 @@
 #include <malloc.h>
 #endif
 
+#include <stdlib.h>
+
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
 #define __BEGIN_DECLS   extern "C" {

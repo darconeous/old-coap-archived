@@ -34,6 +34,7 @@
 #include "smcp-node.h"
 #include "smcp-timer.h"
 #include "smcp-variable_node.h"
+#include "smcp-transaction.h"
 
 #if SMCP_ENABLE_PAIRING
 
@@ -120,17 +121,17 @@ struct smcp_pairing_node_s {
 	// Local pairng path comes from parent node name.
 	// Remote pairing URI comes from this node's name.
 
-	uint8_t				flags;
-
-	coap_transaction_id_t last_tid;
-	uint8_t				token[8];
-
 	smcp_event_tracker_t currentEvent;
+	struct smcp_transaction_s transaction;
 
 #if SMCP_CONF_USE_SEQ
 	smcp_pairing_seq_t	seq;
 	smcp_pairing_seq_t	ack;
 #endif
+
+	uint8_t				flags;
+
+	uint8_t				token[8];
 
 	union {
 		struct smcp_async_response_s async_response;
