@@ -117,7 +117,7 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([stdlib.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h])
 
 AC_CHECK_HEADERS([alloca.h])
-AC_FUNC_ALLOCA
+dnl AC_FUNC_ALLOCA
 dnl AC_FUNC_GETLOADAVG
 AC_HEADER_TIME
 
@@ -130,9 +130,9 @@ AC_C_INLINE
 AC_C_VOLATILE
 
 # Checks for library functions.
-AC_FUNC_MALLOC
-AC_FUNC_MEMCMP
-AC_CHECK_FUNCS([memset strtol strdup strndup strlcpy strlcat stpncpy vsnprintf vsprintf snprintf])
+dnl AC_FUNC_MALLOC
+dnl AC_FUNC_MEMCMP
+AC_CHECK_FUNCS([alloca memcmp memset strtol strdup strndup strlcpy strlcat stpncpy vsnprintf vsprintf snprintf])
 
 AC_REPLACE_FUNCS([getline])
 
