@@ -1,13 +1,13 @@
 
 AC_PREREQ(2.59)
 
-
-
 AC_INIT([smcp],[0.5])
+
 AC_CONFIG_AUX_DIR([m4])
 AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_LIBOBJ_DIR([src/missing/])
 
-AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
+AM_INIT_AUTOMAKE()
 LT_INIT()
 
 AC_LIBTOOL_DLOPEN_SELF
@@ -110,13 +110,14 @@ if test x"$smcp_check_for_libreadline" = xyes; then :
 	fi
 fi
 AM_CONDITIONAL([HAVE_LIBREADLINE],$HAVE_LIBREADLINE)
+AC_CHECK_FUNCS([rl_set_prompt])
 
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([stdlib.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h])
 
 AC_CHECK_HEADERS([alloca.h])
-AC_FUNC_ALLOCA
+dnl AC_FUNC_ALLOCA
 dnl AC_FUNC_GETLOADAVG
 AC_HEADER_TIME
 
@@ -129,12 +130,11 @@ AC_C_INLINE
 AC_C_VOLATILE
 
 # Checks for library functions.
-AC_FUNC_MALLOC
-AC_FUNC_MEMCMP
-AC_CHECK_FUNCS([memset strtol strdup strndup getline strlcpy strlcat stpncpy vsnprintf vsprintf snprintf])
+dnl AC_FUNC_MALLOC
+dnl AC_FUNC_MEMCMP
+AC_CHECK_FUNCS([alloca memcmp memset strtol strdup strndup strlcpy strlcat stpncpy vsnprintf vsprintf snprintf])
 
-
-
+AC_REPLACE_FUNCS([getline])
 
 AC_CACHE_CHECK([for ge_rs232],[smcp_cv_have_ge_rs232],[
 	smcp_cv_have_ge_rs232=no

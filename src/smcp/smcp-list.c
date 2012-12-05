@@ -43,7 +43,7 @@
 
 #include "assert_macros.h"
 
-#if HAVE_ALLOCA
+#if HAVE_ALLOCA_H
 #include <alloca.h>
 #endif
 #include <stdarg.h>

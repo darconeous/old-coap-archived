@@ -64,7 +64,6 @@ static int redirect_count;
 static coap_transaction_id_t tokenid;
 static int last_observe_value = -1;
 static int last_block = -1;
-static int block_key = COAP_HEADER_BLOCK2;
 static coap_content_type_t request_accept_type = -1;
 
 static struct smcp_transaction_s transaction;
@@ -112,7 +111,6 @@ get_response_handler(int statuscode, void* context) {
 		size_t next_len;
 		bool has_observe_option = false, last_block = true;
 		int observe_value = -1;
-		bool has_block = 0;
 
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 

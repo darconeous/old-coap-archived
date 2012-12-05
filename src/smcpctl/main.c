@@ -342,9 +342,7 @@ static char* get_current_prompt() {
 	char* current_smcp_path = getenv("SMCP_CURRENT_PATH");
 	snprintf(prompt,
 		sizeof(prompt),
-//		"\1\033[1;37;40m\2"
 		"%s"
-//		"\1\033[0;37;40m\2"
 		"> ",
 		current_smcp_path ? current_smcp_path : ""
 	);
@@ -354,16 +352,15 @@ static char* get_current_prompt() {
 void process_input_readline(char *l) {
 	process_input_line(l);
 	if(istty) {
-		if(gRet==ERRORCODE_QUIT) {
+#if HAVE_RL_SET_PROMPT
+		if(gRet==ERRORCODE_QUIT)
 			rl_set_prompt("");
-		} else {
+		else
+#endif
 			rl_callback_handler_install(get_current_prompt(), &process_input_readline);
-			//rl_set_prompt(get_current_prompt());
-		}
 	}
 }
 #endif
-
 
 #pragma mark -
 

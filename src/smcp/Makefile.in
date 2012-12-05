@@ -53,7 +53,7 @@ host_triplet = @host@
 @HAVE_LIBCURL_TRUE@am__append_1 = smcp-curl_proxy.c
 subdir = src/smcp
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(top_srcdir)/m4/depcomp
+	$(top_srcdir)/m4/depcomp $(top_srcdir)/src/missing/getline.c
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -65,21 +65,26 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/src/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-LTLIBRARIES = $(noinst_LTLIBRARIES)
-libsmcp_a_LIBADD =
+LIBRARIES = $(noinst_LIBRARIES)
+ARFLAGS = cru
+libsmcp_a_AR = $(AR) $(ARFLAGS)
+LIBOBJDIR = ../../src/missing//
+libsmcp_a_DEPENDENCIES = $(LIBOBJS)
 am__libsmcp_a_SOURCES_DIST = smcp.c smcp-list.c smcp-send.c \
 	smcp-node.c smcp-pairing.c btree.c url-helpers.c coap.c \
 	smcp-timer.c smcp-timer_node.c smcp-variable_node.c \
-	smcp-auth.c assert_macros.h btree.h coap.h ll.h \
-	smcp-curl_proxy.h smcp-helpers.h smcp-internal.h \
+	smcp-auth.c smcp-transaction.c assert_macros.h btree.h coap.h \
+	ll.h smcp-curl_proxy.h smcp-helpers.h smcp-internal.h \
 	smcp-logging.h smcp-node.h smcp-opts.h smcp-pairing.h \
 	smcp-timer.h smcp-timer_node.h smcp-variable_node.h smcp.h \
-	url-helpers.h smcp-auth.h smcp-curl_proxy.c
-@HAVE_LIBCURL_TRUE@am__objects_1 = smcp-curl_proxy.lo
-am_libsmcp_a_OBJECTS = smcp.lo smcp-list.lo smcp-send.lo smcp-node.lo \
-	smcp-pairing.lo btree.lo url-helpers.lo coap.lo smcp-timer.lo \
-	smcp-timer_node.lo smcp-variable_node.lo smcp-auth.lo \
-	$(am__objects_1)
+	url-helpers.h smcp-auth.h smcp-transaction.h smcp-curl_proxy.c
+@HAVE_LIBCURL_TRUE@am__objects_1 = smcp-curl_proxy.$(OBJEXT)
+am_libsmcp_a_OBJECTS = smcp.$(OBJEXT) smcp-list.$(OBJEXT) \
+	smcp-send.$(OBJEXT) smcp-node.$(OBJEXT) smcp-pairing.$(OBJEXT) \
+	btree.$(OBJEXT) url-helpers.$(OBJEXT) coap.$(OBJEXT) \
+	smcp-timer.$(OBJEXT) smcp-timer_node.$(OBJEXT) \
+	smcp-variable_node.$(OBJEXT) smcp-auth.$(OBJEXT) \
+	smcp-transaction.$(OBJEXT) $(am__objects_1)
 libsmcp_a_OBJECTS = $(am_libsmcp_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/m4/depcomp
@@ -105,7 +110,6 @@ ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
-ALLOCA = @ALLOCA@
 AMTAR = @AMTAR@
 AR = @AR@
 AUTOCONF = @AUTOCONF@
@@ -222,15 +226,17 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = -I.. -I$(top_srcdir)/src
 #AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
-noinst_LTLIBRARIES = libsmcp.a
+AUTOMAKE_OPTIONS = subdir-objects
+noinst_LIBRARIES = libsmcp.a
 libsmcp_a_SOURCES = smcp.c smcp-list.c smcp-send.c smcp-node.c \
 	smcp-pairing.c btree.c url-helpers.c coap.c smcp-timer.c \
 	smcp-timer_node.c smcp-variable_node.c smcp-auth.c \
-	assert_macros.h btree.h coap.h ll.h smcp-curl_proxy.h \
-	smcp-helpers.h smcp-internal.h smcp-logging.h smcp-node.h \
-	smcp-opts.h smcp-pairing.h smcp-timer.h smcp-timer_node.h \
-	smcp-variable_node.h smcp.h url-helpers.h smcp-auth.h \
-	$(am__append_1)
+	smcp-transaction.c assert_macros.h btree.h coap.h ll.h \
+	smcp-curl_proxy.h smcp-helpers.h smcp-internal.h \
+	smcp-logging.h smcp-node.h smcp-opts.h smcp-pairing.h \
+	smcp-timer.h smcp-timer_node.h smcp-variable_node.h smcp.h \
+	url-helpers.h smcp-auth.h smcp-transaction.h $(am__append_1)
+libsmcp_a_LIBADD = $(LIBOBJS) $(ALLOCA)
 DISTCLEANFILES = .deps Makefile
 all: all-am
 
@@ -267,18 +273,12 @@ $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 
-clean-noinstLTLIBRARIES:
-	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
-	@list='$(noinst_LTLIBRARIES)'; \
-	locs=`for p in $$list; do echo $$p; done | \
-	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
-	      sort -u`; \
-	test -z "$$locs" || { \
-	  echo rm -f $${locs}; \
-	  rm -f $${locs}; \
-	}
+clean-noinstLIBRARIES:
+	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
 libsmcp.a: $(libsmcp_a_OBJECTS) $(libsmcp_a_DEPENDENCIES) $(EXTRA_libsmcp_a_DEPENDENCIES) 
-	$(LINK)  $(libsmcp_a_OBJECTS) $(libsmcp_a_LIBADD) $(LIBS)
+	-rm -f libsmcp.a
+	$(libsmcp_a_AR) libsmcp.a $(libsmcp_a_OBJECTS) $(libsmcp_a_LIBADD)
+	$(RANLIB) libsmcp.a
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -286,37 +286,42 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/coap.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-auth.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-curl_proxy.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-list.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-node.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-pairing.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-send.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-timer.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-timer_node.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-variable_node.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/url-helpers.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@../../src/missing//$(DEPDIR)/getline.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/coap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-auth.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-curl_proxy.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-list.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-node.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-pairing.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-send.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-timer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-timer_node.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-transaction.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-variable_node.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/url-helpers.Po@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c $<
+@am__fastdepCC_FALSE@	$(COMPILE) -c -o $@ $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.obj$$||'`;\
+@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ `$(CYGPATH_W) '$<'` &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+@am__fastdepCC_FALSE@	$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.lo$$||'`;\
+@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $$depbase.Tpo -c -o $@ $< &&\
+@am__fastdepCC_TRUE@	$(am__mv) $$depbase.Tpo $$depbase.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
@@ -425,7 +430,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(LIBRARIES)
 installdirs:
 install: install-am
 install-exec: install-exec-am
@@ -447,6 +452,7 @@ install-strip:
 	    "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'" install; \
 	fi
 mostlyclean-generic:
+	-test -z "$(LIBOBJS)" || rm -f $(LIBOBJS)
 
 clean-generic:
 
@@ -460,11 +466,11 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
+clean-am: clean-generic clean-libtool clean-noinstLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../../src/missing//$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -510,7 +516,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR)
+	-rm -rf ../../src/missing//$(DEPDIR) ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
@@ -532,18 +538,17 @@ uninstall-am:
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-noinstLTLIBRARIES cscopelist ctags \
-	distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am
+	clean-libtool clean-noinstLIBRARIES cscopelist ctags distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags uninstall uninstall-am
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
