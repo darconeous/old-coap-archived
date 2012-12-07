@@ -126,8 +126,10 @@ bail:
 
 smcp_t
 smcp_init(
-	smcp_t ret, uint16_t port
+	smcp_t self, uint16_t port
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
+
 	if(port == 0)
 		port = SMCP_DEFAULT_PORT;
 
@@ -141,40 +143,40 @@ smcp_init(
 	};
 #endif
 
-	require(ret != NULL, bail);
+	require(self != NULL, bail);
 
 	// Set up the UDP port for listening.
 #if SMCP_USE_BSD_SOCKETS
 	uint16_t attempts = 0x7FFF;
 
-	ret->mcfd = -1;
-	ret->fd = -1;
+	self->mcfd = -1;
+	self->fd = -1;
 	errno = 0;
 
-	ret->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	self->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 	int prev_errno = errno;
 
 	require_action_string(
-		ret->fd >= 0,
+		self->fd >= 0,
 		bail, (
-			smcp_release(ret),
-			ret = NULL
+			smcp_release(self),
+			self = NULL
 		),
 		strerror(prev_errno)
 	);
 
 	// Keep attempting to bind until we find a port that works.
-	while(bind(ret->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
+	while(bind(self->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
 		// We should only continue trying if errno == EADDRINUSE.
 		require_action_string(errno == EADDRINUSE, bail,
 			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_release(
-				    ret); ret = NULL; }, "Failed to bind socket");
+				    self); self = NULL; }, "Failed to bind socket");
 		port++;
 
 		// Make sure we aren't in an infinite loop.
 		require_action_string(--attempts, bail,
 			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_release(
-				    ret); ret = NULL; }, "Failed to bind socket (ran out of ports)");
+				    self); self = NULL; }, "Failed to bind socket (ran out of ports)");
 
 		saddr.sin6_port = htons(port);
 	}
@@ -185,14 +187,14 @@ smcp_init(
 #endif
 	{
 		int value = IP6PO_TEMPADDR_NOTPREFER;
-		setsockopt(ret->fd, IPPROTO_IPV6, IPV6_PREFER_TEMPADDR, &value, sizeof(value));
+		setsockopt(self->fd, IPPROTO_IPV6, IPV6_PREFER_TEMPADDR, &value, sizeof(value));
 	}
 #endif
 
 #elif CONTIKI
-	ret->udp_conn = udp_new(NULL, 0, NULL);
-	uip_udp_bind(ret->udp_conn, htons(port));
-	ret->udp_conn->rport = 0;
+	self->udp_conn = udp_new(NULL, 0, NULL);
+	uip_udp_bind(self->udp_conn, htons(port));
+	self->udp_conn->rport = 0;
 #endif
 
 	// Go ahead and start listening on our multicast address as well.
@@ -203,7 +205,7 @@ smcp_init(
 		struct hostent *tmp = gethostbyname2(SMCP_IPV6_MULTICAST_ADDRESS,
 			AF_INET6);
 		memset(&imreq, 0, sizeof(imreq));
-		ret->mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
+		self->mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
 
 		require(!h_errno && tmp, bail);
 		require(tmp->h_length > 1, bail);
@@ -211,36 +213,37 @@ smcp_init(
 		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, tmp->h_addr_list[0], 16);
 
 		require(0 ==
-			setsockopt(ret->mcfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+			setsockopt(self->mcfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
 				&btrue,
 				sizeof(btrue)), bail);
 
 		// Do a precautionary leave group, to clear any stake kernel data.
-		setsockopt(ret->mcfd,
+		setsockopt(self->mcfd,
 			IPPROTO_IPV6,
 			IPV6_LEAVE_GROUP,
 			&imreq,
 			sizeof(imreq));
 
 		require(0 ==
-			setsockopt(ret->mcfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &imreq,
+			setsockopt(self->mcfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &imreq,
 				sizeof(imreq)), bail);
 	}
 #endif
 
-	ret->is_processing_message = false;
+	self->is_processing_message = false;
 	require_string(
-		smcp_node_init(&ret->root_node,NULL,NULL) != NULL,
+		smcp_node_init(&self->root_node,NULL,NULL) != NULL,
 		bail,
 		"Unable to initialize root node"
 	);
 
 bail:
-	return ret;
+	return self;
 }
 
 void
 smcp_release(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	require(self, bail);
 
 	// Delete all pending transactions
@@ -304,6 +307,7 @@ smcp_get_udp_conn(smcp_t self) {
 
 void
 smcp_set_proxy_url(smcp_t self,const char* url) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	assert(self);
 	free((void*)self->proxy_url);
 	if(url)
@@ -464,6 +468,7 @@ smcp_handle_inbound_packet(
 	size_t			packet_length,
 	SMCP_SOCKET_ARGS
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
 	struct coap_header_s* const packet = (void*)buffer; // Should not use stack space.
 
@@ -658,6 +663,7 @@ smcp_status_t
 smcp_process(
 	smcp_t self, cms_t cms
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
 
 #if SMCP_USE_BSD_SOCKETS
@@ -752,6 +758,7 @@ smcp_transaction_compare_msg_id(
 
 smcp_transaction_t
 smcp_transaction_find_via_msg_id(smcp_t self, coap_transaction_id_t msg_id) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	return (smcp_transaction_t)bt_find(
 		(void**)&self->transactions,
 		(void*)(uintptr_t)msg_id,
@@ -762,6 +769,7 @@ smcp_transaction_find_via_msg_id(smcp_t self, coap_transaction_id_t msg_id) {
 
 smcp_transaction_t
 smcp_transaction_find_via_token(smcp_t self, coap_transaction_id_t token) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_transaction_t ret = bt_first(self->transactions);
 
 	// Ouch. Linear search.
@@ -1001,6 +1009,7 @@ smcp_status_t smcp_transaction_begin(
 	smcp_transaction_t handler,
 	cms_t expiration
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	require(handler!=NULL, bail);
 
 	bt_remove(
@@ -1067,6 +1076,7 @@ smcp_status_t smcp_transaction_end(
 	smcp_t self,
 	smcp_transaction_t transaction
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	if(transaction->flags&SMCP_TRANSACTION_OBSERVE) {
 		// If we are an observing transaction, we need to clean up
 		// first by sending one last request without an observe option.

@@ -152,8 +152,6 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 	size_t realsize = size * nmemb;
 	smcp_curl_request_t request = (smcp_curl_request_t)userp;
 
-	assert_printf("CuRL WriteMemoryCallback()",0);
-
 	require_action(realsize>=0,bail,realsize=0);
 
 	// At the moment limit to one call.

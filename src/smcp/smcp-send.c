@@ -90,8 +90,11 @@ smcp_status_t
 smcp_outbound_begin(
 	smcp_t self, coap_code_t code, coap_transaction_type_t tt
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
+#if !SMCP_EMBEDDED
 	if(!self)
 		self = smcp_get_current_instance();
+#endif
 
 	check(!smcp_get_current_instance() || smcp_get_current_instance()==self);
 	smcp_set_current_instance(self);
@@ -102,7 +105,7 @@ smcp_outbound_begin(
 	uip_udp_conn = smcp_get_current_instance()->udp_conn;
 	self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 #else
-#error WRITEME!
+#warning WRITEME!
 #endif
 
 	self->outbound.packet->tt = tt;

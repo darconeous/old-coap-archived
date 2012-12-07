@@ -149,6 +149,7 @@ bool
 smcp_timer_is_scheduled(
 	smcp_t self, smcp_timer_t timer
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	return timer->ll.next || timer->ll.prev || (self->timers == timer);
 }
 
@@ -159,6 +160,7 @@ smcp_schedule_timer(
 	int				cms
 ) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	assert(self!=NULL);
 	assert(timer!=NULL);
@@ -199,6 +201,7 @@ smcp_invalidate_timer(
 	smcp_t	self,
 	smcp_timer_t	timer
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 #if SMCP_DEBUG_TIMERS
 	size_t previousTimerCount = ll_count(self->timers);
 	assert(previousTimerCount>=1);
@@ -223,6 +226,7 @@ smcp_invalidate_timer(
 cms_t
 smcp_get_timeout(smcp_t self) {
 	cms_t ret = SMCP_MAX_TIMEOUT;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	if(self->timers)
 		ret = MIN(ret, convert_timeval_to_cms(&self->timers->fire_date));
@@ -238,6 +242,7 @@ smcp_get_timeout(smcp_t self) {
 
 void
 smcp_handle_timers(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	if(	self->timers
 		&& (convert_timeval_to_cms(&self->timers->fire_date) <= 0)
 	) {

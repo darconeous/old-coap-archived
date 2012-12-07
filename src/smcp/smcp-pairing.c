@@ -286,6 +286,7 @@ smcp_pair_with_sockaddr(
 	uintptr_t*		idVal
 ) {
 	smcp_status_t ret = SMCP_STATUS_OK;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	smcp_node_t path_node = NULL;
 	smcp_pairing_node_t pairing = NULL;
@@ -357,6 +358,7 @@ smcp_pair_with_uri(
 	int				flags,
 	uintptr_t*		idVal
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 #if SMCP_USE_BSD_SOCKETS
 	return smcp_pair_with_sockaddr(self, path, uri, NULL, 0, flags, idVal);
 #elif CONTIKI
@@ -372,6 +374,7 @@ smcp_pairing_node_t
 smcp_get_first_pairing_for_path(
 	smcp_t self, const char* path
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_pairing_node_t ret = NULL;
 	smcp_node_t path_node = NULL;
 
@@ -467,25 +470,25 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		status = smcp_outbound_add_option(SMCP_HEADER_ORIGIN, smcp_pairing_get_path_cstr(pairing), HEADER_CSTR_LEN);
 		require_noerr(status,bail);
 
-#if SMCP_CONF_USE_SEQ
-		char cseq[24];
-#if __AVR__
-		snprintf_P(
-			cseq,
-			sizeof(cseq),
-			PSTR("%lX POST"),
-			(long unsigned int)pairing->seq
-		);
-#else
-		snprintf(cseq,
-			sizeof(cseq),
-			"%lX POST",
-			(long unsigned int)pairing->seq
-		);
-#endif
-		status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
-		require_noerr(status,bail);
-#endif
+//#if SMCP_CONF_USE_SEQ
+//		char cseq[24];
+//#if __AVR__
+//		snprintf_P(
+//			cseq,
+//			sizeof(cseq),
+//			PSTR("%lX POST"),
+//			(long unsigned int)pairing->seq
+//		);
+//#else
+//		snprintf(cseq,
+//			sizeof(cseq),
+//			"%lX POST",
+//			(long unsigned int)pairing->seq
+//		);
+//#endif
+//		status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
+//		require_noerr(status,bail);
+//#endif
 #endif // !SMCP_CONF_OBSERVING_ONLY
 	}
 
@@ -655,25 +658,25 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 		);
 		require_noerr(status,bail);
 
-#if SMCP_CONF_USE_SEQ
-		char cseq[24];
-#if __AVR__
-		snprintf_P(
-			cseq,
-			sizeof(cseq),
-			PSTR("%lX POST"),
-			(long unsigned int)pairing->seq
-		);
-#else
-		snprintf(cseq,
-			sizeof(cseq),
-			"%lX POST",
-			(long unsigned int)pairing->seq
-		);
-#endif // !__AVR__
-		status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
-		require_noerr(status,bail);
-#endif // SMCP_CONF_USE_SEQ
+//#if SMCP_CONF_USE_SEQ
+//		char cseq[24];
+//#if __AVR__
+//		snprintf_P(
+//			cseq,
+//			sizeof(cseq),
+//			PSTR("%lX POST"),
+//			(long unsigned int)pairing->seq
+//		);
+//#else
+//		snprintf(cseq,
+//			sizeof(cseq),
+//			"%lX POST",
+//			(long unsigned int)pairing->seq
+//		);
+//#endif // !__AVR__
+//		status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
+//		require_noerr(status,bail);
+//#endif // SMCP_CONF_USE_SEQ
 #endif // !SMCP_CONF_OBSERVING_ONLY
 	}
 
@@ -760,6 +763,7 @@ smcp_trigger_event(
 	smcp_status_t ret = 0;
 	smcp_pairing_node_t iter;
 	smcp_event_tracker_t event = NULL;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	require_action(self!=NULL,bail,ret=SMCP_STATUS_BAD_ARGUMENT);
 
@@ -870,6 +874,7 @@ smcp_trigger_custom_event(
 	smcp_status_t ret = 0;
 	smcp_pairing_node_t iter;
 	smcp_event_tracker_t event = NULL;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	if(!path) path = "";
 

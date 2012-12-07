@@ -135,8 +135,40 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #pragma mark -
 #pragma mark SMCP Daemon methods
 
-#if !SMCP_NO_MALLOC && !SMCP_EMBEDDED
-extern smcp_t smcp_create(uint16_t port);
+#if SMCP_EMBEDDED
+// On embedded systems, we know we will always only have
+// a single smcp instance, so we can save a considerable
+// amount of stack spaces by simply removing the first argument
+// from many functions. In order to make things as maintainable
+// as possible, these macros do all of the work for us.
+#define SMCP_EMBEDDED_SELF_HOOK 	smcp_t const self = smcp_get_current_instance()
+#define smcp_init(self,...)		smcp_init(__VA_ARGS__)
+#define smcp_release(self)		smcp_release()
+#define smcp_get_port(self)		smcp_get_port()
+#define smcp_process(self,...)		smcp_process(__VA_ARGS__)
+#define smcp_get_timeout(self)		smcp_get_timeout()
+#define smcp_set_proxy_url(self,...)		smcp_set_proxy_url(__VA_ARGS__)
+#define smcp_get_fd(self)		smcp_get_fd()
+#define smcp_get_udp_conn(self)		smcp_get_udp_conn()
+#define smcp_handle_inbound_packet(self,...)		smcp_handle_inbound_packet(__VA_ARGS__)
+#define smcp_transaction_begin(self,...)		smcp_transaction_begin(__VA_ARGS__)
+#define smcp_transaction_end(self,...)		smcp_transaction_end(__VA_ARGS__)
+#define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
+#define smcp_get_next_msg_id(self,...)		smcp_get_next_msg_id(__VA_ARGS__)
+#define smcp_transaction_find_via_msg_id(self,...)		smcp_transaction_find_via_msg_id(__VA_ARGS__)
+#define smcp_transaction_find_via_token(self,...)		smcp_transaction_find_via_token(__VA_ARGS__)
+#define smcp_pair_with_uri(self,...)		smcp_pair_with_uri(__VA_ARGS__)
+#define smcp_pair_with_sockaddr(self,...)		smcp_pair_with_sockaddr(__VA_ARGS__)
+#define smcp_trigger_event(self,...)		smcp_trigger_event(__VA_ARGS__)
+#define smcp_trigger_event_with_node(self,...)		smcp_trigger_event_with_node(__VA_ARGS__)
+#define smcp_trigger_custom_event(self,...)		smcp_trigger_custom_event(__VA_ARGS__)
+#define smcp_get_first_pairing_for_path(self,...)		smcp_get_first_pairing_for_path(__VA_ARGS__)
+#define smcp_schedule_timer(self,...)		smcp_schedule_timer(__VA_ARGS__)
+#define smcp_invalidate_timer(self,...)		smcp_invalidate_timer(__VA_ARGS__)
+#define smcp_handle_timers(self,...)		smcp_handle_timers(__VA_ARGS__)
+#define smcp_timer_is_scheduled(self,...)		smcp_timer_is_scheduled(__VA_ARGS__)
+#else
+#define SMCP_EMBEDDED_SELF_HOOK
 #endif
 
 extern smcp_t smcp_init(smcp_t self, uint16_t port);
@@ -155,6 +187,9 @@ extern struct smcp_s smcp_global_instance;
 extern smcp_t smcp_get_current_instance(); // Used from callbacks
 extern smcp_node_t smcp_get_root_node(smcp_t self);
 extern smcp_node_t smcp_node_get_root(smcp_node_t node);
+#if !SMCP_NO_MALLOC
+extern smcp_t smcp_create(uint16_t port);
+#endif
 #endif
 
 extern smcp_status_t smcp_process(smcp_t self, cms_t cms);

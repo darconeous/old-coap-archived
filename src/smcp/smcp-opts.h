@@ -102,8 +102,8 @@
 #endif
 
 //!	@define SMCP_NO_MALLOC
-/*!	If set, static global pools are used instead of malloc/free.
-**	Not fully implemented yet.
+/*!	If set, static global pools are used instead of malloc/free,
+**	where possible. Not fully implemented yet.
 */
 #ifndef SMCP_NO_MALLOC
 #define SMCP_NO_MALLOC	SMCP_EMBEDDED
@@ -162,7 +162,7 @@
 #endif
 
 #ifndef SMCP_CONF_USE_SEQ
-#define SMCP_CONF_USE_SEQ		!SMCP_EMBEDDED
+#define SMCP_CONF_USE_SEQ		1 //!SMCP_EMBEDDED
 #endif
 
 #ifndef SMCP_PAIRING_DEFAULT_ROOT_PATH
