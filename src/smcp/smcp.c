@@ -284,11 +284,13 @@ bail:
 uint16_t
 smcp_get_port(smcp_t self) {
 #if SMCP_USE_BSD_SOCKETS
+	SMCP_EMBEDDED_SELF_HOOK;
 	struct sockaddr_in6 saddr;
 	socklen_t socklen = sizeof(saddr);
 	getsockname(self->fd, (struct sockaddr*)&saddr, &socklen);
 	return ntohs(saddr.sin6_port);
 #elif CONTIKI
+	SMCP_EMBEDDED_SELF_HOOK;
 	return ntohs(self->udp_conn->lport);
 #endif
 }
@@ -296,11 +298,13 @@ smcp_get_port(smcp_t self) {
 #if SMCP_USE_BSD_SOCKETS
 int
 smcp_get_fd(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	return self->fd;
 }
 #elif defined(CONTIKI)
 struct uip_udp_conn*
 smcp_get_udp_conn(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	return self->udp_conn;
 }
 #endif
