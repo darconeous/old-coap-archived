@@ -248,7 +248,7 @@ smcp_release(smcp_t self) {
 
 	// Delete all pending transactions
 	while(self->transactions) {
-		smcp_invalidate_transaction_old(self, self->transactions->msg_id);
+		smcp_transaction_end(self, self->transactions);
 	}
 
 	// Delete all timers
@@ -335,22 +335,21 @@ void
 smcp_inbound_reset_next_option() {
 	smcp_t const self = smcp_get_current_instance();
 	self->inbound.last_option_key = 0;
-	self->inbound.options_left = self->inbound.packet->option_count;
-	self->inbound.this_option = self->inbound.packet->options;
+	self->inbound.this_option = self->inbound.packet->token + self->inbound.packet->token_len;
 }
 
 static coap_option_key_t
 smcp_inbound_next_option_(const uint8_t** value, size_t* len) {
 	smcp_t const self = smcp_get_current_instance();
-	if(self->inbound.options_left) {
+	if(self->inbound.this_option<((uint8_t*)self->inbound.packet+self->inbound.packet_len)
+		&& self->inbound.this_option[0]!=0xFF
+	) {
 		self->inbound.this_option = coap_decode_option(
 			self->inbound.this_option,
 			&self->inbound.last_option_key,
 			value,
 			len
 		);
-		if(self->inbound.options_left!=15)
-			self->inbound.options_left--;
 	} else {
 		self->inbound.last_option_key = COAP_HEADER_INVALID;
 	}
@@ -360,9 +359,7 @@ smcp_inbound_next_option_(const uint8_t** value, size_t* len) {
 coap_option_key_t
 smcp_inbound_next_option(const uint8_t** value, size_t* len) {
 	coap_option_key_t ret;
-	do {
-		ret = smcp_inbound_next_option_(value, len);
-	} while(ret==COAP_HEADER_TOKEN); // Skip tokens
+	ret = smcp_inbound_next_option_(value, len);
 	return ret;
 }
 
@@ -370,7 +367,10 @@ coap_option_key_t
 smcp_inbound_peek_option(const uint8_t** value, size_t* len) {
 	smcp_t const self = smcp_get_current_instance();
 	coap_option_key_t ret = self->inbound.last_option_key;
-	if(self->inbound.last_option_key!=COAP_HEADER_INVALID && self->inbound.options_left) {
+	if(self->inbound.last_option_key!=COAP_HEADER_INVALID
+		&& self->inbound.this_option<((uint8_t*)self->inbound.packet+self->inbound.packet_len)
+		&& self->inbound.this_option[0]!=0xFF
+	) {
 		coap_decode_option(
 			self->inbound.this_option,
 			&ret,
@@ -410,6 +410,10 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 const struct coap_header_s*
 smcp_inbound_get_packet() {
 	return smcp_get_current_instance()->inbound.packet;
+}
+
+size_t smcp_inbound_get_packet_length() {
+	return smcp_get_current_instance()->inbound.packet_len;
 }
 
 const char*
@@ -476,6 +480,8 @@ smcp_handle_inbound_packet(
 	smcp_status_t ret = 0;
 	struct coap_header_s* const packet = (void*)buffer; // Should not use stack space.
 
+	require_action(coap_verify_packet(buffer,packet_length),bail,ret=SMCP_STATUS_BAD_PACKET);
+
 	smcp_set_current_instance(self);
 
 #if VERBOSE_DEBUG
@@ -489,6 +495,12 @@ smcp_handle_inbound_packet(
 		port = ntohs(toport);
 #endif
 		DEBUG_PRINTF(CSTR("smcp(%p): Inbound packet from [%s]:%d"), self,addr_str,(int)port);
+		coap_dump_header(
+			SMCP_DEBUG_OUT_FILE,
+			"Inbound:\t",
+			(struct coap_header_s*)buffer,
+			packet_length
+		);
 	}
 #endif
 
@@ -500,6 +512,7 @@ smcp_handle_inbound_packet(
 	self->did_respond = false;
 
 	self->inbound.packet = packet;
+	self->inbound.packet_len = packet_length;
 
 #if SMCP_USE_BSD_SOCKETS
 	self->inbound.saddr = saddr;
@@ -562,11 +575,12 @@ smcp_handle_inbound_packet(
 			const uint8_t* value;
 			size_t value_len;
 			key = smcp_inbound_peek_option(&value,&value_len);
-			if(key==COAP_HEADER_TOKEN) {
-				self->inbound.token_option = self->inbound.this_option;
-				if((self->inbound.token_option[0]&0xF0)==0xF0)
-					self->inbound.token_option+=self->inbound.token_option[0]&0xf;
-			} else if(key==COAP_HEADER_CONTENT_TYPE) {
+//			if(key==COAP_HEADER_TOKEN) {
+//				self->inbound.token_option = self->inbound.this_option;
+//				if((self->inbound.token_option[0]&0xF0)==0xF0)
+//					self->inbound.token_option+=self->inbound.token_option[0]&0xf;
+//			} else
+			if(key==COAP_HEADER_CONTENT_TYPE) {
 				uint8_t i;
 				self->inbound.content_type = 0;
 				for(i = 0; i < value_len; i++)
@@ -593,9 +607,11 @@ smcp_handle_inbound_packet(
 			}
 		} while(smcp_inbound_next_option_(NULL,NULL)!=COAP_HEADER_INVALID);
 
+		require((self->inbound.this_option-(uint8_t*)buffer==packet_length) || self->inbound.this_option[0]==0xFF,bail);
+
 		// Now that we are at the end of the options, we know
 		// where the content starts.
-		self->inbound.content_ptr = (char*)self->inbound.this_option;
+		self->inbound.content_ptr = (char*)self->inbound.this_option+1;
 		self->inbound.content_len = packet_length-(self->inbound.content_ptr-buffer);
 	}
 
@@ -650,6 +666,7 @@ smcp_handle_inbound_packet(
 				self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
 			else
 				self->outbound.packet->tt = COAP_TRANS_TYPE_ACK;
+			smcp_outbound_set_token(NULL, 0);
 		}
 		ret = smcp_outbound_send();
 	}
@@ -751,7 +768,7 @@ smcp_transaction_compare_msg_id(
 	const void* lhs_, const void* rhs_, void* context
 ) {
 	const smcp_transaction_t lhs = (smcp_transaction_t)lhs_;
-	coap_transaction_id_t rhs = (coap_transaction_id_t)(uintptr_t)rhs_;
+	coap_msg_id_t rhs = (coap_msg_id_t)(uintptr_t)rhs_;
 
 	if(lhs->msg_id > rhs)
 		return 1;
@@ -761,7 +778,7 @@ smcp_transaction_compare_msg_id(
 }
 
 smcp_transaction_t
-smcp_transaction_find_via_msg_id(smcp_t self, coap_transaction_id_t msg_id) {
+smcp_transaction_find_via_msg_id(smcp_t self, coap_msg_id_t msg_id) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	return (smcp_transaction_t)bt_find(
 		(void**)&self->transactions,
@@ -772,7 +789,7 @@ smcp_transaction_find_via_msg_id(smcp_t self, coap_transaction_id_t msg_id) {
 }
 
 smcp_transaction_t
-smcp_transaction_find_via_token(smcp_t self, coap_transaction_id_t token) {
+smcp_transaction_find_via_token(smcp_t self, coap_msg_id_t token) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_transaction_t ret = bt_first(self->transactions);
 
@@ -787,8 +804,7 @@ smcp_internal_delete_transaction_(
 	smcp_transaction_t handler,
 	smcp_t			self
 ) {
-	DEBUG_PRINTF(CSTR(
-			"%p: Deleting response handler w/msg_id=%d"), self, handler->msg_id);
+	DEBUG_PRINTF("smcp_internal_delete_transaction_: %p",handler);
 
 	if(!smcp_get_current_instance())
 		smcp_set_current_instance(self);
@@ -839,8 +855,9 @@ static void
 smcp_transaction_new_msg_id(
 	smcp_t			self,
 	smcp_transaction_t handler,
-	coap_transaction_id_t msg_id
+	coap_msg_id_t msg_id
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	require(handler->active,bail);
 
 	bt_remove(
@@ -850,6 +867,8 @@ smcp_transaction_new_msg_id(
 		(bt_delete_func_t)NULL,
 		self
 	);
+
+	assert(!smcp_transaction_find_via_msg_id(self, msg_id));
 
 	handler->msg_id = msg_id;
 
@@ -963,6 +982,8 @@ smcp_internal_transaction_timeout_(
 			handler->callback = NULL;
 		if(callback)
 			(*callback)(status,context);
+		if(handler != self->current_transaction)
+			return;
 		smcp_transaction_end(self, handler);
 	}
 
@@ -1016,6 +1037,8 @@ smcp_status_t smcp_transaction_begin(
 	SMCP_EMBEDDED_SELF_HOOK;
 	require(handler!=NULL, bail);
 
+	DEBUG_PRINTF("smcp_transaction_begin: %p",handler);
+
 	bt_remove(
 		(void**)&self->transactions,
 		(void*)handler,
@@ -1029,6 +1052,7 @@ smcp_status_t smcp_transaction_begin(
 	handler->waiting_for_async_response = false;
 	handler->attemptCount = 0;
 	handler->last_observe = 0;
+	handler->next_block2 = 0;
 	handler->active = 1;
 	convert_cms_to_timeval(&handler->expiration, expiration);
 
@@ -1081,13 +1105,19 @@ smcp_status_t smcp_transaction_end(
 	smcp_transaction_t transaction
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
+	DEBUG_PRINTF("smcp_transaction_end: %p",transaction);
+
 	if(transaction->flags&SMCP_TRANSACTION_OBSERVE) {
 		// If we are an observing transaction, we need to clean up
 		// first by sending one last request without an observe option.
 		// TODO: Implement this!
 	}
 
-	if(transaction->active)
+	if(transaction == self->current_transaction)
+		self->current_transaction = NULL;
+
+	if(transaction->active) {
+		transaction->active = 0; // Maybe we should remove this line? May be hiding bad behavior.
 		bt_remove(
 			(void**)&self->transactions,
 			(void*)transaction,
@@ -1095,6 +1125,7 @@ smcp_status_t smcp_transaction_end(
 			(bt_delete_func_t)smcp_internal_delete_transaction_,
 			self
 		);
+	}
 	return 0;
 }
 
@@ -1106,7 +1137,7 @@ smcp_status_t smcp_transaction_end(
 smcp_status_t
 smcp_begin_transaction_old(
 	smcp_t						self,
-	coap_transaction_id_t		tid,
+	coap_msg_id_t		tid,
 	cms_t						cmsExpiration,
 	int							flags,
 	smcp_inbound_resend_func	resendCallback,
@@ -1139,7 +1170,7 @@ bail:
 smcp_status_t
 smcp_invalidate_transaction_old(
 	smcp_t			self,
-	coap_transaction_id_t	tid
+	coap_msg_id_t	tid
 ) {
 	smcp_transaction_t transaction = smcp_transaction_find_via_msg_id(self, tid);
 	if(!transaction) {
@@ -1177,12 +1208,12 @@ smcp_handle_request(
 			self,
 			(self->inbound.is_fake)?"(FAKE) ":""
 		);
-		coap_dump_header(
-			SMCP_DEBUG_OUT_FILE,
-			"Inbound:\t",
-			self->inbound.packet,
-			0
-		);
+//		coap_dump_header(
+//			SMCP_DEBUG_OUT_FILE,
+//			"Inbound:\t",
+//			self->inbound.packet,
+//			0
+//		);
 	}
 #endif
 
@@ -1205,7 +1236,7 @@ smcp_handle_request(
 			if(key>COAP_HEADER_URI_PATH) {
 				self->inbound.this_option = prev_option_ptr;
 				self->inbound.last_option_key = prev_key;
-				self->inbound.options_left++;
+//				self->inbound.options_left++;
 				break;
 			} else if(key==COAP_HEADER_PROXY_URI) {
 				// Skip the proxy URI for now.
@@ -1220,7 +1251,7 @@ smcp_handle_request(
 				} else {
 					self->inbound.this_option = prev_option_ptr;
 					self->inbound.last_option_key = prev_key;
-					self->inbound.options_left++;
+//					self->inbound.options_left++;
 					break;
 				}
 			} else if(key==COAP_HEADER_URI_HOST) {
@@ -1268,7 +1299,7 @@ smcp_handle_response(
 ) {
 	smcp_status_t ret = 0;
 	smcp_transaction_t handler = NULL;
-	coap_transaction_id_t msg_id;
+	coap_msg_id_t msg_id;
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
@@ -1277,12 +1308,12 @@ smcp_handle_response(
 			self,
 			smcp_inbound_get_msg_id()
 		);
-		coap_dump_header(
-			SMCP_DEBUG_OUT_FILE,
-			"Inbound:\t",
-			self->inbound.packet,
-			0
-		);
+//		coap_dump_header(
+//			SMCP_DEBUG_OUT_FILE,
+//			"Inbound:\t",
+//			self->inbound.packet,
+//			self->inbound.packet_len
+//		);
 	}
 #endif
 
@@ -1293,14 +1324,16 @@ smcp_handle_response(
 
 	handler = smcp_transaction_find_via_msg_id(self,msg_id);
 
-	if(!handler && self->inbound.token_option) {
-		coap_transaction_id_t token;
-		memcpy(&token,self->inbound.token_option+1,sizeof(token));
+	if(!handler && self->inbound.packet->token_len==sizeof(coap_msg_id_t)) {
+		coap_msg_id_t token;
+		memcpy(&token,self->inbound.packet->token,sizeof(token));
 		handler = smcp_transaction_find_via_token(self,token);
 
 		if(handler && !handler->waiting_for_async_response)
 			handler = NULL;
 	}
+
+	self->current_transaction = handler;
 
 	// TODO: Make sure this packet didn't originate from multicast.
 	// ...Or do what?
@@ -1324,11 +1357,12 @@ smcp_handle_response(
 			|| self->inbound.packet->tt == COAP_TRANS_TYPE_NONCONFIRMABLE
 		)
 		&& !self->inbound.packet->code
+		&& (handler->sent_code<COAP_RESULT_100)
 	) {
 		DEBUG_PRINTF("Inbound: Async Response");
 		handler->waiting_for_async_response = true;
 	} else if(handler->callback) {
-		coap_transaction_id_t msg_id = handler->msg_id;
+		coap_msg_id_t msg_id = handler->msg_id;
 
 		// Handle any authentication heaers.
 		ret = smcp_auth_handle_response(handler);
@@ -1355,6 +1389,11 @@ smcp_handle_response(
 				self->inbound.packet->tt==COAP_TRANS_TYPE_RESET?SMCP_STATUS_RESET:self->inbound.packet->code,
 				handler->context
 			);
+
+			if(!self->current_transaction) {
+				handler = NULL;
+				goto bail;
+			}
 
 			if(msg_id!=handler->msg_id) {
 				handler = NULL;
@@ -1399,6 +1438,12 @@ smcp_handle_response(
 				(self->inbound.packet->tt==COAP_TRANS_TYPE_RESET)?SMCP_STATUS_RESET:self->inbound.packet->code,
 				handler->context
 			);
+
+			if(self->current_transaction != handler) {
+				handler = NULL;
+				goto bail;
+			}
+
 			handler->attemptCount = 0;
 			handler->waiting_for_async_response = false;
 			if(handler->active && msg_id==handler->msg_id) {
@@ -1461,7 +1506,18 @@ smcp_status_t
 smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 	smcp_status_t ret = 0;
 	smcp_t const self = smcp_get_current_instance();
-	self->outbound.packet->tt = x->tt;
+	self->inbound.packet = &x->request.header;
+	self->inbound.packet_len = x->request_len;
+	self->inbound.content_ptr = (char*)x->request.header.token + x->request.header.token_len;
+	self->inbound.last_option_key = 0;
+	self->inbound.this_option = x->request.header.token;
+	self->outbound.packet->tt = x->request.header.tt;
+	self->inbound.is_fake = true;
+	self->is_processing_message = true;
+	self->did_respond = false;
+
+	ret = smcp_outbound_set_token(x->request.header.token, x->request.header.token_len);
+	require_noerr(ret, bail);
 
 #if SMCP_USE_BSD_SOCKETS
 	ret = smcp_outbound_set_destaddr((void*)&x->saddr,x->socklen);
@@ -1471,8 +1527,7 @@ smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_add_option(COAP_HEADER_TOKEN, (const char*)x->token_value, x->token_len);
-	require_noerr(ret, bail);
+	assert(coap_verify_packet(x->request.bytes, x->request_len));
 bail:
 	return ret;
 }
@@ -1483,6 +1538,12 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 	smcp_t const self = smcp_get_current_instance();
 
 	require_action_string(x!=NULL,bail,ret=SMCP_STATUS_INVALID_ARGUMENT,"NULL async_response arg");
+
+	if(smcp_inbound_get_packet_length()-smcp_inbound_get_content_len()>sizeof(x->request)) {
+		// TODO: Be more graceful...?
+		ret = SMCP_STATUS_FAILURE;
+		goto bail;
+	}
 
 	if(!(flags & SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK)) {
 		// Fake inbound packets are created to tickle
@@ -1496,6 +1557,8 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 
 		require_noerr(ret, bail);
 
+		smcp_outbound_set_token(NULL, 0);
+
 		ret = smcp_outbound_send();
 
 		require_noerr(ret, bail);
@@ -1506,15 +1569,11 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 		goto bail;
 	}
 
-	x->original_tid = smcp_inbound_get_msg_id();
-	x->tt = self->inbound.packet->tt;
+	x->request_len = smcp_inbound_get_packet_length()-smcp_inbound_get_content_len();
+	memcpy(x->request.bytes,smcp_inbound_get_packet(),x->request_len);
 
-	if(self->inbound.token_option) {
-		x->token_len = self->inbound.token_option[0] & 0x0F;
-		memcpy(x->token_value,self->inbound.token_option+1,x->token_len);
-	} else {
-		x->token_len = 0;
-	}
+	assert(coap_verify_packet(x->request.bytes, x->request_len));
+
 
 #if SMCP_USE_BSD_SOCKETS
 	x->socklen = self->inbound.socklen;
@@ -1539,7 +1598,7 @@ smcp_finish_async_response(struct smcp_async_response_s* x) {
 #pragma mark -
 #pragma mark Other
 
-coap_transaction_id_t
+coap_msg_id_t
 smcp_get_next_msg_id(smcp_t self, void* context) {
 #if 0
 	static uint16_t table[16];
@@ -1556,7 +1615,7 @@ smcp_get_next_msg_id(smcp_t self, void* context) {
 
 	return table[hash];
 #else
-	static coap_transaction_id_t next_msg_id;
+	static coap_msg_id_t next_msg_id;
 
 	if(!next_msg_id)
 		next_msg_id = SMCP_FUNC_RANDOM_UINT32();

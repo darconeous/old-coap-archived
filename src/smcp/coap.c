@@ -45,55 +45,58 @@ again:
 
 	len = (*buffer & 0x0F);
 
-	if((*buffer >> 4) == 0xF) {
-		// Special option.
-		switch(len) {
-			case 1:
-				// Delta = 15
-				if(key)*key += 15;
-				buffer += 1;
-				goto again;
-				break;
-			case 2:
-				if(key)*key += 16+(buffer[1]*8);
-				buffer += 2;
-				goto again;
-				break;
-			case 3:
-				if(key)*key += 2064+(buffer[1]*8*256)+(buffer[2]*8);
-				buffer += 3;
-				goto again;
-				break;
-			default:
-				// Unknown special options marker.
-				assert_printf("Unknown special option, \"%d\"",(*buffer >> 4));
-			case 0:
-				// End of options marker.
-				if(key)*key = COAP_HEADER_INVALID;
-				if(value)*value = NULL;
-				if(lenP)*lenP = 0;
-				return NULL;
-				break;
-		}
+	switch((*buffer >> 4)) {
+		default:
+			if(key) *key += (*buffer >> 4);
+			buffer += 1;
+			break;
+
+		case 13:
+			buffer += 1;
+			if(key)*key += 13+*buffer;
+			buffer += 1;
+			break;
+
+		case 14:
+			buffer += 1;
+			if(key)*key += 269+buffer[1]+(buffer[0]<<8);
+
+			buffer += 2;
+			break;
+
+		case 15:
+			// End of option marker...?
+			// TODO: Fail harder if len doesn't equal 15 as well!
+			if(key)*key = COAP_HEADER_INVALID;
+			if(value)*value = NULL;
+			if(lenP)*lenP = 0;
+			return NULL;
+			break;
 	}
 
-	if(key)
-		*key += (*buffer >> 4);
+	switch(len) {
+		default:
+			break;
 
-	buffer++;
+		case 13:
+			len = 13 + *buffer;
+			buffer += 1;
+			break;
 
-	if(len == 0xF)
-		len += *buffer++;
+		case 14:
+			len = 269+buffer[1]+(buffer[0]<<8);
+			buffer += 2;
+			break;
 
-	if(len == 270)
-		len += *buffer++;
-
-	if(len == 525)
-		len += *buffer++;
-
-	if(len == 780)
-		len += *buffer++;
-
+		case 15:
+			// End of option marker...?
+			// TODO: Fail harder if len doesn't equal 15 as well!
+			if(key)*key = COAP_HEADER_INVALID;
+			if(value)*value = NULL;
+			if(lenP)*lenP = 0;
+			return NULL;
+			break;
+	}
 
 	if(lenP) *lenP = len;
 	if(value) *value = buffer;
@@ -109,23 +112,20 @@ coap_encode_option(
 	const uint8_t* value,
 	size_t len
 ) {
+	uint8_t value_offset = 1;
 	uint16_t option_delta = key - prev_key;
 
-	if(option_delta>=15) {
-		if(option_delta < 15+15) {
-			*buffer++ = 0xF1;
-			option_delta -= 15;
-		} else if(option_delta<2064) {
-			*buffer++ = 0xF2;
-			*buffer++ = (option_delta/8)-2;
-			option_delta -= (option_delta/8)*8;
-		} else {
-			uint16_t d = (option_delta/8)-258;
-			*buffer++ = 0xF3;
-			*buffer++ = (d>>8);
-			*buffer++ = (d&0xFF);
-			option_delta -= (option_delta/8)*8;
-		}
+	if(option_delta>=269) {
+		buffer[0] = (14<<4);
+		buffer[1] = ((option_delta-269)>>8);
+		buffer[2] = ((option_delta-269)&0xFF);
+		value_offset+=2;
+	} else if(option_delta>=13) {
+		buffer[0] = (13<<4);
+		buffer[1] = option_delta-13;
+		value_offset+=1;
+	} else {
+		*buffer = (option_delta<<4);
 	}
 
 	check(len <= (COAP_MAX_OPTION_VALUE_SIZE));
@@ -133,28 +133,23 @@ coap_encode_option(
 	if(len > COAP_MAX_OPTION_VALUE_SIZE)
 		len = COAP_MAX_OPTION_VALUE_SIZE;
 
-	if(len<15) {
-		*buffer++ = (option_delta << 4) | len;
+	if(len>=269) {
+		buffer[0] |= 14;
+		buffer[value_offset] = ((len-269)>>8);
+		buffer[value_offset+1] = ((len-269)&0xFF);
+		value_offset+=2;
+	} else if(len>=13) {
+		buffer[0] |= 13;
+		buffer[value_offset] = len-13;
+		value_offset+=1;
 	} else {
-		*buffer++ = (option_delta << 4) | 0xF;
-		if(len>=780) {
-			*buffer++ = 0xFF;
-			*buffer++ = 0xFF;
-			*buffer++ = 0xFF;
-			*buffer++ = len-780;
-		} else if(len>=525) {
-			*buffer++ = 0xFF;
-			*buffer++ = 0xFF;
-			*buffer++ = len-525;
-		} else if(len>=270) {
-			*buffer++ = 0xFF;
-			*buffer++ = len-270;
-		} else {
-			*buffer++ = len-15;
-		}
+		*buffer |= len&15;
 	}
 
+	buffer += value_offset;
+
 	memcpy(buffer, value, len);
+
 	buffer += len;
 
 	return buffer;
@@ -193,35 +188,26 @@ extern size_t coap_insert_option(
 		size_t next_len=0;
 
 		size_diff += len + 1;
-		if(len>=15)
+		if(len>=13)
 			size_diff++;
-		if(len>=270)
-			size_diff++;
-		if(len>=525)
-			size_diff++;
-		if(len>=780)
+		if(len>=269)
 			size_diff++;
 
-		// Compensate for jump option before insert
-		if(key-prev_key>2064) {
-			size_diff+=3;
-		} else if(key-prev_key>15) {
-			size_diff+=2;
-		} else if(key-prev_key==15) {
-			size_diff+=1;
+		if((key-prev_key)>=13)
+			size_diff++;
+		if((key-prev_key)>=269)
+			size_diff++;
+
+		if((insertion_point[0]&0xF0) == (13<<4)) {
+			size_diff--;
+		} else if((insertion_point[0]&0xF0) == (14<<4)) {
+			size_diff-=2;
 		}
 
-		// Compensate for jump option after insert
-		if((insertion_point[0]&0xF0) == 0xF0) {
-			size_diff -= (insertion_point[0]&0xF);
-		}
-		if(iter_key-key>2064) {
-			size_diff+=3;
-		} else if(iter_key-key>15) {
-			size_diff+=2;
-		} else if(iter_key-key==15) {
-			size_diff+=1;
-		}
+		if((iter_key-key)>=13)
+			size_diff++;
+		if((iter_key-key)>=269)
+			size_diff++;
 
 		// Move higher options
 		if(size_diff)
@@ -445,7 +431,7 @@ coap_option_key_to_cstr(
 
 		case COAP_HEADER_ACCEPT: ret = "Accept"; break;
 		case COAP_HEADER_OBSERVE: ret = "Observe"; break;
-		case COAP_HEADER_TOKEN: ret = "Token"; break;
+//		case COAP_HEADER_TOKEN: ret = "Token"; break;
 
 		case COAP_HEADER_BLOCK1: ret = "Block1"; break;
 		case COAP_HEADER_BLOCK2: ret = "Block2"; break;
@@ -566,6 +552,67 @@ http_code_to_cstr(int x) {
 
 const char* coap_code_to_cstr(int x) { return http_code_to_cstr(coap_to_http_code(x)); }
 
+bool
+coap_verify_packet(const char* packet,size_t packet_size) {
+	const struct coap_header_s* header = (void*)packet;
+
+	coap_option_key_t key = 0;
+	const uint8_t* value;
+	size_t value_len;
+	const uint8_t* option_ptr = header->token + header->token_len;
+	const char* tt_str = NULL;
+
+	if(packet_size<4) {
+		// Packet too small
+		return false;
+	}
+
+	if(packet_size>65535) {
+		// Packet too large
+		return false;
+	}
+
+	if(header->token_len>8) {
+		// Token too large
+		return false;
+	}
+
+	if(header->version!=COAP_VERSION) {
+		// Bad version.
+		return false;
+	}
+
+	if(header->code==COAP_CODE_EMPTY && packet_size!=4) {
+		// Packet should be empty.
+		return false;
+	}
+
+	for(;option_ptr && (option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
+		option_ptr = coap_decode_option(option_ptr, &key, &value, &value_len);
+		if(!option_ptr) {
+			return false;
+		}
+		if(option_ptr-(uint8_t*)header>packet_size) {
+			return false;
+		}
+	}
+
+	if((option_ptr-(uint8_t*)header)>packet_size) {
+		// Option too large
+		return false;
+	}
+
+	if((option_ptr-(uint8_t*)header)<packet_size) {
+		if(option_ptr && option_ptr[0]==0xFF) {
+		} else {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
 #if !defined(__SDCC)
 void
 coap_dump_header(
@@ -577,12 +624,48 @@ coap_dump_header(
 	coap_option_key_t key = 0;
 	const uint8_t* value;
 	size_t value_len;
-	int option_count = header->option_count;
-	const uint8_t* option_ptr = header->options;
+//	int option_count = header->option_count;
+	const uint8_t* option_ptr = header->token + header->token_len;
 	const char* tt_str = NULL;
 
 	if(!prefix)
 		prefix = "";
+
+	if(packet_size<4) {
+		fputs(prefix, outstream);
+		fprintf(outstream,
+			"PACKET CORRUPTED: Packet Too Small: %d\n",
+			header->token_len
+		);
+		return;
+	}
+
+	if(packet_size>65535) {
+		fputs(prefix, outstream);
+		fprintf(outstream,
+			"PACKET CORRUPTED: Packet Too Big: %d\n",
+			header->token_len
+		);
+		return;
+	}
+
+	if(header->version!=COAP_VERSION) {
+		fputs(prefix, outstream);
+		fprintf(outstream,
+			"PACKET CORRUPTED: Bad Version (%d)\n",
+			header->version
+		);
+		return;
+	}
+
+	if(header->token_len>8) {
+		fputs(prefix, outstream);
+		fprintf(outstream,
+			"PACKET CORRUPTED: Invalid Token Length (%d)\n",
+			header->token_len
+		);
+		return;
+	}
 
 	switch(header->tt) {
 		case COAP_TRANS_TYPE_CONFIRMABLE: tt_str = "CON(0)"; break;
@@ -594,10 +677,10 @@ coap_dump_header(
 	if(header->code >= COAP_RESULT_100) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
-			"CoAP/1.0 %d %s tt=%s tid=%d\n",
+			"CoAP/1.0 %d %s tt=%s msgid=0x%04X\n",
 			coap_to_http_code(header->code),
 			coap_code_to_cstr(header->code),
-			tt_str,header->msg_id
+			tt_str,ntohs(header->msg_id)
 		);
 	} else {
 		fputs(prefix, outstream);
@@ -608,24 +691,32 @@ coap_dump_header(
 			fputs("? ", outstream);
 		}
 
-		fprintf(outstream, "CoAP/1.0 tt=%s tid=%d\n",
-			tt_str,header->msg_id
+		fprintf(outstream, "CoAP/1.0 tt=%s msgid=0x%04X\n",
+			tt_str,ntohs(header->msg_id)
 		);
 	}
 
-	for(;option_ptr && option_count && (option_count!=15 || option_ptr[0]!=0xF0);) {
+	if(header->token_len) {
+		size_t i;
+		fputs(prefix, outstream);
+		fprintf(outstream, "Token: ");
+		for(i = 0; i < header->token_len; i++) {
+			fprintf(outstream, "%02X ", (uint8_t)header->token[i]);
+		}
+		fprintf(outstream, "\n");
+	}
+
+	for(;option_ptr && (option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
 		option_ptr = coap_decode_option(option_ptr, &key, &value, &value_len);
-		if(option_count!=15) {
-			--option_count;
-			if(!option_ptr) {
-				fputs(prefix, outstream);
-				fprintf(outstream,"OPTIONS ARE CORRUPTED!\n");
-				break;
-			}
-		} else {
-			if(!option_ptr) {
-				break;
-			}
+		if(!option_ptr) {
+			fputs(prefix, outstream);
+			fprintf(outstream,"PACKET CORRUPTED: Bad Options\n");
+			return;
+		}
+		if(option_ptr-(uint8_t*)header>packet_size) {
+			fputs(prefix, outstream);
+			fprintf(outstream,"PACKET CORRUPTED: Option value size too big\n");
+			return;
 		}
 		fputs(prefix, outstream);
 		fprintf(outstream, "%s: ",
@@ -703,6 +794,21 @@ coap_dump_header(
 		break;
 		}
 		fputc('\n', outstream);
+	}
+	if((option_ptr-(uint8_t*)header)>packet_size) {
+		fputs(prefix, outstream);
+		fprintf(outstream,"PACKET CORRUPTED: Bad Options\n");
+		return;
+	}
+	if((option_ptr-(uint8_t*)header)<packet_size) {
+		if(option_ptr && option_ptr[0]==0xFF) {
+
+			fputs(prefix, outstream);
+			fprintf(outstream, "Payload-Size: %ld\n",packet_size-(option_ptr-(uint8_t*)header)-1);
+		} else {
+			fputs(prefix, outstream);
+			fprintf(outstream,"PACKET CORRUPTED: %d extra bytes\n",packet_size-(option_ptr-(uint8_t*)header));
+		}
 	}
 
 	fputs(prefix, outstream);

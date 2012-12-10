@@ -55,6 +55,30 @@ delete_response_handler(
 ) {
 	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
+
+
+	if(content_length>(smcp_inbound_get_packet_length()-4)) {
+		fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet());
+		gRet = ERRORCODE_UNKNOWN;
+		goto bail;
+	}
+
+//	if((statuscode >= 0) && post_show_headers) {
+//		coap_dump_header(
+//			stdout,
+//			NULL,
+//			smcp_inbound_get_packet(),
+//			smcp_inbound_get_packet_length()
+//		);
+//	}
+
+	if(!coap_verify_packet((void*)smcp_inbound_get_packet(), smcp_inbound_get_packet_length())) {
+		fprintf(stderr, "INTERNAL ERROR: CALLBACK GIVEN INVALID PACKET!\n");
+		gRet = ERRORCODE_UNKNOWN;
+		goto bail;
+	}
+
+
 	if((statuscode != COAP_RESULT_202_DELETED) &&
 	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
 		fprintf(stderr, "delete: Result code = %d (%s)\n", statuscode,
@@ -74,7 +98,7 @@ delete_response_handler(
 
 		printf("%s\n", contentBuffer);
 	}
-
+bail:
 	if(gRet == ERRORCODE_INPROGRESS)
 		gRet = 0;
 	return SMCP_STATUS_OK;
@@ -100,11 +124,11 @@ bail:
 }
 
 
-coap_transaction_id_t
+coap_msg_id_t
 send_delete_request(
 	smcp_t smcp, const char* url
 ) {
-	coap_transaction_id_t tid = smcp_get_next_msg_id(smcp,NULL);
+	coap_msg_id_t tid = smcp_get_next_msg_id(smcp,NULL);
 
 	require_noerr(smcp_begin_transaction_old(
 			smcp,
@@ -127,7 +151,7 @@ tool_cmd_delete(
 	smcp_t smcp, int argc, char* argv[]
 ) {
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
-	coap_transaction_id_t tid = 0;
+	coap_msg_id_t tid = 0;
 
 	char url[1000] = "";
 

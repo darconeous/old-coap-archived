@@ -165,10 +165,10 @@ resend_async_response(void* context) {
 	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	ret = smcp_outbound_set_async_response(async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_async_response(async_response);
+	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_set_content_formatted("This was an asynchronous response!");
@@ -384,7 +384,7 @@ tool_cmd_test(
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 	{
-		coap_transaction_id_t tid = smcp_get_next_msg_id(smcp2,NULL);
+		coap_msg_id_t tid = smcp_get_next_msg_id(smcp2,NULL);
 
 		char url[256];
 

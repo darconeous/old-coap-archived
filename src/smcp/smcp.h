@@ -99,6 +99,7 @@ enum {
 	SMCP_STATUS_RESET				= -23,
 	SMCP_STATUS_ASYNC_RESPONSE		= -24,
 	SMCP_STATUS_UNAUTHORIZED		= -25,
+	SMCP_STATUS_BAD_PACKET			= -26,
 };
 
 typedef int smcp_status_t;
@@ -167,6 +168,10 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define smcp_invalidate_timer(self,...)		smcp_invalidate_timer(__VA_ARGS__)
 #define smcp_handle_timers(self,...)		smcp_handle_timers(__VA_ARGS__)
 #define smcp_timer_is_scheduled(self,...)		smcp_timer_is_scheduled(__VA_ARGS__)
+#define smcp_transaction_new_msg_id(self,...)		smcp_transaction_new_msg_id(__VA_ARGS__)
+
+
+
 #else
 #define SMCP_EMBEDDED_SELF_HOOK
 #endif
@@ -250,7 +255,7 @@ extern smcp_status_t smcp_transaction_end(
 //! DEPRECATED.
 extern smcp_status_t smcp_begin_transaction_old(
 	smcp_t self,
-	coap_transaction_id_t tid,
+	coap_msg_id_t tid,
 	cms_t cmsExpiration,
 	int	flags,
 	smcp_inbound_resend_func requestResend,
@@ -261,13 +266,14 @@ extern smcp_status_t smcp_begin_transaction_old(
 //! DEPRECATED.
 extern smcp_status_t smcp_invalidate_transaction_old(
 	smcp_t self,
-	coap_transaction_id_t tid
+	coap_msg_id_t tid
 );
 
 #pragma mark -
 #pragma mark Inbound Message Parsing API
 
 extern const struct coap_header_s* smcp_inbound_get_packet();
+extern size_t smcp_inbound_get_packet_length();
 
 #define smcp_inbound_get_msg_id()	(smcp_inbound_get_packet()->msg_id)
 
@@ -316,7 +322,7 @@ extern void smcp_outbound_drop();
 
 extern smcp_status_t smcp_outbound_begin_response(coap_code_t code);
 
-extern smcp_status_t smcp_outbound_set_msg_id(coap_transaction_id_t tid);
+extern smcp_status_t smcp_outbound_set_msg_id(coap_msg_id_t tid);
 
 extern smcp_status_t smcp_outbound_set_code(coap_code_t code);
 
@@ -380,11 +386,17 @@ struct smcp_async_response_s {
 	uint16_t				toport;	// Always in network order.
 #endif
 
-	coap_transaction_id_t original_tid;
-	coap_transaction_type_t tt;
+	union {
+		struct coap_header_s header;
+		uint8_t bytes[128];
+	} request;
+	size_t request_len;
 
-	uint8_t token_len;
-	uint8_t token_value[COAP_MAX_TOKEN_SIZE];
+//	coap_msg_id_t original_tid;
+//	coap_transaction_type_t tt;
+//
+//	uint8_t token_len;
+//	uint8_t token_value[COAP_MAX_TOKEN_SIZE];
 };
 
 typedef struct smcp_async_response_s* smcp_async_response_t;
@@ -394,6 +406,8 @@ extern smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,i
 extern smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
 
 extern smcp_status_t smcp_outbound_set_async_response(struct smcp_async_response_s* x);
+
+extern smcp_status_t smcp_outbound_set_token(const uint8_t *token,uint8_t token_length);
 
 #pragma mark -
 #pragma mark Node Functions
@@ -446,7 +460,7 @@ extern smcp_status_t smcp_default_request_handler(
 #pragma mark -
 #pragma mark Helper Functions
 
-extern coap_transaction_id_t smcp_get_next_msg_id(smcp_t self, void* context);
+extern coap_msg_id_t smcp_get_next_msg_id(smcp_t self, void* context);
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 

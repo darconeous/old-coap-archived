@@ -136,12 +136,12 @@ bail:
 	return status;
 }
 
-static coap_transaction_id_t
+static coap_msg_id_t
 send_pair_request(
 	smcp_t smcp, const char* url, const char* url2
 ) {
 	bool ret = false;
-	coap_transaction_id_t tid;
+	coap_msg_id_t tid;
 	const char** url_ = calloc(2,sizeof(char*));
 
 	require(url_,bail);
@@ -185,7 +185,7 @@ tool_cmd_pair(
 	smcp_t smcp, int argc, char* argv[]
 ) {
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
-	coap_transaction_id_t tid=0;
+	coap_msg_id_t tid=0;
 
 	char url[1000];
 	url[0] = 0;

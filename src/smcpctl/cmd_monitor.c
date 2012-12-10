@@ -70,7 +70,7 @@ tool_cmd_monitor(
 ) {
 	int i;
 	char url[1000];
-	coap_transaction_id_t tid=0;
+	coap_msg_id_t tid=0;
 
 	static struct smcp_node_s monitor_node = {};
 	if(!monitor_node.name) {

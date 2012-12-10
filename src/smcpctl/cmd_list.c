@@ -40,7 +40,7 @@ static arg_list_item_t option_list[] = {
 	{ 0 }
 };
 
-static coap_transaction_id_t tid;
+static coap_msg_id_t tid;
 static uint16_t size_request;
 
 static int gRet;
@@ -80,16 +80,29 @@ list_response_handler(
 		return SMCP_STATUS_TRANSACTION_INVALIDATED;
 	}
 
-	if((statuscode >= COAP_RESULT_100) && list_show_headers) {
+	if(content_length>(smcp_inbound_get_packet_length()-4)) {
+		fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet());
+		gRet = ERRORCODE_UNKNOWN;
+		goto bail;
+	}
+
+	if((statuscode >= 0) && list_show_headers) {
 		if(next_len != ((size_t)(-1)))
 			fprintf(stdout, "\n");
 		coap_dump_header(
 			stdout,
 			NULL,
 			smcp_inbound_get_packet(),
-			0
+			smcp_inbound_get_packet_length()
 		);
 	}
+
+	if(!coap_verify_packet((void*)smcp_inbound_get_packet(), smcp_inbound_get_packet_length())) {
+		fprintf(stderr, "INTERNAL ERROR: CALLBACK GIVEN INVALID PACKET!\n");
+		gRet = ERRORCODE_UNKNOWN;
+		goto bail;
+	}
+
 
 	if(((statuscode < COAP_RESULT_200) ||
 	            (statuscode >= COAP_RESULT_400)) &&
@@ -304,7 +317,7 @@ list_response_handler(
 						fprintf(stdout,"/");
 					if(!list_filename_only) {
 						if(v)
-							fprintf(stdout,"=%s",v);
+							fprintf(stdout,"%s%s",istty?"\033[1;37;40m=\033[0;37;40m":"=",v);
 						fprintf(stdout," ");
 						if(uri_len < col_width) {
 							if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {

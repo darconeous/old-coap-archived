@@ -61,7 +61,7 @@
 #define COAP_MAX_OPTION_VALUE_SIZE		(1034)
 
 typedef char coap_transaction_type_t;
-typedef uint16_t coap_transaction_id_t;
+typedef uint16_t coap_msg_id_t;
 
 typedef uint16_t coap_code_t;
 
@@ -173,7 +173,6 @@ typedef enum {
 	COAP_HEADER_MAX_AGE				= 14,
 	COAP_HEADER_URI_QUERY			= 15,
 	COAP_HEADER_ACCEPT				= 16,
-	COAP_HEADER_TOKEN				= 19,
 	COAP_HEADER_LOCATION_QUERY		= 20,
 	COAP_HEADER_BLOCK2				= 23,	/* draft-ietf-core-block-10 */
 	COAP_HEADER_BLOCK1				= 27,	/* draft-ietf-core-block-10 */
@@ -181,13 +180,13 @@ typedef enum {
 	COAP_HEADER_PROXY_URI			= 35,
 
 	//////////////////////////////////////////////////////////////////////
-	// Experimental after this point. Experimentals start at 2048.
+	// Experimental after this point. Experimentals start at 65000.
 
-	COAP_HEADER_CASCADE_COUNT = 2048 + 1,    //!< Used for preventing pairing loops.
-	COAP_HEADER_AUTHENTICATE = 2048 + 2,
+	COAP_HEADER_CASCADE_COUNT = 65100 + 1,    //!< Used for preventing pairing loops.
+	COAP_HEADER_AUTHENTICATE = 65100 + 2,
 
-	SMCP_HEADER_ORIGIN = 2048 + 4,           //!< Used for SMCP Pairing.
-	SMCP_HEADER_CSEQ = 2048 + 6,             //!< Used for SMCP Pairing.
+	SMCP_HEADER_ORIGIN = 65100 + 4,           //!< Used for SMCP Pairing.
+	SMCP_HEADER_CSEQ = 65100 + 6,             //!< Used for SMCP Pairing.
 } coap_option_key_t;
 
 
@@ -222,30 +221,30 @@ enum {
 	COAP_CONTENT_TYPE_APPLICATION_FASTINFOSET=49,
 
 	//////////////////////////////////////////////////////////////////////
-	// Experimental after this point. Experimentals start at 201.
+	// Experimental after this point. Experimentals start at 65000.
 
-	SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED=205,  //!< SMCP Specific
+	SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED=65005,  //!< SMCP Specific
 
 	COAP_CONTENT_TYPE_UNKNOWN = 255,
 };
 
-typedef unsigned char coap_content_type_t;
+typedef uint16_t coap_content_type_t;
 
 struct coap_header_s {
 #if __BIG_ENDIAN__
 	uint8_t
 		version:2,
 		tt:2,
-		option_count:4;
+		token_len:4;
 #else
 	uint8_t
-		option_count:4,
+		token_len:4,
 		tt:2,
 		version:2;
 #endif
 	coap_code_t code:8;
-	coap_transaction_id_t msg_id; // Always in network order.
-	uint8_t options[0];
+	coap_msg_id_t msg_id; // Always in network order.
+	uint8_t token[0];
 };
 
 extern uint8_t* coap_decode_option(
@@ -287,6 +286,8 @@ extern const char* coap_option_key_to_cstr(coap_option_key_t key, bool for_respo
 extern coap_option_key_t coap_option_key_from_cstr(const char* key);
 extern const char* http_code_to_cstr(int x);
 extern const char* coap_code_to_cstr(int x);
+
+extern bool coap_verify_packet(const char* packet,size_t packet_size);
 
 #if !CONTIKI
 #include <stdio.h>

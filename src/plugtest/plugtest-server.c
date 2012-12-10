@@ -82,7 +82,7 @@ plugtest_test_handler(
 				strlcat(content,(char*)value,MIN(max_len,value_len+1));
 				content[argh] = 0;
 			} else {
-				strlcat(content,"...",max_len);
+				strlcat(content,"<binary>",max_len);
 			}
 			strlcat(content,"\n",max_len);
 		}
@@ -106,10 +106,10 @@ plugtest_separate_async_resend_response(void* context) {
 	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	ret = smcp_outbound_set_async_response(async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_async_response(async_response);
+	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_set_content_formatted("This was an asynchronous response!");

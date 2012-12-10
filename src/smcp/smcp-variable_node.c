@@ -253,6 +253,13 @@ smcp_variable_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
+#if SMCP_ENABLE_PAIRING
+			if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,buffer)) {
+				ret = smcp_pair_inbound_observe_update();
+				check_string(ret==0,smcp_status_to_cstr(ret));
+			}
+#endif
+
 			if(reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 
@@ -264,12 +271,6 @@ smcp_variable_request_handler(
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
 
-#if SMCP_ENABLE_PAIRING
-				if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,buffer)) {
-					ret = smcp_pair_inbound_observe_update();
-					check_string(ret==0,smcp_status_to_cstr(ret));
-				}
-#endif
 				replyContent = smcp_outbound_get_content_ptr(&replyContentLength);
 
 				*replyContent++ = 'v';
@@ -285,10 +286,6 @@ smcp_variable_request_handler(
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
 
-#if SMCP_ENABLE_PAIRING
-				ret = smcp_pair_inbound_observe_update();
-				check_string(ret==0,smcp_status_to_cstr(ret));
-#endif
 				ret = smcp_outbound_append_content(buffer, HEADER_CSTR_LEN);
 			}
 
