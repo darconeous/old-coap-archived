@@ -135,53 +135,24 @@ bt_remove(
 
 	if(item_) {
 		if(item_->parent) {
-			if(item_->parent->lhs == item_) {
-				item_->parent->lhs = item_->lhs;
-				if(item_->lhs)
-					item_->lhs->parent = item_->parent;
-				if(item_->rhs) {
-					bt_insert(
-						(void**)&item_->parent->lhs,
-						item_->rhs,
-						compare_func,
-						delete_func,
-						context
-					);
-				}
-			} else if(item_->parent->rhs == item_) {
-				item_->parent->rhs = item_->lhs;
-				if(item_->lhs)
-					item_->lhs->parent = item_->parent;
-				if(item_->rhs) {
-					bt_insert(
-						(void**)&item_->parent->rhs,
-						item_->rhs,
-						compare_func,
-						delete_func,
-						context
-					);
-				}
-			}
-		} else if(*bt == item_) {
-			if(item_->lhs) {
-				item_->lhs->parent = NULL;
-				*bt = item_->lhs;
-				if(item_->rhs) {
-					item_->rhs->parent = NULL;
-					bt_insert(
-						bt,
-						item_->rhs,
-						compare_func,
-						delete_func,
-						context
-					);
-				}
-			} else if(item_->rhs) {
-				item_->rhs->parent = NULL;
-				*bt = item_->rhs;
-			} else {
-				*bt = NULL;
-			}
+			bt = (void**)((item_->parent->lhs == item_)?&item_->parent->lhs:&item_->parent->rhs);
+		}
+
+		if(item_->lhs && !item_->rhs) {
+			*bt = item_->lhs;
+			item_->lhs->parent = item_->parent;
+		} else if(item_->rhs && !item_->lhs) {
+			*bt = item_->rhs;
+			item_->rhs->parent = item_->parent;
+		} else if(!item_->rhs && !item_->lhs) {
+			*bt = NULL;
+		} else {
+			bt_item_t last_item = (bt_item_t)bt_last(item_->lhs);
+			item_->rhs->parent = last_item;
+			last_item->rhs = item_->rhs;
+
+			*bt = item_->lhs;
+			item_->lhs->parent = item_->parent;
 		}
 
 		item_->lhs = NULL;
@@ -462,7 +433,7 @@ self_test_node_compare(
 bt_compare_result_t
 self_test_node_compare_cstr(
 	self_test_node_t lhs,
-	self_test_node_t rhs,
+	const char* rhs,
 	void* context
 ) {
 	(void)context; // This parameter is not used. Supress warning.
@@ -489,13 +460,13 @@ forward_traversal_test(self_test_node_t root) {
 		j++;
 
 		if(nodes_alive < j) {
-			printf("Bad node count in forward traversal.\n");
+			printf("Bad node count in forward traversal, too many nodes!\n");
 			exit(-1);
 		}
 	}
 
 	if(nodes_alive != j) {
-		printf("Bad node count in forward traversal.\n");
+		printf("Bad node count in forward traversal, not enough nodes!\n");
 		exit(-1);
 	}
 	printf("OK\n");
@@ -562,7 +533,7 @@ again:
 	printf("Inserted %d nodes.\n", (int)bt_count((void**)&root));
 
 	if(nodes_alive != (int)bt_count((void**)&root)) {
-		printf("Bad node count.\n");
+		printf("error: Bad node count.\n");
 		ret++;
 	}
 
@@ -572,6 +543,58 @@ again:
 	reverse_traversal_test(root);
 
 	bt_find((void**)&root, "item_1", &self_test_node_compare_cstr, &nodes_alive);
+
+	printf("Removing nodes in pseudo random order.\n");
+	for(c = 4 * 97 + 101; c!=4; c = c * 97 + 101) {
+		char* name = NULL;
+
+		asprintf(&name, "item_%d", (c==0)?4:c);
+
+		if(!bt_remove(
+			(void**)&root,
+			name,
+			(bt_compare_func_t)&self_test_node_compare_cstr,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		)) {
+			printf("error: REMOVE FAILED FOR %d\n",c);
+			ret++;
+		}
+		free(name);
+		if(nodes_alive != (int)bt_count((void**)&root)) {
+			printf("error: Bad node count.\n");
+			ret++;
+			break;
+		}
+		forward_traversal_test(root);
+		reverse_traversal_test(root);
+	}
+
+	if(nodes_alive) {
+		printf("error: Bad node count, should be zero.\n");
+		ret++;
+	}
+
+	forward_traversal_test(root);
+	reverse_traversal_test(root);
+
+	printf("Inserting more nodes in pseudo random order.\n");
+	for(c = 5 * 97 + 101; c; c = c * 97 + 101) {
+		self_test_node_t new_node = calloc(sizeof(struct self_test_node_s),
+			1);
+
+		asprintf(&new_node->name, "item_%d", c);
+
+		nodes_alive++;
+
+		bt_insert(
+			(void**)&root,
+			new_node,
+			(bt_compare_func_t)&self_test_node_compare,
+			(bt_delete_func_t)&self_test_node_delete,
+			&nodes_alive
+		);
+	}
 
 	i = bt_rebalance((void**)&root);
 	printf("Rebalance operation took %u rotations\n", i);
@@ -661,7 +684,8 @@ again:
 	// Cleanup.
 	printf("Removing all nodes...\n");
 	while(root)
-		bt_remove((void**)&root,
+		bt_remove(
+			(void**)&root,
 			root,
 			(bt_compare_func_t)&self_test_node_compare,
 			(bt_delete_func_t)&self_test_node_delete,
@@ -766,10 +790,11 @@ again:
 	}
 
 	if(ret)
-		printf("Failed.\n");
-	else
+		printf("Failed with %d errors.\n",ret);
+	else {
 		printf("OK\n");
-	goto again;
+		//goto again;
+	}
 
 	return ret;
 }

@@ -114,6 +114,8 @@ extern void bt_rotate_right(void** pivot);
 
 extern unsigned int bt_rebalance(void** bt);
 
+extern unsigned int bt_unbalance(void** bt);
+
 extern unsigned int bt_splay(void** bt, void* root);
 
 __END_DECLS
