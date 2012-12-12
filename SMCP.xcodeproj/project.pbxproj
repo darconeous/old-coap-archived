@@ -137,6 +137,10 @@
 		A63EA6F81278B16D00B24867 /* url-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "url-helpers.h"; path = "src/smcp/url-helpers.h"; sourceTree = "<group>"; };
 		A63EB2871278CBB100B24867 /* cmd_repeat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_repeat.h; path = src/smcpctl/cmd_repeat.h; sourceTree = "<group>"; };
 		A63EB2881278CBB100B24867 /* cmd_repeat.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_repeat.c; path = src/smcpctl/cmd_repeat.c; sourceTree = "<group>"; };
+		A64B12D616782CF000B2D485 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		A64B12D716782CF000B2D485 /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		A64B12D816782CF000B2D485 /* Makefile.target */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.target; sourceTree = "<group>"; };
+		A64B12D916782CF000B2D485 /* smcp-plugtest.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "smcp-plugtest.c"; sourceTree = "<group>"; };
 		A64F2AF8166EB236001D9878 /* smcp-transaction.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-transaction.c"; path = "src/smcp/smcp-transaction.c"; sourceTree = "<group>"; };
 		A64F2AFB166EB265001D9878 /* smcp-transaction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-transaction.h"; path = "src/smcp/smcp-transaction.h"; sourceTree = "<group>"; };
 		A65258361528F45300E389EC /* cmd_monitor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_monitor.c; path = src/smcpctl/cmd_monitor.c; sourceTree = "<group>"; };
@@ -321,6 +325,17 @@
 			path = "smcp-plugtest-server";
 			sourceTree = "<group>";
 		};
+		A64B12D516782CF000B2D485 /* smcp-plugtest */ = {
+			isa = PBXGroup;
+			children = (
+				A64B12D616782CF000B2D485 /* .gitignore */,
+				A64B12D716782CF000B2D485 /* Makefile */,
+				A64B12D816782CF000B2D485 /* Makefile.target */,
+				A64B12D916782CF000B2D485 /* smcp-plugtest.c */,
+			);
+			path = "smcp-plugtest";
+			sourceTree = "<group>";
+		};
 		A6764685156474380074028C /* contiki-src */ = {
 			isa = PBXGroup;
 			children = (
@@ -339,6 +354,7 @@
 		A6764689156474380074028C /* examples */ = {
 			isa = PBXGroup;
 			children = (
+				A64B12D516782CF000B2D485 /* smcp-plugtest */,
 				A67646A8156479E50074028C /* smcp-simple */,
 				A676468A156474380074028C /* smcp-test */,
 			);
@@ -750,6 +766,7 @@
 				A6290E5316767091008914FD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		A6CD69611283465700254A8B /* Build configuration list for PBXNativeTarget "btreetest" */ = {
 			isa = XCConfigurationList;
