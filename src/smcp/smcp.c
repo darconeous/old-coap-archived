@@ -611,8 +611,12 @@ smcp_handle_inbound_packet(
 
 		// Now that we are at the end of the options, we know
 		// where the content starts.
-		self->inbound.content_ptr = (char*)self->inbound.this_option+1;
-		self->inbound.content_len = packet_length-(self->inbound.content_ptr-buffer);
+		self->inbound.content_ptr = (char*)self->inbound.this_option;
+		self->inbound.content_len = self->inbound.packet_len-(self->inbound.content_ptr-buffer);
+		if(self->inbound.content_len) {
+			self->inbound.content_ptr++;
+			self->inbound.content_len--;
+		}
 	}
 
 	smcp_inbound_reset_next_option();
