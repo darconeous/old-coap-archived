@@ -78,12 +78,15 @@ smcp_node_alloc() {
 			ret = NULL;
 			continue;
 		}
+		break;
 	}
 #else
 	ret = (smcp_node_t)calloc(sizeof(struct smcp_node_s), 1);
 #endif
 	if(ret)
 		ret->finalize = &smcp_node_dealloc;
+	else
+		DEBUG_PRINTF("%s: Malloc failure...?",__func__);
 	return ret;
 }
 

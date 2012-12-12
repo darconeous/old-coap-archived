@@ -104,6 +104,9 @@ smcp_outbound_begin(
 #elif CONTIKI
 	uip_udp_conn = self->udp_conn;
 	self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+	if(self->outbound.packet==self->inbound.packet) {
+		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + self->inbound.packet_len + 1];
+	}
 #else
 #warning WRITEME!
 #endif
@@ -814,6 +817,15 @@ smcp_outbound_send() {
 	);
 
 #elif CONTIKI
+	if(self->outbound.packet!=(struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN]) {
+		memmove(
+			&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN],
+			(char*)self->outbound.packet,
+			header_len+smcp_get_current_instance()->outbound.content_len
+		);
+		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+	}
+
 	uip_udp_conn = smcp_get_current_instance()->udp_conn;
 	uip_slen = header_len +
 		smcp_get_current_instance()->outbound.content_len;
