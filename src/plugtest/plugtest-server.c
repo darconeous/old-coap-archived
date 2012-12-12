@@ -207,8 +207,7 @@ plugtest_obs_handler(
 
 		smcp_outbound_set_content_type(0);
 
-		ret = smcp_pair_inbound_observe_update();
-		if(ret) goto bail;
+		smcp_pair_inbound_observe_update();
 
 		ret = smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE,10);
 		if(ret) goto bail;
