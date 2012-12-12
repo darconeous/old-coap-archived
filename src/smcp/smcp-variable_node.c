@@ -35,13 +35,17 @@
 #endif
 
 #include "assert_macros.h"
+
 #include "smcp-opts.h"
+#include "smcp.h"
 #include "smcp-node.h"
+#include "smcp-helpers.h"
 #include "smcp-variable_node.h"
-#include "url-helpers.h"
 #include "smcp-logging.h"
-#include <stdlib.h>
 #include "smcp-pairing.h"
+
+#include "url-helpers.h"
+#include <stdlib.h>
 
 void
 smcp_variable_node_dealloc(smcp_variable_node_t x) {
@@ -264,7 +268,11 @@ smcp_variable_request_handler(
 				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 
 				if(0==node->func(node,SMCP_VAR_GET_MAX_AGE,key_index,buffer)) {
+#if HAVE_STRTOL
 					uint32_t max_age = strtol(buffer,NULL,0)&0xFFFFFF;
+#else
+					uint32_t max_age = atoi(buffer)&0xFFFFFF;
+#endif
 					smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE, max_age);
 				}
 

@@ -528,6 +528,8 @@ smcp_handle_inbound_packet(
 	// self->inbound.was_sent_to_multicast = ???
 
 	{
+		int i;
+
 		// Update dupe hash.
 		fasthash_start(0);
 #if SMCP_USE_BSD_SOCKETS
@@ -540,7 +542,7 @@ smcp_handle_inbound_packet(
 		fasthash_feed((const uint8_t*)&self->inbound.packet->msg_id,sizeof(self->inbound.packet->msg_id));
 
 		self->inbound.transaction_hash = fasthash_finish_uint32();
-		int i = SMCP_CONF_DUPE_BUFFER_SIZE;
+		i = SMCP_CONF_DUPE_BUFFER_SIZE;
 		while(i--) {
 			if(self->dupe[i].hash == self->inbound.transaction_hash) {
 				self->inbound.is_dupe = true;
@@ -593,8 +595,8 @@ smcp_handle_inbound_packet(
 				for(i = 0; i < value_len; i++)
 					self->inbound.block2_value = (self->inbound.block2_value << 8) + value[i];
 			} else if(key==COAP_HEADER_OBSERVE) {
-				self->inbound.has_observe_option = 1;
 				uint8_t i;
+				self->inbound.has_observe_option = 1;
 				self->inbound.observe_value = 0;
 				for(i = 0; i < value_len; i++)
 					self->inbound.observe_value = (self->inbound.observe_value << 8) + value[i];
@@ -1034,8 +1036,8 @@ bail:
 	return handler;
 }
 
-extern
-smcp_status_t smcp_transaction_begin(
+smcp_status_t
+smcp_transaction_begin(
 	smcp_t self,
 	smcp_transaction_t handler,
 	cms_t expiration
@@ -1105,8 +1107,8 @@ bail:
 	return 0;
 }
 
-extern
-smcp_status_t smcp_transaction_end(
+smcp_status_t
+smcp_transaction_end(
 	smcp_t self,
 	smcp_transaction_t transaction
 ) {
@@ -1468,8 +1470,8 @@ smcp_handle_response(
 					smcp_transaction_end(self, handler);
 					handler = NULL;
 				} else {
-					handler->next_block2 = 0;
 					cms_t cms = self->inbound.max_age*1000;
+					handler->next_block2 = 0;
 
 					smcp_invalidate_timer(self, &handler->timer);
 

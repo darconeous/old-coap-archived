@@ -38,6 +38,9 @@
 #include <smcp/smcp-pairing.h>
 #include "plugtest-server.h"
 
+#if CONTIKI && !defined(time)
+#define time(x)		clock_seconds()
+#endif
 
 smcp_status_t
 plugtest_test_handler(
@@ -68,7 +71,7 @@ plugtest_test_handler(
 		goto bail;
 	}
 
-	snprintf(content,max_len,"Plugtest!\nMethod = %s\n",coap_code_to_cstr(method));
+	sprintf(content,"Plugtest!\nMethod = %s\n",coap_code_to_cstr(method));
 
 	{
 		const uint8_t* value;
@@ -219,7 +222,7 @@ plugtest_obs_handler(
 		}
 
 		ret = smcp_outbound_set_content_len(
-			snprintf(content,max_len,"%d",(int)time(NULL))
+			sprintf(content,"%d",(int)time(NULL))
 		);
 		if(ret) goto bail;
 
@@ -350,7 +353,7 @@ bail:
 smcp_status_t
 plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 
-	bzero(self,sizeof(*self));
+	memset(self,sizeof(*self),0);
 
 	smcp_node_init(&self->test,root,"test");
 	self->test.request_handler = &plugtest_test_handler;

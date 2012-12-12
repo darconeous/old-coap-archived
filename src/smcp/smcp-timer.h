@@ -32,6 +32,7 @@
 #include "smcp.h"
 #include "ll.h"
 #include "btree.h"
+#include "smcp-helpers.h"
 
 #define USEC_PER_SEC    (1000000)
 #define USEC_PER_MSEC   (1000)
@@ -41,22 +42,6 @@ __BEGIN_DECLS
 
 typedef void (*smcp_timer_callback_t)(smcp_t, void*);
 
-#if CONTIKI && !CONTIKI_TARGET_MINIMAL_NET && !CONTIKI_TARGET_COOJA && !CONTIKI_TARGET_NATIVE
-#if !defined(timeval)
-#define timeval timeval
-#ifndef __time_t_defined
-typedef long time_t;
-#define __time_t_defined 1
-#endif
-typedef int32_t suseconds_t;
-struct timeval {
-	time_t		tv_sec;
-	suseconds_t tv_usec;
-};
-#endif
-#else
-#include <sys/time.h>
-#endif
 
 typedef struct smcp_timer_s {
 	struct ll_item_s		ll;

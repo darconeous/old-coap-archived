@@ -597,9 +597,11 @@ smcp_event_response_handler(
 #endif
 
 	// expire the event.
-	smcp_event_tracker_t event = pairing->currentEvent;
-	pairing->currentEvent = NULL;
-	smcp_event_tracker_release(event);
+	{
+		smcp_event_tracker_t event = pairing->currentEvent;
+		pairing->currentEvent = NULL;
+		smcp_event_tracker_release(event);
+	}
 	return SMCP_STATUS_OK;
 }
 

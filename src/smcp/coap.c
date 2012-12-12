@@ -155,7 +155,7 @@ coap_encode_option(
 	return buffer;
 }
 
-extern size_t coap_insert_option(
+size_t coap_insert_option(
 	uint8_t* start_of_options,
 	uint8_t* end_of_options,
 	coap_option_key_t key,

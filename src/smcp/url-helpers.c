@@ -17,6 +17,10 @@
 #define HAVE_STRSEP	!defined(__SDCC)
 #endif
 
+#ifndef HAVE_STRDUP
+#define HAVE_STRDUP	!defined(__SDCC)
+#endif
+
 #if !defined(strsep) && !HAVE_STRSEP
 /* ---------------------------------------------------------------- */
 /* BEGIN BSD SECTION */
@@ -81,6 +85,18 @@ strsep_x(char **stringp, const char *delim)
 #define strsep	strsep_x
 /* END BSD SECTION */
 /* ---------------------------------------------------------------- */
+#endif
+
+#if !HAVE_STRDUP && !defined(strdup)
+#define strdup strdup__
+static inline char*
+strdup(const char* cstr) {
+	size_t len = strlen(cstr);
+	char* ret = malloc(len+1);
+	memcpy(ret,cstr,len);
+	ret[len]=0;
+	return ret;
+}
 #endif
 
 static bool
