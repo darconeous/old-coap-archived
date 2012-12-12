@@ -44,8 +44,6 @@ elapsed_time_request_handler(
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		if(ret) goto bail;
 
-		smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-
 		ret = smcp_outbound_set_var_content_unsigned_long_int(clock_seconds());
 		if(ret) goto bail;
 
