@@ -10,7 +10,7 @@ APPDIRS += $(SMCP_ROOT)/src/plugtest
 
 CLEAN += *.hex *.elf symbols.c symbols.h
 
-CFLAGS += -DDEBUG=0 -DNDEBUG=1
+#CFLAGS += -DDEBUG=0 -DNDEBUG=1
 #CFLAGS += -DUIP_CONF_LOGGING=1
 
 CFLAGS += -DUIP_CONF_RPL=0

@@ -1545,11 +1545,26 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 
 	require_action_string(x!=NULL,bail,ret=SMCP_STATUS_INVALID_ARGUMENT,"NULL async_response arg");
 
-	if(smcp_inbound_get_packet_length()-smcp_inbound_get_content_len()>sizeof(x->request)) {
-		// TODO: Be more graceful...?
-		ret = SMCP_STATUS_FAILURE;
-		goto bail;
-	}
+	// TODO: Be more graceful...?
+	require_action_string(
+		smcp_inbound_get_packet_length()-smcp_inbound_get_content_len()<=sizeof(x->request),
+		bail,
+		ret=SMCP_STATUS_FAILURE,
+		"Request too big for async response"
+	);
+
+	x->request_len = smcp_inbound_get_packet_length()-smcp_inbound_get_content_len();
+	memcpy(x->request.bytes,smcp_inbound_get_packet(),x->request_len);
+
+	assert(coap_verify_packet(x->request.bytes, x->request_len));
+
+#if SMCP_USE_BSD_SOCKETS
+	x->socklen = self->inbound.socklen;
+	memcpy(&x->saddr,self->inbound.saddr,sizeof(x->saddr));
+#elif CONTIKI
+	memcpy(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr));
+	x->toport = self->inbound.toport;
+#endif
 
 	if(!(flags & SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK)) {
 		// Fake inbound packets are created to tickle
@@ -1574,20 +1589,6 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 		ret = SMCP_STATUS_DUPE;
 		goto bail;
 	}
-
-	x->request_len = smcp_inbound_get_packet_length()-smcp_inbound_get_content_len();
-	memcpy(x->request.bytes,smcp_inbound_get_packet(),x->request_len);
-
-	assert(coap_verify_packet(x->request.bytes, x->request_len));
-
-
-#if SMCP_USE_BSD_SOCKETS
-	x->socklen = self->inbound.socklen;
-	memcpy(&x->saddr,self->inbound.saddr,sizeof(x->saddr));
-#elif CONTIKI
-	memcpy(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr));
-	x->toport = self->inbound.toport;
-#endif
 
 bail:
 	return ret;

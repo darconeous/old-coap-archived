@@ -564,47 +564,55 @@ coap_verify_packet(const char* packet,size_t packet_size) {
 
 	if(packet_size<4) {
 		// Packet too small
-		return false;
-	}
-
-	if(packet_size>65535) {
-		// Packet too large
-		return false;
-	}
-
-	if(header->token_len>8) {
-		// Token too large
+		DEBUG_PRINTF("PACKET CORRUPTED: Too Small\n");
 		return false;
 	}
 
 	if(header->version!=COAP_VERSION) {
 		// Bad version.
+		DEBUG_PRINTF("PACKET CORRUPTED: Bad Version\n");
+		return false;
+	}
+
+	if(packet_size>65535) {
+		// Packet too large
+		DEBUG_PRINTF("PACKET CORRUPTED: Too Large\n");
+		return false;
+	}
+
+	if(header->token_len>8) {
+		// Token too large
+		DEBUG_PRINTF("PACKET CORRUPTED: Bad Token\n");
 		return false;
 	}
 
 	if(header->code==COAP_CODE_EMPTY && packet_size!=4) {
-		// Packet should be empty.
+		DEBUG_PRINTF("PACKET CORRUPTED: Extra Data With Empty Packet (packet_size = %d)\n",packet_size);
 		return false;
 	}
 
 	for(;option_ptr && (option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
 		option_ptr = coap_decode_option(option_ptr, &key, &value, &value_len);
 		if(!option_ptr) {
+			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
 			return false;
 		}
 		if(option_ptr-(uint8_t*)header>packet_size) {
+			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
 			return false;
 		}
 	}
 
 	if((option_ptr-(uint8_t*)header)>packet_size) {
 		// Option too large
+		DEBUG_PRINTF("PACKET CORRUPTED: Options overflow packet size\n");
 		return false;
 	}
 
 	if((option_ptr-(uint8_t*)header)<packet_size) {
 		if(option_ptr && option_ptr[0]==0xFF) {
 		} else {
+			DEBUG_PRINTF("PACKET CORRUPTED: Missing content marker\n");
 			return false;
 		}
 	}

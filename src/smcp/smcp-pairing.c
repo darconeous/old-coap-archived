@@ -543,7 +543,6 @@ smcp_event_response_handler(
 	int statuscode, smcp_pairing_node_t pairing
 ) {
 	DEBUG_PRINTF("Pairing:%p: smcp_event_response_handler(): statuscode=%d",pairing,statuscode);
-#if SMCP_CONF_PAIRING_STATS
 
 	if(statuscode==SMCP_STATUS_TIMEOUT) {
 		if(SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)) {
@@ -557,8 +556,14 @@ smcp_event_response_handler(
 	if(statuscode!=SMCP_STATUS_TRANSACTION_INVALIDATED) {
 		if(statuscode && ((statuscode < COAP_RESULT_200) || (statuscode >= COAP_RESULT_400))) {
 			// Looks like we failed to live up to this pairing.
+#if SMCP_CONF_PAIRING_STATS
 			pairing->errors++;
-			if(	(pairing->errors>=10) && pairing->flags & SMCP_PARING_FLAG_OBSERVE ) {
+#endif
+			if(	(pairing->flags & SMCP_PARING_FLAG_OBSERVE)
+#if SMCP_CONF_PAIRING_STATS
+				&& (pairing->errors>=10)
+#endif
+			) {
 				DEBUG_PRINTF("Event:%p: Too many errors!\n",pairing);
 				statuscode = SMCP_STATUS_RESET;
 			}
@@ -566,12 +571,15 @@ smcp_event_response_handler(
 				smcp_delete_pairing(pairing);
 				return SMCP_STATUS_OK;
 			}
+#if SMCP_CONF_PAIRING_STATS
 			smcp_trigger_event_with_node(
 				smcp_get_current_instance(),
 				&pairing->node.node,
 				"ec"
 			);
+#endif
 		}
+#if SMCP_CONF_PAIRING_STATS
 		if(pairing->last_error != statuscode) {
 			pairing->last_error = statuscode;
 			smcp_trigger_event_with_node(
@@ -580,8 +588,8 @@ smcp_event_response_handler(
 				"err"
 			);
 		}
-	}
 #endif
+	}
 
 #if SMCP_CONF_USE_SEQ
 	if(!statuscode || ((statuscode >= COAP_RESULT_200) && (statuscode < COAP_RESULT_400)))
@@ -788,6 +796,14 @@ smcp_trigger_event(
 	) {
 		smcp_status_t status;
 
+		iter->seq++;
+
+		if(iter->currentEvent) {
+			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
+			//smcp_transaction_end(self,&iter->transaction);
+			continue;
+		}
+
 		if(!event) {
 			// Allocate this lazily.
 			event = calloc(1,sizeof(*event));
@@ -801,15 +817,7 @@ smcp_trigger_event(
 			DEBUG_PRINTF("Event:%p: alloc",event);
 		}
 
-		if(iter->currentEvent) {
-			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
-			smcp_transaction_end(self,&iter->transaction);
-		}
-
-#if SMCP_CONF_USE_SEQ
-		iter->seq++;
 		event->seq = iter->seq;
-#endif
 
 		smcp_transaction_init(
 			&iter->transaction,

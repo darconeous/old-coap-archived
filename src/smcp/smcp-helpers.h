@@ -149,5 +149,6 @@ uint32_to_hex(char *str,uint32_t v) {
 #define strhasprefix_const(a, b) (strncmp(a, b, sizeof(b) - 1) == 0)
 #endif
 
+#include "smcp-logging.h"
 
 #endif

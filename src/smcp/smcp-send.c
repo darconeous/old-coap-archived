@@ -779,12 +779,25 @@ smcp_outbound_send() {
 		header_len--;
 
 #if VERBOSE_DEBUG
-	coap_dump_header(
-		SMCP_DEBUG_OUT_FILE,
-		"Outbound:\t",
-		self->outbound.packet,
-		header_len+smcp_get_current_instance()->outbound.content_len
-	);
+	{
+		char addr_str[50] = "???";
+		uint16_t port = 0;
+#if SMCP_USE_BSD_SOCKETS
+		inet_ntop(AF_INET6,&smcp_get_current_instance()->outbound.saddr.sin6_addr,addr_str,sizeof(addr_str)-1);
+		port = ntohs(smcp_get_current_instance()->outbound.saddr.sin6_port);
+#elif CONTIKI
+		port = ntohs(smcp_get_current_instance()->udp_conn->rport);
+#define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
+		CSTR_FROM_6ADDR(addr_str,&smcp_get_current_instance()->udp_conn->ripaddr);
+#endif
+		DEBUG_PRINTF(CSTR("Outbound:\tTO -> [%s]:%d"),addr_str,(int)port);
+		coap_dump_header(
+			SMCP_DEBUG_OUT_FILE,
+			"Outbound:\t",
+			self->outbound.packet,
+			header_len+smcp_get_current_instance()->outbound.content_len
+		);
+	}
 #endif
 
 	assert(coap_verify_packet((char*)self->outbound.packet,header_len+smcp_get_current_instance()->outbound.content_len));
@@ -817,18 +830,18 @@ smcp_outbound_send() {
 	);
 
 #elif CONTIKI
+	uip_slen = header_len +	smcp_get_current_instance()->outbound.content_len;
+
 	if(self->outbound.packet!=(struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN]) {
 		memmove(
 			&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN],
 			(char*)self->outbound.packet,
-			header_len+smcp_get_current_instance()->outbound.content_len
+			uip_slen
 		);
 		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 	}
 
 	uip_udp_conn = smcp_get_current_instance()->udp_conn;
-	uip_slen = header_len +
-		smcp_get_current_instance()->outbound.content_len;
 
 	uip_process(UIP_UDP_SEND_CONN);
 
@@ -840,8 +853,7 @@ smcp_outbound_send() {
 #endif
 	uip_slen = 0;
 
-	memset(&smcp_get_current_instance()->udp_conn->ripaddr, 0,
-		sizeof(uip_ipaddr_t));
+	memset(&smcp_get_current_instance()->udp_conn->ripaddr, 0, sizeof(uip_ipaddr_t));
 	smcp_get_current_instance()->udp_conn->rport = 0;
 #endif
 	if(smcp_get_current_instance()->is_responding)
