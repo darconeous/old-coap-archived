@@ -63,25 +63,27 @@ post_response_handler(
 	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 
-	if(content_length>(smcp_inbound_get_packet_length()-4)) {
-		fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet());
-		gRet = ERRORCODE_UNKNOWN;
-		goto bail;
-	}
+	if(statuscode>=0) {
+		if(content_length>(smcp_inbound_get_packet_length()-4)) {
+			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet());
+			gRet = ERRORCODE_UNKNOWN;
+			goto bail;
+		}
 
-	if((statuscode >= 0) && post_show_headers) {
-		coap_dump_header(
-			stdout,
-			NULL,
-			smcp_inbound_get_packet(),
-			smcp_inbound_get_packet_length()
-		);
-	}
+		if((statuscode >= 0) && post_show_headers) {
+			coap_dump_header(
+				stdout,
+				NULL,
+				smcp_inbound_get_packet(),
+				smcp_inbound_get_packet_length()
+			);
+		}
 
-	if(!coap_verify_packet((void*)smcp_inbound_get_packet(), smcp_inbound_get_packet_length())) {
-		fprintf(stderr, "INTERNAL ERROR: CALLBACK GIVEN INVALID PACKET!\n");
-		gRet = ERRORCODE_UNKNOWN;
-		goto bail;
+		if(!coap_verify_packet((void*)smcp_inbound_get_packet(), smcp_inbound_get_packet_length())) {
+			fprintf(stderr, "INTERNAL ERROR: CALLBACK GIVEN INVALID PACKET!\n");
+			gRet = ERRORCODE_UNKNOWN;
+			goto bail;
+		}
 	}
 
 	if(content && content_length) {
