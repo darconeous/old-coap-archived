@@ -84,18 +84,18 @@ post_response_handler(
 		goto bail;
 	}
 
-	if((statuscode != COAP_RESULT_204_CHANGED) &&
-	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
-		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
-			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : coap_code_to_cstr(statuscode));
-
 	if(content && content_length) {
 		printf("%s", content);
 		// Only print a newline if the content doesn't already print one.
 		if((content[content_length - 1] != '\n'))
 			printf("\n");
 	}
+
+	if(!content_length && (statuscode != COAP_RESULT_204_CHANGED) &&
+	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
+		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
+			    (statuscode < 0) ? smcp_status_to_cstr(
+				statuscode) : coap_code_to_cstr(statuscode));
 
 bail:
 	if(gRet == ERRORCODE_INPROGRESS)
@@ -205,13 +205,9 @@ tool_cmd_post(
 	post_show_headers = false;
 
 	BEGIN_LONG_ARGUMENTS(gRet)
-		HANDLE_LONG_ARGUMENT("include") post_show_headers = true;
-//		HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
-//		HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
-	HANDLE_LONG_ARGUMENT("outbound-slice-size") outbound_slice_size =
-	    strtol(argv[++i], NULL, 0);
-	HANDLE_LONG_ARGUMENT("content-type") content_type =
-	    coap_content_type_from_cstr(argv[++i]);
+	HANDLE_LONG_ARGUMENT("include") post_show_headers = true;
+	HANDLE_LONG_ARGUMENT("outbound-slice-size") outbound_slice_size = strtol(argv[++i], NULL, 0);
+	HANDLE_LONG_ARGUMENT("content-type") content_type = coap_content_type_from_cstr(argv[++i]);
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list,
 			argv[0],
@@ -220,9 +216,7 @@ tool_cmd_post(
 		goto bail;
 	}
 	BEGIN_SHORT_ARGUMENTS(gRet)
-		HANDLE_SHORT_ARGUMENT('i') post_show_headers = true;
-//		HANDLE_SHORT_ARGUMENT('f') redirect_count = 10;
-
+	HANDLE_SHORT_ARGUMENT('i') post_show_headers = true;
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
 		print_arg_list_help(option_list,
 			argv[0],
