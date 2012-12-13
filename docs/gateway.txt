@@ -1,0 +1,82 @@
+
+Bridges and Gateways
+
+# X10
+
+raw x10 commands are encoded using the following ascii shorthand:
+
+	* '*' - Start marker
+	* '0' - Zero bit
+	* '1' - One bit
+	* ' ' - Ignored (all whitespace)
+	* '.' - Pause for three cycles (End of packet)
+	* 'HA', 'HB', etc.. - House Code Shorthand, 4 bits.
+	* 'D1', 'D2', ..., 'D16' - Device code shorthand, 5 bits.
+	* '0xHH' - output hex value HH as eight bits.
+
+Observing '/x' will allow you to sniff x10 traffic. When observing traffic,
+there are a few other symbols:
+
+	* '!' - Bad bit. Happens when you have a signal on two zero-crossings,
+		and when you have less than 6 consecutive zero-crossings without
+		a signal (more than six will give you a '.'). Bad bits are not
+		reported unless we are currently reading a packet.
+
+- /x10
+	- /x				send/receive raw x10 commands
+	- /[house] (a ... p)
+		- /lights		(0 / 1)
+		- /all			(0 only)
+		- /[device]		(1...16)
+			- /st		(0 / 1)
+			- /amt		(0 ... 22)
+			- /amt?adj	(-22 ... 22)
+			- /hail
+
+ex:
+	* /x10/a/9/st
+	* /x10/c/3/amt?adj
+	* /x10/x?c=*HAD4.*HAD4.*HA00101.*HA00101.	"Turn on A4"
+
+# 1-Wire
+
+[cmd-seq] describes bits to be sent on the wire and when to
+listen for responses. For exmple, to read the temperature
+from a temperature sensor, you would GET the following:
+
+	/ow/28/000000000000/x?c=bexxxx;f=s
+
+This will sent command '0xBE' to the sensor and fetch
+the next two bytes, indicating that the bytes represent
+a (S)igned integer. To set the high
+temperature alarm, you need to skip the first two bytes.
+Yu can do that by sending empty read slots---zeros---for
+the first two bytes. You can also use this mechanism for
+setting values via PUT. for example, to set the high-temp
+alarm value, you would PUT the value to the following path:
+
+	/ow/28/000000000000/x?c=4e0000xx;f=s
+
+Possible values for 'f' are:
+
+	* s - signedinteger
+	* u - unsigned integer
+	* r - raw binary data
+	* t - raw ASCII/UTF8 data
+
+- /ow
+	- /x?c=[cmd-seq];f=[fmt]
+	- /alarm			Same as "/all", but only alarmed devices.
+	- /all
+		- /[family-code]	(01 ... FF)
+			-/[serial]
+				-/x?c=[cmd-seq];f=[fmt]
+
+Some device families may have additional variables for convenience:
+
+	* "28" (temperature sensor)
+		- /t			temp
+		- /ah			alarm-high
+		- /al			alarm-low
+		- /res			temperature resolution
+		- /c			post to commit
