@@ -30,9 +30,7 @@
 #include <config.h>
 #endif
 
-#define VERBOSE_DEBUG 0
-
-#define SMCP_DEBUG_TIMERS	0
+//#define SMCP_DEBUG_TIMERS	0
 
 #include "assert_macros.h"
 #include "smcp-logging.h"

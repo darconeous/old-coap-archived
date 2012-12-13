@@ -149,7 +149,7 @@ smcp_pair_inbound_observe_update() {
 
 		path = smcp_inbound_get_path(NULL); // path must be free()'d after this!
 
-		require_action_string(path && path[0], bail, ret = SMCP_STATUS_INVALID_ARGUMENT,"Trying to observe bad path");
+		require_action_string(path && path[0], bail, (free((void*)path),ret = SMCP_STATUS_INVALID_ARGUMENT),"Trying to observe bad path");
 
 		DEBUG_PRINTF("Adding observer to \"%s\" . . .",path);
 
@@ -435,6 +435,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		require_noerr(status,bail);
 
 		status = smcp_outbound_set_async_response(&pairing->async_response);
+		require_noerr(status,bail);
 
 		if(event->contentFetcher) {
 			status = smcp_outbound_set_content_type(content_type);
@@ -446,6 +447,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 #else
 		status = smcp_outbound_add_option_uint(COAP_HEADER_OBSERVE, 0);
 #endif
+		require_noerr(status,bail);
 
 		self->outbound.packet->tt = SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)?COAP_TRANS_TYPE_CONFIRMABLE:COAP_TRANS_TYPE_NONCONFIRMABLE;
 
@@ -630,6 +632,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 			0
 		);
 #endif
+		require_noerr(status,bail);
 
 		self->outbound.packet->tt = SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)?COAP_TRANS_TYPE_CONFIRMABLE:COAP_TRANS_TYPE_NONCONFIRMABLE;
 
@@ -802,7 +805,9 @@ smcp_trigger_event(
 
 		if(iter->currentEvent) {
 			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
-			//smcp_transaction_end(self,&iter->transaction);
+
+			// Tickle the existing transaction to make it send again.
+			smcp_transaction_tickle(self, &iter->transaction);
 			continue;
 		}
 

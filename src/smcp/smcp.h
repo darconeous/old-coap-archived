@@ -169,6 +169,7 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define smcp_handle_timers(self,...)		smcp_handle_timers(__VA_ARGS__)
 #define smcp_timer_is_scheduled(self,...)		smcp_timer_is_scheduled(__VA_ARGS__)
 #define smcp_transaction_new_msg_id(self,...)		smcp_transaction_new_msg_id(__VA_ARGS__)
+#define smcp_transaction_tickle(self,...)		smcp_transaction_tickle(__VA_ARGS__)
 
 
 
@@ -248,6 +249,11 @@ extern smcp_status_t smcp_transaction_begin(
 );
 
 extern smcp_status_t smcp_transaction_end(
+	smcp_t self,
+	smcp_transaction_t transaction
+);
+
+extern smcp_status_t smcp_transaction_tickle(
 	smcp_t self,
 	smcp_transaction_t transaction
 );

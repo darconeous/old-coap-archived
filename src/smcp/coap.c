@@ -554,13 +554,9 @@ const char* coap_code_to_cstr(int x) { return http_code_to_cstr(coap_to_http_cod
 
 bool
 coap_verify_packet(const char* packet,size_t packet_size) {
-	const struct coap_header_s* header = (void*)packet;
-
+	const struct coap_header_s* const header = (const void*)packet;
 	coap_option_key_t key = 0;
-	const uint8_t* value;
-	size_t value_len;
 	const uint8_t* option_ptr = header->token + header->token_len;
-	const char* tt_str = NULL;
 
 	if(packet_size<4) {
 		// Packet too small
@@ -587,29 +583,29 @@ coap_verify_packet(const char* packet,size_t packet_size) {
 	}
 
 	if(header->code==COAP_CODE_EMPTY && packet_size!=4) {
-		DEBUG_PRINTF("PACKET CORRUPTED: Extra Data With Empty Packet (packet_size = %d)\n",packet_size);
+		DEBUG_PRINTF("PACKET CORRUPTED: Extra Data With Empty Packet (packet_size = %lu)\n",packet_size);
 		return false;
 	}
 
-	for(;option_ptr && (option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
-		option_ptr = coap_decode_option(option_ptr, &key, &value, &value_len);
+	for(;option_ptr && (unsigned)(option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
+		option_ptr = coap_decode_option(option_ptr, &key, NULL, NULL);
 		if(!option_ptr) {
 			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
 			return false;
 		}
-		if(option_ptr-(uint8_t*)header>packet_size) {
+		if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
 			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
 			return false;
 		}
 	}
 
-	if((option_ptr-(uint8_t*)header)>packet_size) {
+	if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
 		// Option too large
 		DEBUG_PRINTF("PACKET CORRUPTED: Options overflow packet size\n");
 		return false;
 	}
 
-	if((option_ptr-(uint8_t*)header)<packet_size) {
+	if((unsigned)(option_ptr-(uint8_t*)header)<packet_size) {
 		if(option_ptr && option_ptr[0]==0xFF) {
 		} else {
 			DEBUG_PRINTF("PACKET CORRUPTED: Missing content marker\n");
@@ -714,14 +710,14 @@ coap_dump_header(
 		fprintf(outstream, "\n");
 	}
 
-	for(;option_ptr && (option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
+	for(;option_ptr && (unsigned)(option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
 		option_ptr = coap_decode_option(option_ptr, &key, &value, &value_len);
 		if(!option_ptr) {
 			fputs(prefix, outstream);
 			fprintf(outstream,"PACKET CORRUPTED: Bad Options\n");
 			return;
 		}
-		if(option_ptr-(uint8_t*)header>packet_size) {
+		if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
 			fputs(prefix, outstream);
 			fprintf(outstream,"PACKET CORRUPTED: Option value size too big\n");
 			return;
@@ -803,19 +799,19 @@ coap_dump_header(
 		}
 		fputc('\n', outstream);
 	}
-	if((option_ptr-(uint8_t*)header)>packet_size) {
+	if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
 		fputs(prefix, outstream);
 		fprintf(outstream,"PACKET CORRUPTED: Bad Options\n");
 		return;
 	}
-	if((option_ptr-(uint8_t*)header)<packet_size) {
+	if((unsigned)(option_ptr-(uint8_t*)header)<packet_size) {
 		if(option_ptr && option_ptr[0]==0xFF) {
 
 			fputs(prefix, outstream);
 			fprintf(outstream, "Payload-Size: %ld\n",packet_size-(option_ptr-(uint8_t*)header)-1);
 		} else {
 			fputs(prefix, outstream);
-			fprintf(outstream,"PACKET CORRUPTED: %d extra bytes\n",packet_size-(option_ptr-(uint8_t*)header));
+			fprintf(outstream,"PACKET CORRUPTED: %ld extra bytes\n",packet_size-(option_ptr-(uint8_t*)header));
 		}
 	}
 

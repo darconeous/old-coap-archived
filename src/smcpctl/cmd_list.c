@@ -244,7 +244,6 @@ list_response_handler(
 //	smcp_t const self = smcp_get_current_instance();
 	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
-	bool istty = isatty(fileno(stdout));
 
 	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
 		if(list_data && list_data_size)
@@ -255,7 +254,7 @@ list_response_handler(
 	
 	if(statuscode>=0) {
 		if(content_length>(smcp_inbound_get_packet_length()-4)) {
-			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet());
+			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet_length());
 			gRet = ERRORCODE_UNKNOWN;
 			goto bail;
 		}
@@ -348,6 +347,7 @@ resend_list_request(void* context) {
 	require_noerr(status,bail);
 
 	status = smcp_outbound_add_option_uint(COAP_HEADER_ACCEPT,COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+	require_noerr(status,bail);
 
 //	if(next_len != ((size_t)(-1))) {
 //		status = smcp_outbound_add_option(

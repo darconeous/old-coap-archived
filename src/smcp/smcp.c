@@ -611,7 +611,7 @@ smcp_handle_inbound_packet(
 			}
 		} while(smcp_inbound_next_option_(NULL,NULL)!=COAP_HEADER_INVALID);
 
-		require((self->inbound.this_option-(uint8_t*)buffer==packet_length) || self->inbound.this_option[0]==0xFF,bail);
+		require(((unsigned)(self->inbound.this_option-(uint8_t*)buffer)==packet_length) || self->inbound.this_option[0]==0xFF,bail);
 
 		// Now that we are at the end of the options, we know
 		// where the content starts.
@@ -1034,6 +1034,24 @@ smcp_transaction_init(
 
 bail:
 	return handler;
+}
+
+smcp_status_t
+smcp_transaction_tickle(
+	smcp_t self,
+	smcp_transaction_t handler
+) {
+	SMCP_EMBEDDED_SELF_HOOK;
+
+	smcp_invalidate_timer(self, &handler->timer);
+
+	smcp_schedule_timer(
+		self,
+		&handler->timer,
+		0
+	);
+
+	return 0;
 }
 
 smcp_status_t
@@ -1535,7 +1553,7 @@ smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 
 	require_noerr(ret, bail);
 
-	assert(coap_verify_packet(x->request.bytes, x->request_len));
+	assert(coap_verify_packet((const char*)x->request.bytes, x->request_len));
 bail:
 	return ret;
 }
@@ -1558,7 +1576,7 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 	x->request_len = smcp_inbound_get_packet_length()-smcp_inbound_get_content_len();
 	memcpy(x->request.bytes,smcp_inbound_get_packet(),x->request_len);
 
-	assert(coap_verify_packet(x->request.bytes, x->request_len));
+	assert(coap_verify_packet((const char*)x->request.bytes, x->request_len));
 
 #if SMCP_USE_BSD_SOCKETS
 	x->socklen = self->inbound.socklen;
