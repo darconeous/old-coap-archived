@@ -186,9 +186,9 @@ smcpd_modules_process() {
 	return status;
 }
 
-smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* name) {
+smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* name, const char* argument) {
 	smcp_node_t ret = NULL;
-	smcp_node_t (*init_func)(smcp_node_t self, smcp_node_t parent, const char* name) = NULL;
+	smcp_node_t (*init_func)(smcp_node_t self, smcp_node_t parent, const char* name, const char* argument) = NULL;
 	smcp_status_t (*process_func)(smcp_node_t self) = NULL;
 	smcp_status_t (*update_fdset_func)(
 		smcp_node_t node,
@@ -198,6 +198,8 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 		int *max_fd,
 		cms_t *timeout
 	) = NULL;
+
+	syslog(LOG_NOTICE,"MAKE t=\"%s\" n=\"%s\" a=\"%s\"",type, name, argument);
 
 	if(!type || strcaseequal(type,"node")) {
 		init_func = &smcp_node_init;
@@ -236,12 +238,19 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 #endif
 	}
 
-	if(init_func)
+	if(init_func) {
 		ret = (*init_func)(
 			NULL,
 			parent,
-			strdup(name)
+			strdup(name),
+			argument?strdup(argument):NULL
 		);
+		if(!ret) {
+			syslog(LOG_WARNING,"Init method failed for node type \"%s\"",type);
+		}
+	} else {
+		syslog(LOG_NOTICE,"Can't find init method for node type \"%s\"",type);
+	}
 
 	if(ret && (process_func || update_fdset_func)) {
 		async_io_module[async_io_module_count].node = ret;
@@ -411,6 +420,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 			//syslog(LOG_DEBUG,"LINE-AFTER: \"%s\"",line);
 			char* arg = get_next_arg(line,&line);
 			char* arg2 = get_next_arg(line,&line);
+			char* arg3 = get_next_arg(line,&line);
 			//syslog(LOG_DEBUG,"ARG1: \"%s\"",arg);
 			//syslog(LOG_DEBUG,"ARG2: \"%s\"",arg2);
 			if(!arg) {
@@ -421,7 +431,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 			smcp_node_t next_node = smcp_node_find(node,arg,strlen(arg));
 
 			if(!next_node) {
-				next_node = smcpd_make_node(arg2?arg2:"node",node,arg);
+				next_node = smcpd_make_node(arg2?arg2:"node",node,arg,arg3);
 			}
 
 			if(!next_node || next_node->parent!=node) {

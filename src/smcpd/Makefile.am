@@ -7,7 +7,7 @@ CFLAGS += -DASSERT_MACROS_USES_SYSLOG=1
 
 bin_PROGRAMS = smcpd
 
-smcpd_SOURCES = main.c system-node.c
+smcpd_SOURCES = main.c system-node.c cgi-node.c
 smcpd_SOURCES += help.h
 smcpd_LDADD = ../smcp/libsmcp.a
 
