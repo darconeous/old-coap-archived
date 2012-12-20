@@ -43,6 +43,8 @@
 #include <time.h>
 #include <errno.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #ifndef CGI_NODE_MAX_REQUESTS
 #define CGI_NODE_MAX_REQUESTS		(20)
@@ -177,6 +179,18 @@ cgi_node_create_request(cgi_node_t node) {
 
 	ret->is_active = 1;
 	ret->state = CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ;
+
+	if(ret->pid != 0 && ret->pid != -1) {
+		int status;
+		kill(ret->pid,SIGKILL);
+		waitpid(ret->pid, &status, 0);
+	}
+	if(ret->fd_cmd_stdin>=0)
+		close(ret->fd_cmd_stdin);
+	if(ret->fd_cmd_stdout>=0)
+		close(ret->fd_cmd_stdout);
+
+	ret->pid = 0;
 	ret->fd_cmd_stdin = -1;
 	ret->fd_cmd_stdout = -1;
 	ret->block1 = BLOCK_OPTION_UNSPECIFIED;
@@ -189,9 +203,6 @@ cgi_node_create_request(cgi_node_t node) {
 
 	pipe(pipe_cmd_stdin);
 	pipe(pipe_cmd_stdout);
-
-//	setsockopt(ret->fd_cmd_stdin, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
-//	setsockopt(ret->fd_cmd_stdout, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set, sizeof(int));
 
 	if(!(ret->pid=fork())) {
 		// We are the child!
@@ -212,10 +223,7 @@ cgi_node_create_request(cgi_node_t node) {
 
 		execl(node->shell,node->shell,"-c",node->cmd,NULL);
 
-//		fprintf(stderr,"CHILD: Failed to execute \"%s\" using shell \"%s\"\n",node->cmd,node->shell);
-
-		close(0);
-		close(1);
+		fprintf(stderr,"CHILD: Failed to execute \"%s\" using shell \"%s\"\n",node->cmd,node->shell);
 
 		// We should never get here...
 		abort();
@@ -223,6 +231,9 @@ cgi_node_create_request(cgi_node_t node) {
 
 	if(ret->pid<0) {
 		// Oh hell.
+
+		syslog(LOG_ERR,"Unable to fork!");
+
 		close(pipe_cmd_stdin[0]);
 		close(pipe_cmd_stdin[1]);
 		close(pipe_cmd_stdout[0]);
@@ -451,6 +462,13 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 		request->fd_cmd_stdin = -1;
 		close(request->fd_cmd_stdout);
 		request->fd_cmd_stdout = -1;
+		if(request->pid != 0 && request->pid != -1) {
+			int status;
+			kill(request->pid,SIGTERM);
+			if(waitpid(request->pid, &status, WNOHANG) == request->pid) {
+				request->pid = 0;
+			}
+		}
 	} else {
 		// INVALID STATE TRANSITION!
 //		printf("BAD STATE CHANGE: %d -> %d\n",request->state,new_state);
@@ -710,6 +728,8 @@ cgi_node_init(
 	const char*			name,
 	const char*			cmd
 ) {
+	int i;
+
 	require(cmd!=NULL, bail);
 	require(cmd[0]!=0, bail);
 	require(name!=NULL, bail);
@@ -724,6 +744,11 @@ cgi_node_init(
 	((smcp_node_t)&self->node)->request_handler = (void*)&cgi_node_request_handler;
 	self->cmd = strdup(cmd);
 	self->shell = strdup("/bin/sh");
+
+	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
+		self->requests[i].fd_cmd_stdin = -1;
+		self->requests[i].fd_cmd_stdout = -1;
+	}
 
 bail:
 	return self;
@@ -747,7 +772,7 @@ cgi_node_update_fdset(
 			&& request->fd_cmd_stdin >= 0
 			&& write_fd_set
 		) {
-//			printf("Adding FD %d to write set\n",request->fd_cmd_stdin);
+			printf("Adding FD %d to write set\n",request->fd_cmd_stdin);
 			FD_SET(request->fd_cmd_stdin,write_fd_set);
 			if(error_fd_set)
 				FD_SET(request->fd_cmd_stdin,error_fd_set);
@@ -759,7 +784,7 @@ cgi_node_update_fdset(
 			&& request->stdout_buffer_len<(1<<((request->block2&0x7)+4))
 			&& read_fd_set
 		) {
-//			printf("Adding FD %d to read set\n",request->fd_cmd_stdout);
+			printf("Adding FD %d to read set\n",request->fd_cmd_stdout);
 			FD_SET(request->fd_cmd_stdout,read_fd_set);
 			if(error_fd_set)
 				FD_SET(request->fd_cmd_stdout,error_fd_set);

@@ -14,6 +14,12 @@
 <node "cgi-sysctl" "cgi" "sysctl -a">
 </node>
 
+<node "cgi-small" "cgi" "echo Hello world!">
+</node>
+
+<node "cgi-cat" "cgi" "echo Here is what you sent: ; cat">
+</node>
+
 <node "timer1" timer>
 </node>
 
