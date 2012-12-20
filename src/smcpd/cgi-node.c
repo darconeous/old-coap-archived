@@ -320,7 +320,7 @@ cgi_node_request_pop_bytes_from_stdin(cgi_node_request_t request, int count) {
 
 smcp_status_t
 cgi_node_request_pop_bytes_from_stdout(cgi_node_request_t request, int count) {
-	fprintf(stderr,"pushing %d bytes from stdout buffer\n",count);
+	//fprintf(stderr,"pushing %d bytes from stdout buffer\n",count);
 	if(request->stdout_buffer_len>count) {
 		request->stdout_buffer_len-=count;
 		memmove(request->stdout_buffer,request->stdout_buffer+count,request->stdout_buffer_len);
@@ -416,7 +416,7 @@ smcp_status_t
 cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_node_state_t new_state) {
 	// TODO: Possibly do more later...?
 
-	printf("STATE CHANGE: %d -> %d\n",request->state,new_state);
+	//printf("STATE CHANGE: %d -> %d\n",request->state,new_state);
 
 
 	if(request->state == new_state) {
@@ -784,13 +784,15 @@ cgi_node_update_fdset(
 	int i;
 	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
 		cgi_node_request_t request = &self->requests[i];
+
 		if(request->state<=CGI_NODE_STATE_FINISHED)
 			continue;
+
 		if(	request->stdin_buffer_len
 			&& request->fd_cmd_stdin >= 0
 			&& write_fd_set
 		) {
-			printf("Adding FD %d to write set\n",request->fd_cmd_stdin);
+			//printf("Adding FD %d to write set\n",request->fd_cmd_stdin);
 			FD_SET(request->fd_cmd_stdin,write_fd_set);
 			if(error_fd_set)
 				FD_SET(request->fd_cmd_stdin,error_fd_set);
@@ -802,7 +804,7 @@ cgi_node_update_fdset(
 			&& request->stdout_buffer_len<(1<<((request->block2&0x7)+4))
 			&& read_fd_set
 		) {
-			printf("Adding FD %d to read set\n",request->fd_cmd_stdout);
+			//printf("Adding FD %d to read set\n",request->fd_cmd_stdout);
 			FD_SET(request->fd_cmd_stdout,read_fd_set);
 			if(error_fd_set)
 				FD_SET(request->fd_cmd_stdout,error_fd_set);
@@ -810,7 +812,7 @@ cgi_node_update_fdset(
 				*max_fd = MAX(*max_fd,request->fd_cmd_stdout);
 		}
 
-		if(timeout) {
+		if(timeout && request->expiration) {
 			*timeout = MIN(*timeout,MAX(0,request->expiration-time(NULL) ));
 		}
 
@@ -837,6 +839,7 @@ cgi_node_process(cgi_node_t self) {
 				continue;
 
 			if(request->expiration<time(NULL)) {
+				request->expiration = 0;
 				cgi_node_request_change_state(
 					self,
 					request,
@@ -844,13 +847,13 @@ cgi_node_process(cgi_node_t self) {
 				);
 			}
 
-			printf("Request %p, stdin_fd=%d, stdout_fd=%d\n",request,request->fd_cmd_stdin,request->fd_cmd_stdout);
+			//printf("Request %p, stdin_fd=%d, stdout_fd=%d\n",request,request->fd_cmd_stdin,request->fd_cmd_stdout);
 			errno = 0;
 
 			if(request->stdin_buffer_len && request->fd_cmd_stdin>=0 && (FD_ISSET(request->fd_cmd_stdin,&wr_set)||FD_ISSET(request->fd_cmd_stdin,&er_set))) {
 				// Ready to send data to command
 				int bytes_written = write(request->fd_cmd_stdin, request->stdin_buffer, request->stdin_buffer_len);
-				printf("WROTE %d BYTES TO FD_CMD_STDIN\n",bytes_written);
+				//printf("WROTE %d BYTES TO FD_CMD_STDIN\n",bytes_written);
 				if(bytes_written<0 || errno || FD_ISSET(request->fd_cmd_stdin,&er_set)) {
 					if(errno!=EPIPE)
 						syslog(LOG_ERR,"Error on write, %s (%d)",strerror(errno),errno);
@@ -888,7 +891,7 @@ cgi_node_process(cgi_node_t self) {
 					close(request->fd_cmd_stdout);
 					request->fd_cmd_stdout = -1;
 				} else {
-					printf("READ %d BYTES FROM FD_CMD_STDOUT\n",bytes_read);
+					//printf("READ %d BYTES FROM FD_CMD_STDOUT\n",bytes_read);
 					request->stdout_buffer_len += bytes_read;
 				}
 			}
