@@ -199,6 +199,12 @@ cgi_node_create_request(cgi_node_t node) {
 	ret->stdout_buffer_len = 0;
 	ret->expiration = time(NULL)+30;
 
+	free(ret->stdin_buffer);
+	ret->stdin_buffer = NULL;
+
+	free(ret->stdout_buffer);
+	ret->stdout_buffer = NULL;
+
 	smcp_start_async_response(&ret->async_response, SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK);
 
 	pipe(pipe_cmd_stdin);
@@ -440,14 +446,26 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 	if( (request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_REQ || request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ)
 		&& new_state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD
 	) {
+		if(!request->stdin_buffer_len &&  request->fd_cmd_stdin>=0) {
+			close(request->fd_cmd_stdin);
+			request->fd_cmd_stdin = -1;
+		}
 		smcp_start_async_response(&request->async_response, 0);
 	} else if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD
 		&& new_state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK
 	) {
+		if(!request->stdin_buffer_len &&  request->fd_cmd_stdin>=0) {
+			close(request->fd_cmd_stdin);
+			request->fd_cmd_stdin = -1;
+		}
 		cgi_node_send_next_block(node,request);
 	} else if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK
 		&& new_state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_REQ
 	) {
+		if(!request->stdin_buffer_len &&  request->fd_cmd_stdin>=0) {
+			close(request->fd_cmd_stdin);
+			request->fd_cmd_stdin = -1;
+		}
 		//cgi_node_request_pop_bytes_from_stdout(request,(1<<((request->block2&0x7)+4)));
 		if(request->transaction) {
 			smcp_transaction_end(smcp_get_current_instance(),request->transaction);
@@ -570,7 +588,7 @@ cgi_node_request_handler(
 			// must catch these cases in the future!
 			if(request->stdin_buffer) {
 				memcpy(
-					request->stdin_buffer+request->stdin_buffer_len,
+					request->stdin_buffer+request->stdin_buffer_len - smcp_inbound_get_content_len(),
 					smcp_inbound_get_content_ptr(),
 					smcp_inbound_get_content_len()
 				);
@@ -833,7 +851,7 @@ cgi_node_process(cgi_node_t self) {
 				// Ready to send data to command
 				int bytes_written = write(request->fd_cmd_stdin, request->stdin_buffer, request->stdin_buffer_len);
 				printf("WROTE %d BYTES TO FD_CMD_STDIN\n",bytes_written);
-				if(bytes_written<0 || errno) {
+				if(bytes_written<0 || errno || FD_ISSET(request->fd_cmd_stdin,&er_set)) {
 					if(errno!=EPIPE)
 						syslog(LOG_ERR,"Error on write, %s (%d)",strerror(errno),errno);
 					close(request->fd_cmd_stdin);
@@ -864,17 +882,21 @@ cgi_node_process(cgi_node_t self) {
 					return SMCP_STATUS_MALLOC_FAILURE;
 				bytes_read = read(request->fd_cmd_stdout, request->stdout_buffer+request->stdout_buffer_len, bytes_read);
 
-				if(bytes_read<=0 || errno) {
+				if(bytes_read<=0 || errno || FD_ISSET(request->fd_cmd_stdout,&er_set)) {
 					if(errno && errno!=EPIPE)
 						syslog(LOG_ERR,"Error on read, %s (%d)",strerror(errno),errno);
 					close(request->fd_cmd_stdout);
 					request->fd_cmd_stdout = -1;
 				} else {
-//					printf("READ %d BYTES FROM FD_CMD_STDOUT\n",bytes_read);
+					printf("READ %d BYTES FROM FD_CMD_STDOUT\n",bytes_read);
 					request->stdout_buffer_len += bytes_read;
 				}
 			}
 			if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD) {
+				if(!request->stdin_buffer_len &&  request->fd_cmd_stdin>=0) {
+					close(request->fd_cmd_stdin);
+					request->fd_cmd_stdin = -1;
+				}
 				if(request->stdout_buffer_len>=(1<<((request->block2&0x7)+4)) || request->fd_cmd_stdout<0) {
 					cgi_node_request_change_state(
 						self,
