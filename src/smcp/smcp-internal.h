@@ -96,9 +96,9 @@ struct smcp_s {
 
 		coap_option_key_t		last_option_key;
 		const uint8_t*			this_option;
-		uint8_t					options_left;
+//		uint8_t					options_left;
 
-		const uint8_t*			token_option;
+//		const uint8_t*			token_option;
 
 		const char*				content_ptr;
 		size_t					content_len;
@@ -132,7 +132,7 @@ struct smcp_s {
 		char*					content_ptr;
 		size_t					content_len;
 
-		coap_transaction_id_t	next_tid;
+		coap_msg_id_t	next_tid;
 
 		coap_option_key_t		last_option_key;
 

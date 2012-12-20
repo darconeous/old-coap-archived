@@ -93,6 +93,9 @@ resend_async_response(void* context) {
 		require_noerr(ret,bail);
 	}
 
+	ret = smcp_outbound_set_async_response(async_response);
+	require_noerr(ret,bail);
+
 	{
 		const char* content_type_string;
 		curl_easy_getinfo(request->curl, CURLINFO_CONTENT_TYPE,&content_type_string);
@@ -104,9 +107,6 @@ resend_async_response(void* context) {
 			DEBUG_PRINTF("Unrecognised content-type: %s",content_type_string);
 		}
 	}
-
-	ret = smcp_outbound_set_async_response(async_response);
-	require_noerr(ret,bail);
 
 	ret = smcp_outbound_append_content(request->content, len);
 	require_noerr(ret,bail);
@@ -151,8 +151,6 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
 	size_t realsize = size * nmemb;
 	smcp_curl_request_t request = (smcp_curl_request_t)userp;
-
-	assert_printf("CuRL WriteMemoryCallback()",0);
 
 	require_action(realsize>=0,bail,realsize=0);
 
@@ -231,7 +229,6 @@ smcp_curl_proxy_node_request_handler(
 			} else if(key==COAP_HEADER_URI_PORT) {
 			} else if(key==COAP_HEADER_URI_PATH) {
 			} else if(key==COAP_HEADER_URI_QUERY) {
-			} else if(key==COAP_HEADER_TOKEN) {
 			} else if(key==COAP_HEADER_CONTENT_TYPE || key==COAP_HEADER_ACCEPT) {
 				const char* option_name = coap_option_key_to_cstr(key, false);
 				const char* value_string = coap_content_type_to_cstr(value[1]);

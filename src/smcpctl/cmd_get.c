@@ -42,7 +42,7 @@ typedef void (*sig_t)(int);
 
 static int gRet;
 static sig_t previous_sigint_handler;
-static coap_transaction_id_t tid;
+static coap_msg_id_t tid;
 static bool get_show_headers, get_observe, get_keep_alive;
 static uint16_t size_request;
 static cms_t get_timeout;
@@ -61,7 +61,7 @@ static const char *url_data;
 static char next_data[128];
 static size_t next_len = ((size_t)(-1));
 static int redirect_count;
-static coap_transaction_id_t tokenid;
+static coap_msg_id_t tokenid;
 static int last_observe_value = -1;
 static int last_block = -1;
 static coap_content_type_t request_accept_type = -1;
@@ -70,19 +70,33 @@ static struct smcp_transaction_s transaction;
 
 static smcp_status_t
 get_response_handler(int statuscode, void* context) {
-	smcp_t const self = smcp_get_current_instance();
+//	smcp_t const self = smcp_get_current_instance();
 	const char* content = smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 
-	if((statuscode >= COAP_RESULT_100) && get_show_headers) {
-		if(next_len != ((size_t)(-1)))
-			fprintf(stdout, "\n\n");
-		coap_dump_header(
-			stdout,
-			NULL,
-			smcp_inbound_get_packet(),
-			0
-		);
+	if(statuscode>=0) {
+		if(content_length>(smcp_inbound_get_packet_length()-4)) {
+			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet_length());
+			gRet = ERRORCODE_UNKNOWN;
+			goto bail;
+		}
+
+		if((statuscode >= 0) && get_show_headers) {
+			if(next_len != ((size_t)(-1)))
+				fprintf(stdout, "\n\n");
+			coap_dump_header(
+				stdout,
+				NULL,
+				smcp_inbound_get_packet(),
+				smcp_inbound_get_packet_length()
+			);
+		}
+
+		if(!coap_verify_packet((void*)smcp_inbound_get_packet(), smcp_inbound_get_packet_length())) {
+			fprintf(stderr, "INTERNAL ERROR: CALLBACK GIVEN INVALID PACKET!\n");
+			gRet = ERRORCODE_UNKNOWN;
+			goto bail;
+		}
 	}
 
 	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
@@ -107,17 +121,14 @@ get_response_handler(int statuscode, void* context) {
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
-		const uint8_t* next_value = NULL;
-		size_t next_len;
-		bool has_observe_option = false, last_block = true;
-		int observe_value = -1;
+		bool last_block = true;
+		int32_t observe_value = -1;
 
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
 
 			if(key == COAP_HEADER_BLOCK2) {
 				last_block = !(value[value_len-1]&(1<<3));
 			} else if(key == COAP_HEADER_OBSERVE) {
-				has_observe_option = true;
 				if(value_len)
 					observe_value = value[0];
 				else observe_value = 0;
@@ -127,12 +138,7 @@ get_response_handler(int statuscode, void* context) {
 
 		fwrite(content, content_length, 1, stdout);
 
-		if(!(get_observe || observe_value>=0) && next_value) {
-			require(send_get_request(self, (const char*)context,
-					(const char*)next_value, next_len), bail);
-			fflush(stdout);
-			return SMCP_STATUS_OK;
-		} else if(last_block) {
+		if(last_block) {
 			// Only print a newline if the content doesn't already print one.
 			if(content_length && (content[content_length - 1] != '\n'))
 				printf("\n");

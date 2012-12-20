@@ -32,15 +32,12 @@
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",		 NULL,	 "Print Help"				 },
 	{ 'i', "include",	 NULL,	 "include headers in output" },
-//	{ 0,   "slice-size", "size", "writeme"					 },
-//	{ 0,   "follow",	 NULL,	 "writeme"					 },
-//	{ 0,   "no-follow",	 NULL,	 "writeme"					 },
 	{ 0,   "filename-only",	NULL, "Only print out the resulting filenames." },
 	{ 't',   "timeout",	"cms", "Timeout value, in milliseconds" },
 	{ 0 }
 };
 
-static coap_transaction_id_t tid;
+static coap_msg_id_t tid;
 static uint16_t size_request;
 
 static int gRet;
@@ -66,6 +63,180 @@ static bool list_filename_only;
 
 static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
 
+static char* list_data;
+static size_t list_data_size;
+
+void
+parse_link_format(char* content, size_t content_length, void* context) {
+	char *iter = content;
+	char *end = content + content_length;
+	int col_width = 16;
+	bool istty = isatty(fileno(stdout));
+
+	while(iter && (iter < end)) {
+		if(*iter == '<') {
+			bool has_trailing_slash = false;
+			char* uri = 0;
+			char* name = 0;
+			char* desc = 0;
+			char* v = 0;
+			char* sh_url = 0;
+			int type = COAP_CONTENT_TYPE_UNKNOWN;
+			int uri_len = 0;
+
+			iter++;
+
+			uri = strsep(&iter, ">");
+			//uri_len = iter - uri - 1;
+
+			if(!iter)
+				goto finished_parsing;
+
+			// Skip past any arguments
+			if(iter && *iter == ';') {
+				while(iter && (iter < end)) {
+					char* key;
+					char* value;
+					char endchar;
+
+					iter++;
+					key=iter;
+					while(*iter && *iter!='=' && *iter!=';' && *iter!=',') {
+						iter++;
+					}
+
+					if(*iter==';') {
+						*iter = 0;
+						continue;
+					}
+
+					if(!*iter || *iter==',')
+						break;
+
+					*iter++ = 0;
+
+					if(*iter == '"') {
+						iter++;
+						value = iter;
+						while(iter) {
+							iter = strstr(iter,"\"");
+							if(!iter || iter[-1]!='\\')
+								break;
+						}
+						if(!iter)
+							break;
+						*iter++ = 0;
+//								value = strsep(&iter, "\"");
+//								if(!iter)
+//									break;
+						endchar = *iter++;
+					} else {
+						value = iter;
+						while((iter < end) && (*iter != ',') &&
+								(*iter != ';')) {
+							iter++;
+						}
+						endchar = *iter;
+						*iter++ = 0;
+					}
+					{	// Convert all line feeds into " | ".
+						char* value_iter = value;
+						for(;*value_iter;value_iter++) {
+							if(0==strncmp(value_iter,"\n",1)) {
+								if(value_iter[1]) {
+									value_iter[0]='|';
+								} else {
+									value_iter[0]=0;
+								}
+							}
+						}
+					}
+					// TODO: Unquote...?
+					//url_decode_cstr_inplace(value);
+					if(0 == strcmp(key, "n"))
+						name = value;
+					else if(!name && 0 == strcmp(key, "rt"))
+						name = value;
+					else if(0 == strcmp(key, "title"))
+						desc = value;
+					else if(0 == strcmp(key, "v"))
+						v = value;
+					else if(0 == strcmp(key, "ct"))
+						type = strtol(value, NULL, 0);
+					else if(0 == strcmp(key, "sh"))
+						sh_url = value;
+					//printf("%s = %s\n",key,value);
+					if(endchar == ',' || (iter >= end))
+						break;
+					if(endchar == ';')
+						iter--;
+				}
+			}
+
+			char adjusted_uri[SMCP_MAX_URI_LENGTH + 1];
+
+			if(redirect_url[0] && !url_is_absolute(uri)) {
+				strcpy(adjusted_uri, redirect_url);
+				url_change(adjusted_uri, uri);
+				uri = adjusted_uri;
+			}
+			url_shorten_reference((const char*)original_url, uri);
+
+			// Strip the trailing slash.
+			if(!strchr(uri,'?'))
+			while(uri[0] && uri[strlen(uri)-1]=='/') {
+				has_trailing_slash = true;
+				uri[strlen(uri)-1] = 0;
+			}
+
+			if(istty && !list_filename_only && type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
+				uri_len = fprintf(stdout,
+					"\033[1;34;40m"
+					"%s"
+					"\033[0;37;40m"
+					,
+					uri
+				) - 1;
+			else
+				uri_len = fprintf(stdout,"%s", uri) - 1;
+			if(has_trailing_slash || type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
+				fprintf(stdout,"/");
+			if(!list_filename_only) {
+				if(v)
+					fprintf(stdout,"%s%s",istty?"\033[1;37;40m=\033[0;37;40m":"=",v);
+				fprintf(stdout," ");
+				if(uri_len < col_width) {
+					if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {
+						uri_len = col_width - uri_len;
+						while(uri_len--) {
+							fprintf(stdout," ");
+						}
+						fprintf(stdout,"\t");
+					}
+				} else {
+					fprintf(stdout,"\t");
+					col_width = uri_len;
+				}
+
+				if(name && (0 != strcmp(name, uri))) fprintf(stdout,"\"%s\" ",
+						name);
+				if(sh_url && (0 != strcmp(sh_url, uri))) fprintf(stdout,
+						"<%s> ",
+						sh_url);
+				if(type != COAP_CONTENT_TYPE_UNKNOWN) fprintf(stdout,"[%s] ",
+						coap_content_type_to_cstr(type));
+				if(desc) fprintf(stdout,"(%s) ",desc);
+			}
+			fprintf(stdout,"\n");
+		} else {
+			iter++;
+		}
+	}
+finished_parsing:
+	return;
+}
+
+
 static smcp_status_t
 list_response_handler(
 	int statuscode, void* context
@@ -73,23 +244,39 @@ list_response_handler(
 //	smcp_t const self = smcp_get_current_instance();
 	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
-	bool istty = isatty(fileno(stdout));
 
 	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
+		if(list_data && list_data_size)
+			parse_link_format(list_data,list_data_size,context);
 		gRet = 0;
 		return SMCP_STATUS_TRANSACTION_INVALIDATED;
 	}
+	
+	if(statuscode>=0) {
+		if(content_length>(smcp_inbound_get_packet_length()-4)) {
+			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet_length());
+			gRet = ERRORCODE_UNKNOWN;
+			goto bail;
+		}
 
-	if((statuscode >= COAP_RESULT_100) && list_show_headers) {
-		if(next_len != ((size_t)(-1)))
-			fprintf(stdout, "\n");
-		coap_dump_header(
-			stdout,
-			NULL,
-			smcp_inbound_get_packet(),
-			0
-		);
+		if(list_show_headers) {
+			if(next_len != ((size_t)(-1)))
+				fprintf(stdout, "\n");
+			coap_dump_header(
+				stdout,
+				NULL,
+				smcp_inbound_get_packet(),
+				smcp_inbound_get_packet_length()
+			);
+		}
+
+		if(!coap_verify_packet((void*)smcp_inbound_get_packet(), smcp_inbound_get_packet_length())) {
+			fprintf(stderr, "INTERNAL ERROR: CALLBACK GIVEN INVALID PACKET!\n");
+			gRet = ERRORCODE_UNKNOWN;
+			goto bail;
+		}
 	}
+
 
 	if(((statuscode < COAP_RESULT_200) ||
 	            (statuscode >= COAP_RESULT_400)) &&
@@ -119,43 +306,6 @@ list_response_handler(
 
 	if(content && content_length) {
 		coap_content_type_t content_type = smcp_inbound_get_content_type();
-//		coap_option_key_t key;
-//		const uint8_t* value;
-//		size_t value_len;
-//		const uint8_t* next_value = NULL;
-//		size_t next_len;
-//		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
-//
-//			if(key == COAP_HEADER_BLOCK2 && value_len) {
-//				static uint8_t tmp[5];
-//				next_len = value_len<3?value_len:3;
-//				memcpy(tmp,value,next_len);
-//				if(tmp[next_len-1]&(1<<3)) {
-//					uint32_t block = 0;
-//					if(next_len==1)
-//						block = (tmp[0]>>4);
-//					else if(next_len==2)
-//						block = (tmp[0]<<4)+(tmp[1]>>4);
-//					else if(next_len==3)
-//						block = (tmp[1]<<12)+(tmp[1]<<4)+(tmp[2]>>4);
-//
-//					block++;
-//
-//					if(next_len==1) {
-//						tmp[0] = (tmp[0]&0xf)| ((block&0xf)<<4);
-//					} else if(next_len==2) {
-//						tmp[0] = ((block>>4)&0xf);
-//						tmp[1] = (tmp[1]&0xf)| ((block&0xf)<<4);
-//					} else if(next_len==3) {
-//						tmp[0] = ((block>>12)&0xf);
-//						tmp[1] = ((block>>4)&0xf);
-//						tmp[2] = (tmp[2]&0xf)| ((block&0xf)<<4);
-//					}
-//
-//					next_value = tmp;
-//				}
-//			}
-//		}
 
 		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
 			if(!list_filename_only) {
@@ -170,180 +320,13 @@ list_response_handler(
 				}
 			}
 		} else {
-			char *iter = content;
-			char *end = content + content_length;
-			int col_width = 16;
-
-			while(iter && (iter < end)) {
-				if(*iter == '<') {
-					bool has_trailing_slash = false;
-					char* uri = 0;
-					char* name = 0;
-					char* desc = 0;
-					char* v = 0;
-					char* sh_url = 0;
-					int type = COAP_CONTENT_TYPE_UNKNOWN;
-					int uri_len = 0;
-
-					iter++;
-
-					uri = strsep(&iter, ">");
-					//uri_len = iter - uri - 1;
-
-					if(!iter)
-						goto finished_parsing;
-
-					// Skip past any arguments
-					if(iter && *iter == ';') {
-						while(iter && (iter < end)) {
-							char* key;
-							char* value;
-							char endchar;
-
-							iter++;
-							key=iter;
-							while(*iter && *iter!='=' && *iter!=';' && *iter!=',') {
-								iter++;
-							}
-
-							if(*iter==';') {
-								*iter = 0;
-								continue;
-							}
-
-							if(!*iter || *iter==',')
-								break;
-
-							*iter++ = 0;
-
-							if(*iter == '"') {
-								iter++;
-								value = iter;
-								while(iter) {
-									iter = strstr(iter,"\"");
-									if(!iter || iter[-1]!='\\')
-										break;
-								}
-								if(!iter)
-									break;
-								*iter++ = 0;
-//								value = strsep(&iter, "\"");
-//								if(!iter)
-//									break;
-								endchar = *iter++;
-							} else {
-								value = iter;
-								while((iter < end) && (*iter != ',') &&
-								        (*iter != ';')) {
-									iter++;
-								}
-								endchar = *iter;
-								*iter++ = 0;
-							}
-							{	// Convert all line feeds into " | ".
-								char* value_iter = value;
-								for(;*value_iter;value_iter++) {
-									if(0==strncmp(value_iter,"\n",1)) {
-										if(value_iter[1]) {
-											value_iter[0]='|';
-										} else {
-											value_iter[0]=0;
-										}
-									}
-								}
-							}
-							// TODO: Unquote...?
-							//url_decode_cstr_inplace(value);
-							if(0 == strcmp(key, "n"))
-								name = value;
-							else if(!name && 0 == strcmp(key, "rt"))
-								name = value;
-							else if(0 == strcmp(key, "title"))
-								desc = value;
-							else if(0 == strcmp(key, "v"))
-								v = value;
-							else if(0 == strcmp(key, "ct"))
-								type = strtol(value, NULL, 0);
-							else if(0 == strcmp(key, "sh"))
-								sh_url = value;
-							//printf("%s = %s\n",key,value);
-							if(endchar == ',' || (iter >= end))
-								break;
-							if(endchar == ';')
-								iter--;
-						}
-					}
-
-					char adjusted_uri[SMCP_MAX_URI_LENGTH + 1];
-
-					if(redirect_url[0] && !url_is_absolute(uri)) {
-						strcpy(adjusted_uri, redirect_url);
-						url_change(adjusted_uri, uri);
-						uri = adjusted_uri;
-					}
-					url_shorten_reference((const char*)original_url, uri);
-
-					// Strip the trailing slash.
-					if(!strchr(uri,'?'))
-					while(uri[0] && uri[strlen(uri)-1]=='/') {
-						has_trailing_slash = true;
-						uri[strlen(uri)-1] = 0;
-					}
-
-					if(istty && !list_filename_only && type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
-						uri_len = fprintf(stdout,
-							"\033[1;34;40m"
-							"%s"
-							"\033[0;37;40m"
-							,
-							uri
-						) - 1;
-					else
-						uri_len = fprintf(stdout,"%s", uri) - 1;
-					if(has_trailing_slash || type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
-						fprintf(stdout,"/");
-					if(!list_filename_only) {
-						if(v)
-							fprintf(stdout,"=%s",v);
-						fprintf(stdout," ");
-						if(uri_len < col_width) {
-							if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {
-								uri_len = col_width - uri_len;
-								while(uri_len--) {
-									fprintf(stdout," ");
-								}
-								fprintf(stdout,"\t");
-							}
-						} else {
-							fprintf(stdout,"\t");
-							col_width = uri_len;
-						}
-
-						if(name && (0 != strcmp(name, uri))) fprintf(stdout,"\"%s\" ",
-								name);
-						if(sh_url && (0 != strcmp(sh_url, uri))) fprintf(stdout,
-								"<%s> ",
-								sh_url);
-						if(type != COAP_CONTENT_TYPE_UNKNOWN) fprintf(stdout,"[%s] ",
-								coap_content_type_to_cstr(type));
-						if(desc) fprintf(stdout,"(%s) ",desc);
-					}
-					fprintf(stdout,"\n");
-				} else {
-					iter++;
-				}
+			list_data_size += content_length;
+			list_data = realloc(list_data,list_data_size);
+			if(list_data) {
+				memcpy(list_data+list_data_size-content_length,content,content_length);
 			}
-finished_parsing:
+			//parse_link_format(content,content_length,context);
 
-//			// Kinda naughty.
-//			if(content[content_length - 1] == '\n')
-//				content[--content_length] = 0;
-//			else
-//				content[content_length] = 0;
-
-//			if(next_value &&
-//			    send_list_request(self, (const char*)context, (const char*)next_value,
-//					next_len))
 			return SMCP_STATUS_OK;
 		}
 	}
@@ -364,6 +347,7 @@ resend_list_request(void* context) {
 	require_noerr(status,bail);
 
 	status = smcp_outbound_add_option_uint(COAP_HEADER_ACCEPT,COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+	require_noerr(status,bail);
 
 //	if(next_len != ((size_t)(-1))) {
 //		status = smcp_outbound_add_option(
@@ -407,7 +391,7 @@ send_list_request(
 
 	tid = smcp_get_next_msg_id(smcp,NULL);
 	gRet = ERRORCODE_INPROGRESS;
-
+	list_data_size = 0;
 	retries = 0;
 	url_data = url;
 	if(next) {

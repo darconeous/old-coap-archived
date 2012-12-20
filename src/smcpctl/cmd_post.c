@@ -38,6 +38,7 @@ static arg_list_item_t option_list[] = {
 static int gRet;
 static sig_t previous_sigint_handler;
 static int outbound_slice_size;
+static bool post_show_headers;
 
 static void
 signal_interrupt(int sig) {
@@ -61,20 +62,29 @@ post_response_handler(
 ) {
 	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
-	if((statuscode >= COAP_RESULT_100) && show_headers) {
-		fprintf(stdout, "\n");
-		coap_dump_header(
-			stdout,
-			NULL,
-			smcp_inbound_get_packet(),
-			0
-		);
+
+	if(statuscode>=0) {
+		if(content_length>(smcp_inbound_get_packet_length()-4)) {
+			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet_length());
+			gRet = ERRORCODE_UNKNOWN;
+			goto bail;
+		}
+
+		if((statuscode >= 0) && post_show_headers) {
+			coap_dump_header(
+				stdout,
+				NULL,
+				smcp_inbound_get_packet(),
+				smcp_inbound_get_packet_length()
+			);
+		}
+
+		if(!coap_verify_packet((void*)smcp_inbound_get_packet(), smcp_inbound_get_packet_length())) {
+			fprintf(stderr, "INTERNAL ERROR: CALLBACK GIVEN INVALID PACKET!\n");
+			gRet = ERRORCODE_UNKNOWN;
+			goto bail;
+		}
 	}
-	if((statuscode != COAP_RESULT_204_CHANGED) &&
-	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
-		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
-			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : coap_code_to_cstr(statuscode));
 
 	if(content && content_length) {
 		printf("%s", content);
@@ -83,6 +93,13 @@ post_response_handler(
 			printf("\n");
 	}
 
+	if(!content_length && (statuscode != COAP_RESULT_204_CHANGED) &&
+	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
+		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
+			    (statuscode < 0) ? smcp_status_to_cstr(
+				statuscode) : coap_code_to_cstr(statuscode));
+
+bail:
 	if(gRet == ERRORCODE_INPROGRESS)
 		gRet = 0;
 	free(request->content);
@@ -125,7 +142,7 @@ bail:
 }
 
 
-static coap_transaction_id_t
+static coap_msg_id_t
 send_post_request(
 	smcp_t	smcp,
 	const char*		url,
@@ -135,7 +152,7 @@ send_post_request(
 	coap_content_type_t content_type
 ) {
 	struct post_request_s *request;
-	coap_transaction_id_t tid;
+	coap_msg_id_t tid;
 	bool ret = false;
 
 	request = calloc(1,sizeof(*request));
@@ -173,7 +190,7 @@ int
 tool_cmd_post(
 	smcp_t smcp, int argc, char* argv[]
 ) {
-	coap_transaction_id_t tid=0;
+	coap_msg_id_t tid=0;
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 	coap_content_type_t content_type = 0;
 	coap_code_t method = COAP_METHOD_POST;
@@ -187,15 +204,12 @@ tool_cmd_post(
 		method = COAP_METHOD_PUT;
 	}
 	outbound_slice_size = 100;
+	post_show_headers = false;
 
 	BEGIN_LONG_ARGUMENTS(gRet)
-		HANDLE_LONG_ARGUMENT("include") show_headers = true;
-//		HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
-//		HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
-	HANDLE_LONG_ARGUMENT("outbound-slice-size") outbound_slice_size =
-	    strtol(argv[++i], NULL, 0);
-	HANDLE_LONG_ARGUMENT("content-type") content_type =
-	    coap_content_type_from_cstr(argv[++i]);
+	HANDLE_LONG_ARGUMENT("include") post_show_headers = true;
+	HANDLE_LONG_ARGUMENT("outbound-slice-size") outbound_slice_size = strtol(argv[++i], NULL, 0);
+	HANDLE_LONG_ARGUMENT("content-type") content_type = coap_content_type_from_cstr(argv[++i]);
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list,
 			argv[0],
@@ -204,9 +218,7 @@ tool_cmd_post(
 		goto bail;
 	}
 	BEGIN_SHORT_ARGUMENTS(gRet)
-		HANDLE_SHORT_ARGUMENT('i') show_headers = true;
-//		HANDLE_SHORT_ARGUMENT('f') redirect_count = 10;
-
+	HANDLE_SHORT_ARGUMENT('i') post_show_headers = true;
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
 		print_arg_list_help(option_list,
 			argv[0],

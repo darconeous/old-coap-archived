@@ -45,27 +45,27 @@
 #endif
 
 #ifndef HAVE_STRLCAT
-#define HAVE_STRLCAT ((defined(__APPLE__) || defined(__AVR__)))
+#define HAVE_STRLCAT (((defined(__APPLE__) || defined(__AVR__))) && !defined(__SDCC))
 #endif
 
 #ifndef HAVE_STPNCPY
-#define HAVE_STPNCPY (defined(linux) || (!defined(__APPLE__) && !defined(__AVR__)))
+#define HAVE_STPNCPY ((defined(linux) || (!defined(__APPLE__) && !defined(__AVR__))) && !defined(__SDCC))
 #endif
 
 #ifndef HAVE_STRDUP
-#define HAVE_STRDUP !defined(__SDCC)
+#define HAVE_STRDUP (!defined(__SDCC))
 #endif
 
 #ifndef HAVE_ALLOCA
-#define HAVE_ALLOCA !defined(__SDCC)
+#define HAVE_ALLOCA (!defined(__SDCC))
 #endif
 
 #ifndef HAVE_STRTOL
-#define HAVE_STRTOL !defined(__SDCC)
+#define HAVE_STRTOL (!defined(__SDCC))
 #endif
 
 #ifndef HAVE_VSNPRINTF
-#define HAVE_VSNPRINTF !defined(__SDCC)
+#define HAVE_VSNPRINTF (!defined(__SDCC))
 #endif
 
 #if !HAVE_VSNPRINTF && !defined(vsnprintf)
@@ -74,7 +74,7 @@
 #endif
 
 #if !HAVE_STRDUP && !defined(strdup)
-#define strdup strdup__
+#define strdup(...) strdup__(__VA_ARGS__)
 static inline char*
 strdup(const char* cstr) {
 	size_t len = strlen(cstr);
@@ -86,13 +86,14 @@ strdup(const char* cstr) {
 #endif
 
 #if !HAVE_STRNDUP && !defined(strndup)
-#define strndup strndup__
+#define strndup(...) strndup__(__VA_ARGS__)
 static inline char*
 strndup(const char* cstr,size_t maxlen) {
 	size_t len = strlen(cstr);
+	char* ret;
 	if(maxlen<len)
 		len = maxlen;
-	char* ret = malloc(len+1);
+	ret = malloc(len+1);
 	memcpy(ret,cstr,len);
 	ret[len]=0;
 	return ret;
@@ -100,7 +101,7 @@ strndup(const char* cstr,size_t maxlen) {
 #endif
 
 #if !HAVE_STPNCPY && !defined(stpncpy)
-#define stpncpy stpncpy__
+#define stpncpy(...) stpncpy__(__VA_ARGS__)
 static inline char*
 stpncpy(char* dest, const char* src, size_t len) {
 	return strncpy(dest,src,len)+MIN(len,strlen(src));
@@ -149,5 +150,40 @@ uint32_to_hex(char *str,uint32_t v) {
 #define strhasprefix_const(a, b) (strncmp(a, b, sizeof(b) - 1) == 0)
 #endif
 
+#if !defined(HAVE_TIME_H)
+#define HAVE_TIME_H		(__DARWIN__ || defined(__SDCC) || !(CONTIKI && !CONTIKI_TARGET_MINIMAL_NET && !CONTIKI_TARGET_COOJA && !CONTIKI_TARGET_NATIVE))
+#endif
+
+#if !defined(HAVE_SYS_TIME_H)
+#define HAVE_SYS_TIME_H		(__DARWIN__ || !(CONTIKI && !CONTIKI_TARGET_MINIMAL_NET && !CONTIKI_TARGET_COOJA && !CONTIKI_TARGET_NATIVE))
+#endif
+
+#if HAVE_TIME_H
+#include <time.h>
+#define HAVE_TIME_T		1
+#endif
+
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#define HAVE_TIME_T		1
+#endif
+
+#if !defined(HAVE_TIMEVAL)
+#define HAVE_TIMEVAL		(__DARWIN__ || !(CONTIKI && !CONTIKI_TARGET_MINIMAL_NET && !CONTIKI_TARGET_COOJA && !CONTIKI_TARGET_NATIVE))
+#endif
+
+#if !HAVE_TIME_T && !defined(time_t) && !defined(__time_t_defined)
+typedef long time_t;
+#endif
+
+#if !HAVE_TIMEVAL && !defined(timeval) && !defined(__timeval_defined)
+typedef int32_t suseconds_t;
+struct timeval {
+	time_t		tv_sec;
+	suseconds_t tv_usec;
+};
+#endif
+
+#include "smcp-logging.h"
 
 #endif

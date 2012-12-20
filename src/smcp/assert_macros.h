@@ -87,7 +87,7 @@
     fprintf(assert_error_stream, \
 				__FILE__ ":%d: "fmt"\n", \
 				__LINE__, \
-				__VA_ARGS__)
+				__VA_ARGS__)//,abort()
   #endif
  #endif
  #define check_string(c, s) \

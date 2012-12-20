@@ -27,11 +27,13 @@ struct smcp_transaction_s {
 	struct timeval				expiration;
 	struct smcp_timer_s			timer;
 
-	coap_transaction_id_t		token;
-	coap_transaction_id_t		msg_id;
+	coap_msg_id_t		token;
+	coap_msg_id_t		msg_id;
 
 	uint32_t					last_observe;
 	uint32_t					next_block2;
+
+	coap_code_t					sent_code;
 
 	uint8_t						flags;
 	uint8_t						attemptCount:4,

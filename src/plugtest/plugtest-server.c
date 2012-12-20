@@ -38,6 +38,9 @@
 #include <smcp/smcp-pairing.h>
 #include "plugtest-server.h"
 
+#if CONTIKI && !defined(time)
+#define time(x)		clock_seconds()
+#endif
 
 smcp_status_t
 plugtest_test_handler(
@@ -68,7 +71,7 @@ plugtest_test_handler(
 		goto bail;
 	}
 
-	snprintf(content,max_len,"Plugtest!\nMethod = %s\n",coap_code_to_cstr(method));
+	sprintf(content,"Plugtest!\nMethod = %s\n",coap_code_to_cstr(method));
 
 	{
 		const uint8_t* value;
@@ -82,7 +85,7 @@ plugtest_test_handler(
 				strlcat(content,(char*)value,MIN(max_len,value_len+1));
 				content[argh] = 0;
 			} else {
-				strlcat(content,"...",max_len);
+				strlcat(content,"<binary>",max_len);
 			}
 			strlcat(content,"\n",max_len);
 		}
@@ -106,10 +109,10 @@ plugtest_separate_async_resend_response(void* context) {
 	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	ret = smcp_outbound_set_async_response(async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_async_response(async_response);
+	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_set_content_formatted("This was an asynchronous response!");
@@ -207,8 +210,7 @@ plugtest_obs_handler(
 
 		smcp_outbound_set_content_type(0);
 
-		ret = smcp_pair_inbound_observe_update();
-		if(ret) goto bail;
+		smcp_pair_inbound_observe_update();
 
 		ret = smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE,10);
 		if(ret) goto bail;
@@ -220,7 +222,7 @@ plugtest_obs_handler(
 		}
 
 		ret = smcp_outbound_set_content_len(
-			snprintf(content,max_len,"%d",(int)time(NULL))
+			sprintf(content,"%d",(int)time(NULL))
 		);
 		if(ret) goto bail;
 
@@ -351,7 +353,7 @@ bail:
 smcp_status_t
 plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 
-	bzero(self,sizeof(*self));
+	memset(self,sizeof(*self),0);
 
 	smcp_node_init(&self->test,root,"test");
 	self->test.request_handler = &plugtest_test_handler;

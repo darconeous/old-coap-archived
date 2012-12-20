@@ -95,7 +95,7 @@ static char* smcp_inbound_get_path(char* where) {
 
 	coap_option_key_t		last_option_key = self->inbound.last_option_key;
 	const uint8_t*			this_option = self->inbound.this_option;
-	uint8_t					options_left = self->inbound.options_left;
+//	uint8_t					options_left = self->inbound.options_left;
 
 	char* filename;
 	size_t filename_len;
@@ -127,7 +127,7 @@ static char* smcp_inbound_get_path(char* where) {
 
 	self->inbound.last_option_key = last_option_key;
 	self->inbound.this_option = this_option;
-	self->inbound.options_left = options_left;
+//	self->inbound.options_left = options_left;
 	return where;
 }
 
@@ -149,7 +149,7 @@ smcp_pair_inbound_observe_update() {
 
 		path = smcp_inbound_get_path(NULL); // path must be free()'d after this!
 
-		require_action_string(path && path[0], bail, ret = SMCP_STATUS_INVALID_ARGUMENT,"Trying to observe bad path");
+		require_action_string(path && path[0], bail, (free((void*)path),ret = SMCP_STATUS_INVALID_ARGUMENT),"Trying to observe bad path");
 
 		DEBUG_PRINTF("Adding observer to \"%s\" . . .",path);
 
@@ -188,8 +188,8 @@ smcp_pair_inbound_observe_update() {
 			int i;
 			token_str[0]='o';
 			token_str[1]='-';
-			for(i=0;i<pairing->async_response.token_len;i++)
-				sprintf(token_str+i*2+2,"%02x",pairing->async_response.token_value[i]);
+			for(i=0;i<pairing->async_response.request.header.token_len;i++)
+				sprintf(token_str+i*2+2,"%02x",pairing->async_response.request.header.token[i]);
 			uri=strdup(token_str);
 		}
 		DEBUG_PRINTF("\"%s\" -> \"%s\"",path,uri);
@@ -197,7 +197,7 @@ smcp_pair_inbound_observe_update() {
 		if(smcp_node_find(path_node, uri, strlen(uri))) {
 			free(uri);
 			DEBUG_PRINTF("Pairing already found...!");
-			ret = SMCP_STATUS_DUPE;
+			ret = smcp_outbound_add_option_uint(COAP_HEADER_OBSERVE, pairing->seq);
 			goto bail;
 		}
 
@@ -209,6 +209,7 @@ smcp_pair_inbound_observe_update() {
 		pairing->node.func = (smcp_variable_node_func)&smcp_pairing_node_variable_func;
 
 		pairing->flags = SMCP_PARING_FLAG_OBSERVE;
+//		pairing->content_type = COAP_CONTENT_TYPE_UNKNOWN;
 
 		if(self->inbound.packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)
 			pairing->flags |= SMCP_PARING_FLAG_RELIABILITY_ASAP;
@@ -286,6 +287,7 @@ smcp_pair_with_sockaddr(
 	uintptr_t*		idVal
 ) {
 	smcp_status_t ret = SMCP_STATUS_OK;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	smcp_node_t path_node = NULL;
 	smcp_pairing_node_t pairing = NULL;
@@ -323,6 +325,8 @@ smcp_pair_with_sockaddr(
 
 	pairing->flags = flags;
 
+//	pairing->content_type = COAP_CONTENT_TYPE_UNKNOWN;
+
 #if SMCP_USE_BSD_SOCKETS
 	if(saddr)
 		memcpy(&pairing->saddr,saddr,sizeof(pairing->saddr));
@@ -357,6 +361,7 @@ smcp_pair_with_uri(
 	int				flags,
 	uintptr_t*		idVal
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 #if SMCP_USE_BSD_SOCKETS
 	return smcp_pair_with_sockaddr(self, path, uri, NULL, 0, flags, idVal);
 #elif CONTIKI
@@ -372,6 +377,7 @@ smcp_pairing_node_t
 smcp_get_first_pairing_for_path(
 	smcp_t self, const char* path
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_pairing_node_t ret = NULL;
 	smcp_node_t path_node = NULL;
 
@@ -428,6 +434,9 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		status = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		require_noerr(status,bail);
 
+		status = smcp_outbound_set_async_response(&pairing->async_response);
+		require_noerr(status,bail);
+
 		if(event->contentFetcher) {
 			status = smcp_outbound_set_content_type(content_type);
 			check_noerr(status);
@@ -438,8 +447,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 #else
 		status = smcp_outbound_add_option_uint(COAP_HEADER_OBSERVE, 0);
 #endif
-
-		status = smcp_outbound_set_async_response(&pairing->async_response);
+		require_noerr(status,bail);
 
 		self->outbound.packet->tt = SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)?COAP_TRANS_TYPE_CONFIRMABLE:COAP_TRANS_TYPE_NONCONFIRMABLE;
 
@@ -467,25 +475,25 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		status = smcp_outbound_add_option(SMCP_HEADER_ORIGIN, smcp_pairing_get_path_cstr(pairing), HEADER_CSTR_LEN);
 		require_noerr(status,bail);
 
-#if SMCP_CONF_USE_SEQ
-		char cseq[24];
-#if __AVR__
-		snprintf_P(
-			cseq,
-			sizeof(cseq),
-			PSTR("%lX POST"),
-			(long unsigned int)pairing->seq
-		);
-#else
-		snprintf(cseq,
-			sizeof(cseq),
-			"%lX POST",
-			(long unsigned int)pairing->seq
-		);
-#endif
-		status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
-		require_noerr(status,bail);
-#endif
+//#if SMCP_CONF_USE_SEQ
+//		char cseq[24];
+//#if __AVR__
+//		snprintf_P(
+//			cseq,
+//			sizeof(cseq),
+//			PSTR("%lX POST"),
+//			(long unsigned int)pairing->seq
+//		);
+//#else
+//		snprintf(cseq,
+//			sizeof(cseq),
+//			"%lX POST",
+//			(long unsigned int)pairing->seq
+//		);
+//#endif
+//		status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
+//		require_noerr(status,bail);
+//#endif
 #endif // !SMCP_CONF_OBSERVING_ONLY
 	}
 
@@ -537,7 +545,6 @@ smcp_event_response_handler(
 	int statuscode, smcp_pairing_node_t pairing
 ) {
 	DEBUG_PRINTF("Pairing:%p: smcp_event_response_handler(): statuscode=%d",pairing,statuscode);
-#if SMCP_CONF_PAIRING_STATS
 
 	if(statuscode==SMCP_STATUS_TIMEOUT) {
 		if(SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)) {
@@ -551,26 +558,30 @@ smcp_event_response_handler(
 	if(statuscode!=SMCP_STATUS_TRANSACTION_INVALIDATED) {
 		if(statuscode && ((statuscode < COAP_RESULT_200) || (statuscode >= COAP_RESULT_400))) {
 			// Looks like we failed to live up to this pairing.
+#if SMCP_CONF_PAIRING_STATS
 			pairing->errors++;
-			if(	(pairing->errors>=10) && pairing->flags & SMCP_PARING_FLAG_OBSERVE ) {
+#endif
+			if(	(pairing->flags & SMCP_PARING_FLAG_OBSERVE)
+#if SMCP_CONF_PAIRING_STATS
+				&& (pairing->errors>=10)
+#endif
+			) {
 				DEBUG_PRINTF("Event:%p: Too many errors!\n",pairing);
 				statuscode = SMCP_STATUS_RESET;
 			}
 			if(statuscode==SMCP_STATUS_RESET && (pairing->flags&SMCP_PARING_FLAG_OBSERVE)) {
-				// expire the event.
-				DEBUG_PRINTF("Event:%p: Pairing RESET.\n",pairing);
-				smcp_event_tracker_t event = pairing->currentEvent;
-				pairing->currentEvent = NULL;
-				smcp_event_tracker_release(event);
 				smcp_delete_pairing(pairing);
 				return SMCP_STATUS_OK;
 			}
+#if SMCP_CONF_PAIRING_STATS
 			smcp_trigger_event_with_node(
 				smcp_get_current_instance(),
 				&pairing->node.node,
 				"ec"
 			);
+#endif
 		}
+#if SMCP_CONF_PAIRING_STATS
 		if(pairing->last_error != statuscode) {
 			pairing->last_error = statuscode;
 			smcp_trigger_event_with_node(
@@ -579,8 +590,8 @@ smcp_event_response_handler(
 				"err"
 			);
 		}
-	}
 #endif
+	}
 
 #if SMCP_CONF_USE_SEQ
 	if(!statuscode || ((statuscode >= COAP_RESULT_200) && (statuscode < COAP_RESULT_400)))
@@ -588,9 +599,11 @@ smcp_event_response_handler(
 #endif
 
 	// expire the event.
-	smcp_event_tracker_t event = pairing->currentEvent;
-	pairing->currentEvent = NULL;
-	smcp_event_tracker_release(event);
+	{
+		smcp_event_tracker_t event = pairing->currentEvent;
+		pairing->currentEvent = NULL;
+		smcp_event_tracker_release(event);
+	}
 	return SMCP_STATUS_OK;
 }
 
@@ -605,6 +618,9 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 		status = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		require_noerr(status,bail);
 
+		status = smcp_outbound_set_async_response(&pairing->async_response);
+		require_noerr(status,bail);
+
 #if SMCP_CONF_USE_SEQ
 		status = smcp_outbound_add_option_uint(
 			COAP_HEADER_OBSERVE,
@@ -616,8 +632,6 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 			0
 		);
 #endif
-
-		status = smcp_outbound_set_async_response(&pairing->async_response);
 		require_noerr(status,bail);
 
 		self->outbound.packet->tt = SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)?COAP_TRANS_TYPE_CONFIRMABLE:COAP_TRANS_TYPE_NONCONFIRMABLE;
@@ -655,27 +669,26 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 		);
 		require_noerr(status,bail);
 
-#if SMCP_CONF_USE_SEQ
-		char cseq[24];
-#if __AVR__
-		snprintf_P(
-			cseq,
-			sizeof(cseq),
-			PSTR("%lX POST"),
-			(long unsigned int)pairing->seq
-		);
-#else
-		snprintf(cseq,
-			sizeof(cseq),
-			"%lX POST",
-			(long unsigned int)pairing->seq
-		);
-#endif // !__AVR__
-		status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
-		require_noerr(status,bail);
-#endif // SMCP_CONF_USE_SEQ
+//#if SMCP_CONF_USE_SEQ
+//		char cseq[24];
+//#if __AVR__
+//		snprintf_P(
+//			cseq,
+//			sizeof(cseq),
+//			PSTR("%lX POST"),
+//			(long unsigned int)pairing->seq
+//		);
+//#else
+//		snprintf(cseq,
+//			sizeof(cseq),
+//			"%lX POST",
+//			(long unsigned int)pairing->seq
+//		);
+//#endif // !__AVR__
+//		status = smcp_outbound_add_option(SMCP_HEADER_CSEQ, cseq, HEADER_CSTR_LEN);
+//		require_noerr(status,bail);
+//#endif // SMCP_CONF_USE_SEQ
 #endif // !SMCP_CONF_OBSERVING_ONLY
-	}
 
 #if HAVE_ALLOCA
 	packet = alloca(4+strlen(smcp_pairing_get_path_cstr(pairing))+5);
@@ -690,8 +703,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	packet->code = COAP_METHOD_GET;
 	packet->tt = SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)?COAP_TRANS_TYPE_CONFIRMABLE:COAP_TRANS_TYPE_NONCONFIRMABLE;
 	packet->version = COAP_VERSION;
-	self->is_processing_message = true;
-	self->did_respond = false;
+	packet->token_len = 0;
 	self->inbound.packet = packet;
 	self->inbound.content_len = 0;
 	self->inbound.content_ptr = NULL;
@@ -699,9 +711,9 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	self->inbound.is_fake = true;
 
 	{
-		uint8_t* option = packet->options;
+		uint8_t* option = packet->token+packet->token_len;
 		coap_option_key_t prev_key = 0;
-		uint8_t option_count = 0;
+//		uint8_t option_count = 0;
 		char* component = NULL;
 		char* path = strdup(smcp_pairing_get_path_cstr(pairing));
 
@@ -718,21 +730,35 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 				(uint8_t*)component,
 				strlen(component)
 			);
-			option_count++;
 			prev_key = COAP_HEADER_URI_PATH;
 		}
-		if(option_count>=0xF) {
-			packet->option_count=0xF;
-			*option++ = 0xF0;
-		} else {
-			packet->option_count=option_count;
-		}
+//		*option++ = 0xFF;
 
 		self->inbound.content_ptr = (char*)option;
+		self->inbound.packet_len = (char*)option - (char*)packet;
+
+//		if(pairing->content_type != COAP_CONTENT_TYPE_UNKNOWN) {
+//
+//		}
+
 	}
 
-	self->inbound.this_option = self->inbound.packet->options;
-	self->inbound.options_left = self->inbound.packet->option_count;
+	self->inbound.this_option = self->inbound.packet->token+self->inbound.packet->token_len;
+	}
+
+	self->is_processing_message = true;
+	self->did_respond = false;
+
+#if VERBOSE_DEBUG
+	coap_dump_header(
+		SMCP_DEBUG_OUT_FILE,
+		"FAKE Inbound:\t",
+		self->inbound.packet,
+		self->inbound.packet_len
+	);
+#endif
+
+//	self->inbound.options_left = self->inbound.packet->option_count;
 	status = smcp_handle_request(self);
 	require(!status||status==SMCP_STATUS_NOT_FOUND||status==SMCP_STATUS_NOT_ALLOWED,bail);
 
@@ -760,6 +786,7 @@ smcp_trigger_event(
 	smcp_status_t ret = 0;
 	smcp_pairing_node_t iter;
 	smcp_event_tracker_t event = NULL;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	require_action(self!=NULL,bail,ret=SMCP_STATUS_BAD_ARGUMENT);
 
@@ -774,6 +801,16 @@ smcp_trigger_event(
 	) {
 		smcp_status_t status;
 
+		iter->seq++;
+
+		if(iter->currentEvent) {
+			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
+
+			// Tickle the existing transaction to make it send again.
+			smcp_transaction_tickle(self, &iter->transaction);
+			continue;
+		}
+
 		if(!event) {
 			// Allocate this lazily.
 			event = calloc(1,sizeof(*event));
@@ -787,15 +824,7 @@ smcp_trigger_event(
 			DEBUG_PRINTF("Event:%p: alloc",event);
 		}
 
-		if(iter->currentEvent) {
-			DEBUG_PRINTF("Event:%p: Previous event, %p, is still around!",event,iter->currentEvent);
-			smcp_transaction_end(self,&iter->transaction);
-		}
-
-#if SMCP_CONF_USE_SEQ
-		iter->seq++;
 		event->seq = iter->seq;
-#endif
 
 		smcp_transaction_init(
 			&iter->transaction,
@@ -870,6 +899,7 @@ smcp_trigger_custom_event(
 	smcp_status_t ret = 0;
 	smcp_pairing_node_t iter;
 	smcp_event_tracker_t event = NULL;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	if(!path) path = "";
 
@@ -973,8 +1003,9 @@ extern smcp_status_t
 smcp_delete_pairing(smcp_pairing_node_t pairing) {
 	smcp_node_t parent = (smcp_node_t)pairing->node.node.parent;
 	smcp_t const self = (smcp_t)smcp_node_get_root(&pairing->node.node);
+	char* name = (char*)pairing->node.node.name;
 
-	DEBUG_PRINTF("Deleting pairing \"%s\"",pairing->node.node.name);
+	DEBUG_PRINTF("%s: %p \"%s\"",__func__,pairing,pairing->node.node.name);
 
 	if(pairing->flags&SMCP_PARING_FLAG_OBSERVE)
 		smcp_finish_async_response(&pairing->async_response);
@@ -982,8 +1013,8 @@ smcp_delete_pairing(smcp_pairing_node_t pairing) {
 	if(pairing->currentEvent)
 		smcp_event_tracker_release(pairing->currentEvent);
 	smcp_transaction_end(self,&pairing->transaction);
-	free((char*)pairing->node.node.name);
 	smcp_node_delete(&pairing->node.node);
+	free(name);
 	if(parent && !parent->children) {
 		free((char*)parent->name);
 		smcp_node_delete(parent);

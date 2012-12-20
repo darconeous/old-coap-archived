@@ -35,13 +35,17 @@
 #endif
 
 #include "assert_macros.h"
+
 #include "smcp-opts.h"
+#include "smcp.h"
 #include "smcp-node.h"
+#include "smcp-helpers.h"
 #include "smcp-variable_node.h"
-#include "url-helpers.h"
 #include "smcp-logging.h"
-#include <stdlib.h>
 #include "smcp-pairing.h"
+
+#include "url-helpers.h"
+#include <stdlib.h>
 
 void
 smcp_variable_node_dealloc(smcp_variable_node_t x) {
@@ -253,23 +257,28 @@ smcp_variable_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
+#if SMCP_ENABLE_PAIRING
+			if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,buffer)) {
+				ret = smcp_pair_inbound_observe_update();
+				check_string(ret==0,smcp_status_to_cstr(ret));
+			}
+#endif
+
 			if(reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 
 				if(0==node->func(node,SMCP_VAR_GET_MAX_AGE,key_index,buffer)) {
+#if HAVE_STRTOL
 					uint32_t max_age = strtol(buffer,NULL,0)&0xFFFFFF;
+#else
+					uint32_t max_age = atoi(buffer)&0xFFFFFF;
+#endif
 					smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE, max_age);
 				}
 
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
 
-#if SMCP_ENABLE_PAIRING
-				if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,buffer)) {
-					ret = smcp_pair_inbound_observe_update();
-					check_string(ret==0,smcp_status_to_cstr(ret));
-				}
-#endif
 				replyContent = smcp_outbound_get_content_ptr(&replyContentLength);
 
 				*replyContent++ = 'v';
@@ -285,10 +294,6 @@ smcp_variable_request_handler(
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
 
-#if SMCP_ENABLE_PAIRING
-				ret = smcp_pair_inbound_observe_update();
-				check_string(ret==0,smcp_status_to_cstr(ret));
-#endif
 				ret = smcp_outbound_append_content(buffer, HEADER_CSTR_LEN);
 			}
 

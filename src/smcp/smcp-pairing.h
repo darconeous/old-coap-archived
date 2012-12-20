@@ -133,6 +133,8 @@ struct smcp_pairing_node_s {
 
 	uint8_t				token[8];
 
+	coap_content_type_t	content_type;
+
 	union {
 		struct smcp_async_response_s async_response;
 #if !SMCP_CONF_OBSERVING_ONLY

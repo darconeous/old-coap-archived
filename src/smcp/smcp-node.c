@@ -78,12 +78,15 @@ smcp_node_alloc() {
 			ret = NULL;
 			continue;
 		}
+		break;
 	}
 #else
 	ret = (smcp_node_t)calloc(sizeof(struct smcp_node_s), 1);
 #endif
 	if(ret)
 		ret->finalize = &smcp_node_dealloc;
+	else
+		DEBUG_PRINTF("%s: Malloc failure...?",__func__);
 	return ret;
 }
 
@@ -151,6 +154,8 @@ smcp_node_init(
 		ret->parent = node;
 	}
 
+	DEBUG_PRINTF("%s: %p",__func__,ret);
+
 bail:
 	return ret;
 }
@@ -159,20 +164,28 @@ void
 smcp_node_delete(smcp_node_t node) {
 	void** owner = NULL;
 
-	// Delete all child objects.
-	while(((smcp_node_t)node)->children)
-		smcp_node_delete(((smcp_node_t)node)->children);
+	DEBUG_PRINTF("%s: %p",__func__,node);
 
 	if(node->parent)
 		owner = (void**)&((smcp_node_t)node->parent)->children;
 
+	// Delete all child objects.
+	while(((smcp_node_t)node)->children)
+		smcp_node_delete(((smcp_node_t)node)->children);
+
 	if(owner) {
+#if DEBUG
+		bt_count(owner);
+#endif
 		bt_remove(owner,
 			node,
 			(bt_compare_func_t)smcp_node_compare,
 			(void*)node->finalize,
 			NULL
 		);
+#if DEBUG
+		bt_count(owner);
+#endif
 	}
 
 bail:

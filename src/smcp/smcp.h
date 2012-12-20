@@ -99,6 +99,7 @@ enum {
 	SMCP_STATUS_RESET				= -23,
 	SMCP_STATUS_ASYNC_RESPONSE		= -24,
 	SMCP_STATUS_UNAUTHORIZED		= -25,
+	SMCP_STATUS_BAD_PACKET			= -26,
 };
 
 typedef int smcp_status_t;
@@ -135,8 +136,45 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #pragma mark -
 #pragma mark SMCP Daemon methods
 
-#if !SMCP_NO_MALLOC && !SMCP_EMBEDDED
-extern smcp_t smcp_create(uint16_t port);
+#if SMCP_EMBEDDED
+// On embedded systems, we know we will always only have
+// a single smcp instance, so we can save a considerable
+// amount of stack spaces by simply removing the first argument
+// from many functions. In order to make things as maintainable
+// as possible, these macros do all of the work for us.
+#define SMCP_EMBEDDED_SELF_HOOK 	smcp_t const self = smcp_get_current_instance()
+#define smcp_init(self,...)		smcp_init(__VA_ARGS__)
+#define smcp_release(self)		smcp_release()
+#define smcp_get_port(self)		smcp_get_port()
+#define smcp_process(self,...)		smcp_process(__VA_ARGS__)
+#define smcp_get_timeout(self)		smcp_get_timeout()
+#define smcp_set_proxy_url(self,...)		smcp_set_proxy_url(__VA_ARGS__)
+#define smcp_get_fd(self)		smcp_get_fd()
+#define smcp_get_udp_conn(self)		smcp_get_udp_conn()
+#define smcp_handle_inbound_packet(self,...)		smcp_handle_inbound_packet(__VA_ARGS__)
+#define smcp_transaction_begin(self,...)		smcp_transaction_begin(__VA_ARGS__)
+#define smcp_transaction_end(self,...)		smcp_transaction_end(__VA_ARGS__)
+#define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
+#define smcp_get_next_msg_id(self,...)		smcp_get_next_msg_id(__VA_ARGS__)
+#define smcp_transaction_find_via_msg_id(self,...)		smcp_transaction_find_via_msg_id(__VA_ARGS__)
+#define smcp_transaction_find_via_token(self,...)		smcp_transaction_find_via_token(__VA_ARGS__)
+#define smcp_pair_with_uri(self,...)		smcp_pair_with_uri(__VA_ARGS__)
+#define smcp_pair_with_sockaddr(self,...)		smcp_pair_with_sockaddr(__VA_ARGS__)
+#define smcp_trigger_event(self,...)		smcp_trigger_event(__VA_ARGS__)
+#define smcp_trigger_event_with_node(self,...)		smcp_trigger_event_with_node(__VA_ARGS__)
+#define smcp_trigger_custom_event(self,...)		smcp_trigger_custom_event(__VA_ARGS__)
+#define smcp_get_first_pairing_for_path(self,...)		smcp_get_first_pairing_for_path(__VA_ARGS__)
+#define smcp_schedule_timer(self,...)		smcp_schedule_timer(__VA_ARGS__)
+#define smcp_invalidate_timer(self,...)		smcp_invalidate_timer(__VA_ARGS__)
+#define smcp_handle_timers(self,...)		smcp_handle_timers(__VA_ARGS__)
+#define smcp_timer_is_scheduled(self,...)		smcp_timer_is_scheduled(__VA_ARGS__)
+#define smcp_transaction_new_msg_id(self,...)		smcp_transaction_new_msg_id(__VA_ARGS__)
+#define smcp_transaction_tickle(self,...)		smcp_transaction_tickle(__VA_ARGS__)
+
+
+
+#else
+#define SMCP_EMBEDDED_SELF_HOOK
 #endif
 
 extern smcp_t smcp_init(smcp_t self, uint16_t port);
@@ -155,6 +193,9 @@ extern struct smcp_s smcp_global_instance;
 extern smcp_t smcp_get_current_instance(); // Used from callbacks
 extern smcp_node_t smcp_get_root_node(smcp_t self);
 extern smcp_node_t smcp_node_get_root(smcp_node_t node);
+#if !SMCP_NO_MALLOC
+extern smcp_t smcp_create(uint16_t port);
+#endif
 #endif
 
 extern smcp_status_t smcp_process(smcp_t self, cms_t cms);
@@ -212,10 +253,15 @@ extern smcp_status_t smcp_transaction_end(
 	smcp_transaction_t transaction
 );
 
+extern smcp_status_t smcp_transaction_tickle(
+	smcp_t self,
+	smcp_transaction_t transaction
+);
+
 //! DEPRECATED.
 extern smcp_status_t smcp_begin_transaction_old(
 	smcp_t self,
-	coap_transaction_id_t tid,
+	coap_msg_id_t tid,
 	cms_t cmsExpiration,
 	int	flags,
 	smcp_inbound_resend_func requestResend,
@@ -226,13 +272,14 @@ extern smcp_status_t smcp_begin_transaction_old(
 //! DEPRECATED.
 extern smcp_status_t smcp_invalidate_transaction_old(
 	smcp_t self,
-	coap_transaction_id_t tid
+	coap_msg_id_t tid
 );
 
 #pragma mark -
 #pragma mark Inbound Message Parsing API
 
 extern const struct coap_header_s* smcp_inbound_get_packet();
+extern size_t smcp_inbound_get_packet_length();
 
 #define smcp_inbound_get_msg_id()	(smcp_inbound_get_packet()->msg_id)
 
@@ -281,7 +328,7 @@ extern void smcp_outbound_drop();
 
 extern smcp_status_t smcp_outbound_begin_response(coap_code_t code);
 
-extern smcp_status_t smcp_outbound_set_msg_id(coap_transaction_id_t tid);
+extern smcp_status_t smcp_outbound_set_msg_id(coap_msg_id_t tid);
 
 extern smcp_status_t smcp_outbound_set_code(coap_code_t code);
 
@@ -345,11 +392,17 @@ struct smcp_async_response_s {
 	uint16_t				toport;	// Always in network order.
 #endif
 
-	coap_transaction_id_t original_tid;
-	coap_transaction_type_t tt;
+	union {
+		struct coap_header_s header;
+		uint8_t bytes[128];
+	} request;
+	size_t request_len;
 
-	uint8_t token_len;
-	uint8_t token_value[COAP_MAX_TOKEN_SIZE];
+//	coap_msg_id_t original_tid;
+//	coap_transaction_type_t tt;
+//
+//	uint8_t token_len;
+//	uint8_t token_value[COAP_MAX_TOKEN_SIZE];
 };
 
 typedef struct smcp_async_response_s* smcp_async_response_t;
@@ -359,6 +412,8 @@ extern smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,i
 extern smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
 
 extern smcp_status_t smcp_outbound_set_async_response(struct smcp_async_response_s* x);
+
+extern smcp_status_t smcp_outbound_set_token(const uint8_t *token,uint8_t token_length);
 
 #pragma mark -
 #pragma mark Node Functions
@@ -411,7 +466,7 @@ extern smcp_status_t smcp_default_request_handler(
 #pragma mark -
 #pragma mark Helper Functions
 
-extern coap_transaction_id_t smcp_get_next_msg_id(smcp_t self, void* context);
+extern coap_msg_id_t smcp_get_next_msg_id(smcp_t self, void* context);
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 

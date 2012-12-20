@@ -102,6 +102,15 @@ static smcp_status_t device_func(
 		} else {
 			return SMCP_STATUS_FAILURE;
 		}
+	} else if(action==SMCP_VAR_GET_OBSERVABLE) {
+		static const bool observable[] = {
+			[SYS_NODE_PATH_LOADAVG_1] = 0,
+			[SYS_NODE_PATH_LOADAVG_5] = 0,
+			[SYS_NODE_PATH_LOADAVG_15] = 0,
+			[SYS_NODE_PATH_UPTIME] = 0,
+		};
+		if(!observable)
+			return SMCP_STATUS_NOT_ALLOWED;
 	} else if(action==SMCP_VAR_GET_VALUE) {
 		switch(path) {
 			case SYS_NODE_PATH_LOADAVG_1:
