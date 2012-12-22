@@ -311,8 +311,8 @@ smcp_outbound_add_options_up_to_key_(
 	smcp_status_t ret = SMCP_STATUS_OK;
 	smcp_t const self = smcp_get_current_instance();
 
-//	if(	self->outbound.last_option_key<COAP_HEADER_TOKEN
-//		&& key>COAP_HEADER_TOKEN
+//	if(	self->outbound.last_option_key<COAP_OPTION_TOKEN
+//		&& key>COAP_OPTION_TOKEN
 //	) {
 //		if(	self->is_processing_message
 //			&& self->is_responding
@@ -322,11 +322,11 @@ smcp_outbound_add_options_up_to_key_(
 //			const uint8_t* value;
 //			size_t len;
 //			if(coap_decode_option(self->inbound.token_option, NULL, &value, &len))
-//				ret = smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
+//				ret = smcp_outbound_add_option_(COAP_OPTION_TOKEN,(void*)value,len);
 //		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100 && self->current_transaction) {
 //			// For sending a request.
 //			ret = smcp_outbound_add_option_(
-//				COAP_HEADER_TOKEN,
+//				COAP_OPTION_TOKEN,
 //				(void*)&self->current_transaction->token,
 //				sizeof(self->current_transaction->token)
 //			);
@@ -334,45 +334,45 @@ smcp_outbound_add_options_up_to_key_(
 //	}
 
 	if(	(self->current_transaction && self->current_transaction->next_block2)
-		&& self->outbound.last_option_key<COAP_HEADER_BLOCK2
-		&& key>COAP_HEADER_BLOCK2
+		&& self->outbound.last_option_key<COAP_OPTION_BLOCK2
+		&& key>COAP_OPTION_BLOCK2
 	) {
 		uint32_t block2 = htonl(self->current_transaction->next_block2);
 		uint8_t size = 3; // TODO: calculate this properly
 		ret = smcp_outbound_add_option_(
-			COAP_HEADER_BLOCK2,
+			COAP_OPTION_BLOCK2,
 			(char*)&block2+sizeof(block2)-size,
 			size
 		);
 	}
 
 	if(	(self->current_transaction && self->current_transaction->flags&SMCP_TRANSACTION_OBSERVE)
-		&& self->outbound.last_option_key<COAP_HEADER_OBSERVE
-		&& key>COAP_HEADER_OBSERVE
+		&& self->outbound.last_option_key<COAP_OPTION_OBSERVE
+		&& key>COAP_OPTION_OBSERVE
 	) {
 		if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
 			ret = smcp_outbound_add_option_(
-				COAP_HEADER_OBSERVE,
+				COAP_OPTION_OBSERVE,
 				(void*)NULL,
 				0
 			);
 		}
 	}
 
-	if(	self->outbound.last_option_key<COAP_HEADER_AUTHENTICATE
-		&& key>COAP_HEADER_AUTHENTICATE
+	if(	self->outbound.last_option_key<COAP_OPTION_AUTHENTICATE
+		&& key>COAP_OPTION_AUTHENTICATE
 	) {
 		ret = smcp_auth_add_options();
 	}
 
 #if SMCP_USE_CASCADE_COUNT
-	if(	self->outbound.last_option_key<COAP_HEADER_CASCADE_COUNT
-		&& key>COAP_HEADER_CASCADE_COUNT
+	if(	self->outbound.last_option_key<COAP_OPTION_CASCADE_COUNT
+		&& key>COAP_OPTION_CASCADE_COUNT
 		&& self->has_cascade_count
 	) {
 		ret = smcp_outbound_add_option_(
-			COAP_HEADER_CASCADE_COUNT,
+			COAP_OPTION_CASCADE_COUNT,
 			(char*)&self->cascade_count,
 			1
 		);
@@ -637,7 +637,7 @@ smcp_outbound_set_uri(
 		);
 		require_action(uri!=self->proxy_url,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
 
-		ret = smcp_outbound_add_option(COAP_HEADER_PROXY_URI, uri, strlen(uri));
+		ret = smcp_outbound_add_option(COAP_OPTION_PROXY_URI, uri, strlen(uri));
 		require_noerr(ret, bail);
 		ret = smcp_outbound_set_uri(self->proxy_url,flags);
 		goto bail;
@@ -645,12 +645,12 @@ smcp_outbound_set_uri(
 
 	if(!(flags&SMCP_MSG_SKIP_AUTHORITY)) {
 		if(addr_str) {
-			ret = smcp_outbound_add_option(COAP_HEADER_URI_HOST, addr_str, strlen(addr_str));
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_HOST, addr_str, strlen(addr_str));
 			require_noerr(ret, bail);
 		}
 		if(port_str) {
 			toport = htons(toport);
-			ret = smcp_outbound_add_option(COAP_HEADER_URI_PORT, (char*)&toport, sizeof(toport));
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_PORT, (char*)&toport, sizeof(toport));
 			toport = ntohs(toport);
 			require_noerr(ret, bail);
 		}
@@ -679,11 +679,11 @@ smcp_outbound_set_uri(
 		while(url_path_next_component(&path_str,&component)) {
 			//int len = strlen(component);
 			//if(len)
-			ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, component, HEADER_CSTR_LEN);
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, component, HEADER_CSTR_LEN);
 			require_noerr(ret,bail);
 		}
 		if(has_trailing_slash) {
-			ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, "", HEADER_CSTR_LEN);
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, "", HEADER_CSTR_LEN);
 			require_noerr(ret,bail);
 		}
 	}
@@ -694,7 +694,7 @@ smcp_outbound_set_uri(
 		while(url_form_next_value(&query_str,&key,NULL)) {
 			int len = strlen(key);
 			if(len)
-				ret = smcp_outbound_add_option(COAP_HEADER_URI_QUERY, key, len);
+				ret = smcp_outbound_add_option(COAP_OPTION_URI_QUERY, key, len);
 			require_noerr(ret,bail);
 		}
 	}
@@ -869,7 +869,7 @@ bail:
 
 smcp_status_t
 smcp_outbound_set_content_type(coap_content_type_t t) {
-	return smcp_outbound_add_option_uint(COAP_HEADER_CONTENT_TYPE, t);
+	return smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, t);
 }
 
 smcp_status_t

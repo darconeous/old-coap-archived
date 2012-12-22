@@ -113,15 +113,15 @@ resend_pair_request(char* url[2]) {
 	require_noerr(status,bail);
 
 	// Root pairings object path
-	status = smcp_outbound_add_option(COAP_HEADER_URI_PATH,SMCP_PAIRING_DEFAULT_ROOT_PATH,HEADER_CSTR_LEN);
+	status = smcp_outbound_add_option(COAP_OPTION_URI_PATH,SMCP_PAIRING_DEFAULT_ROOT_PATH,HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 
 	// Path to pair with
-	status = smcp_outbound_add_option(COAP_HEADER_URI_PATH,url[0]+len+1,HEADER_CSTR_LEN);
+	status = smcp_outbound_add_option(COAP_OPTION_URI_PATH,url[0]+len+1,HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 
 	// Remote target
-	status = smcp_outbound_add_option(COAP_HEADER_URI_PATH,url[1],HEADER_CSTR_LEN);
+	status = smcp_outbound_add_option(COAP_OPTION_URI_PATH,url[1],HEADER_CSTR_LEN);
 	require_noerr(status,bail);
 
 	status = smcp_outbound_send();

@@ -212,6 +212,7 @@ cgi_node_create_request(cgi_node_t node) {
 
 	if(!(ret->pid=fork())) {
 		// We are the child!
+		char path[2048]; // todo: this max should be a preprocessor macro
 
 		// Update stdin and stdout.
 		dup2(pipe_cmd_stdin[0],STDIN_FILENO);
@@ -222,7 +223,25 @@ cgi_node_create_request(cgi_node_t node) {
 		close(pipe_cmd_stdout[0]);
 		close(pipe_cmd_stdout[1]);
 
+		path[0] = 0;
+		smcp_node_get_path(&node->node,path,sizeof(path));
+		setenv("SCRIPT_NAME",path,1);
+
+		setenv("SERVER_SOFTWARE","smcpd/0.5",1);
 		setenv("REQUEST_METHOD",coap_code_to_cstr(smcp_inbound_get_packet()->code),1);
+		setenv("REQUEST_URI",smcp_inbound_get_path(path,2),1);
+		setenv("GATEWAY_INTERFACE","CGI/1.1",1);
+		setenv("SERVER_PROTOCOL","CoAP/1.0",1);
+
+		setenv("REMOTE_ADDR","",1);
+		setenv("REMOTE_PORT","",1);
+		setenv("SERVER_NAME","",1);
+		setenv("SERVER_ADDR","",1);
+		setenv("SERVER_PORT","",1);
+
+		if(0==strncmp(path,getenv("SCRIPT_NAME"),strlen(getenv("SCRIPT_NAME")))) {
+			setenv("PATH_INFO",path+strlen(getenv("SCRIPT_NAME")),1);
+		}
 
 //		fprintf(stderr,"CHILD: About to execute \"%s\" using shell \"%s\"\n",node->cmd,node->shell);
 //		fflush(stderr);
@@ -277,11 +296,11 @@ cgi_node_async_resend_response(void* context) {
 	ret = smcp_outbound_set_async_response(&request->async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
-	require_noerr(ret,bail);
+//	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+//	require_noerr(ret,bail);
 
 	if(request->block1!=BLOCK_OPTION_UNSPECIFIED) {
-		ret = smcp_outbound_add_option_uint(COAP_HEADER_BLOCK1,request->block1);
+		ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK1,request->block1);
 		require_noerr(ret,bail);
 	}
 
@@ -291,7 +310,7 @@ cgi_node_async_resend_response(void* context) {
 				request->block2 |= (1<<3);
 			else
 				request->block2 &= ~(1<<3);
-			ret = smcp_outbound_add_option_uint(COAP_HEADER_BLOCK2,request->block2);
+			ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
 			require_noerr(ret,bail);
 		}
 
@@ -522,14 +541,14 @@ cgi_node_request_handler(
 		const uint8_t* value;
 		size_t value_len;
 		coap_option_key_t key;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
-			if(key == COAP_HEADER_BLOCK2) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+			if(key == COAP_OPTION_BLOCK2) {
 				uint8_t i;
 				block2_option = 0;
 				for(i = 0; i < value_len; i++)
 					block2_option = (block2_option << 8) + value[i];
 			}
-			if(key == COAP_HEADER_BLOCK1) {
+			if(key == COAP_OPTION_BLOCK1) {
 				uint8_t i;
 				block1_option = 0;
 				for(i = 0; i < value_len; i++)
@@ -667,11 +686,11 @@ cgi_node_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-			ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
-			require_noerr(ret,bail);
+//			ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+//			require_noerr(ret,bail);
 
 			if(request->stdout_buffer_len>block_len || request->fd_cmd_stdout>=0) {
-				ret = smcp_outbound_add_option_uint(COAP_HEADER_BLOCK2,request->block2);
+				ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
 				require_noerr(ret,bail);
 			}
 

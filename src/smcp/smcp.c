@@ -351,7 +351,7 @@ smcp_inbound_next_option_(const uint8_t** value, size_t* len) {
 			len
 		);
 	} else {
-		self->inbound.last_option_key = COAP_HEADER_INVALID;
+		self->inbound.last_option_key = COAP_OPTION_INVALID;
 	}
 	return self->inbound.last_option_key;
 }
@@ -367,7 +367,7 @@ coap_option_key_t
 smcp_inbound_peek_option(const uint8_t** value, size_t* len) {
 	smcp_t const self = smcp_get_current_instance();
 	coap_option_key_t ret = self->inbound.last_option_key;
-	if(self->inbound.last_option_key!=COAP_HEADER_INVALID
+	if(self->inbound.last_option_key!=COAP_OPTION_INVALID
 		&& self->inbound.this_option<((uint8_t*)self->inbound.packet+self->inbound.packet_len)
 		&& self->inbound.this_option[0]!=0xFF
 	) {
@@ -379,7 +379,7 @@ smcp_inbound_peek_option(const uint8_t** value, size_t* len) {
 		);
 
 	} else {
-		ret = COAP_HEADER_INVALID;
+		ret = COAP_OPTION_INVALID;
 	}
 	return ret;
 }
@@ -467,6 +467,48 @@ smcp_inbound_origin_is_local() {
 #endif
 }
 
+char*
+smcp_inbound_get_path(char* where,uint8_t flags) {
+	smcp_t const self = smcp_get_current_instance();
+
+	coap_option_key_t		last_option_key = self->inbound.last_option_key;
+	const uint8_t*			this_option = self->inbound.this_option;
+//	uint8_t					options_left = self->inbound.options_left;
+
+	char* filename;
+	size_t filename_len;
+	coap_option_key_t key;
+	char* iter;
+
+	if(!where)
+		where = calloc(1,SMCP_MAX_URI_LENGTH+1);
+
+	iter = where;
+
+	if(!(flags&1))
+		smcp_inbound_reset_next_option();
+
+	while((key = smcp_inbound_peek_option(NULL,NULL))!=COAP_OPTION_URI_PATH
+		&& key!=COAP_OPTION_INVALID
+	) {
+		smcp_inbound_next_option(NULL,NULL);
+	}
+
+	while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_PATH) {
+		char old_end = filename[filename_len];
+		if(iter!=where || (flags&2))
+			*iter++='/';
+		filename[filename_len] = 0;
+		iter+=url_encode_cstr(iter, filename, (iter-where)+SMCP_MAX_URI_LENGTH);
+		filename[filename_len] = old_end;
+	}
+	*iter = 0;
+
+	self->inbound.last_option_key = last_option_key;
+	self->inbound.this_option = this_option;
+//	self->inbound.options_left = options_left;
+	return where;
+}
 #pragma mark -
 
 smcp_status_t
@@ -515,6 +557,7 @@ smcp_handle_inbound_packet(
 
 	self->inbound.packet = packet;
 	self->inbound.packet_len = packet_length;
+	self->inbound.content_type = COAP_CONTENT_TYPE_UNKNOWN;
 
 #if SMCP_USE_BSD_SOCKETS
 	self->inbound.saddr = saddr;
@@ -579,28 +622,28 @@ smcp_handle_inbound_packet(
 			const uint8_t* value;
 			size_t value_len;
 			key = smcp_inbound_peek_option(&value,&value_len);
-//			if(key==COAP_HEADER_TOKEN) {
+//			if(key==COAP_OPTION_TOKEN) {
 //				self->inbound.token_option = self->inbound.this_option;
 //				if((self->inbound.token_option[0]&0xF0)==0xF0)
 //					self->inbound.token_option+=self->inbound.token_option[0]&0xf;
 //			} else
-			if(key==COAP_HEADER_CONTENT_TYPE) {
+			if(key==COAP_OPTION_CONTENT_TYPE) {
 				uint8_t i;
 				self->inbound.content_type = 0;
 				for(i = 0; i < value_len; i++)
 					self->inbound.content_type = (self->inbound.content_type << 8) + value[i];
-			} else if(key==COAP_HEADER_BLOCK2) {
+			} else if(key==COAP_OPTION_BLOCK2) {
 				uint8_t i;
 				self->inbound.block2_value = 0;
 				for(i = 0; i < value_len; i++)
 					self->inbound.block2_value = (self->inbound.block2_value << 8) + value[i];
-			} else if(key==COAP_HEADER_OBSERVE) {
+			} else if(key==COAP_OPTION_OBSERVE) {
 				uint8_t i;
 				self->inbound.has_observe_option = 1;
 				self->inbound.observe_value = 0;
 				for(i = 0; i < value_len; i++)
 					self->inbound.observe_value = (self->inbound.observe_value << 8) + value[i];
-			} else if(key==COAP_HEADER_MAX_AGE) {
+			} else if(key==COAP_OPTION_MAX_AGE) {
 				uint8_t i;
 				self->inbound.max_age = 0;
 				for(i = 0; i < value_len; i++)
@@ -609,7 +652,7 @@ smcp_handle_inbound_packet(
 				if(self->inbound.max_age<5)
 					self->inbound.max_age = 5;
 			}
-		} while(smcp_inbound_next_option_(NULL,NULL)!=COAP_HEADER_INVALID);
+		} while(smcp_inbound_next_option_(NULL,NULL)!=COAP_OPTION_INVALID);
 
 		require(((unsigned)(self->inbound.this_option-(uint8_t*)buffer)==packet_length) || self->inbound.this_option[0]==0xFF,bail);
 
@@ -841,20 +884,19 @@ smcp_internal_delete_transaction_(
 #endif
 }
 
-static int smcp_rtt = COAP_RESPONSE_TIMEOUT;
+static cms_t
+calc_retransmit_timeout(int retries) {
+	cms_t ret = COAP_ACK_TIMEOUT * MSEC_PER_SEC;
 
-static int
-calc_retransmit_timeout(int retries_) {
-	int ret = smcp_rtt;
+	ret <<= retries;
 
-	ret = (ret<<retries_);
+	ret *= 1024 + (SMCP_FUNC_RANDOM_UINT32() % (int)(1024*(1-COAP_ACK_RANDOM_FACTOR)));
+	ret /= 1024;
 
-	ret *= (1000 - 150) + (SMCP_FUNC_RANDOM_UINT32() % 300);
-
-	ret /= 1000;
-
-	if(ret > 5000)
-		ret = 5000;
+#if defined(COAP_MAX_ACK_RETRANSMIT_DURATION)
+	if(ret > COAP_MAX_ACK_RETRANSMIT_DURATION*MSEC_PER_SEC)
+		ret = COAP_MAX_ACK_RETRANSMIT_DURATION*MSEC_PER_SEC;
+#endif
 
 	return ret;
 }
@@ -1073,6 +1115,9 @@ smcp_transaction_begin(
 		self
 	);
 
+	if(!expiration)
+		expiration = COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC;
+
 	handler->token = smcp_get_next_msg_id(self, NULL);
 	handler->msg_id = handler->token;
 	handler->waiting_for_async_response = false;
@@ -1089,7 +1134,7 @@ smcp_transaction_begin(
 
 		if(handler->flags&SMCP_TRANSACTION_DELAY_START) {
 			// Unless this flag is set. Then we need to wait a moment.
-			expiration = 10 + (SMCP_FUNC_RANDOM_UINT32() % 290);
+			expiration = 10 + (SMCP_FUNC_RANDOM_UINT32() % (MSEC_PER_SEC*COAP_DEFAULT_LEASURE));
 		}
 	}
 
@@ -1258,15 +1303,15 @@ smcp_handle_request(
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
-		while((key=smcp_inbound_next_option_(&value, &value_len))!=COAP_HEADER_INVALID) {
-			if(key>COAP_HEADER_URI_PATH) {
+		while((key=smcp_inbound_next_option_(&value, &value_len))!=COAP_OPTION_INVALID) {
+			if(key>COAP_OPTION_URI_PATH) {
 				self->inbound.this_option = prev_option_ptr;
 				self->inbound.last_option_key = prev_key;
 //				self->inbound.options_left++;
 				break;
-			} else if(key==COAP_HEADER_PROXY_URI) {
+			} else if(key==COAP_OPTION_PROXY_URI) {
 				// Skip the proxy URI for now.
-			} else if(key==COAP_HEADER_URI_PATH) {
+			} else if(key==COAP_OPTION_URI_PATH) {
 				smcp_node_t next = smcp_node_find(
 					node,
 					(const char*)value,
@@ -1280,17 +1325,17 @@ smcp_handle_request(
 //					self->inbound.options_left++;
 					break;
 				}
-			} else if(key==COAP_HEADER_URI_HOST) {
+			} else if(key==COAP_OPTION_URI_HOST) {
 				// Skip host at the moment,
 				// because we don't do virtual hosting yet.
-			} else if(key==COAP_HEADER_URI_PORT) {
+			} else if(key==COAP_OPTION_URI_PORT) {
 				// Skip port at the moment,
 				// because we don't do virtual hosting yet.
-			} else if(key==COAP_HEADER_CONTENT_TYPE) {
+			} else if(key==COAP_OPTION_CONTENT_TYPE) {
 				// Skip the content type for now,
 				// but we will need to keep track of this later.
 			} else {
-				if(COAP_HEADER_IS_REQUIRED(key)) {
+				if(COAP_OPTION_IS_CRITICAL(key)) {
 					ret=SMCP_STATUS_BAD_OPTION;
 					assert_printf("Unrecognized option %d, \"%s\"",
 						key,

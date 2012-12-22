@@ -210,10 +210,11 @@ smcp_node_get_path(
 		path[0] = 0;
 	}
 
-	strlcat(path, "/", max_path_len);
 
 	if(node->name) {
-		size_t len = strlen(path);
+		size_t len;
+		strlcat(path, "/", max_path_len);
+		len = strlen(path);
 		if(max_path_len>len)
 			url_encode_cstr(path+len, node->name, max_path_len - len);
 	}

@@ -77,7 +77,7 @@ plugtest_test_handler(
 		const uint8_t* value;
 		size_t value_len;
 		coap_option_key_t key;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			strlcat(content,coap_option_key_to_cstr(key,1),max_len);
 			strlcat(content,": ",max_len);
 			if(coap_option_value_is_string(key)) {
@@ -212,7 +212,7 @@ plugtest_obs_handler(
 
 		smcp_pair_inbound_observe_update();
 
-		ret = smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE,10);
+		ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,10);
 		if(ret) goto bail;
 
 		content = smcp_outbound_get_content_ptr(&max_len);
@@ -265,8 +265,8 @@ plugtest_large_handler(
 		const uint8_t* value;
 		size_t value_len;
 		coap_option_key_t key;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
-			if(key == COAP_HEADER_BLOCK2) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+			if(key == COAP_OPTION_BLOCK2) {
 				uint8_t i;
 				block_option = 0;
 				for(i = 0; i < value_len; i++)
@@ -291,10 +291,10 @@ plugtest_large_handler(
 	ret = smcp_outbound_set_content_type(0);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_add_option_uint(COAP_HEADER_BLOCK2,block_option);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,block_option);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE,60*60);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,60*60);
 	require_noerr(ret,bail);
 
 	content = smcp_outbound_get_content_ptr(&max_len);

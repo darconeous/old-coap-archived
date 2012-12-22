@@ -194,7 +194,7 @@ smcp_curl_proxy_node_request_handler(
 
 	//require_action(method<=COAP_METHOD_DELETE,bail,ret = SMCP_STATUS_NOT_ALLOWED);
 
-	//require_action(COAP_HEADER_URI_PATH!=smcp_inbound_peek_option(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
+	//require_action(COAP_OPTION_URI_PATH!=smcp_inbound_peek_option(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
 
 	smcp_inbound_reset_next_option();
 
@@ -217,19 +217,19 @@ smcp_curl_proxy_node_request_handler(
 		coap_option_key_t key;
 		const uint8_t* value;
 		size_t value_len;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
-			if(key==COAP_HEADER_PROXY_URI) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+			if(key==COAP_OPTION_PROXY_URI) {
 				char uri[value_len+1];
 				memcpy(uri,value,value_len);
 				uri[value_len] = 0;
 				curl_easy_setopt(request->curl, CURLOPT_URL, uri);
 				assert_printf("CuRL URL: \"%s\"",uri);
 				ret = 0;
-			} else if(key==COAP_HEADER_URI_HOST) {
-			} else if(key==COAP_HEADER_URI_PORT) {
-			} else if(key==COAP_HEADER_URI_PATH) {
-			} else if(key==COAP_HEADER_URI_QUERY) {
-			} else if(key==COAP_HEADER_CONTENT_TYPE || key==COAP_HEADER_ACCEPT) {
+			} else if(key==COAP_OPTION_URI_HOST) {
+			} else if(key==COAP_OPTION_URI_PORT) {
+			} else if(key==COAP_OPTION_URI_PATH) {
+			} else if(key==COAP_OPTION_URI_QUERY) {
+			} else if(key==COAP_OPTION_CONTENT_TYPE || key==COAP_OPTION_ACCEPT) {
 				const char* option_name = coap_option_key_to_cstr(key, false);
 				const char* value_string = coap_content_type_to_cstr(value[1]);
 				char header[strlen(option_name)+strlen(value_string)+3];

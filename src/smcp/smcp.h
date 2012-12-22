@@ -312,6 +312,8 @@ extern void smcp_inbound_reset_next_option();
 //!	Compares the key and value of the current option to specific values.
 extern bool smcp_inbound_option_strequal(coap_option_key_t key,const char* str);
 
+extern char* smcp_inbound_get_path(char* where,uint8_t flags);
+
 #define smcp_inbound_option_strequal_const(key,const_str)	\
 	smcp_inbound_option_strequal(key,const_str)
 

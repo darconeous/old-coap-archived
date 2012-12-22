@@ -124,11 +124,11 @@ get_response_handler(int statuscode, void* context) {
 		bool last_block = true;
 		int32_t observe_value = -1;
 
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 
-			if(key == COAP_HEADER_BLOCK2) {
+			if(key == COAP_OPTION_BLOCK2) {
 				last_block = !(value[value_len-1]&(1<<3));
-			} else if(key == COAP_HEADER_OBSERVE) {
+			} else if(key == COAP_OPTION_OBSERVE) {
 				if(value_len)
 					observe_value = value[0];
 				else observe_value = 0;
@@ -166,7 +166,7 @@ resend_get_request(void* context) {
 	require_noerr(status,bail);
 
 	if(request_accept_type!=COAP_CONTENT_TYPE_UNKNOWN) {
-		status = smcp_outbound_add_option_uint(COAP_HEADER_ACCEPT, request_accept_type);
+		status = smcp_outbound_add_option_uint(COAP_OPTION_ACCEPT, request_accept_type);
 		require_noerr(status,bail);
 	}
 

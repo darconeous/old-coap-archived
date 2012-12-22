@@ -65,7 +65,7 @@
 extern uint16_t uip_slen;
 #endif
 
-// COAP_HEADER_AUTHENTICATE
+// COAP_OPTION_AUTHENTICATE
 
 #define SMCP_AUTH_SCHEME_CUSTOM			(0x00)
 #define SMCP_AUTH_SCHEME_BASIC			(0x01)
@@ -184,12 +184,12 @@ smcp_auth_verify_request() {
 		ret = SMCP_STATUS_UNAUTHORIZED;
 	}
 
-	while((key = smcp_inbound_next_option(&authvalue,&authvalue_len))!=COAP_HEADER_INVALID) {
-		if(key==COAP_HEADER_PROXY_URI) {
+	while((key = smcp_inbound_next_option(&authvalue,&authvalue_len))!=COAP_OPTION_INVALID) {
+		if(key==COAP_OPTION_PROXY_URI) {
 			// For testing purposes only!
 			ret = SMCP_STATUS_OK;
 		}
-		if(key==COAP_HEADER_AUTHENTICATE) {
+		if(key==COAP_OPTION_AUTHENTICATE) {
 			// For testing purposes only!
 			ret = SMCP_STATUS_OK;
 			// writeme!
@@ -205,7 +205,7 @@ smcp_auth_verify_request() {
 	// For testing purposes only!
 	if(ret==SMCP_STATUS_UNAUTHORIZED) {
 		smcp_outbound_begin_response(COAP_RESULT_401_UNAUTHORIZED);
-		smcp_outbound_add_option(COAP_HEADER_AUTHENTICATE,NULL,0);
+		smcp_outbound_add_option(COAP_OPTION_AUTHENTICATE,NULL,0);
 		smcp_outbound_send();
 	}
 
@@ -239,7 +239,7 @@ smcp_auth_outbound_set_credentials(const char* username, const char* password) {
 	// TODO: Writeme!
 
 	// Just do something stupid for now.
-	return smcp_outbound_add_option(COAP_HEADER_AUTHENTICATE, NULL, 0);
+	return smcp_outbound_add_option(COAP_OPTION_AUTHENTICATE, NULL, 0);
 }
 
 const char*
