@@ -265,10 +265,6 @@ smcp_outbound_add_option_(
 	if(len == HEADER_CSTR_LEN)
 		len = strlen(value);
 
-//	if(self->outbound.packet->option_count==0xF)
-//
-//	option_count = self->outbound.packet->option_count;
-
 	if(self->outbound.content_ptr!=(char*)self->outbound.packet->token+self->outbound.packet->token_len)
 		self->outbound.content_ptr--;	// remove end-of-options marker
 
@@ -280,17 +276,10 @@ smcp_outbound_add_option_(
 		len
 	);
 
-//	option_count++;
-
 	if(key>self->outbound.last_option_key)
 		self->outbound.last_option_key = key;
 
 	*self->outbound.content_ptr++ = 0xFF;  // Add end-of-options marker
-
-//	self->outbound.packet->option_count = MIN(15,option_count);
-//
-//	if(self->outbound.packet->option_count==0xF)
-//		*self->outbound.content_ptr++ = 0xF0;  // Add end-of-options marker
 
 #if OPTION_DEBUG
 	coap_dump_header(
@@ -310,28 +299,6 @@ smcp_outbound_add_options_up_to_key_(
 ) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	smcp_t const self = smcp_get_current_instance();
-
-//	if(	self->outbound.last_option_key<COAP_OPTION_TOKEN
-//		&& key>COAP_OPTION_TOKEN
-//	) {
-//		if(	self->is_processing_message
-//			&& self->is_responding
-//			&& self->inbound.token_option
-//		) {
-//			// For sending a response.
-//			const uint8_t* value;
-//			size_t len;
-//			if(coap_decode_option(self->inbound.token_option, NULL, &value, &len))
-//				ret = smcp_outbound_add_option_(COAP_OPTION_TOKEN,(void*)value,len);
-//		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100 && self->current_transaction) {
-//			// For sending a request.
-//			ret = smcp_outbound_add_option_(
-//				COAP_OPTION_TOKEN,
-//				(void*)&self->current_transaction->token,
-//				sizeof(self->current_transaction->token)
-//			);
-//		}
-//	}
 
 	if(	(self->current_transaction && self->current_transaction->next_block2)
 		&& self->outbound.last_option_key<COAP_OPTION_BLOCK2
@@ -677,13 +644,11 @@ smcp_outbound_set_uri(
 			path_str++;
 
 		while(url_path_next_component(&path_str,&component)) {
-			//int len = strlen(component);
-			//if(len)
 			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, component, HEADER_CSTR_LEN);
 			require_noerr(ret,bail);
 		}
 		if(has_trailing_slash) {
-			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, "", HEADER_CSTR_LEN);
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, NULL, 0);
 			require_noerr(ret,bail);
 		}
 	}

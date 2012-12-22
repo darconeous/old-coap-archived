@@ -473,7 +473,6 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 
 	coap_option_key_t		last_option_key = self->inbound.last_option_key;
 	const uint8_t*			this_option = self->inbound.this_option;
-//	uint8_t					options_left = self->inbound.options_left;
 
 	char* filename;
 	size_t filename_len;
@@ -485,7 +484,7 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 
 	iter = where;
 
-	if(!(flags&1))
+	if(!(flags&SMCP_GET_PATH_REMAINING))
 		smcp_inbound_reset_next_option();
 
 	while((key = smcp_inbound_peek_option(NULL,NULL))!=COAP_OPTION_URI_PATH
@@ -496,17 +495,31 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 
 	while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_PATH) {
 		char old_end = filename[filename_len];
-		if(iter!=where || (flags&2))
+		if(iter!=where || (flags&SMCP_GET_PATH_LEADING_SLASH))
 			*iter++='/';
 		filename[filename_len] = 0;
 		iter+=url_encode_cstr(iter, filename, (iter-where)+SMCP_MAX_URI_LENGTH);
 		filename[filename_len] = old_end;
 	}
+
+//	NOT READY YET
+//	if(flags&SMCP_GET_PATH_INCLUDE_QUERY) {
+//
+//		*iter++='?';
+//		while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_QUERY) {
+//			char old_end = filename[filename_len];
+//			if(iter!=where || (flags&SMCP_GET_PATH_LEADING_SLASH))
+//				*iter++=';';
+//			filename[filename_len] = 0;
+//			iter+=url_encode_cstr(iter, filename, (iter-where)+SMCP_MAX_URI_LENGTH);
+//			filename[filename_len] = old_end;
+//		}
+//	}
+
 	*iter = 0;
 
 	self->inbound.last_option_key = last_option_key;
 	self->inbound.this_option = this_option;
-//	self->inbound.options_left = options_left;
 	return where;
 }
 #pragma mark -
@@ -622,11 +635,6 @@ smcp_handle_inbound_packet(
 			const uint8_t* value;
 			size_t value_len;
 			key = smcp_inbound_peek_option(&value,&value_len);
-//			if(key==COAP_OPTION_TOKEN) {
-//				self->inbound.token_option = self->inbound.this_option;
-//				if((self->inbound.token_option[0]&0xF0)==0xF0)
-//					self->inbound.token_option+=self->inbound.token_option[0]&0xf;
-//			} else
 			if(key==COAP_OPTION_CONTENT_TYPE) {
 				uint8_t i;
 				self->inbound.content_type = 0;
@@ -1279,12 +1287,6 @@ smcp_handle_request(
 			self,
 			(self->inbound.is_fake)?"(FAKE) ":""
 		);
-//		coap_dump_header(
-//			SMCP_DEBUG_OUT_FILE,
-//			"Inbound:\t",
-//			self->inbound.packet,
-//			0
-//		);
 	}
 #endif
 
@@ -1307,7 +1309,6 @@ smcp_handle_request(
 			if(key>COAP_OPTION_URI_PATH) {
 				self->inbound.this_option = prev_option_ptr;
 				self->inbound.last_option_key = prev_key;
-//				self->inbound.options_left++;
 				break;
 			} else if(key==COAP_OPTION_PROXY_URI) {
 				// Skip the proxy URI for now.
@@ -1322,7 +1323,6 @@ smcp_handle_request(
 				} else {
 					self->inbound.this_option = prev_option_ptr;
 					self->inbound.last_option_key = prev_key;
-//					self->inbound.options_left++;
 					break;
 				}
 			} else if(key==COAP_OPTION_URI_HOST) {
@@ -1379,12 +1379,6 @@ smcp_handle_response(
 			self,
 			smcp_inbound_get_msg_id()
 		);
-//		coap_dump_header(
-//			SMCP_DEBUG_OUT_FILE,
-//			"Inbound:\t",
-//			self->inbound.packet,
-//			self->inbound.packet_len
-//		);
 	}
 #endif
 

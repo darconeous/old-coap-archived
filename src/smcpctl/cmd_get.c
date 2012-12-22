@@ -35,6 +35,8 @@ static arg_list_item_t option_list[] = {
 	{ 0, "size-request", NULL, "writeme" },
 	{ 0  , "timeout",  "seconds", "Change timeout period (Default: 30 Seconds)" },
 	{ 'a', "accept", "mime-type/coap-number", "hint to the server the content-type you want" },
+	{ 0, "ignore-first", NULL, "writeme" },
+	{ 0, "observe-once", NULL, "writeme" },
 	{ 0 }
 };
 
@@ -46,6 +48,8 @@ static coap_msg_id_t tid;
 static bool get_show_headers, get_observe, get_keep_alive;
 static uint16_t size_request;
 static cms_t get_timeout;
+static bool observe_ignore_first;
+static bool observe_once;
 
 static void
 signal_interrupt(int sig) {
@@ -103,6 +107,11 @@ get_response_handler(int statuscode, void* context) {
 		gRet = 0;
 	}
 
+	if(observe_ignore_first) {
+		observe_ignore_first = false;
+		goto bail;
+	}
+
 	if(	((statuscode < COAP_RESULT_200) ||(statuscode >= COAP_RESULT_400))
 		&& (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED)
 		&& (statuscode != HTTP_TO_COAP_CODE(HTTP_RESULT_CODE_PARTIAL_CONTENT))
@@ -147,6 +156,11 @@ get_response_handler(int statuscode, void* context) {
 		fflush(stdout);
 
 		last_observe_value = observe_value;
+	}
+
+	if(observe_once) {
+		gRet = 0;
+		goto bail;
 	}
 
 bail:
@@ -272,6 +286,8 @@ tool_cmd_get(
 	last_observe_value = -1;
 	last_block = -1;
 	request_accept_type = COAP_CONTENT_TYPE_UNKNOWN;
+	observe_once = false;
+	observe_ignore_first = false;
 
 	if(strcmp(argv[0],"observe")==0 || strcmp(argv[0],"obs")==0) {
 		get_observe = true;
@@ -288,6 +304,8 @@ tool_cmd_get(
 	HANDLE_LONG_ARGUMENT("no-observe") get_observe = false;
 	HANDLE_LONG_ARGUMENT("keep-alive") get_keep_alive = true;
 	HANDLE_LONG_ARGUMENT("no-keep-alive") get_keep_alive = false;
+	HANDLE_LONG_ARGUMENT("once") observe_once = true;
+	HANDLE_LONG_ARGUMENT("ignore-first") observe_ignore_first = true;
 	HANDLE_LONG_ARGUMENT("accept") {
 		i++;
 		if(!argv[i]) {
