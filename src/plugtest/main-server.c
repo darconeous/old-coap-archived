@@ -42,8 +42,12 @@ main(int argc, char * argv[]) {
 	smcp_t smcp = smcp_create(0);
 	struct plugtest_server_s plugtest_server;
 
+#if DEBUG
 	fprintf(stderr,"DEBUG = %d\n",DEBUG);
+#endif
+#if VERBOSE_DEBUG
 	fprintf(stderr,"VERBOSE_DEBUG = %d\n",VERBOSE_DEBUG);
+#endif
 	fprintf(stderr,"SMCP_EMBEDDED = %d\n",SMCP_EMBEDDED);
 	fprintf(stderr,"SMCP_USE_BSD_SOCKETS = %d\n",SMCP_USE_BSD_SOCKETS);
 	fprintf(stderr,"SMCP_DEFAULT_PORT = %d\n",SMCP_DEFAULT_PORT);
@@ -76,7 +80,7 @@ main(int argc, char * argv[]) {
 	fprintf(stderr,"\nPlugtest server listening on port %d.\n", smcp_get_port(smcp));
 
 	while(1)
-		smcp_process(smcp,1000);
+		smcp_process(smcp,30*MSEC_PER_SEC);
 
 	return 0;
 }
