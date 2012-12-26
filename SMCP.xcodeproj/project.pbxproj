@@ -198,7 +198,7 @@
 		A6CD695D1283463900254A8B /* btreetest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = btreetest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6D0C8C21661CC3C00E9F440 /* cgi-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "cgi-node.c"; sourceTree = "<group>"; };
 		A6F358931687909100F72DF3 /* fasthash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fasthash.c; path = src/smcp/fasthash.c; sourceTree = "<group>"; };
-		A6F358961687909E00F72DF3 /* fasthash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fasthash.h; sourceTree = "<group>"; };
+		A6F358961687909E00F72DF3 /* fasthash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fasthash.h; path = src/smcp/fasthash.h; sourceTree = "<group>"; };
 		A6F3593D168A552300F72DF3 /* main-client.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "main-client.c"; path = "src/plugtest/main-client.c"; sourceTree = "<group>"; };
 		A6F35942168A598800F72DF3 /* smcp-plugtest-client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "smcp-plugtest-client"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6F35945168A598800F72DF3 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
