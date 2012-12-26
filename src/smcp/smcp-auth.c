@@ -172,7 +172,7 @@ smcp_auth_get_remote_user(const char* username) {
 
 void
 smcp_auth_user_set(smcp_auth_user_t auth_user,const char* username,const char* password,const char* realm) {
-	strlcpy(auth_user->username,username,sizeof(auth_user->username));
+	strncpy(auth_user->username,username,sizeof(auth_user->username)-1);
 
 	fasthash_start(0);
 	fasthash_feed((const uint8_t*)auth_user->username, strlen(auth_user->username));
