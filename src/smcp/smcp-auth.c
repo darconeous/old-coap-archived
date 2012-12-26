@@ -268,15 +268,16 @@ smcp_auth_outbound_set_credentials(const char* username, const char* password) {
 
 	if(!auth_user) {
 		require(username,bail);
+
+		// Just do something stupid for now.
+		ret = smcp_outbound_add_option(COAP_OPTION_AUTHENTICATE, NULL, 0);
+
 		require(password,bail);
 
 		auth_user = &global_temp_auth_user;
 
 		smcp_auth_user_set(auth_user,username,password,"");
 	}
-
-	// Just do something stupid for now.
-	ret = smcp_outbound_add_option(COAP_OPTION_AUTHENTICATE, NULL, 0);
 
 bail:
 	return ret;

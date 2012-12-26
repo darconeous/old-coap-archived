@@ -104,10 +104,6 @@ smcp_get_current_instance() {
 #pragma mark -
 #pragma mark SMCP Globals
 
-#if SMCP_AVOID_MALLOC
-static struct smcp_transaction_s smcp_transaction_pool[SMCP_CONF_MAX_TRANSACTIONS];
-#endif // SMCP_AVOID_MALLOC
-
 #pragma mark -
 #pragma mark SMCP Implementation
 
@@ -859,7 +855,7 @@ smcp_handle_request(
 		coap_option_key_t prev_key = 0;
 		coap_option_key_t key;
 		const uint8_t* value;
-		int value_len;
+		size_t value_len;
 		while((key=smcp_inbound_next_option_(&value, &value_len))!=COAP_OPTION_INVALID) {
 			if(key>COAP_OPTION_URI_PATH) {
 				self->inbound.this_option = prev_option_ptr;

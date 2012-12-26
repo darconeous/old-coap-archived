@@ -70,7 +70,7 @@ gettimeofday(
 
 void
 convert_cms_to_timeval(
-	struct timeval* tv, int cms
+	struct timeval* tv, cms_t cms
 ) {
 	gettimeofday(tv, NULL);
 
@@ -87,16 +87,16 @@ convert_cms_to_timeval(
 	tv->tv_usec %= USEC_PER_SEC;
 }
 
-int
+cms_t
 convert_timeval_to_cms(const struct timeval* tv) {
-	int ret = 0;
+	cms_t ret = 0;
 	struct timeval current_time;
 
 	gettimeofday(&current_time, NULL);
 
 	if(current_time.tv_sec <= tv->tv_sec) {
-		ret = (tv->tv_sec - current_time.tv_sec) * MSEC_PER_SEC;
-		ret += (tv->tv_usec - current_time.tv_usec) / USEC_PER_MSEC;
+		ret = (cms_t)(tv->tv_sec - current_time.tv_sec) * MSEC_PER_SEC;
+		ret += (cms_t)(tv->tv_usec - current_time.tv_usec) / USEC_PER_MSEC;
 
 		if(ret < 0)
 			ret = 0;
@@ -115,6 +115,7 @@ smcp_timer_compare_func(
 
 	if(lhs->fire_date.tv_sec > rhs->fire_date.tv_sec)
 		return 1;
+
 	if(lhs->fire_date.tv_sec < rhs->fire_date.tv_sec)
 		return -1;
 

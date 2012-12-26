@@ -2,7 +2,9 @@ ifndef SMCP_ROOT
   ${error SMCP_ROOT not defined! You must specify where SMCP resides}
 endif
 
-CONTIKI_SOURCEFILES += btree.c smcp.c smcp-auth.c smcp-list.c smcp-send.c smcp-node.c smcp-pairing.c url-helpers.c coap.c smcp-timer.c
+CONTIKI_SOURCEFILES += smcp.c smcp-auth.c smcp-list.c smcp-outbound.c smcp-node.c smcp-pairing.c url-helpers.c coap.c smcp-timer.c smcp-transaction.c
+
+CONTIKI_SOURCEFILES += btree.c fasthash.c
 
 CONTIKI_SOURCEFILES += smcp-timer_node.c
 CONTIKI_SOURCEFILES += smcp-variable_node.c

@@ -119,7 +119,7 @@ smcp_node_ncompare_cstr(
 	ret = strncmp(lhs->name, rhs, *len);
 
 	if(ret == 0) {
-		size_t lhs_len = strlen(lhs->name);
+		int lhs_len = (int)strlen(lhs->name);
 		if(lhs_len > *len)
 			ret = 1;
 		else if(lhs_len < *len)

@@ -32,6 +32,10 @@
 #include "smcp-internal.h"
 #include "smcp-transaction.h"
 
+#if SMCP_AVOID_MALLOC
+static struct smcp_transaction_s smcp_transaction_pool[SMCP_CONF_MAX_TRANSACTIONS];
+#endif // SMCP_AVOID_MALLOC
+
 static bt_compare_result_t
 smcp_transaction_compare(
 	const void* lhs_, const void* rhs_, void* context

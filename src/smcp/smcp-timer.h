@@ -75,8 +75,8 @@ extern cms_t smcp_get_timeout(smcp_t self);
 extern void smcp_handle_timers(smcp_t self);
 extern bool smcp_timer_is_scheduled(smcp_t self, smcp_timer_t timer);
 
-extern void convert_cms_to_timeval(struct timeval* tv, int cms);
-extern int convert_timeval_to_cms(const struct timeval* tv);
+extern void convert_cms_to_timeval(struct timeval* tv, cms_t cms);
+extern cms_t convert_timeval_to_cms(const struct timeval* tv);
 
 __END_DECLS
 
