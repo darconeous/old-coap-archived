@@ -25,7 +25,7 @@ fasthash_feed_block(uint32_t blk) {
 
 void
 fasthash_start(uint32_t salt) {
-	memset((void*)&global_fasthash_state,sizeof(global_fasthash_state),0);
+	memset((void*)&global_fasthash_state,0,sizeof(global_fasthash_state));
 	fasthash_feed_block(salt);
 }
 

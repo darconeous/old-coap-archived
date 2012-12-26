@@ -353,7 +353,7 @@ bail:
 smcp_status_t
 plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 
-	memset(self,sizeof(*self),0);
+	memset(self,0,sizeof(*self));
 
 	smcp_node_init(&self->test,root,"test");
 	self->test.request_handler = &plugtest_test_handler;

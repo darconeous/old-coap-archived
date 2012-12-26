@@ -296,7 +296,7 @@ smcp_transaction_init(
 #endif
 		handler->should_dealloc = 1;
 	} else {
-		memset(handler, sizeof(*handler),0);
+		memset(handler,0,sizeof(*handler));
 	}
 
 	require(handler!=NULL, bail);
