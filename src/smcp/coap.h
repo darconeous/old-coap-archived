@@ -60,7 +60,7 @@
 
 // The following constants are defined by
 // <http://tools.ietf.org/html/draft-ietf-core-coap-13#section-4.8>
-#define COAP_ACK_TIMEOUT		(2)		// Seconds
+#define COAP_ACK_TIMEOUT		(1)		// Seconds (spec says to set to `2`)
 #define COAP_ACK_RANDOM_FACTOR	(1.5f)
 #define COAP_MAX_RETRANSMIT     (4)
 #define COAP_NSTART				(1)

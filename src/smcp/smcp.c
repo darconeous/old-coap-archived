@@ -540,6 +540,13 @@ smcp_handle_inbound_packet(
 
 	require_action(coap_verify_packet(buffer,packet_length),bail,ret=SMCP_STATUS_BAD_PACKET);
 
+#if defined(SMCP_DEBUG_INBOUND_DROP_PERCENT)
+	if(SMCP_DEBUG_INBOUND_DROP_PERCENT*SMCP_RANDOM_MAX>SMCP_FUNC_RANDOM_UINT32()) {
+		DEBUG_PRINTF("Dropping inbound packet for debugging!");
+		goto bail;
+	}
+#endif
+
 	smcp_set_current_instance(self);
 
 #if VERBOSE_DEBUG
@@ -587,31 +594,8 @@ smcp_handle_inbound_packet(
 	// self->inbound.was_sent_to_multicast = ???
 
 	{
-		int i;
 
-		// Update dupe hash.
-		fasthash_start(0);
-#if SMCP_USE_BSD_SOCKETS
-		fasthash_feed((void*)self->inbound.saddr,self->inbound.socklen);
-#elif CONTIKI
-		fasthash_feed((void*)&self->inbound.toaddr,sizeof(self->inbound.toaddr));
-		fasthash_feed((void*)&self->inbound.toport,sizeof(self->inbound.toport));
-#endif
-		fasthash_feed_byte(self->inbound.packet->code);
-		fasthash_feed((const uint8_t*)&self->inbound.packet->msg_id,sizeof(self->inbound.packet->msg_id));
-
-		self->inbound.transaction_hash = fasthash_finish_uint32();
-		i = SMCP_CONF_DUPE_BUFFER_SIZE;
-		while(i--) {
-			if(self->dupe[i].hash == self->inbound.transaction_hash) {
-				self->inbound.is_dupe = true;
-				break;
-			}
-		}
 	}
-
-	// Version check.
-	require_action(packet->version==COAP_VERSION,bail,ret=SMCP_STATUS_FAILURE);
 
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
@@ -634,6 +618,20 @@ smcp_handle_inbound_packet(
 
 	{	// Initial options scan.
 		coap_option_key_t key;
+		int i;
+
+		// Update dupe hash.
+		fasthash_start(0);
+#if SMCP_USE_BSD_SOCKETS
+		fasthash_feed((void*)self->inbound.saddr,self->inbound.socklen);
+#elif CONTIKI
+		fasthash_feed((void*)&self->inbound.toaddr,sizeof(self->inbound.toaddr));
+		fasthash_feed((void*)&self->inbound.toport,sizeof(self->inbound.toport));
+#endif
+		fasthash_feed_byte(self->inbound.packet->code);
+		fasthash_feed((const uint8_t*)&self->inbound.packet->msg_id,sizeof(self->inbound.packet->msg_id));
+		fasthash_feed((void*)&self->inbound.packet->token,self->inbound.packet->token_len);
+
 		do {
 			const uint8_t* value;
 			size_t value_len;
@@ -643,6 +641,12 @@ smcp_handle_inbound_packet(
 				self->inbound.content_type = 0;
 				for(i = 0; i < value_len; i++)
 					self->inbound.content_type = (self->inbound.content_type << 8) + value[i];
+			} else if(key==COAP_OPTION_URI_HOST
+				|| key==COAP_OPTION_URI_PORT
+				|| key==COAP_OPTION_URI_PATH
+				|| key==COAP_OPTION_URI_QUERY
+			) {
+				fasthash_feed(value,value_len);
 			} else if(key==COAP_OPTION_BLOCK2) {
 				uint8_t i;
 				self->inbound.block2_value = 0;
@@ -675,6 +679,15 @@ smcp_handle_inbound_packet(
 			self->inbound.content_ptr++;
 			self->inbound.content_len--;
 		}
+
+		self->inbound.transaction_hash = fasthash_finish_uint32();
+		i = SMCP_CONF_DUPE_BUFFER_SIZE;
+		while(i--) {
+			if(self->dupe[i].hash == self->inbound.transaction_hash) {
+				self->inbound.is_dupe = true;
+				break;
+			}
+		}
 	}
 
 	smcp_inbound_reset_next_option();
@@ -694,12 +707,12 @@ smcp_handle_inbound_packet(
 	if(	(ret == SMCP_STATUS_OK)
 		&& !self->inbound.is_fake
 		&& !self->inbound.is_dupe
-		&& (self->inbound.packet->code != COAP_METHOD_GET
-			|| (self->did_respond
-				&& self->outbound.packet->code == COAP_CODE_EMPTY
-				&& self->outbound.packet->tt == COAP_TRANS_TYPE_ACK
-			)
-		)
+//		&& (self->inbound.packet->code != COAP_METHOD_GET
+//			|| (self->did_respond
+//				&& self->outbound.packet->code == COAP_CODE_EMPTY
+//				&& self->outbound.packet->tt == COAP_TRANS_TYPE_ACK
+//			)
+//		)
 	) {
 		// This is not a dupe, add it to the list.
 		self->dupe[self->dupe_index].hash = self->inbound.transaction_hash;
@@ -1188,7 +1201,8 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 
 		require_noerr(ret, bail);
 
-		smcp_outbound_set_token(NULL, 0);
+		// Should already be zero-length
+		//smcp_outbound_set_token(NULL, 0);
 
 		ret = smcp_outbound_send();
 

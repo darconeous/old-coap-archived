@@ -39,14 +39,17 @@
 #ifndef SMCP_FUNC_RANDOM_UINT32
 #if defined(__APPLE__)
 #define SMCP_FUNC_RANDOM_UINT32()   arc4random()
+#define SMCP_RANDOM_MAX			(uint32_t)(0xFFFFFFFF)
 #elif CONTIKI
 #define SMCP_FUNC_RANDOM_UINT32() \
         ((uint32_t)random_rand() ^ \
             ((uint32_t)random_rand() << 16))
+#define SMCP_RANDOM_MAX			RAND_MAX
 #else
 #define SMCP_FUNC_RANDOM_UINT32() \
         ((uint32_t)random() ^ \
             ((uint32_t)random() << 16))
+#define SMCP_RANDOM_MAX			RAND_MAX
 #endif
 #endif
 

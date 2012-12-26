@@ -150,7 +150,9 @@ plugtest_separate_handler(
 		printf("This request needs an async response.\n");
 
 		if(smcp_inbound_is_dupe()) {
-			ret = SMCP_STATUS_DUPE;
+			smcp_outbound_begin_response(COAP_CODE_EMPTY);
+			smcp_outbound_send();
+			ret = SMCP_STATUS_OK;
 			goto bail;
 		}
 
@@ -180,7 +182,7 @@ plugtest_separate_handler(
 		ret = smcp_transaction_begin(
 			smcp_get_current_instance(),
 			transaction,
-			30*MSEC_PER_SEC
+			COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC
 		);
 		if(ret) {
 			smcp_transaction_end(smcp_get_current_instance(),transaction);

@@ -770,6 +770,18 @@ smcp_outbound_send() {
 	if(self->current_transaction)
 		self->current_transaction->sent_code = self->outbound.packet->code;
 
+#if defined(SMCP_DEBUG_OUTBOUND_DROP_PERCENT)
+	if(SMCP_DEBUG_OUTBOUND_DROP_PERCENT*SMCP_RANDOM_MAX>SMCP_FUNC_RANDOM_UINT32()) {
+		DEBUG_PRINTF("Dropping outbound packet for debugging!");
+		if(smcp_get_current_instance()->is_responding)
+			smcp_get_current_instance()->did_respond = true;
+		smcp_get_current_instance()->is_responding = false;
+
+		ret = SMCP_STATUS_OK;
+		goto bail;
+	}
+#endif
+
 #if SMCP_USE_BSD_SOCKETS
 
 	require_string(smcp_get_current_instance()->outbound.socklen,bail,"Destaddr not set");

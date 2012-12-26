@@ -635,8 +635,9 @@ cgi_node_request_handler(
 	} else if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD) {
 		// We should not get a request at this point in the state machine.
 		if(smcp_inbound_is_dupe()) {
-			smcp_outbound_drop();
-			ret = SMCP_STATUS_DUPE;
+			smcp_outbound_begin_response(COAP_CODE_EMPTY);
+			smcp_outbound_send();
+			ret = SMCP_STATUS_OK;
 		} else {
 			ret = SMCP_STATUS_FAILURE;
 		}
@@ -733,8 +734,9 @@ cgi_node_request_handler(
 	} else if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD) {
 		// We should not get a request at this point in the state machine.
 		if(smcp_inbound_is_dupe()) {
-			smcp_outbound_drop();
-			ret = SMCP_STATUS_DUPE;
+			smcp_outbound_begin_response(COAP_CODE_EMPTY);
+			smcp_outbound_send();
+			ret = SMCP_STATUS_OK;
 		} else {
 			ret = SMCP_STATUS_FAILURE;
 		}

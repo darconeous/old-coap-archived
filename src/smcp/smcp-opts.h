@@ -139,6 +139,14 @@
 #define SMCP_CONF_DUPE_BUFFER_SIZE	(16)
 #endif
 
+#ifdef SMCP_CONF_DEBUG_INBOUND_DROP_PERCENT
+#define SMCP_DEBUG_INBOUND_DROP_PERCENT	(SMCP_CONF_DEBUG_INBOUND_DROP_PERCENT)
+#endif
+
+#ifdef SMCP_CONF_DEBUG_OUTBOUND_DROP_PERCENT
+#define SMCP_DEBUG_OUTBOUND_DROP_PERCENT	(SMCP_CONF_DEBUG_OUTBOUND_DROP_PERCENT)
+#endif
+
 /*****************************************************************************/
 #pragma mark - Timer Node Options
 

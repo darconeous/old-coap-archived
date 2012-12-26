@@ -74,6 +74,13 @@ main(int argc, char * argv[]) {
 	fprintf(stderr,"SMCP_PAIRING_DEFAULT_ROOT_PATH = %s\n",SMCP_PAIRING_DEFAULT_ROOT_PATH);
 	fprintf(stderr,"SMCP_VARIABLE_MAX_VALUE_LENGTH = %d\n",SMCP_VARIABLE_MAX_VALUE_LENGTH);
 	fprintf(stderr,"SMCP_VARIABLE_MAX_KEY_LENGTH = %d\n",SMCP_VARIABLE_MAX_KEY_LENGTH);
+#ifdef SMCP_DEBUG_OUTBOUND_DROP_PERCENT
+	fprintf(stderr,"SMCP_DEBUG_OUTBOUND_DROP_PERCENT = %.1f%%\n",SMCP_DEBUG_OUTBOUND_DROP_PERCENT*100.0);
+#endif
+#ifdef SMCP_DEBUG_INBOUND_DROP_PERCENT
+	fprintf(stderr,"SMCP_DEBUG_INBOUND_DROP_PERCENT = %.1f%%\n",SMCP_DEBUG_INBOUND_DROP_PERCENT*100.0);
+#endif
+
 
 	plugtest_server_init(&plugtest_server,smcp_get_root_node(smcp));
 
