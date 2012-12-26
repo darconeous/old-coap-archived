@@ -107,7 +107,7 @@ smcp_internal_delete_transaction_(
 		);
 	}
 
-#if SMCP_NO_MALLOC
+#if SMCP_AVOID_MALLOC
 	if(handler->should_dealloc)
 		handler->callback = NULL;
 #else
@@ -133,7 +133,7 @@ calc_retransmit_timeout(int retries) {
 	return ret;
 }
 
-static void
+void
 smcp_transaction_new_msg_id(
 	smcp_t			self,
 	smcp_transaction_t handler,
@@ -282,7 +282,7 @@ smcp_transaction_init(
 	void* context
 ) {
 	if(!handler) {
-#if SMCP_NO_MALLOC
+#if SMCP_AVOID_MALLOC
 		uint8_t i;
 		for(i=0;i<SMCP_CONF_MAX_TRANSACTIONS;i++) {
 			handler = &smcp_transaction_pool[i];

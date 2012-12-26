@@ -67,8 +67,8 @@
 
 #define SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)		((pairing->flags&SMCP_PARING_FLAG_RELIABILITY_MASK) || !(pairing->seq&0x7))
 
-#define SMCP_PAIRING_CON_EVENT_EXPIRATION	(30*1000)
-#define SMCP_PAIRING_NON_EVENT_EXPIRATION	(1*1000)
+#define SMCP_PAIRING_CON_EVENT_EXPIRATION	(30*MSEC_PER_SEC)
+#define SMCP_PAIRING_NON_EVENT_EXPIRATION	(1*MSEC_PER_SEC)
 
 static smcp_status_t
 smcp_pairing_node_request_handler(

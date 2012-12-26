@@ -33,7 +33,8 @@
 #include "smcp-timer.h"
 
 #include "smcp-pairing.h"
-
+#include <stdbool.h>
+#include "fasthash.h"
 
 #ifndef SMCP_FUNC_RANDOM_UINT32
 #if defined(__APPLE__)
@@ -48,6 +49,8 @@
             ((uint32_t)random() << 16))
 #endif
 #endif
+
+__BEGIN_DECLS
 
 #if SMCP_EMBEDDED
 // Embedded platforms only support one instance.
@@ -96,9 +99,6 @@ struct smcp_s {
 
 		coap_option_key_t		last_option_key;
 		const uint8_t*			this_option;
-//		uint8_t					options_left;
-
-//		const uint8_t*			token_option;
 
 		const char*				content_ptr;
 		size_t					content_len;
@@ -166,16 +166,6 @@ extern smcp_status_t smcp_handle_response(smcp_t self);
 
 extern smcp_status_t smcp_handle_list(smcp_node_t node,smcp_method_t method);
 
-///////////////////////////////////////////////////////////////////////////////
-#pragma mark -
-#pragma mark Fasthash
-
-extern void fasthash_start(uint32_t salt);
-extern void fasthash_feed_byte(uint8_t data);
-extern void fasthash_feed(const uint8_t* data, uint8_t len);
-extern uint32_t fasthash_finish_uint32();
-extern uint16_t fasthash_finish_uint16();
-extern uint8_t fasthash_finish_uint8();
-
+__END_DECLS
 
 #endif // __SMCP_INTERNAL_H__

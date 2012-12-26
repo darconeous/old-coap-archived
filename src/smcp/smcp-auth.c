@@ -120,7 +120,7 @@ extern uint16_t uip_slen;
 struct smcp_auth_user_s {
 	struct smcp_auth_user_s* next;
 	char username[SMCP_AUTH_DIGEST_USERNAME_LENGTH+1];
-	uint8_t ha1[16];
+	fasthash_hash_t ha1;
 };
 
 struct smcp_auth_nonce_s {
@@ -131,8 +131,13 @@ struct smcp_auth_nonce_s {
 };
 
 typedef struct smcp_auth_user_s* smcp_auth_user_t;
+typedef struct smcp_auth_nonce_s* smcp_auth_nonce_t;
 
-//static struct smcp_auth_nonce_s global_nonce_table[SMCP_AUTH_DIGEST_NONCE_TABLE_SIZE];
+static smcp_auth_user_t current_outbound_user;
+static smcp_auth_nonce_t current_outbound_nonce;
+
+static struct smcp_auth_user_s global_temp_auth_user;
+static struct smcp_auth_nonce_s global_nonce_table[SMCP_AUTH_DIGEST_NONCE_TABLE_SIZE];
 
 // -------------------------------------------
 
@@ -159,6 +164,25 @@ typedef struct smcp_auth_user_s* smcp_auth_user_t;
 //		return lookup[key];
 //	return 0;
 //}
+
+smcp_auth_user_t
+smcp_auth_get_remote_user(const char* username) {
+	return NULL;
+}
+
+void
+smcp_auth_user_set(smcp_auth_user_t auth_user,const char* username,const char* password,const char* realm) {
+	strlcpy(auth_user->username,username,sizeof(auth_user->username));
+
+	fasthash_start(0);
+	fasthash_feed((const uint8_t*)auth_user->username, strlen(auth_user->username));
+	fasthash_feed_byte(':');
+	fasthash_feed((const uint8_t*)realm, strlen(realm));
+	fasthash_feed_byte(':');
+	fasthash_feed((const uint8_t*)password, strlen(password));
+	auth_user->ha1 = fasthash_finish();
+}
+
 
 smcp_status_t
 smcp_auth_get_cred(
@@ -236,10 +260,26 @@ smcp_auth_outbound_finish() {
 
 smcp_status_t
 smcp_auth_outbound_set_credentials(const char* username, const char* password) {
+	smcp_status_t ret = SMCP_STATUS_OK;
+
 	// TODO: Writeme!
+	smcp_auth_user_t auth_user = smcp_auth_get_remote_user(username);
+	struct smcp_auth_nonce_s *auth_nonce;
+
+	if(!auth_user) {
+		require(username,bail);
+		require(password,bail);
+
+		auth_user = &global_temp_auth_user;
+
+		smcp_auth_user_set(auth_user,username,password,"");
+	}
 
 	// Just do something stupid for now.
-	return smcp_outbound_add_option(COAP_OPTION_AUTHENTICATE, NULL, 0);
+	ret = smcp_outbound_add_option(COAP_OPTION_AUTHENTICATE, NULL, 0);
+
+bail:
+	return ret;
 }
 
 const char*

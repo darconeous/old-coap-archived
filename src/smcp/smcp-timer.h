@@ -32,16 +32,22 @@
 #include "smcp.h"
 #include "ll.h"
 #include "btree.h"
-#include "smcp-helpers.h"
 
-#define USEC_PER_SEC    (1000000)
-#define USEC_PER_MSEC   (1000)
-#define MSEC_PER_SEC    (1000)
+#if SMCP_EMBEDDED
+// On embedded systems, we know we will always only have
+// a single smcp instance, so we can save a considerable
+// amount of stack spaces by simply removing the first argument
+// from many functions. In order to make things as maintainable
+// as possible, these macros do all of the work for us.
+#define smcp_schedule_timer(self,...)		smcp_schedule_timer(__VA_ARGS__)
+#define smcp_invalidate_timer(self,...)		smcp_invalidate_timer(__VA_ARGS__)
+#define smcp_handle_timers(self,...)		smcp_handle_timers(__VA_ARGS__)
+#define smcp_timer_is_scheduled(self,...)		smcp_timer_is_scheduled(__VA_ARGS__)
+#endif
 
 __BEGIN_DECLS
 
 typedef void (*smcp_timer_callback_t)(smcp_t, void*);
-
 
 typedef struct smcp_timer_s {
 	struct ll_item_s		ll;

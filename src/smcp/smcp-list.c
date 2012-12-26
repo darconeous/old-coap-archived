@@ -159,7 +159,7 @@ smcp_handle_list(
 
 		if(!node_name)
 			break;
-
+		DEBUG_PRINTF("NODE-NAME: %s",node_name);
 		if((strlen(node_name) + 4) >
 				(content_break_threshold - strlen(replyContent) - 3))
 			break;

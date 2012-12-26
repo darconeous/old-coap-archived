@@ -738,7 +738,7 @@ url_change(
 
 		if(new_url_[0]!='?' && new_url_[0]!='#') {
 			// Remove the basename if the starting URL doesn't end with a slash.
-			int path_len = strlen(path_str);
+			size_t path_len = strlen(path_str);
 			for(;path_len && path_str[path_len-1]!='/';path_len--);
 		}
 
@@ -826,7 +826,7 @@ url_shorten_reference(
 					new_url[1] = 0;
 					goto bail;
 				} else if(current_url[i] == '/') {
-					int len = strlen(new_url);
+					size_t len = strlen(new_url);
 					memmove(new_url, new_url + i, len - i);
 					new_url[len - i] = 0;
 					goto make_relative;

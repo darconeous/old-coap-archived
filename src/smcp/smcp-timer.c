@@ -33,15 +33,16 @@
 //#define SMCP_DEBUG_TIMERS	0
 
 #include "assert_macros.h"
-#include "smcp-logging.h"
+#include "smcp.h"
 
 #if !SMCP_DEBUG_TIMERS && !VERBOSE_DEBUG
 #undef DEBUG_PRINTF
 #define DEBUG_PRINTF(fmt, ...) do { } while(0)
 #endif
 
-#include "smcp-timer.h"
 #include <stdio.h>
+
+#include "smcp-timer.h"
 #include "smcp.h"
 #include "url-helpers.h"
 #include "smcp-node.h"

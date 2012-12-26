@@ -65,6 +65,9 @@ extern uint16_t uip_slen;
 #include "smcp-node.h"
 #include "smcp-logging.h"
 #include "smcp-auth.h"
+#if SMCP_ENABLE_PAIRING
+#include "smcp-pairing.h"
+#endif
 
 #if SMCP_USE_BSD_SOCKETS
 #include <poll.h>
@@ -101,14 +104,14 @@ smcp_get_current_instance() {
 #pragma mark -
 #pragma mark SMCP Globals
 
-#if SMCP_NO_MALLOC
+#if SMCP_AVOID_MALLOC
 static struct smcp_transaction_s smcp_transaction_pool[SMCP_CONF_MAX_TRANSACTIONS];
-#endif // SMCP_NO_MALLOC
+#endif // SMCP_AVOID_MALLOC
 
 #pragma mark -
 #pragma mark SMCP Implementation
 
-#if !SMCP_NO_MALLOC && !SMCP_EMBEDDED
+#if !SMCP_AVOID_MALLOC && !SMCP_EMBEDDED
 smcp_t
 smcp_create(uint16_t port) {
 	smcp_t ret = NULL;
@@ -237,6 +240,10 @@ smcp_init(
 		"Unable to initialize root node"
 	);
 
+#if SMCP_ENABLE_PAIRING
+	smcp_pairing_init(smcp_get_root_node(self),NULL);
+#endif
+
 bail:
 	return self;
 }
@@ -272,7 +279,7 @@ smcp_release(smcp_t self) {
 		uip_udp_remove(self->udp_conn);
 #endif
 
-#if !SMCP_NO_MALLOC && !SMCP_EMBEDDED
+#if !SMCP_AVOID_MALLOC && !SMCP_EMBEDDED
 	// TODO: Make sure we were actually alloc'd!
 	free(self);
 #endif
@@ -852,7 +859,7 @@ smcp_handle_request(
 		coap_option_key_t prev_key = 0;
 		coap_option_key_t key;
 		const uint8_t* value;
-		size_t value_len;
+		int value_len;
 		while((key=smcp_inbound_next_option_(&value, &value_len))!=COAP_OPTION_INVALID) {
 			if(key>COAP_OPTION_URI_PATH) {
 				self->inbound.this_option = prev_option_ptr;
@@ -1314,59 +1321,3 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 	return ret;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-#pragma mark -
-#pragma mark Fasthash
-
-static struct {
-	uint32_t hash;
-	uint32_t bytes;
-	uint32_t next;
-} global_fasthash_state;
-
-static void
-fasthash_feed_block(uint32_t blk) {
-	blk ^= (global_fasthash_state.bytes>>2);
-	global_fasthash_state.hash ^= blk;
-	global_fasthash_state.hash = global_fasthash_state.hash*1664525 + 1013904223;
-}
-
-void
-fasthash_start(uint32_t salt) {
-	memset((void*)&global_fasthash_state,sizeof(global_fasthash_state),0);
-	fasthash_feed_block(salt);
-}
-
-void
-fasthash_feed_byte(uint8_t data) {
-	global_fasthash_state.next |= (data<<(8*(global_fasthash_state.bytes++&3)));
-	if((global_fasthash_state.bytes&3)==0) {
-		fasthash_feed_block(global_fasthash_state.next);
-		global_fasthash_state.next = 0;
-	}
-}
-
-void
-fasthash_feed(const uint8_t* data, uint8_t len) {
-	while(len--)
-		fasthash_feed_byte(*data++);
-}
-
-uint32_t
-fasthash_finish_uint32() {
-	if(global_fasthash_state.bytes&3) {
-		fasthash_feed_block(global_fasthash_state.next);
-		global_fasthash_state.bytes = 0;
-	}
-	return global_fasthash_state.hash;
-}
-
-uint16_t
-fasthash_finish_uint16() {
-	return global_fasthash_state.hash>>16;
-}
-
-uint8_t
-fasthash_finish_uint8() {
-	return global_fasthash_state.hash>>24;
-}

@@ -45,9 +45,9 @@
 #define smcp_transaction_end(self,...)		smcp_transaction_end(__VA_ARGS__)
 #define smcp_transaction_new_msg_id(self,...)		smcp_transaction_new_msg_id(__VA_ARGS__)
 #define smcp_transaction_tickle(self,...)		smcp_transaction_tickle(__VA_ARGS__)
-#else
-#define SMCP_EMBEDDED_SELF_HOOK
 #endif
+
+__BEGIN_DECLS
 
 struct smcp_transaction_s {
 	struct bt_item_s			bt_item;
@@ -111,6 +111,17 @@ extern smcp_status_t smcp_transaction_tickle(
 	smcp_transaction_t transaction
 );
 
+extern void smcp_transaction_new_msg_id(
+	smcp_t			self,
+	smcp_transaction_t handler,
+	coap_msg_id_t msg_id
+);
+
+extern smcp_transaction_t smcp_transaction_find_via_msg_id(smcp_t self, coap_msg_id_t msg_id);
+
+extern smcp_transaction_t smcp_transaction_find_via_token(smcp_t self, coap_msg_id_t token);
+
+
 //! DEPRECATED.
 extern smcp_status_t smcp_begin_transaction_old(
 	smcp_t self,
@@ -127,5 +138,7 @@ extern smcp_status_t smcp_invalidate_transaction_old(
 	smcp_t self,
 	coap_msg_id_t tid
 );
+
+__END_DECLS
 
 #endif

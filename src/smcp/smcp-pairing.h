@@ -36,7 +36,22 @@
 #include "smcp-variable_node.h"
 #include "smcp-transaction.h"
 
+
 #if SMCP_ENABLE_PAIRING
+
+#if SMCP_EMBEDDED
+// On embedded systems, we know we will always only have
+// a single smcp instance, so we can save a considerable
+// amount of stack spaces by simply removing the first argument
+// from many functions. In order to make things as maintainable
+// as possible, these macros do all of the work for us.
+#define smcp_pair_with_uri(self,...)		smcp_pair_with_uri(__VA_ARGS__)
+#define smcp_pair_with_sockaddr(self,...)		smcp_pair_with_sockaddr(__VA_ARGS__)
+#define smcp_trigger_event(self,...)		smcp_trigger_event(__VA_ARGS__)
+#define smcp_trigger_event_with_node(self,...)		smcp_trigger_event_with_node(__VA_ARGS__)
+#define smcp_trigger_custom_event(self,...)		smcp_trigger_custom_event(__VA_ARGS__)
+#define smcp_get_first_pairing_for_path(self,...)		smcp_get_first_pairing_for_path(__VA_ARGS__)
+#endif
 
 #define PAIRING_STATE   smcp_root_pairing_node_t root_pairing_node;
 #define SMCP_PAIRING_EXPIRATION_INFINITE    (0x7FFFFFFF)

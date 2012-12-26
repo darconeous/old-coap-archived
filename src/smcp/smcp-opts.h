@@ -37,7 +37,11 @@
 #endif
 
 #ifndef SMCP_EMBEDDED
-#define SMCP_EMBEDDED		defined(CONTIKI)
+#if CONTIKI
+#define SMCP_EMBEDDED			(1)
+#else
+#define SMCP_EMBEDDED			(0)
+#endif
 #endif
 
 #ifndef SMCP_USE_BSD_SOCKETS
@@ -101,24 +105,24 @@
 #define SMCP_AVOID_PRINTF	SMCP_EMBEDDED
 #endif
 
-//!	@define SMCP_NO_MALLOC
+//!	@define SMCP_AVOID_MALLOC
 /*!	If set, static global pools are used instead of malloc/free,
 **	where possible. Not fully implemented yet.
 */
-#ifndef SMCP_NO_MALLOC
-#define SMCP_NO_MALLOC	SMCP_EMBEDDED
+#ifndef SMCP_AVOID_MALLOC
+#define SMCP_AVOID_MALLOC	SMCP_EMBEDDED
 #endif
 
 #ifndef SMCP_CONF_USE_DNS
 #define SMCP_CONF_USE_DNS		1
 #endif
 
-//!	Only relevant when SMCP_NO_MALLOC is set.
+//!	Only relevant when SMCP_AVOID_MALLOC is set.
 #ifndef SMCP_CONF_MAX_TRANSACTIONS
 #define SMCP_CONF_MAX_TRANSACTIONS	4
 #endif
 
-//!	Only relevant when SMCP_NO_MALLOC is set.
+//!	Only relevant when SMCP_AVOID_MALLOC is set.
 #ifndef SMCP_CONF_MAX_ALLOCED_NODES
 #define SMCP_CONF_MAX_ALLOCED_NODES	4
 #endif
@@ -135,7 +139,11 @@
 #pragma mark - Timer Node Options
 
 #ifndef SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-#define SMCP_CONF_TIMER_NODE_INCLUDE_COUNT !defined(__SDCC)
+#ifndef __SDCC
+#define SMCP_CONF_TIMER_NODE_INCLUDE_COUNT (1)
+#else
+#define SMCP_CONF_TIMER_NODE_INCLUDE_COUNT (0)
+#endif
 #endif
 
 /*****************************************************************************/

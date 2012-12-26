@@ -31,6 +31,14 @@
 #ifndef __SMCP_HEADER__
 #define __SMCP_HEADER__ 1
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "smcp-opts.h"
+#include "smcp-helpers.h"
+
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
 #define __BEGIN_DECLS   extern "C" {
@@ -42,14 +50,7 @@
 #endif
 #endif
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <string.h>
-
-#include "smcp-opts.h"
 #include "coap.h"
-
 #include "btree.h"
 
 #ifdef CONTIKI
@@ -154,16 +155,6 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define smcp_handle_inbound_packet(self,...)		smcp_handle_inbound_packet(__VA_ARGS__)
 #define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
 #define smcp_get_next_msg_id(self,...)		smcp_get_next_msg_id(__VA_ARGS__)
-#define smcp_pair_with_uri(self,...)		smcp_pair_with_uri(__VA_ARGS__)
-#define smcp_pair_with_sockaddr(self,...)		smcp_pair_with_sockaddr(__VA_ARGS__)
-#define smcp_trigger_event(self,...)		smcp_trigger_event(__VA_ARGS__)
-#define smcp_trigger_event_with_node(self,...)		smcp_trigger_event_with_node(__VA_ARGS__)
-#define smcp_trigger_custom_event(self,...)		smcp_trigger_custom_event(__VA_ARGS__)
-#define smcp_get_first_pairing_for_path(self,...)		smcp_get_first_pairing_for_path(__VA_ARGS__)
-#define smcp_schedule_timer(self,...)		smcp_schedule_timer(__VA_ARGS__)
-#define smcp_invalidate_timer(self,...)		smcp_invalidate_timer(__VA_ARGS__)
-#define smcp_handle_timers(self,...)		smcp_handle_timers(__VA_ARGS__)
-#define smcp_timer_is_scheduled(self,...)		smcp_timer_is_scheduled(__VA_ARGS__)
 
 #else
 #define SMCP_EMBEDDED_SELF_HOOK
@@ -186,7 +177,7 @@ extern struct smcp_s smcp_global_instance;
 extern smcp_t smcp_get_current_instance(); // Used from callbacks
 extern smcp_node_t smcp_get_root_node(smcp_t self);
 extern smcp_node_t smcp_node_get_root(smcp_node_t node);
-#if !SMCP_NO_MALLOC
+#if !SMCP_AVOID_MALLOC
 extern smcp_t smcp_create(uint16_t port);
 #endif
 #endif
@@ -216,11 +207,6 @@ extern smcp_status_t smcp_handle_inbound_packet(
 	size_t			packet_length,
 	SMCP_SOCKET_ARGS
 );
-
-#pragma mark -
-#pragma mark Transaction API
-
-#include "smcp-transaction.h"
 
 #pragma mark -
 #pragma mark Inbound Message Parsing API
@@ -423,4 +409,5 @@ __END_DECLS
 
 #endif
 
+#include "smcp-transaction.h"
 #include "smcp-helpers.h"

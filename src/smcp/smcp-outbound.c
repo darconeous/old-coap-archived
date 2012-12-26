@@ -1,4 +1,4 @@
-/*	@file smcp-send.c
+/*	@file smcp-outbound.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -712,7 +712,7 @@ smcp_outbound_get_content_ptr(size_t* max_len) {
 
 	// Finish up any remaining automatically-added headers.
 	if(self->outbound.packet->code)
-		smcp_outbound_add_options_up_to_key_(200);
+		smcp_outbound_add_options_up_to_key_(COAP_OPTION_INVALID);
 
 	if(max_len)
 		*max_len = SMCP_MAX_PACKET_LENGTH-(self->outbound.content_ptr-(char*)self->outbound.packet);

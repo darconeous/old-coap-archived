@@ -29,6 +29,7 @@
 #ifndef __SMCP_TIMER_NODE_H__
 #define __SMCP_TIMER_NODE_H__ 1
 
+#include "smcp.h"
 #include "smcp-timer.h"
 #include "smcp-node.h"
 #include "smcp-variable_node.h"

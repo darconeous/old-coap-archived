@@ -125,6 +125,8 @@ struct cgi_node_s {
 
 typedef struct cgi_node_s* cgi_node_t;
 
+smcp_status_t cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_node_state_t new_state);
+
 cgi_node_request_t
 cgi_node_get_associated_request(cgi_node_t node) {
 	cgi_node_request_t ret = NULL;
@@ -165,7 +167,7 @@ cgi_node_create_request(cgi_node_t node) {
 	int i;
 	int pipe_cmd_stdin[2];
 	int pipe_cmd_stdout[2];
-	int set = 1;
+//	int set = 1;
 
 	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
 		if(node->requests[i].state<=CGI_NODE_STATE_FINISHED) {
@@ -340,7 +342,7 @@ cgi_node_request_pop_bytes_from_stdin(cgi_node_request_t request, int count) {
 smcp_status_t
 cgi_node_request_pop_bytes_from_stdout(cgi_node_request_t request, int count) {
 	//fprintf(stderr,"pushing %d bytes from stdout buffer\n",count);
-	if(request->stdout_buffer_len>count) {
+	if((signed)request->stdout_buffer_len>count) {
 		request->stdout_buffer_len-=count;
 		memmove(request->stdout_buffer,request->stdout_buffer+count,request->stdout_buffer_len);
 	} else {

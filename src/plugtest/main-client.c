@@ -27,8 +27,22 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#include <smcp/assert_macros.h>
+
+#include <smcp/smcp.h>
 
 int
 main(int argc, char * argv[]) {
-	return -1;
+	smcp_t smcp = smcp_create(0);
+
+	printf("Client using port %d.\n", smcp_get_port(smcp));
+
+	while(1)
+		smcp_process(smcp,1000);
+
+	return 0;
 }
