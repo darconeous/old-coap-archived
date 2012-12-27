@@ -203,6 +203,7 @@
 		A6F35942168A598800F72DF3 /* smcp-plugtest-client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "smcp-plugtest-client"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6F35945168A598800F72DF3 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		A6F35947168A598800F72DF3 /* smcp_plugtest_client.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = smcp_plugtest_client.1; sourceTree = "<group>"; };
+		A6F35976168CBA6A00F72DF3 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; name = Makefile.am; path = src/plugtest/Makefile.am; sourceTree = "<group>"; };
 		A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-curl_proxy.c"; path = "src/smcp/smcp-curl_proxy.c"; sourceTree = "<group>"; };
 		A6F536ED155F0E5200E0E324 /* smcp-curl_proxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-curl_proxy.h"; path = "src/smcp/smcp-curl_proxy.h"; sourceTree = "<group>"; };
 		A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = ../../../../usr/lib/libcurl.4.dylib; sourceTree = "<group>"; };
@@ -356,6 +357,7 @@
 			isa = PBXGroup;
 			children = (
 				A6290E3A1675650F008914FD /* main-server.c */,
+				A6F35976168CBA6A00F72DF3 /* Makefile.am */,
 				A6290E3B1675650F008914FD /* plugtest-server.c */,
 				A6290E3C16756510008914FD /* plugtest-server.h */,
 			);

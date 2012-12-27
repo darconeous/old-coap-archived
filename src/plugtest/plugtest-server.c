@@ -56,7 +56,7 @@ plugtest_test_handler(
 	} else if(method==COAP_METHOD_POST) {
 		ret = smcp_outbound_begin_response(COAP_RESULT_201_CREATED);
 	} else if(method==COAP_METHOD_PUT) {
-		ret = smcp_outbound_begin_response(COAP_RESULT_203_VALID);
+		ret = smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
 	} else if(method==COAP_METHOD_DELETE) {
 		ret = smcp_outbound_begin_response(COAP_RESULT_202_DELETED);
 	}
