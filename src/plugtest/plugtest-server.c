@@ -162,9 +162,6 @@ plugtest_separate_handler(
 			goto bail;
 		}
 
-		ret = smcp_start_async_response(async_response,0);
-		if(ret) { goto bail; }
-
 		transaction = smcp_transaction_init(
 			NULL,
 			SMCP_TRANSACTION_DELAY_START,
@@ -173,11 +170,10 @@ plugtest_separate_handler(
 			(void*)async_response
 		);
 		if(!transaction) {
+			// TODO: Consider dropping instead...?
 			ret = SMCP_STATUS_MALLOC_FAILURE;
 			goto bail;
 		}
-
-		async_response = NULL;
 
 		ret = smcp_transaction_begin(
 			smcp_get_current_instance(),
@@ -188,6 +184,11 @@ plugtest_separate_handler(
 			smcp_transaction_end(smcp_get_current_instance(),transaction);
 			goto bail;
 		}
+
+		ret = smcp_start_async_response(async_response,0);
+		if(ret) { goto bail; }
+
+		async_response = NULL;
 	}
 
 bail:
