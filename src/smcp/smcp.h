@@ -177,9 +177,7 @@ extern struct smcp_s smcp_global_instance;
 extern smcp_t smcp_get_current_instance(); // Used from callbacks
 extern smcp_node_t smcp_get_root_node(smcp_t self);
 extern smcp_node_t smcp_node_get_root(smcp_node_t node);
-#if !SMCP_AVOID_MALLOC
 extern smcp_t smcp_create(uint16_t port);
-#endif
 #endif
 
 extern smcp_status_t smcp_process(smcp_t self, cms_t cms);

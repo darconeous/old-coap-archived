@@ -322,10 +322,15 @@ main(int argc, char * argv[]) {
 	const char* url = "coap://localhost/";
 	int errorcount = 0;
 	int round = 0;
-	if(argc>1) url = argv[1];
 
 //	url = "coap://contiki.local./";
 //	url = "coap://coap.me/";
+
+	if(argc>1) url = argv[1];
+	if(!smcp) {
+		fprintf(stderr,"Unable to allocate smcp instance\n");
+		exit(-1);
+	}
 
 	printf("Client using port %d.\n", smcp_get_port(smcp));
 

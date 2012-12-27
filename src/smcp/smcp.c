@@ -107,7 +107,7 @@ smcp_get_current_instance() {
 #pragma mark -
 #pragma mark SMCP Implementation
 
-#if !SMCP_AVOID_MALLOC && !SMCP_EMBEDDED
+#if !SMCP_EMBEDDED
 smcp_t
 smcp_create(uint16_t port) {
 	smcp_t ret = NULL;
@@ -275,7 +275,7 @@ smcp_release(smcp_t self) {
 		uip_udp_remove(self->udp_conn);
 #endif
 
-#if !SMCP_AVOID_MALLOC && !SMCP_EMBEDDED
+#if !SMCP_EMBEDDED
 	// TODO: Make sure we were actually alloc'd!
 	free(self);
 #endif

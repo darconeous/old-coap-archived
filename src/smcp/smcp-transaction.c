@@ -86,7 +86,7 @@ smcp_transaction_find_via_token(smcp_t self, coap_msg_id_t token) {
 	return ret;
 }
 
-void
+static void
 smcp_internal_delete_transaction_(
 	smcp_transaction_t handler,
 	smcp_t			self
@@ -290,15 +290,15 @@ smcp_transaction_init(
 		uint8_t i;
 		for(i=0;i<SMCP_CONF_MAX_TRANSACTIONS;i++) {
 			handler = &smcp_transaction_pool[i];
-			if(handler->callback) {
-				handler = NULL;
-				continue;
-			}
+			if(!handler->callback)
+				break;
+			handler = NULL;
 		}
 #else
 		handler = (smcp_transaction_t)calloc(sizeof(*handler), 1);
 #endif
-		handler->should_dealloc = 1;
+		if(handler)
+			handler->should_dealloc = 1;
 	} else {
 		memset(handler,0,sizeof(*handler));
 	}
