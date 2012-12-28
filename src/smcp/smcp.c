@@ -953,13 +953,16 @@ smcp_handle_response(
 
 	handler = smcp_transaction_find_via_msg_id(self,msg_id);
 
+	// TODO: Verify source address and port!
+
 	if(!handler && self->inbound.packet->token_len==sizeof(coap_msg_id_t)) {
 		coap_msg_id_t token;
 		memcpy(&token,self->inbound.packet->token,sizeof(token));
 		handler = smcp_transaction_find_via_token(self,token);
 
-		if(handler && !handler->waiting_for_async_response)
-			handler = NULL;
+//		TODO: We should only do this check if the request we made was confirmable.
+//		if(handler && !handler->waiting_for_async_response)
+//			handler = NULL;
 	}
 
 	self->current_transaction = handler;
