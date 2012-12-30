@@ -170,6 +170,7 @@ smcp_schedule_timer(
 	require(!timer->ll.prev, bail);
 	require(self->timers != timer, bail);
 
+	DEBUG_PRINTF("Timer:%p: Scheduling to fire in %dms ...",timer,cms);
 #if SMCP_DEBUG_TIMERS
 	size_t previousTimerCount = ll_count(self->timers);
 #endif
@@ -226,6 +227,19 @@ smcp_invalidate_timer(
 	DEBUG_PRINTF("%p: Timers in play = %d",self,(int)ll_count(self->timers));
 }
 
+#if VERBOSE_DEBUG
+void
+smcp_dump_all_timers(smcp_t self) {
+	smcp_timer_t iter;
+
+	DEBUG_PRINTF("smcp(%p): Current Timers:",self);
+
+	for(iter = self->timers;iter;iter = (void*)iter->ll.next) {
+		DEBUG_PRINTF("\t* [%p] expires-in:%dms context:%p",iter,convert_timeval_to_cms(&iter->fire_date),iter->context);
+	}
+}
+#endif
+
 cms_t
 smcp_get_timeout(smcp_t self) {
 	cms_t ret = SMCP_MAX_TIMEOUT;
@@ -237,8 +251,10 @@ smcp_get_timeout(smcp_t self) {
 	ret = MAX(ret, 0);
 
 #if VERBOSE_DEBUG
-	if(ret != SMCP_MAX_TIMEOUT)
-		DEBUG_PRINTF(CSTR("%p: next timeout = %dms"), self, ret);
+	if(ret != SMCP_MAX_TIMEOUT) {
+		smcp_dump_all_timers(self);
+		DEBUG_PRINTF("%p: next timeout = %dms", self, ret);
+	}
 #endif
 	return ret;
 }
@@ -264,4 +280,7 @@ smcp_handle_timers(smcp_t self) {
 		if(callback)
 			callback(self, context);
 	}
+#if VERBOSE_DEBUG
+	smcp_dump_all_timers(self);
+#endif
 }

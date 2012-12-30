@@ -205,11 +205,7 @@ smcp_internal_transaction_timeout_(
 
 			if(status == SMCP_STATUS_OK) {
 				handler->has_fired = true;
-				if((cms > 0) && (self->outbound.packet->tt!=COAP_TRANS_TYPE_NONCONFIRMABLE
-					|| handler->attemptCount<2)
-				) {
-					cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount++));
-				}
+				cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount++));
 			} else if(status == SMCP_STATUS_WAIT_FOR_DNS) {
 				cms = 100;
 				status = SMCP_STATUS_OK;
