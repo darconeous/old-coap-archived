@@ -82,8 +82,6 @@ PROCESS_THREAD(smcp_task, ev, data)
 
 	PRINTF("SMCP started. UDP Connection = %p\n",smcp_get_udp_conn(smcp));
 
-//	smcp_pairing_init(smcp_get_root_node(smcp),NULL);
-
 	etimer_set(&et, 1);
 
 	while(1) {

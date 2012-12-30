@@ -1271,7 +1271,9 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 	x->toport = self->inbound.toport;
 #endif
 
-	if(!(flags & SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK)) {
+	if(	!(flags & SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK)
+		&& self->inbound.packet->tt==COAP_TRANS_TYPE_CONFIRMABLE
+	) {
 		// Fake inbound packets are created to tickle
 		// content out of nodes by the pairing system.
 		// Since we are asynchronous, this clearly isn't
@@ -1280,14 +1282,9 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 		require_action(!self->inbound.is_fake,bail,ret = SMCP_STATUS_NOT_IMPLEMENTED);
 
 		ret = smcp_outbound_begin_response(COAP_CODE_EMPTY);
-
 		require_noerr(ret, bail);
 
-		// Should already be zero-length
-		//smcp_outbound_set_token(NULL, 0);
-
 		ret = smcp_outbound_send();
-
 		require_noerr(ret, bail);
 	}
 
