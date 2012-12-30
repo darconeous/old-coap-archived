@@ -48,6 +48,9 @@ extern smcp_status_t smcp_auth_handle_response(smcp_transaction_t transaction);
 
 extern const char* smcp_auth_get_username();
 
+// For use between smcp_inbound_start_packet() and smcp_inbound_finish_packet().
+extern smcp_status_t smcp_inbound_set_ext_auth(const char* cn, const char* mechanism);
+
 extern smcp_status_t smcp_auth_get_cred(
 	const char* realm,
 	const char* url,

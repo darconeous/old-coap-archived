@@ -288,3 +288,9 @@ smcp_auth_get_username() {
 	// TODO: Writeme!
 	return NULL;
 }
+
+smcp_status_t
+smcp_inbound_set_ext_auth(const char* cn, const char* mechanism) {
+	// TODO: Writeme!
+	return SMCP_STATUS_OK;
+}

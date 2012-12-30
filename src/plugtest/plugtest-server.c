@@ -71,7 +71,7 @@ plugtest_test_handler(
 		goto bail;
 	}
 
-	smcp_inbound_get_path(content, SMCP_GET_PATH_LEADING_SLASH);
+	smcp_inbound_get_path(content, SMCP_GET_PATH_LEADING_SLASH|SMCP_GET_PATH_INCLUDE_QUERY);
 	sprintf(content+strlen(content),"\nPlugtest!\nMethod = %s\n",coap_code_to_cstr(method));
 
 	{

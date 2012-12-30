@@ -576,23 +576,10 @@ smcp_inbound_start_packet(
 	self->inbound.packet_len = packet_length;
 	self->inbound.content_type = COAP_CONTENT_TYPE_UNKNOWN;
 
-
-	// TODO: Set `self->inbound.was_sent_to_multicast` properly!
-	// self->inbound.was_sent_to_multicast = ???
-
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
 	// Kind of a hack, but very convenient.
 	buffer[packet_length] = 0;
-
-	if(self->inbound.was_sent_to_multicast) {
-		// If this was multicast, make sure it isn't confirmable.
-		require_action(
-			packet->tt!=COAP_TRANS_TYPE_CONFIRMABLE,
-			bail,
-			ret=SMCP_STATUS_FAILURE
-		);
-	}
 
 bail:
 	return ret;
@@ -601,27 +588,8 @@ bail:
 smcp_status_t
 smcp_inbound_set_srcaddr(SMCP_SOCKET_ARGS) {
 	smcp_t const self = smcp_get_current_instance();
-#if VERBOSE_DEBUG
-	{
-		char addr_str[50] = "???";
-		uint16_t port = 0;
-#if SMCP_USE_BSD_SOCKETS
-		inet_ntop(AF_INET6,&((struct sockaddr_in6*)saddr)->sin6_addr,addr_str,sizeof(addr_str)-1);
-		port = ntohs(((struct sockaddr_in6*)saddr)->sin6_port);
-#elif CONTIKI
-		port = ntohs(toport);
-#define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-		CSTR_FROM_6ADDR(addr_str,toaddr);
-#endif
-		DEBUG_PRINTF(CSTR("smcp(%p): Inbound packet from [%s]:%d"), self,addr_str,(int)port);
-		coap_dump_header(
-			SMCP_DEBUG_OUT_FILE,
-			"Inbound:\t",
-			(struct coap_header_s*)self->inbound.packet,
-			self->inbound.packet_len
-		);
-	}
-#endif
+	if(!self->is_processing_message)
+		return SMCP_STATUS_FAILURE;
 #if SMCP_USE_BSD_SOCKETS
 	self->inbound.saddr = saddr;
 	self->inbound.socklen = socklen;
@@ -634,10 +602,65 @@ smcp_inbound_set_srcaddr(SMCP_SOCKET_ARGS) {
 }
 
 smcp_status_t
+smcp_inbound_set_destaddr(SMCP_SOCKET_ARGS) {
+	smcp_t const self = smcp_get_current_instance();
+	if(!self->is_processing_message)
+		return SMCP_STATUS_FAILURE;
+
+#if SMCP_USE_BSD_SOCKETS
+	struct sockaddr_in6* const saddr6 = (struct sockaddr_in6*)saddr;
+
+	if(IN6_IS_ADDR_V4MAPPED(&saddr6->sin6_addr)) {
+		self->inbound.was_sent_to_multicast = ((saddr6->sin6_addr.s6_addr[12] & 0xF0)==0xE0);
+	} else {
+		self->inbound.was_sent_to_multicast = IN6_IS_ADDR_MULTICAST(&saddr6->sin6_addr);
+	}
+#elif CONTIKI
+	self->inbound.was_sent_to_multicast = uip_is_addr_mcast(toaddr);
+#endif
+
+	return SMCP_STATUS_OK;
+}
+
+smcp_status_t
 smcp_inbound_finish_packet() {
 	smcp_t const self = smcp_get_current_instance();
 	smcp_status_t ret = SMCP_STATUS_OK;
 	struct coap_header_s* const packet = (void*)self->inbound.packet;
+
+	require_action(self->is_processing_message,bail,ret=SMCP_STATUS_FAILURE);
+
+#if VERBOSE_DEBUG
+	{
+		char addr_str[50] = "???";
+		uint16_t port = 0;
+#if SMCP_USE_BSD_SOCKETS
+		inet_ntop(AF_INET6,&((struct sockaddr_in6*)self->inbound.saddr)->sin6_addr,addr_str,sizeof(addr_str)-1);
+		port = ntohs(((struct sockaddr_in6*)self->inbound.saddr)->sin6_port);
+#elif CONTIKI
+		port = ntohs(self->inbound.toport);
+#define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
+		CSTR_FROM_6ADDR(addr_str,&self->inbound.toaddr);
+#endif
+		DEBUG_PRINTF(CSTR("smcp(%p): Inbound packet from [%s]:%d"), self,addr_str,(int)port);
+		coap_dump_header(
+			SMCP_DEBUG_OUT_FILE,
+			"Inbound:\t",
+			(struct coap_header_s*)self->inbound.packet,
+			self->inbound.packet_len
+		);
+	}
+#endif
+
+	if(self->inbound.was_sent_to_multicast) {
+		// If this was multicast, make sure it isn't confirmable.
+		require_action(
+			packet->tt!=COAP_TRANS_TYPE_CONFIRMABLE,
+			bail,
+			ret=SMCP_STATUS_FAILURE
+		);
+	}
+
 	smcp_inbound_reset_next_option();
 	{	// Initial options scan.
 		coap_option_key_t key;
@@ -778,6 +801,8 @@ bail:
 	return ret;
 }
 
+
+// DEPRECATED. DON'T USE.
 smcp_status_t
 smcp_handle_inbound_packet(
 	smcp_t	self,
@@ -855,6 +880,8 @@ smcp_process(
 
 		ret = smcp_inbound_set_srcaddr((struct sockaddr*)&packet_saddr,packet_saddr_len);
 		require(ret==SMCP_STATUS_OK,bail);
+
+		// TODO: Call `smcp_inbound_set_destaddr()`, too!
 
 		ret = smcp_inbound_finish_packet();
 		require(ret==SMCP_STATUS_OK,bail);

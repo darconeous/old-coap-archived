@@ -199,14 +199,22 @@ extern int smcp_get_fd(smcp_t self);
 extern struct uip_udp_conn* smcp_get_udp_conn(smcp_t self);
 #endif
 
+//! Start describing the inbound packet.
 extern smcp_status_t smcp_inbound_start_packet(
 	smcp_t	self,
 	char*			packet,
 	size_t			packet_length
 );
 
+//! Sets the address from where this packet originated.
 extern smcp_status_t smcp_inbound_set_srcaddr(SMCP_SOCKET_ARGS);
 
+//! Sets the address to where this packet was sent to.
+/*!	This method is optional in describing the inbound packet,
+**	but it is necessary to correctly implement multicast behavior. */
+extern smcp_status_t smcp_inbound_set_destaddr(SMCP_SOCKET_ARGS);
+
+//! Indicate that we are finished describing the inbound packet.
 extern smcp_status_t smcp_inbound_finish_packet();
 
 //! Deprecated.

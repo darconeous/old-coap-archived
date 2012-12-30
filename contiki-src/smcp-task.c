@@ -101,6 +101,10 @@ PROCESS_THREAD(smcp_task, ev, data)
 						&UIP_IP_BUF->srcipaddr,
 						UIP_UDP_BUF->srcport
           );
+          smcp_inbound_set_destaddr(
+						&UIP_IP_BUF->destipaddr,
+						UIP_UDP_BUF->destport
+          );
           smcp_inbound_finish_packet();
         } else if(uip_poll())
 					smcp_process(smcp, 0);
