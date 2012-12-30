@@ -652,7 +652,7 @@ cgi_node_request_handler(
 		if(	request->block2!=BLOCK_OPTION_UNSPECIFIED
 			&& block2_start < (request->block2>>4) * (1<<((request->block2&0x7)+4))
 		) {
-				// Dupe?
+				// Old Dupe?
 				smcp_outbound_drop();
 				ret = SMCP_STATUS_DUPE;
 				goto bail;
@@ -724,12 +724,6 @@ cgi_node_request_handler(
 				request,
 				CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD
 			);
-//			if(0!=smcp_start_async_response(&request->async_response, 0)) {
-//				// OOPS!
-//				request->is_active = 0;
-//				request = NULL;
-//				goto bail;
-//			}
 		}
 	} else if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD) {
 		// We should not get a request at this point in the state machine.

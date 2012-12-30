@@ -353,7 +353,7 @@ smcp_transaction_begin(
 		self
 	);
 
-	if(!expiration)
+	if(expiration<0)
 		expiration = COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC;
 
 	handler->token = smcp_get_next_msg_id(self, NULL);
