@@ -47,6 +47,11 @@ typedef struct {
 
 	coap_code_t inbound_code;
 	size_t inbound_content_len;
+
+	enum {
+		EXT_NONE,
+		EXT_BLOCK_01,
+	} extra;
 } test_data_s;
 
 smcp_status_t
@@ -59,6 +64,10 @@ resend_test_request(void* context) {
 
 	status = smcp_outbound_set_uri(test_data->url, 0);
 	require_noerr(status,bail);
+
+	if(test_data->extra==EXT_BLOCK_01) {
+		smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2, 1);	// 32 byte block size.
+	}
 
 	status = smcp_outbound_send();
 
@@ -89,7 +98,7 @@ response_test_handler(int statuscode, void* context) {
 }
 
 bool
-test_simple(smcp_t smcp, const char* url, const char* rel, coap_code_t outbound_code,coap_transaction_type_t outbound_tt,coap_code_t expected_code)
+test_simple(smcp_t smcp, const char* url, const char* rel, coap_code_t outbound_code,coap_transaction_type_t outbound_tt,coap_code_t expected_code, int extra)
 {
 	bool ret = false;
 	smcp_transaction_t transaction = NULL;
@@ -97,6 +106,7 @@ test_simple(smcp_t smcp, const char* url, const char* rel, coap_code_t outbound_
 		.outbound_code = outbound_code,
 		.outbound_tt = outbound_tt,
 		.expected_code = expected_code,
+		.extra = extra,
 	};
 	asprintf(&test_data.url, "%s%s",url,rel);
 
@@ -136,7 +146,8 @@ test_TD_COAP_CORE_01(smcp_t smcp, const char* url)
 		"test",
 		COAP_METHOD_GET,
 		COAP_TRANS_TYPE_CONFIRMABLE,
-		COAP_RESULT_205_CONTENT
+		COAP_RESULT_205_CONTENT,
+		EXT_NONE
 	);
 }
 
@@ -149,7 +160,8 @@ test_TD_COAP_CORE_02(smcp_t smcp, const char* url)
 		"test",
 		COAP_METHOD_POST,
 		COAP_TRANS_TYPE_CONFIRMABLE,
-		COAP_RESULT_201_CREATED
+		COAP_RESULT_201_CREATED,
+		EXT_NONE
 	);
 }
 
@@ -162,7 +174,8 @@ test_TD_COAP_CORE_03(smcp_t smcp, const char* url)
 		"test",
 		COAP_METHOD_PUT,
 		COAP_TRANS_TYPE_CONFIRMABLE,
-		COAP_RESULT_204_CHANGED
+		COAP_RESULT_204_CHANGED,
+		EXT_NONE
 	);
 }
 
@@ -175,7 +188,8 @@ test_TD_COAP_CORE_04(smcp_t smcp, const char* url)
 		"test",
 		COAP_METHOD_DELETE,
 		COAP_TRANS_TYPE_CONFIRMABLE,
-		COAP_RESULT_202_DELETED
+		COAP_RESULT_202_DELETED,
+		EXT_NONE
 	);
 }
 
@@ -192,7 +206,8 @@ test_TD_COAP_CORE_05(smcp_t smcp, const char* url)
 		"test",
 		COAP_METHOD_GET,
 		COAP_TRANS_TYPE_NONCONFIRMABLE,
-		COAP_RESULT_205_CONTENT
+		COAP_RESULT_205_CONTENT,
+		EXT_NONE
 	);
 }
 
@@ -205,7 +220,8 @@ test_TD_COAP_CORE_06(smcp_t smcp, const char* url)
 		"test",
 		COAP_METHOD_POST,
 		COAP_TRANS_TYPE_NONCONFIRMABLE,
-		COAP_RESULT_201_CREATED
+		COAP_RESULT_201_CREATED,
+		EXT_NONE
 	);
 }
 
@@ -218,7 +234,8 @@ test_TD_COAP_CORE_07(smcp_t smcp, const char* url)
 		"test",
 		COAP_METHOD_PUT,
 		COAP_TRANS_TYPE_NONCONFIRMABLE,
-		COAP_RESULT_204_CHANGED
+		COAP_RESULT_204_CHANGED,
+		EXT_NONE
 	);
 }
 
@@ -231,7 +248,8 @@ test_TD_COAP_CORE_08(smcp_t smcp, const char* url)
 		"test",
 		COAP_METHOD_DELETE,
 		COAP_TRANS_TYPE_NONCONFIRMABLE,
-		COAP_RESULT_202_DELETED
+		COAP_RESULT_202_DELETED,
+		EXT_NONE
 	);
 }
 
@@ -244,7 +262,8 @@ test_TD_COAP_CORE_09(smcp_t smcp, const char* url)
 		"separate",
 		COAP_METHOD_GET,
 		COAP_TRANS_TYPE_CONFIRMABLE,
-		COAP_RESULT_205_CONTENT
+		COAP_RESULT_205_CONTENT,
+		EXT_NONE
 	);
 }
 
@@ -257,7 +276,8 @@ test_TD_COAP_CORE_12(smcp_t smcp, const char* url)
 		"seg1/seg2/seg3",
 		COAP_METHOD_GET,
 		COAP_TRANS_TYPE_CONFIRMABLE,
-		COAP_RESULT_205_CONTENT
+		COAP_RESULT_205_CONTENT,
+		EXT_NONE
 	);
 }
 
@@ -271,7 +291,8 @@ test_TD_COAP_CORE_13(smcp_t smcp, const char* url)
 		"query?first=1&second=2&third=3",
 		COAP_METHOD_GET,
 		COAP_TRANS_TYPE_CONFIRMABLE,
-		COAP_RESULT_205_CONTENT
+		COAP_RESULT_205_CONTENT,
+		EXT_NONE
 	);
 }
 
@@ -284,7 +305,8 @@ test_TD_COAP_CORE_16(smcp_t smcp, const char* url)
 		"separate",
 		COAP_METHOD_GET,
 		COAP_TRANS_TYPE_NONCONFIRMABLE,
-		COAP_RESULT_205_CONTENT
+		COAP_RESULT_205_CONTENT,
+		EXT_NONE
 	);
 }
 
@@ -297,7 +319,8 @@ test_TD_COAP_LINK_01(smcp_t smcp, const char* url)
 		".well-known/core",
 		COAP_METHOD_GET,
 		COAP_TRANS_TYPE_CONFIRMABLE,
-		COAP_RESULT_205_CONTENT
+		COAP_RESULT_205_CONTENT,
+		EXT_NONE
 	);
 }
 
@@ -310,7 +333,22 @@ test_TD_COAP_BLOCK_02(smcp_t smcp, const char* url)
 		"large",
 		COAP_METHOD_GET,
 		COAP_TRANS_TYPE_CONFIRMABLE,
-		COAP_RESULT_205_CONTENT
+		COAP_RESULT_205_CONTENT,
+		EXT_NONE
+	);
+}
+
+bool
+test_TD_COAP_BLOCK_01(smcp_t smcp, const char* url)
+{
+	return test_simple(
+		smcp,
+		url,
+		"large",
+		COAP_METHOD_GET,
+		COAP_TRANS_TYPE_CONFIRMABLE,
+		COAP_RESULT_205_CONTENT,
+		EXT_BLOCK_01
 	);
 }
 
@@ -354,6 +392,7 @@ main(int argc, char * argv[]) {
 
 		do_test(TD_COAP_LINK_01);
 
+		do_test(TD_COAP_BLOCK_01);
 		do_test(TD_COAP_BLOCK_02);
 	}
 

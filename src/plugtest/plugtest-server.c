@@ -71,7 +71,8 @@ plugtest_test_handler(
 		goto bail;
 	}
 
-	sprintf(content,"Plugtest!\nMethod = %s\n",coap_code_to_cstr(method));
+	smcp_inbound_get_path(content, SMCP_GET_PATH_LEADING_SLASH);
+	sprintf(content+strlen(content),"\nPlugtest!\nMethod = %s\n",coap_code_to_cstr(method));
 
 	{
 		const uint8_t* value;
@@ -82,7 +83,7 @@ plugtest_test_handler(
 			strlcat(content,": ",max_len);
 			if(coap_option_value_is_string(key)) {
 				size_t argh = strlen(content)+value_len;
-				strlcat(content,(char*)value,MIN(max_len,value_len+1));
+				strlcat(content,(char*)value,MIN(max_len,argh+1));
 				content[argh] = 0;
 			} else {
 				strlcat(content,"<binary>",max_len);
@@ -178,7 +179,7 @@ plugtest_separate_handler(
 		ret = smcp_transaction_begin(
 			smcp_get_current_instance(),
 			transaction,
-			(smcp_inbound_get_packet()->tt==COAP_TRANS_TYPE_CONFIRMABLE)?COAP_MAX_TRANSMIT_WAIT*MSEC_PER_SEC:0
+			(smcp_inbound_get_packet()->tt==COAP_TRANS_TYPE_CONFIRMABLE)?COAP_MAX_TRANSMIT_WAIT*MSEC_PER_SEC:1
 		);
 		if(ret) {
 			smcp_transaction_end(smcp_get_current_instance(),transaction);

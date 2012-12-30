@@ -304,7 +304,8 @@ smcp_outbound_add_options_up_to_key_(
 	smcp_status_t ret = SMCP_STATUS_OK;
 	smcp_t const self = smcp_get_current_instance();
 
-	if(	(self->current_transaction && self->current_transaction->next_block2)
+	if(	(self->current_transaction
+		&& self->current_transaction->next_block2)
 		&& self->outbound.last_option_key<COAP_OPTION_BLOCK2
 		&& key>COAP_OPTION_BLOCK2
 	) {
@@ -358,12 +359,18 @@ smcp_outbound_add_option(
 	coap_option_key_t key, const char* value, size_t len
 ) {
 	smcp_status_t ret = 0;
+	smcp_t const self = smcp_get_current_instance();
 
 	ret = smcp_outbound_add_options_up_to_key_(key);
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_add_option_(key,value,len);
-	require_noerr(ret, bail);
+	if(key!=COAP_OPTION_BLOCK2
+		|| !self->current_transaction
+		|| !self->current_transaction->next_block2
+	) {
+		ret = smcp_outbound_add_option_(key,value,len);
+		require_noerr(ret, bail);
+	}
 
 bail:
 	return ret;
