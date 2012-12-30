@@ -271,15 +271,15 @@ tool_cmd_test(
 
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
-	smcp_pairing_init(
-		smcp_get_root_node(smcp),
-		SMCP_PAIRING_DEFAULT_ROOT_PATH
-	);
-
-	smcp_pairing_init(
-		smcp_get_root_node(smcp2),
-		SMCP_PAIRING_DEFAULT_ROOT_PATH
-	);
+//	smcp_pairing_init(
+//		smcp_get_root_node(smcp),
+//		SMCP_PAIRING_DEFAULT_ROOT_PATH
+//	);
+//
+//	smcp_pairing_init(
+//		smcp_get_root_node(smcp2),
+//		SMCP_PAIRING_DEFAULT_ROOT_PATH
+//	);
 
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 

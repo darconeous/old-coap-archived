@@ -51,7 +51,7 @@
 #pragma mark -
 #pragma mark Globals
 
-#if SMCP_NO_MALLOC
+#if SMCP_AVOID_MALLOC
 static struct smcp_node_s smcp_node_pool[SMCP_CONF_MAX_ALLOCED_NODES];
 #endif
 
@@ -60,7 +60,7 @@ static struct smcp_node_s smcp_node_pool[SMCP_CONF_MAX_ALLOCED_NODES];
 
 void
 smcp_node_dealloc(smcp_node_t x) {
-#if SMCP_NO_MALLOC
+#if SMCP_AVOID_MALLOC
 	x->finalize = NULL;
 #else
 	free(x);
@@ -70,7 +70,7 @@ smcp_node_dealloc(smcp_node_t x) {
 smcp_node_t
 smcp_node_alloc() {
 	smcp_node_t ret;
-#if SMCP_NO_MALLOC
+#if SMCP_AVOID_MALLOC
 	uint8_t i;
 	for(i=0;i<SMCP_CONF_MAX_ALLOCED_NODES;i++) {
 		ret = &smcp_node_pool[i];
@@ -119,7 +119,7 @@ smcp_node_ncompare_cstr(
 	ret = strncmp(lhs->name, rhs, *len);
 
 	if(ret == 0) {
-		int lhs_len = strlen(lhs->name);
+		int lhs_len = (int)strlen(lhs->name);
 		if(lhs_len > *len)
 			ret = 1;
 		else if(lhs_len < *len)
@@ -210,10 +210,11 @@ smcp_node_get_path(
 		path[0] = 0;
 	}
 
-	strlcat(path, "/", max_path_len);
 
 	if(node->name) {
-		size_t len = strlen(path);
+		size_t len;
+		strlcat(path, "/", max_path_len);
+		len = strlen(path);
 		if(max_path_len>len)
 			url_encode_cstr(path+len, node->name, max_path_len - len);
 	}
@@ -270,7 +271,7 @@ smcp_node_find_next_with_path(
 		{
 #if HAVE_C99_VLA
 			char unescaped_name[namelen+1];
-//#elif SMCP_NO_MALLOC
+//#elif SMCP_AVOID_MALLOC
 //			static char unescaped_name[SMCP_MAX_PATH_LENGTH+1];
 #else
 			char *unescaped_name = malloc(namelen+1);
@@ -286,7 +287,7 @@ smcp_node_find_next_with_path(
 				unescaped_name,
 				escaped_len
 			);
-#if !HAVE_C99_VLA // && !SMCP_NO_MALLOC
+#if !HAVE_C99_VLA // && !SMCP_AVOID_MALLOC
 			free(unescaped_name);
 #endif
 		}

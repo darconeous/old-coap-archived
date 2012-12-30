@@ -67,7 +67,7 @@ again:
 		case 15:
 			// End of option marker...?
 			// TODO: Fail harder if len doesn't equal 15 as well!
-			if(key)*key = COAP_HEADER_INVALID;
+			if(key)*key = COAP_OPTION_INVALID;
 			if(value)*value = NULL;
 			if(lenP)*lenP = 0;
 			return NULL;
@@ -91,7 +91,7 @@ again:
 		case 15:
 			// End of option marker...?
 			// TODO: Fail harder if len doesn't equal 15 as well!
-			if(key)*key = COAP_HEADER_INVALID;
+			if(key)*key = COAP_OPTION_INVALID;
 			if(value)*value = NULL;
 			if(lenP)*lenP = 0;
 			return NULL;
@@ -276,22 +276,7 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 		content_type_string = "application/x-www-form-urlencoded"; break;
 
 
-
-
 #if 0
-	case COAP_CONTENT_TYPE_APPLICATION_RDF_XML: content_type_string =
-		    "application/rdf+xml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_SOAP_XML: content_type_string =
-		    "application/soap+xml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_ATOM_XML: content_type_string =
-		    "application/atom+xml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_XMPP_XML: content_type_string =
-		    "application/xmpp+xml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_X_BXML: content_type_string =
-		    "application/x-bxml"; break;
-	case COAP_CONTENT_TYPE_APPLICATION_FASTINFOSET: content_type_string =
-		    "application/fastinfoset"; break;
-
 	case COAP_CONTENT_TYPE_TEXT_XML: content_type_string = "text/xml";
 		break;
 	case COAP_CONTENT_TYPE_TEXT_CSV: content_type_string = "text/csv";
@@ -324,22 +309,22 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 			snprintf(ret,
 				sizeof(ret),
 				"text/x-coap-%u;charset=utf-8",
-				    (unsigned char)content_type);
+				    (unsigned int)content_type);
 		else if(content_type < 40)
 			snprintf(ret,
 				sizeof(ret),
 				"image/x-coap-%u",
-				    (unsigned char)content_type);
+				    (unsigned int)content_type);
 		else if(content_type < 60)
 			snprintf(ret, sizeof(ret), "application/x-coap-%u",
-				    (unsigned char)content_type);
+				    (unsigned int)content_type);
 		else if(content_type < 201)
 			snprintf(ret, sizeof(ret), "application/x-coap-%u",
-				    (unsigned char)content_type);
+				    (unsigned int)content_type);
 		else
 			// Experimental
 			snprintf(ret, sizeof(ret), "application/x-coap-%u",
-				    (unsigned char)content_type);
+				    (unsigned int)content_type);
 		content_type_string = ret;
 #else
 		content_type_string = "unknown";
@@ -395,14 +380,14 @@ coap_content_type_from_cstr(const char* x) {
 bool
 coap_option_value_is_string(coap_option_key_t key) {
 	switch(key) {
-		case COAP_HEADER_PROXY_URI:
-		case SMCP_HEADER_CSEQ:
-		case COAP_HEADER_ETAG:
-		case COAP_HEADER_URI_HOST:
-		case COAP_HEADER_URI_QUERY:
-		case COAP_HEADER_LOCATION_PATH:
-		case COAP_HEADER_LOCATION_QUERY:
-		case COAP_HEADER_URI_PATH:
+		case COAP_OPTION_PROXY_URI:
+		case SMCP_OPTION_CSEQ:
+		case COAP_OPTION_ETAG:
+		case COAP_OPTION_URI_HOST:
+		case COAP_OPTION_URI_QUERY:
+		case COAP_OPTION_LOCATION_PATH:
+		case COAP_OPTION_LOCATION_QUERY:
+		case COAP_OPTION_URI_PATH:
 			return true;
 			break;
 		default:
@@ -418,42 +403,42 @@ coap_option_key_to_cstr(
 	const char* ret = NULL;
 
 	if(!ret) switch(key) {
-		case COAP_HEADER_CONTENT_TYPE: ret = "Content-type"; break;
-		case COAP_HEADER_MAX_AGE: ret = "Max-age"; break;
-		case COAP_HEADER_ETAG: ret = "Etag"; break;
-		case COAP_HEADER_PROXY_URI: ret = "Proxy-uri"; break;
-		case COAP_HEADER_URI_HOST: ret = "URI-host"; break;
-		case COAP_HEADER_URI_PORT: ret = "URI-port"; break;
-		case COAP_HEADER_URI_PATH: ret = "URI-path"; break;
-		case COAP_HEADER_URI_QUERY: ret = "URI-query"; break;
-		case COAP_HEADER_LOCATION_PATH: ret = "Location-path"; break;
-		case COAP_HEADER_LOCATION_QUERY: ret = "Location-query"; break;
+		case COAP_OPTION_CONTENT_TYPE: ret = "Content-type"; break;
+		case COAP_OPTION_MAX_AGE: ret = "Max-age"; break;
+		case COAP_OPTION_ETAG: ret = "Etag"; break;
+		case COAP_OPTION_PROXY_URI: ret = "Proxy-uri"; break;
+		case COAP_OPTION_URI_HOST: ret = "URI-host"; break;
+		case COAP_OPTION_URI_PORT: ret = "URI-port"; break;
+		case COAP_OPTION_URI_PATH: ret = "URI-path"; break;
+		case COAP_OPTION_URI_QUERY: ret = "URI-query"; break;
+		case COAP_OPTION_LOCATION_PATH: ret = "Location-path"; break;
+		case COAP_OPTION_LOCATION_QUERY: ret = "Location-query"; break;
 
-		case COAP_HEADER_ACCEPT: ret = "Accept"; break;
-		case COAP_HEADER_OBSERVE: ret = "Observe"; break;
-//		case COAP_HEADER_TOKEN: ret = "Token"; break;
+		case COAP_OPTION_ACCEPT: ret = "Accept"; break;
+		case COAP_OPTION_OBSERVE: ret = "Observe"; break;
 
-		case COAP_HEADER_BLOCK1: ret = "Block1"; break;
-		case COAP_HEADER_BLOCK2: ret = "Block2"; break;
+		case COAP_OPTION_BLOCK1: ret = "Block1"; break;
+		case COAP_OPTION_BLOCK2: ret = "Block2"; break;
 
 /* -- EXPERIMENTAL AFTER THIS POINT -- */
 
-		case COAP_HEADER_CASCADE_COUNT: ret = "Cascade-count"; break;
-		case COAP_HEADER_AUTHENTICATE: ret = for_response?"X-Authenticate":"X-Authorization"; break;
-		case SMCP_HEADER_CSEQ: ret = "Cseq"; break;
-		case SMCP_HEADER_ORIGIN: ret = "Origin"; break;
+		case COAP_OPTION_CASCADE_COUNT: ret = "Cascade-count"; break;
+		case COAP_OPTION_AUTHENTICATE: ret = for_response?"X-Authenticate":"X-Authorization"; break;
+		case SMCP_OPTION_CSEQ: ret = "Cseq"; break;
+		case SMCP_OPTION_ORIGIN: ret = "Origin"; break;
 
 		default:
 		{
-			static char x[30];
-			if(key % 14) {
-				if(key & 1)
-					sprintf(x, "X-Critical-CoAP-%u", key);
-				else
-					sprintf(x, "X-Elective-CoAP-%u", key);
-			} else {
-				sprintf(x, "Ignore-%u", key);
-			}
+			// NOTE: Not reentrant or thread safe.
+			static char x[48];
+
+			sprintf(x, "X-CoAP-%s%s%s-%u",
+				COAP_OPTION_IS_CRITICAL(key)?"critical":"elective",
+				COAP_OPTION_IS_UNSAFE(key)?"-unsafe":"",
+				COAP_OPTION_IS_NOCACHEKEY(key)?"-nocachekey":"",
+				key
+			);
+
 			ret = x;
 		}
 		break;
@@ -465,37 +450,37 @@ coap_option_key_to_cstr(
 coap_option_key_t
 coap_option_key_from_cstr(const char* key) {
 	if(strcasecmp(key, "Content-type") == 0)
-		return COAP_HEADER_CONTENT_TYPE;
+		return COAP_OPTION_CONTENT_TYPE;
 	else if(strcasecmp(key, "Max-age") == 0)
-		return COAP_HEADER_MAX_AGE;
+		return COAP_OPTION_MAX_AGE;
 	else if(strcasecmp(key, "Etag") == 0)
-		return COAP_HEADER_ETAG;
+		return COAP_OPTION_ETAG;
 	else if(strcasecmp(key, "URI-host") == 0)
-		return COAP_HEADER_URI_HOST;
+		return COAP_OPTION_URI_HOST;
 	else if(strcasecmp(key, "Proxy-uri") == 0)
-		return COAP_HEADER_PROXY_URI;
+		return COAP_OPTION_PROXY_URI;
 	else if(strcasecmp(key, "URI-port") == 0)
-		return COAP_HEADER_URI_PORT;
+		return COAP_OPTION_URI_PORT;
 	else if(strcasecmp(key, "Location-path") == 0)
-		return COAP_HEADER_LOCATION_PATH;
+		return COAP_OPTION_LOCATION_PATH;
 	else if(strcasecmp(key, "Location-query") == 0)
-		return COAP_HEADER_LOCATION_QUERY;
+		return COAP_OPTION_LOCATION_QUERY;
 	else if(strcasecmp(key, "URI-path") == 0)
-		return COAP_HEADER_URI_PATH;
+		return COAP_OPTION_URI_PATH;
 	else if(strcasecmp(key, "Accept") == 0)
-		return COAP_HEADER_ACCEPT;
+		return COAP_OPTION_ACCEPT;
 	else if(strcasecmp(key, "Block1") == 0)
-		return COAP_HEADER_BLOCK1;
+		return COAP_OPTION_BLOCK1;
 	else if(strcasecmp(key, "Block2") == 0)
-		return COAP_HEADER_BLOCK2;
+		return COAP_OPTION_BLOCK2;
 
 
 	else if(strcasecmp(key, "Cseq") == 0)
-		return SMCP_HEADER_CSEQ;
+		return SMCP_OPTION_CSEQ;
 	else if(strcasecmp(key, "Origin") == 0)
-		return SMCP_HEADER_ORIGIN;
+		return SMCP_OPTION_ORIGIN;
 
-	return 0;
+	return COAP_OPTION_INVALID;
 }
 #endif
 
@@ -570,7 +555,7 @@ coap_verify_packet(const char* packet,size_t packet_size) {
 		return false;
 	}
 
-	if(packet_size>65535) {
+	if(packet_size>COAP_MAX_MESSAGE_SIZE) {
 		// Packet too large
 		DEBUG_PRINTF("PACKET CORRUPTED: Too Large\n");
 		return false;
@@ -628,7 +613,6 @@ coap_dump_header(
 	coap_option_key_t key = 0;
 	const uint8_t* value;
 	size_t value_len;
-//	int option_count = header->option_count;
 	const uint8_t* option_ptr = header->token + header->token_len;
 	const char* tt_str = NULL;
 
@@ -681,8 +665,8 @@ coap_dump_header(
 	if(header->code >= COAP_RESULT_100) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
-			"CoAP/1.0 %d %s tt=%s msgid=0x%04X\n",
-			coap_to_http_code(header->code),
+			"CoAP/1.0 %d.%02d %s tt=%s msgid=0x%04X\n",
+			header->code>>5,header->code&31,
 			coap_code_to_cstr(header->code),
 			tt_str,ntohs(header->msg_id)
 		);
@@ -726,10 +710,10 @@ coap_dump_header(
 		fprintf(outstream, "%s: ",
 			coap_option_key_to_cstr(key, header->code >= COAP_RESULT_100));
 		switch(key) {
-		case COAP_HEADER_CASCADE_COUNT:
-		case COAP_HEADER_MAX_AGE:
-		case COAP_HEADER_URI_PORT:
-		case COAP_HEADER_OBSERVE:
+		case COAP_OPTION_CASCADE_COUNT:
+		case COAP_OPTION_MAX_AGE:
+		case COAP_OPTION_URI_PORT:
+		case COAP_OPTION_OBSERVE:
 		{
 			unsigned long v = 0;
 			uint8_t i;
@@ -738,8 +722,8 @@ coap_dump_header(
 			fprintf(outstream, "%lu", v);
 		}
 		break;
-		case COAP_HEADER_CONTENT_TYPE:
-		case COAP_HEADER_ACCEPT:
+		case COAP_OPTION_CONTENT_TYPE:
+		case COAP_OPTION_ACCEPT:
 		{
 			unsigned long v = 0;
 			uint8_t i;
@@ -748,8 +732,8 @@ coap_dump_header(
 			fprintf(outstream, "%s",coap_content_type_to_cstr(v));
 		}
 		break;
-		case COAP_HEADER_BLOCK1:
-		case COAP_HEADER_BLOCK2:
+		case COAP_OPTION_BLOCK1:
+		case COAP_OPTION_BLOCK2:
 		{
 			uint32_t block = 0;
 			if(value_len==1)
@@ -767,15 +751,15 @@ coap_dump_header(
 		}
 		break;
 
-		case COAP_HEADER_URI_PATH:
-		case COAP_HEADER_URI_HOST:
-		case COAP_HEADER_URI_QUERY:
-		case COAP_HEADER_PROXY_URI:
-		case COAP_HEADER_LOCATION_PATH:
-		case COAP_HEADER_LOCATION_QUERY:
+		case COAP_OPTION_URI_PATH:
+		case COAP_OPTION_URI_HOST:
+		case COAP_OPTION_URI_QUERY:
+		case COAP_OPTION_PROXY_URI:
+		case COAP_OPTION_LOCATION_PATH:
+		case COAP_OPTION_LOCATION_QUERY:
 
-		case SMCP_HEADER_ORIGIN:
-		case SMCP_HEADER_CSEQ:
+		case SMCP_OPTION_ORIGIN:
+		case SMCP_OPTION_CSEQ:
 
 			fprintf(outstream, "\"");
 			if(value_len > COAP_MAX_OPTION_VALUE_SIZE)

@@ -31,6 +31,14 @@
 #ifndef __SMCP_HEADER__
 #define __SMCP_HEADER__ 1
 
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "smcp-opts.h"
+#include "smcp-helpers.h"
+
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
 #define __BEGIN_DECLS   extern "C" {
@@ -42,14 +50,7 @@
 #endif
 #endif
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <string.h>
-
-#include "smcp-opts.h"
 #include "coap.h"
-
 #include "btree.h"
 
 #ifdef CONTIKI
@@ -152,30 +153,13 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define smcp_get_fd(self)		smcp_get_fd()
 #define smcp_get_udp_conn(self)		smcp_get_udp_conn()
 #define smcp_handle_inbound_packet(self,...)		smcp_handle_inbound_packet(__VA_ARGS__)
-#define smcp_transaction_begin(self,...)		smcp_transaction_begin(__VA_ARGS__)
-#define smcp_transaction_end(self,...)		smcp_transaction_end(__VA_ARGS__)
 #define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
 #define smcp_get_next_msg_id(self,...)		smcp_get_next_msg_id(__VA_ARGS__)
-#define smcp_transaction_find_via_msg_id(self,...)		smcp_transaction_find_via_msg_id(__VA_ARGS__)
-#define smcp_transaction_find_via_token(self,...)		smcp_transaction_find_via_token(__VA_ARGS__)
-#define smcp_pair_with_uri(self,...)		smcp_pair_with_uri(__VA_ARGS__)
-#define smcp_pair_with_sockaddr(self,...)		smcp_pair_with_sockaddr(__VA_ARGS__)
-#define smcp_trigger_event(self,...)		smcp_trigger_event(__VA_ARGS__)
-#define smcp_trigger_event_with_node(self,...)		smcp_trigger_event_with_node(__VA_ARGS__)
-#define smcp_trigger_custom_event(self,...)		smcp_trigger_custom_event(__VA_ARGS__)
-#define smcp_get_first_pairing_for_path(self,...)		smcp_get_first_pairing_for_path(__VA_ARGS__)
-#define smcp_schedule_timer(self,...)		smcp_schedule_timer(__VA_ARGS__)
-#define smcp_invalidate_timer(self,...)		smcp_invalidate_timer(__VA_ARGS__)
-#define smcp_handle_timers(self,...)		smcp_handle_timers(__VA_ARGS__)
-#define smcp_timer_is_scheduled(self,...)		smcp_timer_is_scheduled(__VA_ARGS__)
-#define smcp_transaction_new_msg_id(self,...)		smcp_transaction_new_msg_id(__VA_ARGS__)
-#define smcp_transaction_tickle(self,...)		smcp_transaction_tickle(__VA_ARGS__)
-
-
-
+#define smcp_inbound_start_packet(self,...)		smcp_inbound_start_packet(__VA_ARGS__)
 #else
 #define SMCP_EMBEDDED_SELF_HOOK
 #endif
+
 
 extern smcp_t smcp_init(smcp_t self, uint16_t port);
 
@@ -193,9 +177,7 @@ extern struct smcp_s smcp_global_instance;
 extern smcp_t smcp_get_current_instance(); // Used from callbacks
 extern smcp_node_t smcp_get_root_node(smcp_t self);
 extern smcp_node_t smcp_node_get_root(smcp_node_t node);
-#if !SMCP_NO_MALLOC
 extern smcp_t smcp_create(uint16_t port);
-#endif
 #endif
 
 extern smcp_status_t smcp_process(smcp_t self, cms_t cms);
@@ -217,62 +199,30 @@ extern int smcp_get_fd(smcp_t self);
 extern struct uip_udp_conn* smcp_get_udp_conn(smcp_t self);
 #endif
 
+//! Start describing the inbound packet.
+extern smcp_status_t smcp_inbound_start_packet(
+	smcp_t	self,
+	char*			packet,
+	size_t			packet_length
+);
+
+//! Sets the address from where this packet originated.
+extern smcp_status_t smcp_inbound_set_srcaddr(SMCP_SOCKET_ARGS);
+
+//! Sets the address to where this packet was sent to.
+/*!	This method is optional in describing the inbound packet,
+**	but it is necessary to correctly implement multicast behavior. */
+extern smcp_status_t smcp_inbound_set_destaddr(SMCP_SOCKET_ARGS);
+
+//! Indicate that we are finished describing the inbound packet.
+extern smcp_status_t smcp_inbound_finish_packet();
+
+//! Deprecated.
 extern smcp_status_t smcp_handle_inbound_packet(
 	smcp_t	self,
 	char*			packet,
 	size_t			packet_length,
 	SMCP_SOCKET_ARGS
-);
-
-#pragma mark -
-#pragma mark Transaction API
-
-enum {
-	SMCP_TRANSACTION_ALWAYS_INVALIDATE = (1 << 0),
-	SMCP_TRANSACTION_OBSERVE = (1 << 1),
-	SMCP_TRANSACTION_KEEPALIVE = (1 << 2),		//!< Send keep-alive packets when observing
-	SMCP_TRANSACTION_DELAY_START = (1 << 8),
-};
-
-extern smcp_transaction_t smcp_transaction_init(
-	smcp_transaction_t transaction,
-	int	flags,
-	smcp_inbound_resend_func requestResend,
-	smcp_response_handler_func responseHandler,
-	void* context
-);
-
-extern smcp_status_t smcp_transaction_begin(
-	smcp_t self,
-	smcp_transaction_t transaction,
-	cms_t expiration
-);
-
-extern smcp_status_t smcp_transaction_end(
-	smcp_t self,
-	smcp_transaction_t transaction
-);
-
-extern smcp_status_t smcp_transaction_tickle(
-	smcp_t self,
-	smcp_transaction_t transaction
-);
-
-//! DEPRECATED.
-extern smcp_status_t smcp_begin_transaction_old(
-	smcp_t self,
-	coap_msg_id_t tid,
-	cms_t cmsExpiration,
-	int	flags,
-	smcp_inbound_resend_func requestResend,
-	smcp_response_handler_func responseHandler,
-	void* context
-);
-
-//! DEPRECATED.
-extern smcp_status_t smcp_invalidate_transaction_old(
-	smcp_t self,
-	coap_msg_id_t tid
 );
 
 #pragma mark -
@@ -311,6 +261,12 @@ extern void smcp_inbound_reset_next_option();
 
 //!	Compares the key and value of the current option to specific values.
 extern bool smcp_inbound_option_strequal(coap_option_key_t key,const char* str);
+
+#define SMCP_GET_PATH_REMAINING			(1<<0)
+#define SMCP_GET_PATH_LEADING_SLASH		(1<<1)
+#define SMCP_GET_PATH_INCLUDE_QUERY		(1<<2)
+
+extern char* smcp_inbound_get_path(char* where,uint8_t flags);
 
 #define smcp_inbound_option_strequal_const(key,const_str)	\
 	smcp_inbound_option_strequal(key,const_str)
@@ -397,12 +353,6 @@ struct smcp_async_response_s {
 		uint8_t bytes[128];
 	} request;
 	size_t request_len;
-
-//	coap_msg_id_t original_tid;
-//	coap_transaction_type_t tt;
-//
-//	uint8_t token_len;
-//	uint8_t token_value[COAP_MAX_TOKEN_SIZE];
 };
 
 typedef struct smcp_async_response_s* smcp_async_response_t;
@@ -476,4 +426,5 @@ __END_DECLS
 
 #endif
 
+#include "smcp-transaction.h"
 #include "smcp-helpers.h"

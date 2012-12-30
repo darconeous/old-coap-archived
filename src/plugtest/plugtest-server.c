@@ -56,7 +56,7 @@ plugtest_test_handler(
 	} else if(method==COAP_METHOD_POST) {
 		ret = smcp_outbound_begin_response(COAP_RESULT_201_CREATED);
 	} else if(method==COAP_METHOD_PUT) {
-		ret = smcp_outbound_begin_response(COAP_RESULT_203_VALID);
+		ret = smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
 	} else if(method==COAP_METHOD_DELETE) {
 		ret = smcp_outbound_begin_response(COAP_RESULT_202_DELETED);
 	}
@@ -71,18 +71,19 @@ plugtest_test_handler(
 		goto bail;
 	}
 
-	sprintf(content,"Plugtest!\nMethod = %s\n",coap_code_to_cstr(method));
+	smcp_inbound_get_path(content, SMCP_GET_PATH_LEADING_SLASH|SMCP_GET_PATH_INCLUDE_QUERY);
+	sprintf(content+strlen(content),"\nPlugtest!\nMethod = %s\n",coap_code_to_cstr(method));
 
 	{
 		const uint8_t* value;
 		size_t value_len;
 		coap_option_key_t key;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			strlcat(content,coap_option_key_to_cstr(key,1),max_len);
 			strlcat(content,": ",max_len);
 			if(coap_option_value_is_string(key)) {
 				size_t argh = strlen(content)+value_len;
-				strlcat(content,(char*)value,MIN(max_len,value_len+1));
+				strlcat(content,(char*)value,MIN(max_len,argh+1));
 				content[argh] = 0;
 			} else {
 				strlcat(content,"<binary>",max_len);
@@ -150,7 +151,9 @@ plugtest_separate_handler(
 		printf("This request needs an async response.\n");
 
 		if(smcp_inbound_is_dupe()) {
-			ret = SMCP_STATUS_DUPE;
+			smcp_outbound_begin_response(COAP_CODE_EMPTY);
+			smcp_outbound_send();
+			ret = SMCP_STATUS_OK;
 			goto bail;
 		}
 
@@ -160,9 +163,6 @@ plugtest_separate_handler(
 			goto bail;
 		}
 
-		ret = smcp_start_async_response(async_response,0);
-		if(ret) { goto bail; }
-
 		transaction = smcp_transaction_init(
 			NULL,
 			SMCP_TRANSACTION_DELAY_START,
@@ -171,21 +171,25 @@ plugtest_separate_handler(
 			(void*)async_response
 		);
 		if(!transaction) {
+			// TODO: Consider dropping instead...?
 			ret = SMCP_STATUS_MALLOC_FAILURE;
 			goto bail;
 		}
 
-		async_response = NULL;
-
 		ret = smcp_transaction_begin(
 			smcp_get_current_instance(),
 			transaction,
-			30*MSEC_PER_SEC
+			(smcp_inbound_get_packet()->tt==COAP_TRANS_TYPE_CONFIRMABLE)?COAP_MAX_TRANSMIT_WAIT*MSEC_PER_SEC:1
 		);
 		if(ret) {
 			smcp_transaction_end(smcp_get_current_instance(),transaction);
 			goto bail;
 		}
+
+		ret = smcp_start_async_response(async_response,0);
+		if(ret) { goto bail; }
+
+		async_response = NULL;
 	}
 
 bail:
@@ -212,7 +216,7 @@ plugtest_obs_handler(
 
 		smcp_pair_inbound_observe_update();
 
-		ret = smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE,10);
+		ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,10);
 		if(ret) goto bail;
 
 		content = smcp_outbound_get_content_ptr(&max_len);
@@ -265,8 +269,8 @@ plugtest_large_handler(
 		const uint8_t* value;
 		size_t value_len;
 		coap_option_key_t key;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
-			if(key == COAP_HEADER_BLOCK2) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+			if(key == COAP_OPTION_BLOCK2) {
 				uint8_t i;
 				block_option = 0;
 				for(i = 0; i < value_len; i++)
@@ -291,10 +295,10 @@ plugtest_large_handler(
 	ret = smcp_outbound_set_content_type(0);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_add_option_uint(COAP_HEADER_BLOCK2,block_option);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,block_option);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE,60*60);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,60*60);
 	require_noerr(ret,bail);
 
 	content = smcp_outbound_get_content_ptr(&max_len);
@@ -353,7 +357,7 @@ bail:
 smcp_status_t
 plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 
-	memset(self,sizeof(*self),0);
+	memset(self,0,sizeof(*self));
 
 	smcp_node_init(&self->test,root,"test");
 	self->test.request_handler = &plugtest_test_handler;

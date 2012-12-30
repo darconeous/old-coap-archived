@@ -534,10 +534,10 @@ main(
 		goto bail;
 	}
 
-	smcp_pairing_init(
-		smcp_get_root_node(smcp),
-		SMCP_PAIRING_DEFAULT_ROOT_PATH
-	);
+//	smcp_pairing_init(
+//		smcp_get_root_node(smcp),
+//		SMCP_PAIRING_DEFAULT_ROOT_PATH
+//	);
 
 	smcp_set_proxy_url(smcp,getenv("COAP_PROXY_URL"));
 

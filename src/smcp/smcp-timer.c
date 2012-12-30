@@ -33,15 +33,16 @@
 //#define SMCP_DEBUG_TIMERS	0
 
 #include "assert_macros.h"
-#include "smcp-logging.h"
+#include "smcp.h"
 
 #if !SMCP_DEBUG_TIMERS && !VERBOSE_DEBUG
 #undef DEBUG_PRINTF
 #define DEBUG_PRINTF(fmt, ...) do { } while(0)
 #endif
 
-#include "smcp-timer.h"
 #include <stdio.h>
+
+#include "smcp-timer.h"
 #include "smcp.h"
 #include "url-helpers.h"
 #include "smcp-node.h"
@@ -69,7 +70,7 @@ gettimeofday(
 
 void
 convert_cms_to_timeval(
-	struct timeval* tv, int cms
+	struct timeval* tv, cms_t cms
 ) {
 	gettimeofday(tv, NULL);
 
@@ -86,16 +87,16 @@ convert_cms_to_timeval(
 	tv->tv_usec %= USEC_PER_SEC;
 }
 
-int
+cms_t
 convert_timeval_to_cms(const struct timeval* tv) {
-	int ret = 0;
+	cms_t ret = 0;
 	struct timeval current_time;
 
 	gettimeofday(&current_time, NULL);
 
 	if(current_time.tv_sec <= tv->tv_sec) {
-		ret = (tv->tv_sec - current_time.tv_sec) * MSEC_PER_SEC;
-		ret += (tv->tv_usec - current_time.tv_usec) / USEC_PER_MSEC;
+		ret = (cms_t)(tv->tv_sec - current_time.tv_sec) * MSEC_PER_SEC;
+		ret += (cms_t)(tv->tv_usec - current_time.tv_usec) / USEC_PER_MSEC;
 
 		if(ret < 0)
 			ret = 0;
@@ -114,6 +115,7 @@ smcp_timer_compare_func(
 
 	if(lhs->fire_date.tv_sec > rhs->fire_date.tv_sec)
 		return 1;
+
 	if(lhs->fire_date.tv_sec < rhs->fire_date.tv_sec)
 		return -1;
 
@@ -168,9 +170,13 @@ smcp_schedule_timer(
 	require(!timer->ll.prev, bail);
 	require(self->timers != timer, bail);
 
+	DEBUG_PRINTF("Timer:%p: Scheduling to fire in %dms ...",timer,cms);
 #if SMCP_DEBUG_TIMERS
 	size_t previousTimerCount = ll_count(self->timers);
 #endif
+
+	if(cms<0)
+		cms = 0;
 
 	convert_cms_to_timeval(&timer->fire_date, cms);
 
@@ -221,6 +227,19 @@ smcp_invalidate_timer(
 	DEBUG_PRINTF("%p: Timers in play = %d",self,(int)ll_count(self->timers));
 }
 
+#if VERBOSE_DEBUG
+void
+smcp_dump_all_timers(smcp_t self) {
+	smcp_timer_t iter;
+
+	DEBUG_PRINTF("smcp(%p): Current Timers:",self);
+
+	for(iter = self->timers;iter;iter = (void*)iter->ll.next) {
+		DEBUG_PRINTF("\t* [%p] expires-in:%dms context:%p",iter,convert_timeval_to_cms(&iter->fire_date),iter->context);
+	}
+}
+#endif
+
 cms_t
 smcp_get_timeout(smcp_t self) {
 	cms_t ret = SMCP_MAX_TIMEOUT;
@@ -232,8 +251,10 @@ smcp_get_timeout(smcp_t self) {
 	ret = MAX(ret, 0);
 
 #if VERBOSE_DEBUG
-	if(ret != SMCP_MAX_TIMEOUT)
-		DEBUG_PRINTF(CSTR("%p: next timeout = %dms"), self, ret);
+	if(ret != SMCP_MAX_TIMEOUT) {
+		smcp_dump_all_timers(self);
+		DEBUG_PRINTF("%p: next timeout = %dms", self, ret);
+	}
 #endif
 	return ret;
 }
@@ -259,4 +280,7 @@ smcp_handle_timers(smcp_t self) {
 		if(callback)
 			callback(self, context);
 	}
+#if VERBOSE_DEBUG
+	smcp_dump_all_timers(self);
+#endif
 }

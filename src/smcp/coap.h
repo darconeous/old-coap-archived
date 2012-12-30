@@ -43,26 +43,42 @@
 #define NTOHS(x)    UIP_NTOHS(x)
 #endif
 
-#define COAP_RESPONSE_TIMEOUT   (1000)  // In ms, defined in http://tools.ietf.org/html/draft-ietf-core-coap-03#section-4.2
-#define COAP_MAX_RETRANSMIT     (5)     // Defined in http://tools.ietf.org/html/draft-ietf-core-coap-03#section-4.2
-
-#define COAP_DEFAULT_PORT			(5683)
-#define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT)
-
 #define COAP_VERSION    (1)
 
-#define COAP_TRANS_TYPE_CONFIRMABLE     (0)
-#define COAP_TRANS_TYPE_NONCONFIRMABLE  (1)
-#define COAP_TRANS_TYPE_ACK             (2)
-#define COAP_TRANS_TYPE_RESET           (3)
+// Port numbers
+#define COAP_DEFAULT_PORT			(5683)
+#define COAP_DEFAULT_TLSPORT		(COAP_DEFAULT_PORT+1) // Guess
+#define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT+2) // Guess
+#define COAP_DEFAULT_PROXY_TLS_PORT	(COAP_DEFAULT_PORT+3) // Guess
 
+// General limits.
+#define COAP_MAX_MESSAGE_SIZE	(1280-40)
 #define COAP_MAX_TOKEN_SIZE		(8)
-
 #define COAP_MAX_OPTION_VALUE_SIZE		(1034)
+#define COAP_MAX_ACK_RETRANSMIT_DURATION	(5) // Seconds
+#define COAP_DEFAULT_MAX_AGE	(60)
+
+// The following constants are defined by
+// <http://tools.ietf.org/html/draft-ietf-core-coap-13#section-4.8>
+#define COAP_ACK_TIMEOUT		(1)		// Seconds (spec says to set to `2`)
+#define COAP_ACK_RANDOM_FACTOR	(1.5f)
+#define COAP_MAX_RETRANSMIT     (4)
+#define COAP_NSTART				(1)
+#define COAP_DEFAULT_LEASURE    (5)		// Seconds
+#define COAP_PROBING_RATE       (1)		// Bytes/Second
+
+#define COAP_MAX_LATENCY		(100)	// Seconds
+
+// Derived constants
+#define COAP_MAX_TRANSMIT_SPAN	(COAP_ACK_TIMEOUT * ((1<<COAP_MAX_RETRANSMIT) - 1) * COAP_ACK_RANDOM_FACTOR)
+#define COAP_MAX_TRANSMIT_WAIT	(COAP_ACK_TIMEOUT * ((1<<(COAP_MAX_RETRANSMIT + 1)) - 1) * COAP_ACK_RANDOM_FACTOR)
+#define COAP_PROCESSING_DELAY	(COAP_ACK_TIMEOUT)
+#define COAP_MAX_RTT			(2*COAP_MAX_LATENCY+COAP_PROCESSING_DELAY)
+#define COAP_EXCHANGE_LIFETIME	((COAP_ACK_TIMEOUT * ((1<<COAP_MAX_RETRANSMIT) - 1) * COAP_ACK_RANDOM_FACTOR) + (2 * COAP_MAX_LATENCY) + COAP_PROCESSING_DELAY)
+#define COAP_NON_LIFETIME		(COAP_MAX_TRANSMIT_SPAN + COAP_MAX_LATENCY)
 
 typedef char coap_transaction_type_t;
 typedef uint16_t coap_msg_id_t;
-
 typedef uint16_t coap_code_t;
 
 #define COAP_TO_HTTP_CODE(x)     ((x) / 32 * 100 + (x) % 32)
@@ -77,8 +93,13 @@ enum {
 	COAP_METHOD_POST = 2,
 	COAP_METHOD_PUT = 3,
 	COAP_METHOD_DELETE = 4,
+};
 
-	// Experimental after this point
+enum {
+	COAP_TRANS_TYPE_CONFIRMABLE = 0,
+	COAP_TRANS_TYPE_NONCONFIRMABLE = 1,
+	COAP_TRANS_TYPE_ACK = 2,
+	COAP_TRANS_TYPE_RESET = 3,
 };
 
 enum {
@@ -156,37 +177,39 @@ enum {
 	HTTP_RESULT_CODE_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
 };
 
-#define COAP_HEADER_IS_REQUIRED(x)		((x)&1)
+#define COAP_OPTION_IS_CRITICAL(x)		((x)&1)
+#define COAP_OPTION_IS_UNSAFE(x)		((x)&2)
+#define COAP_OPTION_IS_NOCACHEKEY(x)	(((x)&0x1e)==0x1c)
 
 typedef enum {
-	COAP_HEADER_INVALID				= -1,		//!< Somewhat arbitrary value.
+	COAP_OPTION_INVALID				= 65535,	//!< Somewhat arbitrary value.
 
-	COAP_HEADER_IF_MATCH			= 1,
-	COAP_HEADER_URI_HOST			= 3,
-	COAP_HEADER_ETAG				= 4,
-	COAP_HEADER_IF_NONE_MATCH		= 5,
-	COAP_HEADER_OBSERVE				= 6,
-	COAP_HEADER_URI_PORT			= 7,
-	COAP_HEADER_LOCATION_PATH		= 8,
-	COAP_HEADER_URI_PATH			= 11,
-	COAP_HEADER_CONTENT_TYPE		= 12,
-	COAP_HEADER_MAX_AGE				= 14,
-	COAP_HEADER_URI_QUERY			= 15,
-	COAP_HEADER_ACCEPT				= 16,
-	COAP_HEADER_LOCATION_QUERY		= 20,
-	COAP_HEADER_BLOCK2				= 23,	/* draft-ietf-core-block-10 */
-	COAP_HEADER_BLOCK1				= 27,	/* draft-ietf-core-block-10 */
-	COAP_HEADER_SIZE				= 28,	/* draft-ietf-core-block-10 */
-	COAP_HEADER_PROXY_URI			= 35,
+	COAP_OPTION_IF_MATCH			= 1,
+	COAP_OPTION_URI_HOST			= 3,
+	COAP_OPTION_ETAG				= 4,
+	COAP_OPTION_IF_NONE_MATCH		= 5,
+	COAP_OPTION_OBSERVE				= 6,
+	COAP_OPTION_URI_PORT			= 7,
+	COAP_OPTION_LOCATION_PATH		= 8,
+	COAP_OPTION_URI_PATH			= 11,
+	COAP_OPTION_CONTENT_TYPE		= 12,
+	COAP_OPTION_MAX_AGE				= 14,
+	COAP_OPTION_URI_QUERY			= 15,
+	COAP_OPTION_ACCEPT				= 16,
+	COAP_OPTION_LOCATION_QUERY		= 20,
+	COAP_OPTION_BLOCK2				= 23,	/* draft-ietf-core-block-10 */
+	COAP_OPTION_BLOCK1				= 27,	/* draft-ietf-core-block-10 */
+	COAP_OPTION_SIZE				= 28,	/* draft-ietf-core-block-10 */
+	COAP_OPTION_PROXY_URI			= 35,
 
 	//////////////////////////////////////////////////////////////////////
 	// Experimental after this point. Experimentals start at 65000.
 
-	COAP_HEADER_CASCADE_COUNT = 65100 + 1,    //!< Used for preventing pairing loops.
-	COAP_HEADER_AUTHENTICATE = 65100 + 2,
+	COAP_OPTION_CASCADE_COUNT = 65100 + 1,    //!< Used for preventing pairing loops.
+	COAP_OPTION_AUTHENTICATE = 65100 + 2,
 
-	SMCP_HEADER_ORIGIN = 65100 + 4,           //!< Used for SMCP Pairing.
-	SMCP_HEADER_CSEQ = 65100 + 6,             //!< Used for SMCP Pairing.
+	SMCP_OPTION_ORIGIN = 65100 + 4,           //!< Used for SMCP Pairing.
+	SMCP_OPTION_CSEQ = 65100 + 6,             //!< Used for SMCP Pairing.
 } coap_option_key_t;
 
 
@@ -213,19 +236,12 @@ enum {
 	COAP_CONTENT_TYPE_AUDIO_RAW=25,
 	COAP_CONTENT_TYPE_VIDEO_RAW=26,
 
-	COAP_CONTENT_TYPE_APPLICATION_RDF_XML=43,
-	COAP_CONTENT_TYPE_APPLICATION_SOAP_XML=44,
-	COAP_CONTENT_TYPE_APPLICATION_ATOM_XML=45,
-	COAP_CONTENT_TYPE_APPLICATION_XMPP_XML=46,
-	COAP_CONTENT_TYPE_APPLICATION_X_BXML=48,
-	COAP_CONTENT_TYPE_APPLICATION_FASTINFOSET=49,
-
 	//////////////////////////////////////////////////////////////////////
 	// Experimental after this point. Experimentals start at 65000.
 
 	SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED=65005,  //!< SMCP Specific
 
-	COAP_CONTENT_TYPE_UNKNOWN = 255,
+	COAP_CONTENT_TYPE_UNKNOWN = 65535,
 };
 
 typedef uint16_t coap_content_type_t;

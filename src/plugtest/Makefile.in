@@ -50,7 +50,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = smcp-plugtest-server$(EXEEXT)
+bin_PROGRAMS = smcp-plugtest-server$(EXEEXT) \
+	smcp-plugtest-client$(EXEEXT)
 subdir = src/plugtest
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/m4/depcomp
@@ -67,6 +68,9 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
+am_smcp_plugtest_client_OBJECTS = main-client.$(OBJEXT)
+smcp_plugtest_client_OBJECTS = $(am_smcp_plugtest_client_OBJECTS)
+smcp_plugtest_client_DEPENDENCIES = ../smcp/libsmcp.a
 am_smcp_plugtest_server_OBJECTS = main-server.$(OBJEXT) \
 	plugtest-server.$(OBJEXT)
 smcp_plugtest_server_OBJECTS = $(am_smcp_plugtest_server_OBJECTS)
@@ -84,8 +88,10 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(smcp_plugtest_server_SOURCES)
-DIST_SOURCES = $(smcp_plugtest_server_SOURCES)
+SOURCES = $(smcp_plugtest_client_SOURCES) \
+	$(smcp_plugtest_server_SOURCES)
+DIST_SOURCES = $(smcp_plugtest_client_SOURCES) \
+	$(smcp_plugtest_server_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -212,10 +218,8 @@ top_srcdir = @top_srcdir@
 INCLUDES = -I.. -I$(top_srcdir)/src
 smcp_plugtest_server_SOURCES = main-server.c plugtest-server.c
 smcp_plugtest_server_LDADD = ../smcp/libsmcp.a
-
-#bin_PROGRAMS += smcp-plugtest-client
-#smcp_plugtest_client_SOURCES = main-client.c
-#smcp_plugtest_client_LDADD = ../smcp/libsmcp.a
+smcp_plugtest_client_SOURCES = main-client.c
+smcp_plugtest_client_LDADD = ../smcp/libsmcp.a
 DISTCLEANFILES = .deps Makefile
 all: all-am
 
@@ -297,6 +301,9 @@ clean-binPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
+smcp-plugtest-client$(EXEEXT): $(smcp_plugtest_client_OBJECTS) $(smcp_plugtest_client_DEPENDENCIES) $(EXTRA_smcp_plugtest_client_DEPENDENCIES) 
+	@rm -f smcp-plugtest-client$(EXEEXT)
+	$(LINK) $(smcp_plugtest_client_OBJECTS) $(smcp_plugtest_client_LDADD) $(LIBS)
 smcp-plugtest-server$(EXEEXT): $(smcp_plugtest_server_OBJECTS) $(smcp_plugtest_server_DEPENDENCIES) $(EXTRA_smcp_plugtest_server_DEPENDENCIES) 
 	@rm -f smcp-plugtest-server$(EXEEXT)
 	$(LINK) $(smcp_plugtest_server_OBJECTS) $(smcp_plugtest_server_LDADD) $(LIBS)
@@ -307,6 +314,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main-client.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main-server.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugtest-server.Po@am__quote@
 

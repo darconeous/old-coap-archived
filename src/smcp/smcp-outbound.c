@@ -1,4 +1,4 @@
-/*	@file smcp-send.c
+/*	@file smcp-outbound.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -163,7 +163,7 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 
 	if(self->is_processing_message)
 		self->outbound.next_tid = smcp_inbound_get_msg_id();
-	smcp_outbound_begin(self,code,COAP_TRANS_TYPE_ACK);
+	smcp_outbound_begin(self,code,(self->inbound.packet->tt==COAP_TRANS_TYPE_NONCONFIRMABLE)?COAP_TRANS_TYPE_NONCONFIRMABLE:COAP_TRANS_TYPE_ACK);
 	self->is_responding = true;
 
 	if(self->is_processing_message)
@@ -228,13 +228,18 @@ smcp_status_t
 smcp_outbound_set_destaddr(
 	struct sockaddr *sockaddr, socklen_t socklen
 ) {
+	smcp_t const self = smcp_get_current_instance();
 	memcpy(
-		&smcp_get_current_instance()->outbound.saddr,
+		&self->outbound.saddr,
 		sockaddr,
 		socklen
 	);
-	smcp_get_current_instance()->outbound.socklen = socklen;
+	self->outbound.socklen = socklen;
 
+	if(self->current_transaction) {
+		struct sockaddr_in6 *saddr = (void*)sockaddr;
+		self->current_transaction->multicast = IN6_IS_ADDR_MULTICAST(&saddr->sin6_addr);
+	}
 	return SMCP_STATUS_OK;
 }
 #elif defined(CONTIKI)
@@ -254,7 +259,6 @@ smcp_outbound_add_option_(
 	coap_option_key_t key, const char* value, size_t len
 ) {
 	smcp_t const self = smcp_get_current_instance();
-//	uint8_t option_count;
 
 #warning TODO: Check for overflow!
 
@@ -264,10 +268,6 @@ smcp_outbound_add_option_(
 
 	if(len == HEADER_CSTR_LEN)
 		len = strlen(value);
-
-//	if(self->outbound.packet->option_count==0xF)
-//
-//	option_count = self->outbound.packet->option_count;
 
 	if(self->outbound.content_ptr!=(char*)self->outbound.packet->token+self->outbound.packet->token_len)
 		self->outbound.content_ptr--;	// remove end-of-options marker
@@ -280,17 +280,10 @@ smcp_outbound_add_option_(
 		len
 	);
 
-//	option_count++;
-
 	if(key>self->outbound.last_option_key)
 		self->outbound.last_option_key = key;
 
 	*self->outbound.content_ptr++ = 0xFF;  // Add end-of-options marker
-
-//	self->outbound.packet->option_count = MIN(15,option_count);
-//
-//	if(self->outbound.packet->option_count==0xF)
-//		*self->outbound.content_ptr++ = 0xF0;  // Add end-of-options marker
 
 #if OPTION_DEBUG
 	coap_dump_header(
@@ -311,68 +304,47 @@ smcp_outbound_add_options_up_to_key_(
 	smcp_status_t ret = SMCP_STATUS_OK;
 	smcp_t const self = smcp_get_current_instance();
 
-//	if(	self->outbound.last_option_key<COAP_HEADER_TOKEN
-//		&& key>COAP_HEADER_TOKEN
-//	) {
-//		if(	self->is_processing_message
-//			&& self->is_responding
-//			&& self->inbound.token_option
-//		) {
-//			// For sending a response.
-//			const uint8_t* value;
-//			size_t len;
-//			if(coap_decode_option(self->inbound.token_option, NULL, &value, &len))
-//				ret = smcp_outbound_add_option_(COAP_HEADER_TOKEN,(void*)value,len);
-//		} else if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100 && self->current_transaction) {
-//			// For sending a request.
-//			ret = smcp_outbound_add_option_(
-//				COAP_HEADER_TOKEN,
-//				(void*)&self->current_transaction->token,
-//				sizeof(self->current_transaction->token)
-//			);
-//		}
-//	}
-
-	if(	(self->current_transaction && self->current_transaction->next_block2)
-		&& self->outbound.last_option_key<COAP_HEADER_BLOCK2
-		&& key>COAP_HEADER_BLOCK2
+	if(	(self->current_transaction
+		&& self->current_transaction->next_block2)
+		&& self->outbound.last_option_key<COAP_OPTION_BLOCK2
+		&& key>COAP_OPTION_BLOCK2
 	) {
 		uint32_t block2 = htonl(self->current_transaction->next_block2);
 		uint8_t size = 3; // TODO: calculate this properly
 		ret = smcp_outbound_add_option_(
-			COAP_HEADER_BLOCK2,
+			COAP_OPTION_BLOCK2,
 			(char*)&block2+sizeof(block2)-size,
 			size
 		);
 	}
 
 	if(	(self->current_transaction && self->current_transaction->flags&SMCP_TRANSACTION_OBSERVE)
-		&& self->outbound.last_option_key<COAP_HEADER_OBSERVE
-		&& key>COAP_HEADER_OBSERVE
+		&& self->outbound.last_option_key<COAP_OPTION_OBSERVE
+		&& key>COAP_OPTION_OBSERVE
 	) {
 		if(self->outbound.packet->code && self->outbound.packet->code<COAP_RESULT_100) {
 			// For sending a request.
 			ret = smcp_outbound_add_option_(
-				COAP_HEADER_OBSERVE,
+				COAP_OPTION_OBSERVE,
 				(void*)NULL,
 				0
 			);
 		}
 	}
 
-	if(	self->outbound.last_option_key<COAP_HEADER_AUTHENTICATE
-		&& key>COAP_HEADER_AUTHENTICATE
+	if(	self->outbound.last_option_key<COAP_OPTION_AUTHENTICATE
+		&& key>COAP_OPTION_AUTHENTICATE
 	) {
 		ret = smcp_auth_add_options();
 	}
 
 #if SMCP_USE_CASCADE_COUNT
-	if(	self->outbound.last_option_key<COAP_HEADER_CASCADE_COUNT
-		&& key>COAP_HEADER_CASCADE_COUNT
+	if(	self->outbound.last_option_key<COAP_OPTION_CASCADE_COUNT
+		&& key>COAP_OPTION_CASCADE_COUNT
 		&& self->has_cascade_count
 	) {
 		ret = smcp_outbound_add_option_(
-			COAP_HEADER_CASCADE_COUNT,
+			COAP_OPTION_CASCADE_COUNT,
 			(char*)&self->cascade_count,
 			1
 		);
@@ -387,12 +359,18 @@ smcp_outbound_add_option(
 	coap_option_key_t key, const char* value, size_t len
 ) {
 	smcp_status_t ret = 0;
+	smcp_t const self = smcp_get_current_instance();
 
 	ret = smcp_outbound_add_options_up_to_key_(key);
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_add_option_(key,value,len);
-	require_noerr(ret, bail);
+	if(key!=COAP_OPTION_BLOCK2
+		|| !self->current_transaction
+		|| !self->current_transaction->next_block2
+	) {
+		ret = smcp_outbound_add_option_(key,value,len);
+		require_noerr(ret, bail);
+	}
 
 bail:
 	return ret;
@@ -637,7 +615,7 @@ smcp_outbound_set_uri(
 		);
 		require_action(uri!=self->proxy_url,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
 
-		ret = smcp_outbound_add_option(COAP_HEADER_PROXY_URI, uri, strlen(uri));
+		ret = smcp_outbound_add_option(COAP_OPTION_PROXY_URI, uri, strlen(uri));
 		require_noerr(ret, bail);
 		ret = smcp_outbound_set_uri(self->proxy_url,flags);
 		goto bail;
@@ -645,12 +623,12 @@ smcp_outbound_set_uri(
 
 	if(!(flags&SMCP_MSG_SKIP_AUTHORITY)) {
 		if(addr_str) {
-			ret = smcp_outbound_add_option(COAP_HEADER_URI_HOST, addr_str, strlen(addr_str));
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_HOST, addr_str, strlen(addr_str));
 			require_noerr(ret, bail);
 		}
 		if(port_str) {
 			toport = htons(toport);
-			ret = smcp_outbound_add_option(COAP_HEADER_URI_PORT, (char*)&toport, sizeof(toport));
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_PORT, (char*)&toport, sizeof(toport));
 			toport = ntohs(toport);
 			require_noerr(ret, bail);
 		}
@@ -677,13 +655,11 @@ smcp_outbound_set_uri(
 			path_str++;
 
 		while(url_path_next_component(&path_str,&component)) {
-			//int len = strlen(component);
-			//if(len)
-			ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, component, HEADER_CSTR_LEN);
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, component, HEADER_CSTR_LEN);
 			require_noerr(ret,bail);
 		}
 		if(has_trailing_slash) {
-			ret = smcp_outbound_add_option(COAP_HEADER_URI_PATH, "", HEADER_CSTR_LEN);
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, NULL, 0);
 			require_noerr(ret,bail);
 		}
 	}
@@ -694,7 +670,7 @@ smcp_outbound_set_uri(
 		while(url_form_next_value(&query_str,&key,NULL)) {
 			int len = strlen(key);
 			if(len)
-				ret = smcp_outbound_add_option(COAP_HEADER_URI_QUERY, key, len);
+				ret = smcp_outbound_add_option(COAP_OPTION_URI_QUERY, key, len);
 			require_noerr(ret,bail);
 		}
 	}
@@ -747,7 +723,7 @@ smcp_outbound_get_content_ptr(size_t* max_len) {
 
 	// Finish up any remaining automatically-added headers.
 	if(self->outbound.packet->code)
-		smcp_outbound_add_options_up_to_key_(200);
+		smcp_outbound_add_options_up_to_key_(COAP_OPTION_INVALID);
 
 	if(max_len)
 		*max_len = SMCP_MAX_PACKET_LENGTH-(self->outbound.content_ptr-(char*)self->outbound.packet);
@@ -804,6 +780,18 @@ smcp_outbound_send() {
 
 	if(self->current_transaction)
 		self->current_transaction->sent_code = self->outbound.packet->code;
+
+#if defined(SMCP_DEBUG_OUTBOUND_DROP_PERCENT)
+	if(SMCP_DEBUG_OUTBOUND_DROP_PERCENT*SMCP_RANDOM_MAX>SMCP_FUNC_RANDOM_UINT32()) {
+		DEBUG_PRINTF("Dropping outbound packet for debugging!");
+		if(smcp_get_current_instance()->is_responding)
+			smcp_get_current_instance()->did_respond = true;
+		smcp_get_current_instance()->is_responding = false;
+
+		ret = SMCP_STATUS_OK;
+		goto bail;
+	}
+#endif
 
 #if SMCP_USE_BSD_SOCKETS
 
@@ -869,7 +857,7 @@ bail:
 
 smcp_status_t
 smcp_outbound_set_content_type(coap_content_type_t t) {
-	return smcp_outbound_add_option_uint(COAP_HEADER_CONTENT_TYPE, t);
+	return smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, t);
 }
 
 smcp_status_t

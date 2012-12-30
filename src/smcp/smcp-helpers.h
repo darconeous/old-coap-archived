@@ -12,6 +12,7 @@
 #endif
 
 #include <stdlib.h>
+#include <stdint.h>
 
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
@@ -183,6 +184,19 @@ struct timeval {
 	suseconds_t tv_usec;
 };
 #endif
+
+#ifndef MSEC_PER_SEC
+#define MSEC_PER_SEC    (1000)
+#endif
+
+#ifndef USEC_PER_MSEC
+#define USEC_PER_MSEC   (1000)
+#endif
+
+#ifndef USEC_PER_SEC
+#define USEC_PER_SEC    (1000000)
+#endif
+
 
 #include "smcp-logging.h"
 

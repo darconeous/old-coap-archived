@@ -70,21 +70,22 @@ ARFLAGS = cru
 libsmcp_a_AR = $(AR) $(ARFLAGS)
 LIBOBJDIR = ../../src/missing//
 libsmcp_a_DEPENDENCIES = $(LIBOBJS)
-am__libsmcp_a_SOURCES_DIST = smcp.c smcp-list.c smcp-send.c \
+am__libsmcp_a_SOURCES_DIST = smcp.c smcp-list.c smcp-outbound.c \
 	smcp-node.c smcp-pairing.c btree.c url-helpers.c coap.c \
 	smcp-timer.c smcp-timer_node.c smcp-variable_node.c \
-	smcp-auth.c smcp-transaction.c assert_macros.h btree.h coap.h \
-	ll.h smcp-curl_proxy.h smcp-helpers.h smcp-internal.h \
-	smcp-logging.h smcp-node.h smcp-opts.h smcp-pairing.h \
-	smcp-timer.h smcp-timer_node.h smcp-variable_node.h smcp.h \
-	url-helpers.h smcp-auth.h smcp-transaction.h smcp-curl_proxy.c
+	smcp-auth.c smcp-transaction.c fasthash.c assert_macros.h \
+	btree.h coap.h ll.h smcp-curl_proxy.h smcp-helpers.h \
+	smcp-internal.h smcp-logging.h smcp-node.h smcp-opts.h \
+	smcp-pairing.h smcp-timer.h smcp-timer_node.h \
+	smcp-variable_node.h smcp.h url-helpers.h smcp-auth.h \
+	smcp-transaction.h fasthash.h smcp-curl_proxy.c
 @HAVE_LIBCURL_TRUE@am__objects_1 = smcp-curl_proxy.$(OBJEXT)
 am_libsmcp_a_OBJECTS = smcp.$(OBJEXT) smcp-list.$(OBJEXT) \
-	smcp-send.$(OBJEXT) smcp-node.$(OBJEXT) smcp-pairing.$(OBJEXT) \
-	btree.$(OBJEXT) url-helpers.$(OBJEXT) coap.$(OBJEXT) \
-	smcp-timer.$(OBJEXT) smcp-timer_node.$(OBJEXT) \
+	smcp-outbound.$(OBJEXT) smcp-node.$(OBJEXT) \
+	smcp-pairing.$(OBJEXT) btree.$(OBJEXT) url-helpers.$(OBJEXT) \
+	coap.$(OBJEXT) smcp-timer.$(OBJEXT) smcp-timer_node.$(OBJEXT) \
 	smcp-variable_node.$(OBJEXT) smcp-auth.$(OBJEXT) \
-	smcp-transaction.$(OBJEXT) $(am__objects_1)
+	smcp-transaction.$(OBJEXT) fasthash.$(OBJEXT) $(am__objects_1)
 libsmcp_a_OBJECTS = $(am_libsmcp_a_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
 depcomp = $(SHELL) $(top_srcdir)/m4/depcomp
@@ -228,14 +229,15 @@ INCLUDES = -I.. -I$(top_srcdir)/src
 #AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 AUTOMAKE_OPTIONS = subdir-objects
 noinst_LIBRARIES = libsmcp.a
-libsmcp_a_SOURCES = smcp.c smcp-list.c smcp-send.c smcp-node.c \
+libsmcp_a_SOURCES = smcp.c smcp-list.c smcp-outbound.c smcp-node.c \
 	smcp-pairing.c btree.c url-helpers.c coap.c smcp-timer.c \
 	smcp-timer_node.c smcp-variable_node.c smcp-auth.c \
-	smcp-transaction.c assert_macros.h btree.h coap.h ll.h \
-	smcp-curl_proxy.h smcp-helpers.h smcp-internal.h \
+	smcp-transaction.c fasthash.c assert_macros.h btree.h coap.h \
+	ll.h smcp-curl_proxy.h smcp-helpers.h smcp-internal.h \
 	smcp-logging.h smcp-node.h smcp-opts.h smcp-pairing.h \
 	smcp-timer.h smcp-timer_node.h smcp-variable_node.h smcp.h \
-	url-helpers.h smcp-auth.h smcp-transaction.h $(am__append_1)
+	url-helpers.h smcp-auth.h smcp-transaction.h fasthash.h \
+	$(am__append_1)
 libsmcp_a_LIBADD = $(LIBOBJS) $(ALLOCA)
 DISTCLEANFILES = .deps Makefile
 all: all-am
@@ -289,12 +291,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@../../src/missing//$(DEPDIR)/getline.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/btree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/coap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fasthash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-auth.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-curl_proxy.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-node.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-outbound.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-pairing.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-send.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-timer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-timer_node.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-transaction.Po@am__quote@

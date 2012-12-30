@@ -82,8 +82,6 @@ PROCESS_THREAD(smcp_task, ev, data)
 
 	PRINTF("SMCP started. UDP Connection = %p\n",smcp_get_udp_conn(smcp));
 
-	smcp_pairing_init(smcp_get_root_node(smcp),NULL);
-
 	etimer_set(&et, 1);
 
 	while(1) {
@@ -91,15 +89,22 @@ PROCESS_THREAD(smcp_task, ev, data)
 
 		if(ev == tcpip_event) {
 			if(uip_udpconnection() && (uip_udp_conn == smcp_get_udp_conn(smcp))) {
-				if(uip_newdata())
-					smcp_handle_inbound_packet(
+				if(uip_newdata()) {
+          smcp_inbound_start_packet(
 						smcp,
 						uip_appdata,
-						uip_datalen(),
+						uip_datalen()
+          );
+          smcp_inbound_set_srcaddr(
 						&UIP_IP_BUF->srcipaddr,
 						UIP_UDP_BUF->srcport
-					);
-				else if(uip_poll())
+          );
+          smcp_inbound_set_destaddr(
+						&UIP_IP_BUF->destipaddr,
+						UIP_UDP_BUF->destport
+          );
+          smcp_inbound_finish_packet();
+        } else if(uip_poll())
 					smcp_process(smcp, 0);
 
 				etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/1000+1);

@@ -125,6 +125,8 @@ struct cgi_node_s {
 
 typedef struct cgi_node_s* cgi_node_t;
 
+smcp_status_t cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_node_state_t new_state);
+
 cgi_node_request_t
 cgi_node_get_associated_request(cgi_node_t node) {
 	cgi_node_request_t ret = NULL;
@@ -165,7 +167,7 @@ cgi_node_create_request(cgi_node_t node) {
 	int i;
 	int pipe_cmd_stdin[2];
 	int pipe_cmd_stdout[2];
-	int set = 1;
+//	int set = 1;
 
 	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
 		if(node->requests[i].state<=CGI_NODE_STATE_FINISHED) {
@@ -212,6 +214,7 @@ cgi_node_create_request(cgi_node_t node) {
 
 	if(!(ret->pid=fork())) {
 		// We are the child!
+		char path[2048]; // todo: this max should be a preprocessor macro
 
 		// Update stdin and stdout.
 		dup2(pipe_cmd_stdin[0],STDIN_FILENO);
@@ -222,7 +225,25 @@ cgi_node_create_request(cgi_node_t node) {
 		close(pipe_cmd_stdout[0]);
 		close(pipe_cmd_stdout[1]);
 
+		path[0] = 0;
+		smcp_node_get_path(&node->node,path,sizeof(path));
+		setenv("SCRIPT_NAME",path,1);
+
+		setenv("SERVER_SOFTWARE","smcpd/0.5",1);
 		setenv("REQUEST_METHOD",coap_code_to_cstr(smcp_inbound_get_packet()->code),1);
+		setenv("REQUEST_URI",smcp_inbound_get_path(path,2),1);
+		setenv("GATEWAY_INTERFACE","CGI/1.1",1);
+		setenv("SERVER_PROTOCOL","CoAP/1.0",1);
+
+		setenv("REMOTE_ADDR","",1);
+		setenv("REMOTE_PORT","",1);
+		setenv("SERVER_NAME","",1);
+		setenv("SERVER_ADDR","",1);
+		setenv("SERVER_PORT","",1);
+
+		if(0==strncmp(path,getenv("SCRIPT_NAME"),strlen(getenv("SCRIPT_NAME")))) {
+			setenv("PATH_INFO",path+strlen(getenv("SCRIPT_NAME")),1);
+		}
 
 //		fprintf(stderr,"CHILD: About to execute \"%s\" using shell \"%s\"\n",node->cmd,node->shell);
 //		fflush(stderr);
@@ -277,11 +298,11 @@ cgi_node_async_resend_response(void* context) {
 	ret = smcp_outbound_set_async_response(&request->async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
-	require_noerr(ret,bail);
+//	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+//	require_noerr(ret,bail);
 
 	if(request->block1!=BLOCK_OPTION_UNSPECIFIED) {
-		ret = smcp_outbound_add_option_uint(COAP_HEADER_BLOCK1,request->block1);
+		ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK1,request->block1);
 		require_noerr(ret,bail);
 	}
 
@@ -291,7 +312,7 @@ cgi_node_async_resend_response(void* context) {
 				request->block2 |= (1<<3);
 			else
 				request->block2 &= ~(1<<3);
-			ret = smcp_outbound_add_option_uint(COAP_HEADER_BLOCK2,request->block2);
+			ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
 			require_noerr(ret,bail);
 		}
 
@@ -321,7 +342,7 @@ cgi_node_request_pop_bytes_from_stdin(cgi_node_request_t request, int count) {
 smcp_status_t
 cgi_node_request_pop_bytes_from_stdout(cgi_node_request_t request, int count) {
 	//fprintf(stderr,"pushing %d bytes from stdout buffer\n",count);
-	if(request->stdout_buffer_len>count) {
+	if((signed)request->stdout_buffer_len>count) {
 		request->stdout_buffer_len-=count;
 		memmove(request->stdout_buffer,request->stdout_buffer+count,request->stdout_buffer_len);
 	} else {
@@ -522,14 +543,14 @@ cgi_node_request_handler(
 		const uint8_t* value;
 		size_t value_len;
 		coap_option_key_t key;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
-			if(key == COAP_HEADER_BLOCK2) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+			if(key == COAP_OPTION_BLOCK2) {
 				uint8_t i;
 				block2_option = 0;
 				for(i = 0; i < value_len; i++)
 					block2_option = (block2_option << 8) + value[i];
 			}
-			if(key == COAP_HEADER_BLOCK1) {
+			if(key == COAP_OPTION_BLOCK1) {
 				uint8_t i;
 				block1_option = 0;
 				for(i = 0; i < value_len; i++)
@@ -614,8 +635,9 @@ cgi_node_request_handler(
 	} else if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD) {
 		// We should not get a request at this point in the state machine.
 		if(smcp_inbound_is_dupe()) {
-			smcp_outbound_drop();
-			ret = SMCP_STATUS_DUPE;
+			smcp_outbound_begin_response(COAP_CODE_EMPTY);
+			smcp_outbound_send();
+			ret = SMCP_STATUS_OK;
 		} else {
 			ret = SMCP_STATUS_FAILURE;
 		}
@@ -630,7 +652,7 @@ cgi_node_request_handler(
 		if(	request->block2!=BLOCK_OPTION_UNSPECIFIED
 			&& block2_start < (request->block2>>4) * (1<<((request->block2&0x7)+4))
 		) {
-				// Dupe?
+				// Old Dupe?
 				smcp_outbound_drop();
 				ret = SMCP_STATUS_DUPE;
 				goto bail;
@@ -667,11 +689,11 @@ cgi_node_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-			ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
-			require_noerr(ret,bail);
+//			ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+//			require_noerr(ret,bail);
 
 			if(request->stdout_buffer_len>block_len || request->fd_cmd_stdout>=0) {
-				ret = smcp_outbound_add_option_uint(COAP_HEADER_BLOCK2,request->block2);
+				ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
 				require_noerr(ret,bail);
 			}
 
@@ -702,18 +724,13 @@ cgi_node_request_handler(
 				request,
 				CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD
 			);
-//			if(0!=smcp_start_async_response(&request->async_response, 0)) {
-//				// OOPS!
-//				request->is_active = 0;
-//				request = NULL;
-//				goto bail;
-//			}
 		}
 	} else if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD) {
 		// We should not get a request at this point in the state machine.
 		if(smcp_inbound_is_dupe()) {
-			smcp_outbound_drop();
-			ret = SMCP_STATUS_DUPE;
+			smcp_outbound_begin_response(COAP_CODE_EMPTY);
+			smcp_outbound_send();
+			ret = SMCP_STATUS_OK;
 		} else {
 			ret = SMCP_STATUS_FAILURE;
 		}

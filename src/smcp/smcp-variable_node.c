@@ -87,14 +87,14 @@ smcp_variable_request_handler(
 	require(node, bail);
 
 	// Look up the key index.
-	if(smcp_inbound_peek_option(NULL,&value_len)==COAP_HEADER_URI_PATH) {
+	if(smcp_inbound_peek_option(NULL,&value_len)==COAP_OPTION_URI_PATH) {
 		if(!value_len) {
 			needs_prefix = false;
 			smcp_inbound_next_option(NULL,NULL);
 		} else for(key_index=0;key_index<BAD_KEY_INDEX;key_index++) {
 			ret = node->func(node,SMCP_VAR_GET_KEY,key_index,buffer);
 			require_action(ret==0,bail,ret=SMCP_STATUS_NOT_FOUND);
-			if(smcp_inbound_option_strequal(COAP_HEADER_URI_PATH, buffer)) {
+			if(smcp_inbound_option_strequal(COAP_OPTION_URI_PATH, buffer)) {
 				smcp_inbound_next_option(NULL,NULL);
 				break;
 			}
@@ -105,9 +105,9 @@ smcp_variable_request_handler(
 		coap_option_key_t key;
 		const uint8_t* value;
 //		size_t value_len;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_HEADER_INVALID) {
-			require_action(key!=COAP_HEADER_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
-			if(key==COAP_HEADER_URI_QUERY) {
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+			require_action(key!=COAP_OPTION_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
+			if(key==COAP_OPTION_URI_QUERY) {
 				if(	method == COAP_METHOD_POST
 					&& value_len>=2
 					&& strhasprefix_const((const char*)value,"v=")
@@ -117,14 +117,14 @@ smcp_variable_request_handler(
 					content_ptr = (char*)value+2;
 					content_len = value_len-2;
 				}
-			} else if(key==COAP_HEADER_ACCEPT) {
+			} else if(key==COAP_OPTION_ACCEPT) {
 				reply_content_type = 0;
 				if(value_len==1)
 					reply_content_type = value[0];
 				else {
 					// Unsupported type.
 				}
-			} else if(COAP_HEADER_IS_REQUIRED(key)) {
+			} else if(COAP_OPTION_IS_CRITICAL(key)) {
 				ret=SMCP_STATUS_BAD_OPTION;
 				assert_printf("Unrecognized option %d, \"%s\"",
 					key,
@@ -273,7 +273,7 @@ smcp_variable_request_handler(
 #else
 					uint32_t max_age = atoi(buffer)&0xFFFFFF;
 #endif
-					smcp_outbound_add_option_uint(COAP_HEADER_MAX_AGE, max_age);
+					smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE, max_age);
 				}
 
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);

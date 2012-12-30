@@ -17,7 +17,7 @@
 		A6290E58167670F8008914FD /* smcp-transaction.c in Sources */ = {isa = PBXBuildFile; fileRef = A64F2AF8166EB236001D9878 /* smcp-transaction.c */; };
 		A6290E59167670F8008914FD /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F41278B16D00B24867 /* smcp.c */; };
 		A6290E5A167670F8008914FD /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
-		A6290E5B167670F8008914FD /* smcp-send.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-send.c */; };
+		A6290E5B167670F8008914FD /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
 		A6290E5C167670F8008914FD /* coap.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E41278B16D00B24867 /* coap.c */; };
 		A6290E5D167670F8008914FD /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A6290E5E167670F8008914FD /* smcp-node.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EA1278B16D00B24867 /* smcp-node.c */; };
@@ -50,9 +50,27 @@
 		A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A27BA2127B934F003708DF /* cmd_delete.c */; };
 		A6CD69621283466B00254A8B /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E21278B16D00B24867 /* btree.c */; };
 		A6D0C8C31661CC3C00E9F440 /* cgi-node.c in Sources */ = {isa = PBXBuildFile; fileRef = A6D0C8C21661CC3C00E9F440 /* cgi-node.c */; };
+		A6F358941687909100F72DF3 /* fasthash.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F358931687909100F72DF3 /* fasthash.c */; };
+		A6F358951687909100F72DF3 /* fasthash.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F358931687909100F72DF3 /* fasthash.c */; };
+		A6F35948168A598800F72DF3 /* smcp_plugtest_client.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = A6F35947168A598800F72DF3 /* smcp_plugtest_client.1 */; };
+		A6F3594C168A599000F72DF3 /* main-client.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F3593D168A552300F72DF3 /* main-client.c */; };
+		A6F3594D168A5CED00F72DF3 /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E21278B16D00B24867 /* btree.c */; };
+		A6F3594E168A5CED00F72DF3 /* url-helpers.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F71278B16D00B24867 /* url-helpers.c */; };
+		A6F3594F168A5CED00F72DF3 /* fasthash.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F358931687909100F72DF3 /* fasthash.c */; };
+		A6F35950168A5CED00F72DF3 /* smcp-transaction.c in Sources */ = {isa = PBXBuildFile; fileRef = A64F2AF8166EB236001D9878 /* smcp-transaction.c */; };
+		A6F35951168A5CED00F72DF3 /* smcp.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F41278B16D00B24867 /* smcp.c */; };
+		A6F35952168A5CED00F72DF3 /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
+		A6F35953168A5CED00F72DF3 /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
+		A6F35954168A5CED00F72DF3 /* coap.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E41278B16D00B24867 /* coap.c */; };
+		A6F35955168A5CED00F72DF3 /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
+		A6F35956168A5CED00F72DF3 /* smcp-node.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EA1278B16D00B24867 /* smcp-node.c */; };
+		A6F35957168A5CED00F72DF3 /* smcp-timer.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F01278B16D00B24867 /* smcp-timer.c */; };
+		A6F35958168A5CED00F72DF3 /* smcp-pairing.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EC1278B16D00B24867 /* smcp-pairing.c */; };
+		A6F35959168A5CED00F72DF3 /* smcp-timer_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EE1278B16D00B24867 /* smcp-timer_node.c */; };
+		A6F3595A168A5CED00F72DF3 /* smcp-variable_node.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F21278B16D00B24867 /* smcp-variable_node.c */; };
 		A6F536EE155F0E5200E0E324 /* smcp-curl_proxy.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */; };
 		A6F536F1155F0EC700E0E324 /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
-		A6F536F3155F255000E0E324 /* smcp-send.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-send.c */; };
+		A6F536F3155F255000E0E324 /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
 		A6F536F81561B7A600E0E324 /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
 /* End PBXBuildFile section */
 
@@ -74,6 +92,16 @@
 			dstSubfolderSpec = 0;
 			files = (
 				A6290E5016767091008914FD /* smcp_plugtest_server.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		A6F35940168A598800F72DF3 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				A6F35948168A598800F72DF3 /* smcp_plugtest_client.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -169,10 +197,17 @@
 		A6BE9A41164CD28A00473330 /* smcpd.conf.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = smcpd.conf.in; sourceTree = "<group>"; };
 		A6CD695D1283463900254A8B /* btreetest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = btreetest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6D0C8C21661CC3C00E9F440 /* cgi-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "cgi-node.c"; sourceTree = "<group>"; };
+		A6F358931687909100F72DF3 /* fasthash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fasthash.c; path = src/smcp/fasthash.c; sourceTree = "<group>"; };
+		A6F358961687909E00F72DF3 /* fasthash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fasthash.h; path = src/smcp/fasthash.h; sourceTree = "<group>"; };
+		A6F3593D168A552300F72DF3 /* main-client.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "main-client.c"; path = "src/plugtest/main-client.c"; sourceTree = "<group>"; };
+		A6F35942168A598800F72DF3 /* smcp-plugtest-client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "smcp-plugtest-client"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6F35945168A598800F72DF3 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		A6F35947168A598800F72DF3 /* smcp_plugtest_client.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = smcp_plugtest_client.1; sourceTree = "<group>"; };
+		A6F35976168CBA6A00F72DF3 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; name = Makefile.am; path = src/plugtest/Makefile.am; sourceTree = "<group>"; };
 		A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-curl_proxy.c"; path = "src/smcp/smcp-curl_proxy.c"; sourceTree = "<group>"; };
 		A6F536ED155F0E5200E0E324 /* smcp-curl_proxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-curl_proxy.h"; path = "src/smcp/smcp-curl_proxy.h"; sourceTree = "<group>"; };
 		A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = ../../../../usr/lib/libcurl.4.dylib; sourceTree = "<group>"; };
-		A6F536F2155F255000E0E324 /* smcp-send.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-send.c"; path = "src/smcp/smcp-send.c"; sourceTree = "<group>"; };
+		A6F536F2155F255000E0E324 /* smcp-outbound.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-outbound.c"; path = "src/smcp/smcp-outbound.c"; sourceTree = "<group>"; };
 		A6F536F71561B7A600E0E324 /* smcp-list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-list.c"; path = "src/smcp/smcp-list.c"; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = smcpctl.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -201,12 +236,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A6F3593F168A598800F72DF3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		08FB7794FE84155DC02AAC07 /* SHAP */ = {
 			isa = PBXGroup;
 			children = (
+				A6F35897168A54D300F72DF3 /* Plugtest Client */,
 				A6290E4416766FBE008914FD /* Plugtest Server */,
 				A6BE9A39164CC63C00473330 /* configure.ac */,
 				A6BE9A3A164CC63C00473330 /* Makefile.am */,
@@ -217,6 +260,7 @@
 				A6764685156474380074028C /* contiki-src */,
 				C6A0FF2B0290797F04C91782 /* Documentation */,
 				A6290E4C16767091008914FD /* smcp-plugtest-server */,
+				A6F35944168A598800F72DF3 /* smcp-plugtest-client */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
 				A63B1EB9125FC4E900BF2543 /* libreadline.dylib */,
 				A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */,
@@ -236,7 +280,7 @@
 				A63EA6F41278B16D00B24867 /* smcp.c */,
 				A6770026156AA2BF00592868 /* smcp-opts.h */,
 				A6F536F71561B7A600E0E324 /* smcp-list.c */,
-				A6F536F2155F255000E0E324 /* smcp-send.c */,
+				A6F536F2155F255000E0E324 /* smcp-outbound.c */,
 				A63EA6E41278B16D00B24867 /* coap.c */,
 				A63EA6E51278B16D00B24867 /* coap.h */,
 				A686D69C16557F3100B14B54 /* smcp-auth.h */,
@@ -264,6 +308,7 @@
 				8DD76FB20486AB0100D96B5E /* smcpctl */,
 				A6CD695D1283463900254A8B /* btreetest */,
 				A6290E4A16767091008914FD /* smcp-plugtest-server */,
+				A6F35942168A598800F72DF3 /* smcp-plugtest-client */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -302,6 +347,8 @@
 				A63EA6E71278B16D00B24867 /* smcp-helpers.h */,
 				A63EA6F71278B16D00B24867 /* url-helpers.c */,
 				A63EA6F81278B16D00B24867 /* url-helpers.h */,
+				A6F358931687909100F72DF3 /* fasthash.c */,
+				A6F358961687909E00F72DF3 /* fasthash.h */,
 			);
 			name = Utils;
 			sourceTree = "<group>";
@@ -310,6 +357,7 @@
 			isa = PBXGroup;
 			children = (
 				A6290E3A1675650F008914FD /* main-server.c */,
+				A6F35976168CBA6A00F72DF3 /* Makefile.am */,
 				A6290E3B1675650F008914FD /* plugtest-server.c */,
 				A6290E3C16756510008914FD /* plugtest-server.h */,
 			);
@@ -407,6 +455,23 @@
 			name = "Tool Source";
 			sourceTree = "<group>";
 		};
+		A6F35897168A54D300F72DF3 /* Plugtest Client */ = {
+			isa = PBXGroup;
+			children = (
+				A6F3593D168A552300F72DF3 /* main-client.c */,
+			);
+			name = "Plugtest Client";
+			sourceTree = "<group>";
+		};
+		A6F35944168A598800F72DF3 /* smcp-plugtest-client */ = {
+			isa = PBXGroup;
+			children = (
+				A6F35945168A598800F72DF3 /* main.c */,
+				A6F35947168A598800F72DF3 /* smcp_plugtest_client.1 */,
+			);
+			path = "smcp-plugtest-client";
+			sourceTree = "<group>";
+		};
 		C6A0FF2B0290797F04C91782 /* Documentation */ = {
 			isa = PBXGroup;
 			children = (
@@ -474,6 +539,23 @@
 			productReference = A6CD695D1283463900254A8B /* btreetest */;
 			productType = "com.apple.product-type.tool";
 		};
+		A6F35941168A598800F72DF3 /* smcp-plugtest-client */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A6F35949168A598800F72DF3 /* Build configuration list for PBXNativeTarget "smcp-plugtest-client" */;
+			buildPhases = (
+				A6F3593E168A598800F72DF3 /* Sources */,
+				A6F3593F168A598800F72DF3 /* Frameworks */,
+				A6F35940168A598800F72DF3 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "smcp-plugtest-client";
+			productName = "smcp-plugtest-client";
+			productReference = A6F35942168A598800F72DF3 /* smcp-plugtest-client */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -500,6 +582,7 @@
 				8DD76FA90486AB0100D96B5E /* smcpctl */,
 				A6CD695C1283463900254A8B /* btreetest */,
 				A6290E4916767091008914FD /* smcp-plugtest-server */,
+				A6F35941168A598800F72DF3 /* smcp-plugtest-client */,
 			);
 		};
 /* End PBXProject section */
@@ -529,13 +612,14 @@
 				A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */,
 				A65258371528F45300E389EC /* cmd_monitor.c in Sources */,
 				A6F536EE155F0E5200E0E324 /* smcp-curl_proxy.c in Sources */,
-				A6F536F3155F255000E0E324 /* smcp-send.c in Sources */,
+				A6F536F3155F255000E0E324 /* smcp-outbound.c in Sources */,
 				A6F536F81561B7A600E0E324 /* smcp-list.c in Sources */,
 				A679FFB9164BDD9700736F58 /* system-node.c in Sources */,
 				A686D69E16557F3100B14B54 /* smcp-auth.c in Sources */,
 				A6D0C8C31661CC3C00E9F440 /* cgi-node.c in Sources */,
 				A64F2AF9166EB236001D9878 /* smcp-transaction.c in Sources */,
 				A6290E3E16756510008914FD /* plugtest-server.c in Sources */,
+				A6F358941687909100F72DF3 /* fasthash.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -550,7 +634,7 @@
 				A6290E58167670F8008914FD /* smcp-transaction.c in Sources */,
 				A6290E59167670F8008914FD /* smcp.c in Sources */,
 				A6290E5A167670F8008914FD /* smcp-list.c in Sources */,
-				A6290E5B167670F8008914FD /* smcp-send.c in Sources */,
+				A6290E5B167670F8008914FD /* smcp-outbound.c in Sources */,
 				A6290E5C167670F8008914FD /* coap.c in Sources */,
 				A6290E5D167670F8008914FD /* smcp-auth.c in Sources */,
 				A6290E5E167670F8008914FD /* smcp-node.c in Sources */,
@@ -558,6 +642,7 @@
 				A6290E60167670F8008914FD /* smcp-pairing.c in Sources */,
 				A6290E61167670F8008914FD /* smcp-timer_node.c in Sources */,
 				A6290E62167670F8008914FD /* smcp-variable_node.c in Sources */,
+				A6F358951687909100F72DF3 /* fasthash.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -566,6 +651,28 @@
 			buildActionMask = 2147483647;
 			files = (
 				A6CD69621283466B00254A8B /* btree.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6F3593E168A598800F72DF3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6F3594C168A599000F72DF3 /* main-client.c in Sources */,
+				A6F3594D168A5CED00F72DF3 /* btree.c in Sources */,
+				A6F3594E168A5CED00F72DF3 /* url-helpers.c in Sources */,
+				A6F3594F168A5CED00F72DF3 /* fasthash.c in Sources */,
+				A6F35950168A5CED00F72DF3 /* smcp-transaction.c in Sources */,
+				A6F35951168A5CED00F72DF3 /* smcp.c in Sources */,
+				A6F35952168A5CED00F72DF3 /* smcp-list.c in Sources */,
+				A6F35953168A5CED00F72DF3 /* smcp-outbound.c in Sources */,
+				A6F35954168A5CED00F72DF3 /* coap.c in Sources */,
+				A6F35955168A5CED00F72DF3 /* smcp-auth.c in Sources */,
+				A6F35956168A5CED00F72DF3 /* smcp-node.c in Sources */,
+				A6F35957168A5CED00F72DF3 /* smcp-timer.c in Sources */,
+				A6F35958168A5CED00F72DF3 /* smcp-pairing.c in Sources */,
+				A6F35959168A5CED00F72DF3 /* smcp-timer_node.c in Sources */,
+				A6F3595A168A5CED00F72DF3 /* smcp-variable_node.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -738,6 +845,50 @@
 			};
 			name = Release;
 		};
+		A6F3594A168A598800F72DF3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		A6F3594B168A598800F72DF3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -773,6 +924,15 @@
 			buildConfigurations = (
 				A6CD695F1283463900254A8B /* Debug */,
 				A6CD69601283463900254A8B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A6F35949168A598800F72DF3 /* Build configuration list for PBXNativeTarget "smcp-plugtest-client" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A6F3594A168A598800F72DF3 /* Debug */,
+				A6F3594B168A598800F72DF3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

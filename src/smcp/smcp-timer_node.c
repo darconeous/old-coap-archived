@@ -36,8 +36,9 @@
 
 #include "assert_macros.h"
 #include "smcp-opts.h"
-#include "smcp-timer.h"
+
 #include "smcp-timer_node.h"
+#include "smcp-timer.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -251,7 +251,7 @@ list_response_handler(
 		gRet = 0;
 		return SMCP_STATUS_TRANSACTION_INVALIDATED;
 	}
-	
+
 	if(statuscode>=0) {
 		if(content_length>(smcp_inbound_get_packet_length()-4)) {
 			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet_length());
@@ -307,7 +307,7 @@ list_response_handler(
 	if(content && content_length) {
 		coap_content_type_t content_type = smcp_inbound_get_content_type();
 
-		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT) {
+		if(content_type != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT && content_type != COAP_CONTENT_TYPE_UNKNOWN) {
 			if(!list_filename_only) {
 				if(statuscode >= COAP_RESULT_300) {
 					fwrite(content, content_length, 1, stdout);
@@ -346,12 +346,12 @@ resend_list_request(void* context) {
 	status = smcp_outbound_set_uri(url_data, 0);
 	require_noerr(status,bail);
 
-	status = smcp_outbound_add_option_uint(COAP_HEADER_ACCEPT,COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+	status = smcp_outbound_add_option_uint(COAP_OPTION_ACCEPT,COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 	require_noerr(status,bail);
 
 //	if(next_len != ((size_t)(-1))) {
 //		status = smcp_outbound_add_option(
-//			COAP_HEADER_BLOCK2,
+//			COAP_OPTION_BLOCK2,
 //			next_data,
 //			next_len
 //		);
@@ -360,7 +360,7 @@ resend_list_request(void* context) {
 
 //	if(size_request) {
 //		smcp_outbound_add_option(
-//			COAP_HEADER_SIZE_REQUEST,
+//			COAP_OPTION_SIZE_REQUEST,
 //			(void*)&size_request,
 //			sizeof(size_request)
 //		);
