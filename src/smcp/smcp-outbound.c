@@ -163,7 +163,7 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 
 	if(self->is_processing_message)
 		self->outbound.next_tid = smcp_inbound_get_msg_id();
-	smcp_outbound_begin(self,code,COAP_TRANS_TYPE_ACK);
+	smcp_outbound_begin(self,code,(self->inbound.packet->tt==COAP_TRANS_TYPE_NONCONFIRMABLE)?COAP_TRANS_TYPE_NONCONFIRMABLE:COAP_TRANS_TYPE_ACK);
 	self->is_responding = true;
 
 	if(self->is_processing_message)
@@ -228,13 +228,18 @@ smcp_status_t
 smcp_outbound_set_destaddr(
 	struct sockaddr *sockaddr, socklen_t socklen
 ) {
+	smcp_t const self = smcp_get_current_instance();
 	memcpy(
-		&smcp_get_current_instance()->outbound.saddr,
+		&self->outbound.saddr,
 		sockaddr,
 		socklen
 	);
-	smcp_get_current_instance()->outbound.socklen = socklen;
+	self->outbound.socklen = socklen;
 
+	if(self->current_transaction) {
+		struct sockaddr_in6 *saddr = (void*)sockaddr;
+		self->current_transaction->multicast = IN6_IS_ADDR_MULTICAST(&saddr->sin6_addr);
+	}
 	return SMCP_STATUS_OK;
 }
 #elif defined(CONTIKI)
@@ -254,7 +259,6 @@ smcp_outbound_add_option_(
 	coap_option_key_t key, const char* value, size_t len
 ) {
 	smcp_t const self = smcp_get_current_instance();
-//	uint8_t option_count;
 
 #warning TODO: Check for overflow!
 

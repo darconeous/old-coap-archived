@@ -178,7 +178,7 @@ plugtest_separate_handler(
 		ret = smcp_transaction_begin(
 			smcp_get_current_instance(),
 			transaction,
-			COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC
+			(smcp_inbound_get_packet()->tt==COAP_TRANS_TYPE_CONFIRMABLE)?COAP_MAX_TRANSMIT_WAIT*MSEC_PER_SEC:0
 		);
 		if(ret) {
 			smcp_transaction_end(smcp_get_current_instance(),transaction);

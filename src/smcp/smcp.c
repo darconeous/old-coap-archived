@@ -53,6 +53,7 @@ extern uint16_t uip_slen;
 
 #include <stdarg.h>
 
+#include "smcp-opts.h"
 #include "smcp.h"
 #include <stdio.h>
 #include <stdint.h>
@@ -206,15 +207,15 @@ smcp_init(
 		memset(&imreq, 0, sizeof(imreq));
 		self->mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
 
-		require(!h_errno && tmp, bail);
-		require(tmp->h_length > 1, bail);
+		require(!h_errno && tmp, skip_mcast);
+		require(tmp->h_length > 1, skip_mcast);
 
 		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, tmp->h_addr_list[0], 16);
 
 		require(0 ==
 			setsockopt(self->mcfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
 				&btrue,
-				sizeof(btrue)), bail);
+				sizeof(btrue)), skip_mcast);
 
 		// Do a precautionary leave group, to clear any stake kernel data.
 		setsockopt(self->mcfd,
@@ -225,7 +226,10 @@ smcp_init(
 
 		require(0 ==
 			setsockopt(self->mcfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &imreq,
-				sizeof(imreq)), bail);
+				sizeof(imreq)), skip_mcast);
+
+	skip_mcast:
+		(void)0;
 	}
 #endif
 
@@ -462,9 +466,21 @@ bool
 smcp_inbound_origin_is_local() {
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6* const saddr = (struct sockaddr_in6*)smcp_inbound_get_saddr();
-	// Is this adequate?
-	return IN6_IS_ADDR_LOOPBACK(&saddr->sin6_addr)
-		&& saddr->sin6_port==htonl(smcp_get_port(smcp_get_current_instance()));
+
+	// TODO: Are these checks adequate?
+
+	if(saddr->sin6_port!=htonl(smcp_get_port(smcp_get_current_instance())))
+		return false;
+
+	if(IN6_IS_ADDR_V4MAPPED(&saddr->sin6_addr)
+		&& saddr->sin6_addr.s6_addr[12] == 127
+		&& saddr->sin6_addr.s6_addr[13] == 0
+		&& saddr->sin6_addr.s6_addr[14] == 0
+	) {
+		return true;
+	}
+
+	return IN6_IS_ADDR_LOOPBACK(&saddr->sin6_addr);
 #else
 	return false;
 #endif
@@ -505,7 +521,7 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 		filename[filename_len] = old_end;
 	}
 
-//	NOT READY YET
+//	THIS CODE IS NOT READY YET
 //	if(flags&SMCP_GET_PATH_INCLUDE_QUERY) {
 //
 //		*iter++='?';
@@ -527,6 +543,9 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 }
 #pragma mark -
 
+// TODO: Update this to minimize stack usage. (break up into more functions?)
+// We should get it down to where we don't have all of these arguments
+// in the stack.
 smcp_status_t
 smcp_handle_inbound_packet(
 	smcp_t	self,
@@ -541,7 +560,7 @@ smcp_handle_inbound_packet(
 	require_action(coap_verify_packet(buffer,packet_length),bail,ret=SMCP_STATUS_BAD_PACKET);
 
 #if defined(SMCP_DEBUG_INBOUND_DROP_PERCENT)
-	if(SMCP_DEBUG_INBOUND_DROP_PERCENT*SMCP_RANDOM_MAX>SMCP_FUNC_RANDOM_UINT32()) {
+	if((uint32_t)(SMCP_DEBUG_INBOUND_DROP_PERCENT*SMCP_RANDOM_MAX)>SMCP_FUNC_RANDOM_UINT32()) {
 		DEBUG_PRINTF("Dropping inbound packet for debugging!");
 		goto bail;
 	}
@@ -593,10 +612,6 @@ smcp_handle_inbound_packet(
 	// TODO: Set `self->inbound.was_sent_to_multicast` properly!
 	// self->inbound.was_sent_to_multicast = ???
 
-	{
-
-	}
-
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
 	// Kind of a hack, but very convenient.
@@ -610,9 +625,6 @@ smcp_handle_inbound_packet(
 			ret=SMCP_STATUS_FAILURE
 		);
 	}
-
-//	DEBUG_PRINTF(CSTR("%p: tt=%d"), self,packet->tt);
-//	DEBUG_PRINTF(CSTR("%p: http.code=%d, coap.code=%d"),self,coap_to_http_code(packet->code),packet->code);
 
 	smcp_inbound_reset_next_option();
 
@@ -864,6 +876,7 @@ smcp_handle_request(
 	smcp_inbound_reset_next_option();
 
 	{
+		// TODO: Rewrite this to be more efficient.
 		const uint8_t* prev_option_ptr = self->inbound.this_option;
 		coap_option_key_t prev_key = 0;
 		coap_option_key_t key;
@@ -874,8 +887,6 @@ smcp_handle_request(
 				self->inbound.this_option = prev_option_ptr;
 				self->inbound.last_option_key = prev_key;
 				break;
-			} else if(key==COAP_OPTION_PROXY_URI) {
-				// Skip the proxy URI for now.
 			} else if(key==COAP_OPTION_URI_PATH) {
 				smcp_node_t next = smcp_node_find(
 					node,
@@ -895,9 +906,10 @@ smcp_handle_request(
 			} else if(key==COAP_OPTION_URI_PORT) {
 				// Skip port at the moment,
 				// because we don't do virtual hosting yet.
+			} else if(key==COAP_OPTION_PROXY_URI) {
+				// Skip the proxy URI for now.
 			} else if(key==COAP_OPTION_CONTENT_TYPE) {
-				// Skip the content type for now,
-				// but we will need to keep track of this later.
+				// Skip.
 			} else {
 				if(COAP_OPTION_IS_CRITICAL(key)) {
 					ret=SMCP_STATUS_BAD_OPTION;
@@ -951,31 +963,30 @@ smcp_handle_response(
 
 	msg_id = smcp_inbound_get_msg_id();
 
-	handler = smcp_transaction_find_via_msg_id(self,msg_id);
+	{
+		coap_msg_id_t token = 0;
+		if(self->inbound.packet->token_len == sizeof(coap_msg_id_t))
+			memcpy(&token,self->inbound.packet->token,sizeof(token));
+		if(self->inbound.packet->tt < COAP_TRANS_TYPE_ACK) {
+			handler = smcp_transaction_find_via_token(self,token);
+		} else {
+			handler = smcp_transaction_find_via_msg_id(self,msg_id);
+			if(handler && smcp_inbound_get_packet()->code && token!=handler->token)
+				handler = NULL;
+		}
+	}
 
-	// TODO: Verify source address and port!
-
-	if(!handler && self->inbound.packet->token_len==sizeof(coap_msg_id_t)) {
-		coap_msg_id_t token;
-		memcpy(&token,self->inbound.packet->token,sizeof(token));
-		handler = smcp_transaction_find_via_token(self,token);
-
-//		TODO: We should only do this check if the request we made was confirmable.
-//		if(handler && !handler->waiting_for_async_response)
-//			handler = NULL;
+	if(handler && !handler->multicast) {
+		// TODO: Verify source address and port!
 	}
 
 	self->current_transaction = handler;
 
-	// TODO: Make sure this packet didn't originate from multicast.
-	// ...Or do what?
-
 	if(!handler) {
+		// This is an unknown response. If the packet
+		// if confirmable, send a reset. If not, don't bother.
 		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {
 			DEBUG_PRINTF("Inbound: Unknown Response, sending reset. . .");
-			// We don't know what they are talking
-			// about, so send them a reset so that they
-			// will shut up.
 
 			ret = smcp_outbound_begin_response(0);
 			require_noerr(ret,bail);
@@ -984,6 +995,8 @@ smcp_handle_response(
 
 			ret = smcp_outbound_send();
 			require_noerr(ret,bail);
+		} else {
+			DEBUG_PRINTF("Inbound: Unknown ack or reset, ignoring. . .");
 		}
 	} else if(	(	self->inbound.packet->tt == COAP_TRANS_TYPE_ACK
 			|| self->inbound.packet->tt == COAP_TRANS_TYPE_NONCONFIRMABLE
@@ -991,19 +1004,19 @@ smcp_handle_response(
 		&& !self->inbound.packet->code
 		&& (handler->sent_code<COAP_RESULT_100)
 	) {
-		DEBUG_PRINTF("Inbound: Async Response");
+		DEBUG_PRINTF("Inbound: Empty ACK, Async response expected.");
 		handler->waiting_for_async_response = true;
 	} else if(handler->callback) {
 		coap_msg_id_t msg_id = handler->msg_id;
 
-		// Handle any authentication heaers.
+		// Handle any authentication headers.
 		ret = smcp_auth_handle_response(handler);
 		require_noerr(ret,bail);
 
 		smcp_inbound_reset_next_option();
 
 		if((handler->flags & SMCP_TRANSACTION_OBSERVE) && self->inbound.has_observe_option) {
-			cms_t cms = self->inbound.max_age*1000;
+			cms_t cms = self->inbound.max_age*MSEC_PER_SEC;
 
 			if(	self->inbound.has_observe_option
 				&& (self->inbound.observe_value<=handler->last_observe)
@@ -1091,7 +1104,8 @@ smcp_handle_response(
 					);
 				} else if (!(handler->flags&SMCP_TRANSACTION_OBSERVE)) {
 					handler->resendCallback = NULL;
-					smcp_transaction_end(self, handler);
+					if(!(handler->flags&SMCP_TRANSACTION_NO_AUTO_END))
+						smcp_transaction_end(self, handler);
 					handler = NULL;
 				} else {
 					cms_t cms = self->inbound.max_age*1000;
@@ -1125,7 +1139,7 @@ smcp_handle_response(
 	}
 
 bail:
-	if(ret && handler) {
+	if(ret && handler && !(handler->flags&SMCP_TRANSACTION_NO_AUTO_END)) {
 		smcp_transaction_end(self, handler);
 	}
 	return ret;

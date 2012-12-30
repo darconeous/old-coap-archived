@@ -341,6 +341,8 @@ smcp_get_first_pairing_for_path(
 	smcp_pairing_node_t ret = NULL;
 	smcp_node_t path_node = NULL;
 
+	assert(self->root_pairing_node!=NULL);
+
 	// Remove all preceeding slashes
 	while(path[0] == '/' && path[1] != 0) path++;
 

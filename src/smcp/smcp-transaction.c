@@ -180,15 +180,17 @@ smcp_internal_transaction_timeout_(
 	cms_t cms = convert_timeval_to_cms(&handler->expiration);
 
 	self->current_transaction = handler;
-
-	if(cms > 0) {
+	if((cms > 0) || !handler->has_fired) {
 		if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
 			&& cms>SMCP_OBSERVATION_KEEPALIVE_INTERVAL
 		) {
 			cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
 		}
 
-		if(handler->waiting_for_async_response && !(handler->flags&SMCP_TRANSACTION_KEEPALIVE)) {
+		if(cms<=0)
+			cms = 0;
+
+		if(!handler->has_fired && handler->waiting_for_async_response && !(handler->flags&SMCP_TRANSACTION_KEEPALIVE)) {
 			status = SMCP_STATUS_OK;
 		}
 
@@ -202,8 +204,9 @@ smcp_internal_transaction_timeout_(
 			status = handler->resendCallback(context);
 
 			if(status == SMCP_STATUS_OK) {
-				if(self->outbound.packet->tt!=COAP_TRANS_TYPE_NONCONFIRMABLE
-					|| handler->attemptCount<2
+				handler->has_fired = true;
+				if((cms > 0) && (self->outbound.packet->tt!=COAP_TRANS_TYPE_NONCONFIRMABLE
+					|| handler->attemptCount<2)
 				) {
 					cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount++));
 				}
@@ -211,6 +214,8 @@ smcp_internal_transaction_timeout_(
 				cms = 100;
 				status = SMCP_STATUS_OK;
 			}
+		} else {
+			handler->has_fired = true;
 		}
 
 		smcp_schedule_timer(
@@ -264,13 +269,14 @@ smcp_internal_transaction_timeout_(
 			// TODO: Implement this!
 		}
 
-		if(!(handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE))
+		if(!(handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE) && !(handler->flags&SMCP_TRANSACTION_NO_AUTO_END))
 			handler->callback = NULL;
 		if(callback)
 			(*callback)(status,context);
 		if(handler != self->current_transaction)
 			return;
-		smcp_transaction_end(self, handler);
+		if(!(handler->flags&SMCP_TRANSACTION_NO_AUTO_END))
+			smcp_transaction_end(self, handler);
 	}
 
 	self->current_transaction = NULL;
@@ -361,6 +367,7 @@ smcp_transaction_begin(
 	handler->last_observe = 0;
 	handler->next_block2 = 0;
 	handler->active = 1;
+	handler->has_fired = false;
 	convert_cms_to_timeval(&handler->expiration, expiration);
 
 	if(handler->resendCallback) {

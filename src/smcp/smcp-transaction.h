@@ -49,6 +49,25 @@
 
 __BEGIN_DECLS
 
+/* Transaction State Machine
+
+Simple Case:
+
+	* Uninitialized/Unallocated.
+	>>> init()
+	* Initialized.
+	>>> begin()
+	* Active (Sending and listening)
+	>>> received packet
+	* Passive (Listening Only)
+	>>> end()
+	* Initialized if used in place, unallocated if used from pool.
+
+
+
+*/
+
+
 struct smcp_transaction_s {
 	struct bt_item_s			bt_item;
 
@@ -64,8 +83,8 @@ struct smcp_transaction_s {
 	struct timeval				expiration;
 	struct smcp_timer_s			timer;
 
-	coap_msg_id_t		token;
-	coap_msg_id_t		msg_id;
+	coap_msg_id_t				token;
+	coap_msg_id_t				msg_id;
 
 	uint32_t					last_observe;
 	uint32_t					next_block2;
@@ -77,13 +96,16 @@ struct smcp_transaction_s {
 								waiting_for_async_response:1,
 								should_dealloc:1,
 								active:1,
-								needs_to_close_observe:1;
+								needs_to_close_observe:1,
+								multicast:1,
+								has_fired:1;
 };
 
 enum {
 	SMCP_TRANSACTION_ALWAYS_INVALIDATE = (1 << 0),
 	SMCP_TRANSACTION_OBSERVE = (1 << 1),
 	SMCP_TRANSACTION_KEEPALIVE = (1 << 2),		//!< Send keep-alive packets when observing
+	SMCP_TRANSACTION_NO_AUTO_END = (1 << 3),
 	SMCP_TRANSACTION_DELAY_START = (1 << 8),
 };
 

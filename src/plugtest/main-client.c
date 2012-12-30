@@ -334,7 +334,7 @@ main(int argc, char * argv[]) {
 
 	printf("Client using port %d.\n", smcp_get_port(smcp));
 
-#define do_test(x)	do { printf("%s: ",#x); if(test_ ## x(smcp,url)) { printf("OK\n"); } else { printf("FAIL\n"); errorcount++; } } while(0)
+#define do_test(x)	do { printf("%s: Testing...\n",#x); if(test_ ## x(smcp,url)) { printf("%s: result = OK\n",#x); } else { printf("%s: result = FAIL\n",#x); errorcount++; } } while(0)
 
 	for(round = 0;round<10 && errorcount==0;round++) {
 		printf("Round %d...\n",round+1);

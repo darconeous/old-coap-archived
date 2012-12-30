@@ -174,6 +174,9 @@ smcp_schedule_timer(
 	size_t previousTimerCount = ll_count(self->timers);
 #endif
 
+	if(cms<0)
+		cms = 0;
+
 	convert_cms_to_timeval(&timer->fire_date, cms);
 
 	ll_sorted_insert(
