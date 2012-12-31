@@ -126,14 +126,14 @@ calc_retransmit_timeout(int retries) {
 
 	ret <<= retries;
 
-	ret *= 1024 + (SMCP_FUNC_RANDOM_UINT32() % (int)(1024*(1-COAP_ACK_RANDOM_FACTOR)));
-	ret /= 1024;
+	ret *= 512 + (SMCP_FUNC_RANDOM_UINT32() % (int)(512*(COAP_ACK_RANDOM_FACTOR-1.0f)));
+	ret /= 512;
 
 #if defined(COAP_MAX_ACK_RETRANSMIT_DURATION)
 	if(ret > COAP_MAX_ACK_RETRANSMIT_DURATION*MSEC_PER_SEC)
 		ret = COAP_MAX_ACK_RETRANSMIT_DURATION*MSEC_PER_SEC;
 #endif
-
+	DEBUG_PRINTF("Will try attempt #%d in %dms",retries,ret);
 	return ret;
 }
 

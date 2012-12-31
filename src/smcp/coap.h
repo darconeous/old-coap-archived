@@ -47,27 +47,27 @@
 
 // Port numbers
 #define COAP_DEFAULT_PORT			(5683)
-#define COAP_DEFAULT_TLSPORT		(COAP_DEFAULT_PORT+1) // Guess
-#define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT+2) // Guess
-#define COAP_DEFAULT_PROXY_TLS_PORT	(COAP_DEFAULT_PORT+3) // Guess
+#define COAP_DEFAULT_TLSPORT		(COAP_DEFAULT_PORT+100)	// Guess
+#define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT+1)	// Guess
+#define COAP_DEFAULT_PROXY_TLS_PORT	(COAP_DEFAULT_PORT+101)	// Guess
 
 // General limits.
-#define COAP_MAX_MESSAGE_SIZE	(1280-40)
-#define COAP_MAX_TOKEN_SIZE		(8)
-#define COAP_MAX_OPTION_VALUE_SIZE		(1034)
-#define COAP_MAX_ACK_RETRANSMIT_DURATION	(5) // Seconds
-#define COAP_DEFAULT_MAX_AGE	(60)
+#define COAP_MAX_MESSAGE_SIZE				(1280-40)
+#define COAP_MAX_TOKEN_SIZE					(8)
+#define COAP_MAX_OPTION_VALUE_SIZE			(1034)
+#define COAP_MAX_ACK_RETRANSMIT_DURATION	(14)		// Seconds
+#define COAP_DEFAULT_MAX_AGE				(60)
 
 // The following constants are defined by
 // <http://tools.ietf.org/html/draft-ietf-core-coap-13#section-4.8>
-#define COAP_ACK_TIMEOUT		(1)		// Seconds (spec says to set to `2`)
+#define COAP_ACK_TIMEOUT		(1.5f)	//!^ Seconds (spec says to set to `2`)
 #define COAP_ACK_RANDOM_FACTOR	(1.5f)
-#define COAP_MAX_RETRANSMIT     (4)
+#define COAP_MAX_RETRANSMIT     (5)		//!^ Attempts (spec says to set to `4`)
 #define COAP_NSTART				(1)
-#define COAP_DEFAULT_LEASURE    (5)		// Seconds
-#define COAP_PROBING_RATE       (1)		// Bytes/Second
+#define COAP_DEFAULT_LEASURE    (5)		//!^ Seconds
+#define COAP_PROBING_RATE       (1)		//!^ Bytes/Second
 
-#define COAP_MAX_LATENCY		(100)	// Seconds
+#define COAP_MAX_LATENCY		(100)	//!^ Seconds
 
 // Derived constants
 #define COAP_MAX_TRANSMIT_SPAN	(COAP_ACK_TIMEOUT * ((1<<COAP_MAX_RETRANSMIT) - 1) * COAP_ACK_RANDOM_FACTOR)
