@@ -501,6 +501,9 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 	if(!where)
 		where = calloc(1,SMCP_MAX_URI_LENGTH+1);
 
+	if(!where)
+		return 0;
+
 	iter = where;
 
 	if(!(flags&SMCP_GET_PATH_REMAINING))

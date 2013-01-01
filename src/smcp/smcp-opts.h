@@ -69,8 +69,15 @@
 #ifndef SMCP_MAX_URI_LENGTH
 // I can't for the life of me remember where I got these numbers from.
 // TODO: Determine where these numbers come from!
-//#define SMCP_MAX_URI_LENGTH (SMCP_MAX_PATH_LENGTH + 7 + 6 + 8 * 4 + 7 + 2)
+// This is calclated as the sum of the following:
+//	* strlen("coap://")
+//	* strlen("[0000:0000:0000:0000:0000:0000:0000:0000]:65535")
+//	* SMCP_MAX_PATH_LENGTH
+#if SMCP_EMBEDDED
+#define SMCP_MAX_URI_LENGTH (7 + 47 + (SMCP_MAX_PATH_LENGTH) )
+#else
 #define SMCP_MAX_URI_LENGTH (1024)
+#endif
 #endif
 
 #if !defined(SMCP_MAX_PACKET_LENGTH) && !defined(SMCP_MAX_CONTENT_LENGTH)
