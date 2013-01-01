@@ -43,6 +43,7 @@
 #include "smcp-variable_node.h"
 #include "smcp-logging.h"
 #include "smcp-pairing.h"
+#include "fasthash.h"
 
 #include "url-helpers.h"
 #include <stdlib.h>
@@ -117,6 +118,9 @@ smcp_variable_request_handler(
 					content_ptr = (char*)value+2;
 					content_len = value_len-2;
 				}
+//			} else if(key==COAP_OPTION_ETAG) {
+//			} else if(key==COAP_OPTION_IF_MATCH) {
+//			} else if(key==COAP_OPTION_IF_NONE_MATCH) {
 			} else if(key==COAP_OPTION_ACCEPT) {
 				reply_content_type = 0;
 				if(value_len==1)
@@ -265,7 +269,7 @@ smcp_variable_request_handler(
 #endif
 
 			if(reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
-				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+				uint32_t etag;
 
 				if(0==node->func(node,SMCP_VAR_GET_MAX_AGE,key_index,buffer)) {
 #if HAVE_STRTOL
@@ -278,6 +282,14 @@ smcp_variable_request_handler(
 
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
+
+				fasthash_start(0);
+				fasthash_feed(buffer,strlen(buffer));
+				etag = fasthash_finish_uint32();
+
+				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+
+				smcp_outbound_add_option_uint(COAP_OPTION_ETAG, etag);
 
 				replyContent = smcp_outbound_get_content_ptr(&replyContentLength);
 
