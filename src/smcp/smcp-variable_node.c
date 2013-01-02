@@ -387,6 +387,7 @@ smcp_node_init_variable(
 	smcp_node_init(&ret->node, node, name);
 
 	ret->node.request_handler = (void*)&smcp_variable_request_handler;
+	ret->node.has_link_content = true;
 
 bail:
 	return ret;

@@ -39,8 +39,6 @@
 #include "net/uip.h"
 #define htons(x)    uip_htons(x)
 #define ntohs(x)    uip_ntohs(x)
-#define HTONS(x)    UIP_HTONS(x)
-#define NTOHS(x)    UIP_NTOHS(x)
 #endif
 
 #define COAP_VERSION    (1)
@@ -50,6 +48,8 @@
 #define COAP_DEFAULT_TLSPORT		(COAP_DEFAULT_PORT+100)	// Guess
 #define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT+1)	// Guess
 #define COAP_DEFAULT_PROXY_TLS_PORT	(COAP_DEFAULT_PORT+101)	// Guess
+
+#define COAP_MULTICAST_IP6_ALLDEVICES	"FF02::436F:4150"
 
 // General limits.
 #define COAP_MAX_MESSAGE_SIZE				(1280-40)

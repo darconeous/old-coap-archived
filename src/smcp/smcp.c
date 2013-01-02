@@ -199,10 +199,10 @@ smcp_init(
 
 	// Go ahead and start listening on our multicast address as well.
 #if SMCP_USE_BSD_SOCKETS
-	{   // Join the multicast group for SMCP_IPV6_MULTICAST_ADDRESS
+	{   // Join the multicast group for COAP_MULTICAST_IP6_ALLDEVICES
 		struct ipv6_mreq imreq;
 		int btrue = 1;
-		struct hostent *tmp = gethostbyname2(SMCP_IPV6_MULTICAST_ADDRESS,
+		struct hostent *tmp = gethostbyname2(COAP_MULTICAST_IP6_ALLDEVICES,
 			AF_INET6);
 		memset(&imreq, 0, sizeof(imreq));
 		self->mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -922,6 +922,7 @@ smcp_status_t
 smcp_handle_request(
 	smcp_t	self
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
 
 #if VERBOSE_DEBUG
@@ -1012,6 +1013,7 @@ smcp_status_t
 smcp_handle_response(
 	smcp_t	self
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
 	smcp_transaction_t handler = NULL;
 	coap_msg_id_t msg_id;

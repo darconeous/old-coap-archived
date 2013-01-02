@@ -226,7 +226,7 @@ plugtest_obs_handler(
 		}
 
 		ret = smcp_outbound_set_content_len(
-			sprintf(content,"%d",(int)time(NULL))
+			sprintf(content,"%u",(uint32_t)time(NULL))
 		);
 		if(ret) goto bail;
 
@@ -386,6 +386,7 @@ plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 
 	smcp_node_init(&self->obs,root,"obs");
 	self->obs.request_handler = &plugtest_obs_handler;
+	self->obs.is_observable = true;
 
 	smcp_timer_init(&self->obs_timer,&plugtest_obs_timer_callback,NULL,(void*)self);
 

@@ -1205,6 +1205,7 @@ smcp_root_pairing_node_t smcp_pairing_init(
 		name = SMCP_PAIRING_DEFAULT_ROOT_PATH;
 	require((self->root_pairing_node = smcp_node_init(NULL, parent, name)), bail);
 	self->root_pairing_node->request_handler = &smcp_pairing_path_request_handler;
+	self->root_pairing_node->has_link_content = true;
 
 bail:
 	return self->root_pairing_node;

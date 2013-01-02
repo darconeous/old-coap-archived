@@ -29,6 +29,8 @@
 #ifndef SMCP_smcp_opts_h
 #define SMCP_smcp_opts_h
 
+#include "coap.h"
+
 /*****************************************************************************/
 #pragma mark - SMCP Build Parameters
 
@@ -49,14 +51,10 @@
 #endif
 
 #ifndef SMCP_DEFAULT_PORT
-#define SMCP_DEFAULT_PORT           5683
+#define SMCP_DEFAULT_PORT           COAP_DEFAULT_PORT
 #endif
 
 #define SMCP_DEFAULT_PORT_CSTR      #SMCP_DEFAULT_PORT
-
-#ifndef SMCP_IPV6_MULTICAST_ADDRESS
-#define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
-#endif
 
 #ifndef IPv4_COMPATIBLE_IPv6_PREFIX
 #define IPv4_COMPATIBLE_IPv6_PREFIX "::FFFF:"
@@ -67,8 +65,6 @@
 #endif
 
 #ifndef SMCP_MAX_URI_LENGTH
-// I can't for the life of me remember where I got these numbers from.
-// TODO: Determine where these numbers come from!
 // This is calclated as the sum of the following:
 //	* strlen("coap://")
 //	* strlen("[0000:0000:0000:0000:0000:0000:0000:0000]:65535")

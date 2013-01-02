@@ -148,6 +148,8 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define smcp_release(self)		smcp_release()
 #define smcp_get_port(self)		smcp_get_port()
 #define smcp_process(self,...)		smcp_process(__VA_ARGS__)
+#define smcp_handle_request(self,...)		smcp_handle_request(__VA_ARGS__)
+#define smcp_handle_response(self,...)		smcp_handle_response(__VA_ARGS__)
 #define smcp_get_timeout(self)		smcp_get_timeout()
 #define smcp_set_proxy_url(self,...)		smcp_set_proxy_url(__VA_ARGS__)
 #define smcp_get_fd(self)		smcp_get_fd()

@@ -184,8 +184,11 @@ smcp_handle_list(
 
 		strlcat(replyContent, ">", content_break_threshold);
 
-		if(node->children)
+		if(node->children || node->has_link_content)
 			strlcat(replyContent, ";ct=40", content_break_threshold);
+
+		if(node->is_observable)
+			strlcat(replyContent, ";obs", content_break_threshold);
 
 		next = bt_next(node);
 
