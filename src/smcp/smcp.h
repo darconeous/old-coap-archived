@@ -169,6 +169,7 @@ extern void smcp_release(smcp_t self);
 
 extern uint16_t smcp_get_port(smcp_t self);
 
+extern smcp_status_t smcp_add_group(smcp_t self,const char* name,const char* addr,smcp_node_t root_node);
 
 #if SMCP_EMBEDDED
 extern struct smcp_s smcp_global_instance;

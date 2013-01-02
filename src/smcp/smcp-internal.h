@@ -66,6 +66,15 @@ extern void smcp_set_current_instance(smcp_t x);
 #pragma mark -
 #pragma mark Class Definitions
 
+struct smcp_group_s {
+	char name[32];
+#if SMCP_USE_BSD_SOCKETS
+	struct in6_addr	addr;
+#elif CONTIKI
+	uip_ipaddr_t addr;
+#endif
+	smcp_node_t root;
+};
 
 // Consider members of this struct to be private!
 struct smcp_s {

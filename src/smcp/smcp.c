@@ -335,6 +335,12 @@ smcp_get_root_node(smcp_t self) {
 }
 #endif
 
+smcp_status_t
+smcp_add_group(smcp_t self,const char* name,const char* addr,smcp_node_t root_node) {
+	// TODO: Writeme!
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+
 #pragma mark -
 #pragma mark Inbound packet parsing functions
 
