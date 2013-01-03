@@ -66,8 +66,9 @@ extern void smcp_set_current_instance(smcp_t x);
 #pragma mark -
 #pragma mark Class Definitions
 
+#if SMCP_CONF_ENABLE_GROUPS
 struct smcp_group_s {
-	char name[32];
+	char name[64];
 #if SMCP_USE_BSD_SOCKETS
 	struct in6_addr	addr;
 #elif CONTIKI
@@ -75,11 +76,17 @@ struct smcp_group_s {
 #endif
 	smcp_node_t root;
 };
+#endif
 
 // Consider members of this struct to be private!
 struct smcp_s {
 	struct smcp_node_s		root_node;
 	void*					reserved_for_root_node_use;
+
+#if SMCP_CONF_ENABLE_GROUPS
+	struct smcp_group_s		group[SMCP_MAX_GROUPS];
+	uint8_t					group_count;
+#endif
 
 #if SMCP_USE_BSD_SOCKETS
 	int						fd;

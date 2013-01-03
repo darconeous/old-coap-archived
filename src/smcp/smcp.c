@@ -335,11 +335,53 @@ smcp_get_root_node(smcp_t self) {
 }
 #endif
 
+#if SMCP_CONF_ENABLE_GROUPS
 smcp_status_t
-smcp_add_group(smcp_t self,const char* name,const char* addr,smcp_node_t root_node) {
-	// TODO: Writeme!
-	return SMCP_STATUS_NOT_IMPLEMENTED;
+smcp_add_group(smcp_t self,const char* name,smcp_node_t root_node,const char* addr_str) {
+	smcp_status_t ret = SMCP_STATUS_OK;
+	struct smcp_group_s *group;
+	SMCP_EMBEDDED_SELF_HOOK;
+
+	if(!addr_str)
+		addr_str = name;
+
+	// TODO: Check to see if this group already exists...?
+
+	DEBUG_PRINTF("Adding Group \"%s\": addr:\"%s\", root:%p",name,addr_str,root_node);
+
+	if(!root_node)
+		root_node = &self->root_node;
+
+	require_action(name || (name[0]!=0),bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(addr_str[0]!=0,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(self->group_count<SMCP_MAX_GROUPS,bail,ret = SMCP_STATUS_FAILURE);
+
+	group = &self->group[self->group_count++];
+
+	strncpy(group->name,name,sizeof(group->name)-1);
+	group->root = root_node;
+
+	memset(&group->addr, 0, sizeof(group->addr));
+
+#if SMCP_USE_BSD_SOCKETS
+	ret = inet_pton(
+		AF_INET6,
+		addr_str,
+		&group->addr
+	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
+	require_noerr(ret, bail);
+#elif CONTIKI
+	ret = uiplib_ipaddrconv(
+		addr_str,
+		&group->addr
+	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
+	require_noerr(ret, bail);
+#endif
+
+bail:
+	return ret;
 }
+#endif
 
 #pragma mark -
 #pragma mark Inbound packet parsing functions

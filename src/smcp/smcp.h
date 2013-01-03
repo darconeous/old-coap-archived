@@ -158,6 +158,7 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
 #define smcp_get_next_msg_id(self,...)		smcp_get_next_msg_id(__VA_ARGS__)
 #define smcp_inbound_start_packet(self,...)		smcp_inbound_start_packet(__VA_ARGS__)
+#define smcp_add_group(self,...)		smcp_add_group(__VA_ARGS__)
 #else
 #define SMCP_EMBEDDED_SELF_HOOK
 #endif
@@ -169,7 +170,9 @@ extern void smcp_release(smcp_t self);
 
 extern uint16_t smcp_get_port(smcp_t self);
 
-extern smcp_status_t smcp_add_group(smcp_t self,const char* name,const char* addr,smcp_node_t root_node);
+#if SMCP_CONF_ENABLE_GROUPS
+extern smcp_status_t smcp_add_group(smcp_t self,const char* name,smcp_node_t root_node,const char* addr);
+#endif
 
 #if SMCP_EMBEDDED
 extern struct smcp_s smcp_global_instance;

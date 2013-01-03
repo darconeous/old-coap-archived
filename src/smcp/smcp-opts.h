@@ -192,6 +192,14 @@
 #define SMCP_PAIRING_DEFAULT_ROOT_PATH	".p"
 #endif
 
+#ifndef SMCP_CONF_ENABLE_GROUPS
+#define SMCP_CONF_ENABLE_GROUPS		1
+#endif
+
+#ifndef SMCP_MAX_GROUPS
+#define SMCP_MAX_GROUPS			3
+#endif
+
 /*****************************************************************************/
 #pragma mark - SMCP Compiler Stuff
 
