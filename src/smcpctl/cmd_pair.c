@@ -148,7 +148,7 @@ send_pair_request(
 	url_[0] = url;
 	url_[1] = url2;
 
-	tid = smcp_get_next_msg_id(smcp,NULL);
+	tid = smcp_get_next_msg_id(smcp);
 	//static char tid_str[30];
 
 	gRet = ERRORCODE_INPROGRESS;

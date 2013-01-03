@@ -164,7 +164,7 @@ send_post_request(
 	request->content_type = content_type;
 	request->method = method;
 
-	tid = smcp_get_next_msg_id(smcp,NULL);
+	tid = smcp_get_next_msg_id(smcp);
 
 	gRet = ERRORCODE_INPROGRESS;
 

@@ -179,9 +179,9 @@ struct smcp_s {
 };
 
 
-extern smcp_status_t smcp_handle_request(smcp_t	self);
+extern smcp_status_t smcp_handle_request();
 
-extern smcp_status_t smcp_handle_response(smcp_t self);
+extern smcp_status_t smcp_handle_response();
 
 extern smcp_status_t smcp_handle_list(smcp_node_t node,smcp_method_t method);
 

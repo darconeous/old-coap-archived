@@ -794,9 +794,9 @@ smcp_inbound_finish_packet() {
 #endif
 
 	if(COAP_CODE_IS_REQUEST(packet->code)) {
-		ret = smcp_handle_request(self);
+		ret = smcp_handle_request();
 	} else if(COAP_CODE_IS_RESULT(packet->code)) {
-		ret = smcp_handle_response(self);
+		ret = smcp_handle_response();
 	}
 
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
@@ -967,12 +967,9 @@ smcp_default_request_handler(
 }
 
 smcp_status_t
-smcp_handle_request(
-	smcp_t	self
-) {
-	SMCP_EMBEDDED_SELF_HOOK;
+smcp_handle_request() {
 	smcp_status_t ret = 0;
-
+	smcp_t const self = smcp_get_current_instance();
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		DEBUG_PRINTF(
@@ -1058,11 +1055,9 @@ bail:
 }
 
 smcp_status_t
-smcp_handle_response(
-	smcp_t	self
-) {
-	SMCP_EMBEDDED_SELF_HOOK;
+smcp_handle_response() {
 	smcp_status_t ret = 0;
+	smcp_t const self = smcp_get_current_instance();
 	smcp_transaction_t handler = NULL;
 	coap_msg_id_t msg_id;
 
@@ -1213,7 +1208,7 @@ smcp_handle_response(
 				if(!ret && (self->inbound.block2_value&(1<<3)) && (handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE)) {
 					DEBUG_PRINTF("Inbound: Preparing to request next block...");
 					handler->next_block2 = self->inbound.block2_value + (1<<4);
-					smcp_transaction_new_msg_id(self, handler, smcp_get_next_msg_id(self, NULL));
+					smcp_transaction_new_msg_id(self, handler, smcp_get_next_msg_id(self));
 					smcp_invalidate_timer(self, &handler->timer);
 					smcp_schedule_timer(
 						self,
@@ -1362,29 +1357,19 @@ smcp_finish_async_response(struct smcp_async_response_s* x) {
 #pragma mark Other
 
 coap_msg_id_t
-smcp_get_next_msg_id(smcp_t self, void* context) {
-#if 0
-	static uint16_t table[16];
-	uint8_t hash;
-
-	fasthash_start(0x31337);
-	fasthash_feed((uint8_t*)&context, sizeof(void*));
-	hash = fasthash_finish_uint8();
-
-	if(!table[hash])
-		table[hash] = (uint16_t)SMCP_FUNC_RANDOM_UINT32();
-
-	table[hash] = table[hash]*23873+41;
-
-	return table[hash];
-#else
+smcp_get_next_msg_id(smcp_t self) {
 	static coap_msg_id_t next_msg_id;
 
 	if(!next_msg_id)
 		next_msg_id = SMCP_FUNC_RANDOM_UINT32();
 
-	return next_msg_id++;
+#if DEBUG
+	next_msg_id++;
+#else
+	next_msg_id = next_msg_id*23873 + 41;
 #endif
+
+	return next_msg_id;
 }
 
 const char* smcp_status_to_cstr(int x) {

@@ -146,6 +146,7 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define SMCP_EMBEDDED_SELF_HOOK 	smcp_t const self = smcp_get_current_instance()
 #define smcp_init(self,...)		smcp_init(__VA_ARGS__)
 #define smcp_release(self)		smcp_release()
+#define smcp_get_next_msg_id(self)		smcp_get_next_msg_id()
 #define smcp_get_port(self)		smcp_get_port()
 #define smcp_process(self,...)		smcp_process(__VA_ARGS__)
 #define smcp_handle_request(self,...)		smcp_handle_request(__VA_ARGS__)
@@ -156,7 +157,6 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define smcp_get_udp_conn(self)		smcp_get_udp_conn()
 #define smcp_handle_inbound_packet(self,...)		smcp_handle_inbound_packet(__VA_ARGS__)
 #define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
-#define smcp_get_next_msg_id(self,...)		smcp_get_next_msg_id(__VA_ARGS__)
 #define smcp_inbound_start_packet(self,...)		smcp_inbound_start_packet(__VA_ARGS__)
 #define smcp_add_group(self,...)		smcp_add_group(__VA_ARGS__)
 #else
@@ -422,7 +422,7 @@ extern smcp_status_t smcp_default_request_handler(
 #pragma mark -
 #pragma mark Helper Functions
 
-extern coap_msg_id_t smcp_get_next_msg_id(smcp_t self, void* context);
+extern coap_msg_id_t smcp_get_next_msg_id(smcp_t self);
 
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 

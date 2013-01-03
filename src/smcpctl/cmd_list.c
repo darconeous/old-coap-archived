@@ -191,9 +191,9 @@ parse_link_format(char* content, size_t content_length, void* context) {
 
 			if(istty && !list_filename_only && type==COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
 				uri_len = fprintf(stdout,
-					"\033[1;34;40m"
+					"\033[0;1;34m"
 					"%s"
-					"\033[0;37;40m"
+					"\033[0;37m"
 					,
 					uri
 				) - 1;
@@ -203,7 +203,7 @@ parse_link_format(char* content, size_t content_length, void* context) {
 				fprintf(stdout,"/");
 			if(!list_filename_only) {
 				if(v)
-					fprintf(stdout,"%s%s",istty?"\033[1;37;40m=\033[0;37;40m":"=",v);
+					fprintf(stdout,"%s%s",istty?"\033[0;1m=\033[0m":"=",v);
 				fprintf(stdout," ");
 				if(uri_len < col_width) {
 					if(name || (type != COAP_CONTENT_TYPE_UNKNOWN)) {
@@ -389,7 +389,7 @@ send_list_request(
 	bool ret = false;
 	smcp_status_t status = 0;
 
-	tid = smcp_get_next_msg_id(smcp,NULL);
+	tid = smcp_get_next_msg_id(smcp);
 	gRet = ERRORCODE_INPROGRESS;
 	list_data_size = 0;
 	retries = 0;

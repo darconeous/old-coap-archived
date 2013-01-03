@@ -218,7 +218,7 @@ async_request_handler(
 
 		ret = smcp_begin_transaction_old(
 			smcp_get_current_instance(),
-			smcp_get_next_msg_id(smcp_get_current_instance(),NULL),
+			smcp_get_next_msg_id(smcp_get_current_instance()),
 			30*1000,	// Retry for thirty seconds.
 			SMCP_TRANSACTION_DELAY_START, // Flags
 			(void*)&resend_async_response,
@@ -384,14 +384,14 @@ tool_cmd_test(
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
 	{
-		coap_msg_id_t tid = smcp_get_next_msg_id(smcp2,NULL);
+		coap_msg_id_t tid = smcp_get_next_msg_id(smcp2);
 
 		char url[256];
 
 #if 0
 		snprintf(url,
 			sizeof(url),
-			"smcp://["SMCP_IPV 6_MULTICAST_ADDRESS "]:%d/device/",
+			"smcp://["COAP_MULTICAST_IP6_ALLDEVICES"]:%d/device/",
 			smcp_get_port(smcp));
 #else
 		snprintf(url,

@@ -185,7 +185,7 @@
 #endif
 
 #ifndef SMCP_CONF_USE_SEQ
-#define SMCP_CONF_USE_SEQ		1 //!SMCP_EMBEDDED
+#define SMCP_CONF_USE_SEQ		1
 #endif
 
 #ifndef SMCP_PAIRING_DEFAULT_ROOT_PATH
