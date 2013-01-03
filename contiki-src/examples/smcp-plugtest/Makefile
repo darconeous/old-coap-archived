@@ -8,6 +8,11 @@ include $(SMCP_ROOT)/contiki-src/Makefile.smcp
 CONTIKI_SOURCEFILES += plugtest-server.c
 APPDIRS += $(SMCP_ROOT)/src/plugtest
 
+ifeq ($(TARGET),avr-raven)
+#APPS += raven-webserver
+APPS += raven-lcd-interface
+endif
+
 CLEAN += *.hex *.elf symbols.c symbols.h
 
 CFLAGS += -DDEBUG=0 -DNDEBUG=1
