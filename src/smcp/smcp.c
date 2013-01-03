@@ -568,23 +568,43 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 		if(iter!=where || (flags&SMCP_GET_PATH_LEADING_SLASH))
 			*iter++='/';
 		filename[filename_len] = 0;
-		iter+=url_encode_cstr(iter, filename, (iter-where)+SMCP_MAX_URI_LENGTH);
+		iter+=url_encode_cstr(iter, filename, SMCP_MAX_URI_LENGTH-(iter-where));
 		filename[filename_len] = old_end;
 	}
 
-//	THIS CODE IS NOT READY YET
-//	if(flags&SMCP_GET_PATH_INCLUDE_QUERY) {
-//
-//		*iter++='?';
-//		while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_QUERY) {
-//			char old_end = filename[filename_len];
-//			if(iter!=where || (flags&SMCP_GET_PATH_LEADING_SLASH))
-//				*iter++=';';
-//			filename[filename_len] = 0;
-//			iter+=url_encode_cstr(iter, filename, (iter-where)+SMCP_MAX_URI_LENGTH);
-//			filename[filename_len] = old_end;
-//		}
-//	}
+	if(flags&SMCP_GET_PATH_INCLUDE_QUERY) {
+		smcp_inbound_reset_next_option();
+		while((key = smcp_inbound_peek_option((const uint8_t**)&filename, &filename_len))!=COAP_OPTION_URI_QUERY
+			&& key!=COAP_OPTION_INVALID
+		) {
+			smcp_inbound_next_option(NULL,NULL);
+		}
+		if(key==COAP_OPTION_URI_QUERY) {
+			*iter++='?';
+			while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_QUERY) {
+				char old_end = filename[filename_len];
+				char* equal_sign;
+
+				if(iter[-1]!='?')
+					*iter++=';';
+
+				filename[filename_len] = 0;
+				equal_sign = strchr(filename,'=');
+
+				if(equal_sign)
+					*equal_sign = 0;
+
+				iter+=url_encode_cstr(iter, filename, SMCP_MAX_URI_LENGTH-(iter-where));
+
+				if(equal_sign) {
+					*iter++='=';
+					iter+=url_encode_cstr(iter, equal_sign+1, SMCP_MAX_URI_LENGTH-(iter-where));
+					*equal_sign = '=';
+				}
+				filename[filename_len] = old_end;
+			}
+		}
+	}
 
 	*iter = 0;
 
