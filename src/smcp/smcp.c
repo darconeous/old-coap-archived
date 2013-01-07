@@ -195,6 +195,16 @@ smcp_init(
 	self->udp_conn = udp_new(NULL, 0, NULL);
 	uip_udp_bind(self->udp_conn, htons(port));
 	self->udp_conn->rport = 0;
+
+	{
+		uip_ipaddr_t all_coap_nodes_addr;
+		if(uiplib_ipaddrconv(
+			COAP_MULTICAST_IP6_ALLDEVICES,
+			&all_coap_nodes_addr
+		)) {
+			uip_ds6_maddr_add(&all_coap_nodes_addr);
+		}
+	}
 #endif
 
 	// Go ahead and start listening on our multicast address as well.
@@ -376,6 +386,7 @@ smcp_add_group(smcp_t self,const char* name,smcp_node_t root_node,const char* ad
 		&group->addr
 	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
 	require_noerr(ret, bail);
+    uip_ds6_maddr_add(&group->addr);
 #endif
 
 bail:
