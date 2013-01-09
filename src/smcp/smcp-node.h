@@ -53,7 +53,7 @@ struct smcp_node_s {
 	smcp_node_t					parent;
 	smcp_node_t					children;
 
-	bool						has_link_content:1,
+	uint8_t						has_link_content:1,
 								is_observable:1,
 								should_free_name:1;
 

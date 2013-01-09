@@ -249,6 +249,71 @@ coap_option_strequal(const char* optionptr,const char* cstr) {
 	return cstr[i]==0;
 }
 
+bool
+coap_verify_packet(const char* packet,size_t packet_size) {
+	const struct coap_header_s* const header = (const void*)packet;
+	coap_option_key_t key = 0;
+	const uint8_t* option_ptr = header->token + header->token_len;
+
+	if(packet_size<4) {
+		// Packet too small
+		DEBUG_PRINTF("PACKET CORRUPTED: Too Small\n");
+		return false;
+	}
+
+	if(header->version!=COAP_VERSION) {
+		// Bad version.
+		DEBUG_PRINTF("PACKET CORRUPTED: Bad Version\n");
+		return false;
+	}
+
+	if(packet_size>COAP_MAX_MESSAGE_SIZE) {
+		// Packet too large
+		DEBUG_PRINTF("PACKET CORRUPTED: Too Large\n");
+		return false;
+	}
+
+	if(header->token_len>8) {
+		// Token too large
+		DEBUG_PRINTF("PACKET CORRUPTED: Bad Token\n");
+		return false;
+	}
+
+	if(header->code==COAP_CODE_EMPTY && packet_size!=4) {
+		DEBUG_PRINTF("PACKET CORRUPTED: Extra Data With Empty Packet (packet_size = %lu)\n",packet_size);
+		return false;
+	}
+
+	for(;option_ptr && (unsigned)(option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
+		option_ptr = coap_decode_option(option_ptr, &key, NULL, NULL);
+		if(!option_ptr) {
+			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
+			return false;
+		}
+		if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
+			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
+			return false;
+		}
+	}
+
+	if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
+		// Option too large
+		DEBUG_PRINTF("PACKET CORRUPTED: Options overflow packet size\n");
+		return false;
+	}
+
+	if((unsigned)(option_ptr-(uint8_t*)header)<packet_size) {
+		if(option_ptr && option_ptr[0]==0xFF) {
+		} else {
+			DEBUG_PRINTF("PACKET CORRUPTED: Missing content marker\n");
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
 const char*
 coap_content_type_to_cstr(coap_content_type_t content_type) {
 	const char* content_type_string = NULL;
@@ -333,6 +398,83 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 	return content_type_string;
 }
 
+const char*
+coap_option_key_to_cstr(
+	coap_option_key_t key, bool for_response
+) {
+	const char* ret = NULL;
+
+	if(!ret) switch(key) {
+		case COAP_OPTION_CONTENT_TYPE: ret = "Content-type"; break;
+		case COAP_OPTION_MAX_AGE: ret = "Max-age"; break;
+		case COAP_OPTION_ETAG: ret = "Etag"; break;
+		case COAP_OPTION_PROXY_URI: ret = "Proxy-uri"; break;
+		case COAP_OPTION_URI_HOST: ret = "URI-host"; break;
+		case COAP_OPTION_URI_PORT: ret = "URI-port"; break;
+		case COAP_OPTION_URI_PATH: ret = "URI-path"; break;
+		case COAP_OPTION_URI_QUERY: ret = "URI-query"; break;
+		case COAP_OPTION_LOCATION_PATH: ret = "Location-path"; break;
+		case COAP_OPTION_LOCATION_QUERY: ret = "Location-query"; break;
+
+		case COAP_OPTION_ACCEPT: ret = "Accept"; break;
+		case COAP_OPTION_OBSERVE: ret = "Observe"; break;
+
+		case COAP_OPTION_BLOCK1: ret = "Block1"; break;
+		case COAP_OPTION_BLOCK2: ret = "Block2"; break;
+
+		default:
+#if !defined(__SDCC)
+		{
+			// NOTE: Not reentrant or thread safe.
+			static char x[48];
+
+			sprintf(x, "X-CoAP-%s%s%s-%u",
+				COAP_OPTION_IS_CRITICAL(key)?"critical":"elective",
+				COAP_OPTION_IS_UNSAFE(key)?"-unsafe":"",
+				COAP_OPTION_IS_NOCACHEKEY(key)?"-nocachekey":"",
+				key
+			);
+
+			ret = x;
+		}
+#else
+			ret = "unknown-option";
+#endif
+		break;
+
+#if !defined(__SDCC)
+/* -- EXPERIMENTAL AFTER THIS POINT -- */
+
+		case COAP_OPTION_CASCADE_COUNT: ret = "Cascade-count"; break;
+		case COAP_OPTION_AUTHENTICATE: ret = for_response?"X-Authenticate":"X-Authorization"; break;
+		case SMCP_OPTION_CSEQ: ret = "Cseq"; break;
+		case SMCP_OPTION_ORIGIN: ret = "Origin"; break;
+#endif
+
+	}
+	return ret;
+}
+
+bool
+coap_option_value_is_string(coap_option_key_t key) {
+	switch(key) {
+		case COAP_OPTION_PROXY_URI:
+		case SMCP_OPTION_CSEQ:
+		case COAP_OPTION_ETAG:
+		case COAP_OPTION_URI_HOST:
+		case COAP_OPTION_URI_QUERY:
+		case COAP_OPTION_LOCATION_PATH:
+		case COAP_OPTION_LOCATION_QUERY:
+		case COAP_OPTION_URI_PATH:
+			return true;
+			break;
+		default:
+			break;
+	}
+	return false;
+}
+
+#if !defined(__SDCC)
 coap_content_type_t
 coap_content_type_from_cstr(const char* x) {
 	if(!x)
@@ -377,76 +519,7 @@ coap_content_type_from_cstr(const char* x) {
 	return COAP_CONTENT_TYPE_UNKNOWN;
 }
 
-bool
-coap_option_value_is_string(coap_option_key_t key) {
-	switch(key) {
-		case COAP_OPTION_PROXY_URI:
-		case SMCP_OPTION_CSEQ:
-		case COAP_OPTION_ETAG:
-		case COAP_OPTION_URI_HOST:
-		case COAP_OPTION_URI_QUERY:
-		case COAP_OPTION_LOCATION_PATH:
-		case COAP_OPTION_LOCATION_QUERY:
-		case COAP_OPTION_URI_PATH:
-			return true;
-			break;
-		default:
-			break;
-	}
-	return false;
-}
 
-const char*
-coap_option_key_to_cstr(
-	coap_option_key_t key, bool for_response
-) {
-	const char* ret = NULL;
-
-	if(!ret) switch(key) {
-		case COAP_OPTION_CONTENT_TYPE: ret = "Content-type"; break;
-		case COAP_OPTION_MAX_AGE: ret = "Max-age"; break;
-		case COAP_OPTION_ETAG: ret = "Etag"; break;
-		case COAP_OPTION_PROXY_URI: ret = "Proxy-uri"; break;
-		case COAP_OPTION_URI_HOST: ret = "URI-host"; break;
-		case COAP_OPTION_URI_PORT: ret = "URI-port"; break;
-		case COAP_OPTION_URI_PATH: ret = "URI-path"; break;
-		case COAP_OPTION_URI_QUERY: ret = "URI-query"; break;
-		case COAP_OPTION_LOCATION_PATH: ret = "Location-path"; break;
-		case COAP_OPTION_LOCATION_QUERY: ret = "Location-query"; break;
-
-		case COAP_OPTION_ACCEPT: ret = "Accept"; break;
-		case COAP_OPTION_OBSERVE: ret = "Observe"; break;
-
-		case COAP_OPTION_BLOCK1: ret = "Block1"; break;
-		case COAP_OPTION_BLOCK2: ret = "Block2"; break;
-
-/* -- EXPERIMENTAL AFTER THIS POINT -- */
-
-		case COAP_OPTION_CASCADE_COUNT: ret = "Cascade-count"; break;
-		case COAP_OPTION_AUTHENTICATE: ret = for_response?"X-Authenticate":"X-Authorization"; break;
-		case SMCP_OPTION_CSEQ: ret = "Cseq"; break;
-		case SMCP_OPTION_ORIGIN: ret = "Origin"; break;
-
-		default:
-		{
-			// NOTE: Not reentrant or thread safe.
-			static char x[48];
-
-			sprintf(x, "X-CoAP-%s%s%s-%u",
-				COAP_OPTION_IS_CRITICAL(key)?"critical":"elective",
-				COAP_OPTION_IS_UNSAFE(key)?"-unsafe":"",
-				COAP_OPTION_IS_NOCACHEKEY(key)?"-nocachekey":"",
-				key
-			);
-
-			ret = x;
-		}
-		break;
-		}
-	return ret;
-}
-
-#if !defined(__SDCC)
 coap_option_key_t
 coap_option_key_from_cstr(const char* key) {
 	if(strcasecmp(key, "Content-type") == 0)
@@ -482,6 +555,7 @@ coap_option_key_from_cstr(const char* key) {
 
 	return COAP_OPTION_INVALID;
 }
+
 #endif
 
 const char*
@@ -492,7 +566,7 @@ http_code_to_cstr(int x) {
 	case COAP_METHOD_POST: return "POST"; break;
 	case COAP_METHOD_PUT: return "PUT"; break;
 	case COAP_METHOD_DELETE: return "DELETE"; break;
-
+#ifndef __SDCC
 	case HTTP_RESULT_CODE_CONTINUE: return "CONTINUE"; break;
 	case HTTP_RESULT_CODE_OK: return "OK"; break;
 	case HTTP_RESULT_CODE_CONTENT: return "CONTENT"; break;
@@ -529,7 +603,7 @@ http_code_to_cstr(int x) {
 	case HTTP_RESULT_CODE_GATEWAY_TIMEOUT: return "TIMEOUT"; break;
 	case HTTP_RESULT_CODE_PROXYING_NOT_SUPPORTED: return
 		    "PROXYING_NOT_SUPPORTED"; break;
-
+#endif
 	default:  break;
 	}
 	return "UNKNOWN";
@@ -537,72 +611,7 @@ http_code_to_cstr(int x) {
 
 const char* coap_code_to_cstr(int x) { return http_code_to_cstr(coap_to_http_code(x)); }
 
-bool
-coap_verify_packet(const char* packet,size_t packet_size) {
-	const struct coap_header_s* const header = (const void*)packet;
-	coap_option_key_t key = 0;
-	const uint8_t* option_ptr = header->token + header->token_len;
-
-	if(packet_size<4) {
-		// Packet too small
-		DEBUG_PRINTF("PACKET CORRUPTED: Too Small\n");
-		return false;
-	}
-
-	if(header->version!=COAP_VERSION) {
-		// Bad version.
-		DEBUG_PRINTF("PACKET CORRUPTED: Bad Version\n");
-		return false;
-	}
-
-	if(packet_size>COAP_MAX_MESSAGE_SIZE) {
-		// Packet too large
-		DEBUG_PRINTF("PACKET CORRUPTED: Too Large\n");
-		return false;
-	}
-
-	if(header->token_len>8) {
-		// Token too large
-		DEBUG_PRINTF("PACKET CORRUPTED: Bad Token\n");
-		return false;
-	}
-
-	if(header->code==COAP_CODE_EMPTY && packet_size!=4) {
-		DEBUG_PRINTF("PACKET CORRUPTED: Extra Data With Empty Packet (packet_size = %lu)\n",packet_size);
-		return false;
-	}
-
-	for(;option_ptr && (unsigned)(option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
-		option_ptr = coap_decode_option(option_ptr, &key, NULL, NULL);
-		if(!option_ptr) {
-			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
-			return false;
-		}
-		if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
-			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
-			return false;
-		}
-	}
-
-	if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
-		// Option too large
-		DEBUG_PRINTF("PACKET CORRUPTED: Options overflow packet size\n");
-		return false;
-	}
-
-	if((unsigned)(option_ptr-(uint8_t*)header)<packet_size) {
-		if(option_ptr && option_ptr[0]==0xFF) {
-		} else {
-			DEBUG_PRINTF("PACKET CORRUPTED: Missing content marker\n");
-			return false;
-		}
-	}
-
-	return true;
-}
-
-
-#if !defined(__SDCC)
+#ifndef __SDCC
 void
 coap_dump_header(
 	FILE*			outstream,

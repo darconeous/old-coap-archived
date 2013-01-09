@@ -68,7 +68,7 @@ smcp_transaction_t
 smcp_transaction_find_via_msg_id(smcp_t self, coap_msg_id_t msg_id) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	return (smcp_transaction_t)bt_find(
-		(void**)&self->transactions,
+		(void*)&self->transactions,
 		(void*)(uintptr_t)msg_id,
 		(bt_compare_func_t)smcp_transaction_compare_msg_id,
 		self

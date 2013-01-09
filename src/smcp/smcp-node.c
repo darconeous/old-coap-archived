@@ -230,9 +230,9 @@ smcp_node_find(
 	int name_len
 ) {
 	return (smcp_node_t)bt_find(
-		(void**)&((smcp_node_t)node)->children,
+		(void*)&((smcp_node_t)node)->children,
 		name,
-		(bt_compare_func_t)smcp_node_ncompare_cstr,
+		(bt_compare_func_t)&smcp_node_ncompare_cstr,
 		&name_len
 	);
 }

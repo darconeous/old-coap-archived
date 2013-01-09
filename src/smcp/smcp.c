@@ -46,6 +46,9 @@
 #include "contiki.h"
 #include "net/uip-udp-packet.h"
 #include "net/uiplib.h"
+#if UIP_CONF_IPV6
+#include "net/uip-ds6.h"
+#endif
 #include "net/tcpip.h"
 #include "net/resolv.h"
 extern uint16_t uip_slen;
@@ -196,6 +199,7 @@ smcp_init(
 	uip_udp_bind(self->udp_conn, htons(port));
 	self->udp_conn->rport = 0;
 
+#if UIP_CONF_IPV6
 	{
 		uip_ipaddr_t all_coap_nodes_addr;
 		if(uiplib_ipaddrconv(
@@ -205,6 +209,7 @@ smcp_init(
 			uip_ds6_maddr_add(&all_coap_nodes_addr);
 		}
 	}
+#endif
 #endif
 
 	// Go ahead and start listening on our multicast address as well.
@@ -381,12 +386,14 @@ smcp_add_group(smcp_t self,const char* name,smcp_node_t root_node,const char* ad
 	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
 	require_noerr(ret, bail);
 #elif CONTIKI
+#if UIP_CONF_IPV6
 	ret = uiplib_ipaddrconv(
 		addr_str,
 		&group->addr
 	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
 	require_noerr(ret, bail);
     uip_ds6_maddr_add(&group->addr);
+#endif
 #endif
 
 bail:
