@@ -173,8 +173,6 @@
 		A64F2AFB166EB265001D9878 /* smcp-transaction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-transaction.h"; path = "src/smcp/smcp-transaction.h"; sourceTree = "<group>"; };
 		A65258361528F45300E389EC /* cmd_monitor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_monitor.c; path = src/smcpctl/cmd_monitor.c; sourceTree = "<group>"; };
 		A65258391528F47C00E389EC /* cmd_monitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = cmd_monitor.h; path = src/smcpctl/cmd_monitor.h; sourceTree = "<group>"; };
-		A676468C156474380074028C /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
-		A676468E156474380074028C /* smcp-test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-test.c"; sourceTree = "<group>"; };
 		A676468F156474380074028C /* Makefile.smcp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.smcp; sourceTree = "<group>"; };
 		A6764690156474380074028C /* smcp-task.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.c.c; path = "smcp-task.c"; sourceTree = "<group>"; tabWidth = 2; usesTabs = 0; };
 		A6764691156474380074028C /* smcp-task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-task.h"; sourceTree = "<group>"; };
@@ -404,18 +402,8 @@
 			children = (
 				A64B12D516782CF000B2D485 /* smcp-plugtest */,
 				A67646A8156479E50074028C /* smcp-simple */,
-				A676468A156474380074028C /* smcp-test */,
 			);
 			path = examples;
-			sourceTree = "<group>";
-		};
-		A676468A156474380074028C /* smcp-test */ = {
-			isa = PBXGroup;
-			children = (
-				A676468C156474380074028C /* Makefile */,
-				A676468E156474380074028C /* smcp-test.c */,
-			);
-			path = "smcp-test";
 			sourceTree = "<group>";
 		};
 		A67646A8156479E50074028C /* smcp-simple */ = {
