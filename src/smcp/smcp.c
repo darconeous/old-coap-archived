@@ -533,6 +533,9 @@ smcp_inbound_origin_is_local() {
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6* const saddr = (struct sockaddr_in6*)smcp_inbound_get_saddr();
 
+	if(!saddr)
+		return false;
+
 	// TODO: Are these checks adequate?
 
 	if(saddr->sin6_port!=htonl(smcp_get_port(smcp_get_current_instance())))
