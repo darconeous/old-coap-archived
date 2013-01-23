@@ -35,9 +35,12 @@
 #endif
 
 #include "assert_macros.h"
+#include "smcp.h"
+
+#if SMCP_CONF_NODE_ROUTER
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "smcp.h"
 #include <string.h>
 #include <ctype.h>
 #include "ll.h"
@@ -66,6 +69,15 @@ smcp_default_request_handler(
 	   return smcp_handle_list(node);
    }
    return SMCP_STATUS_NOT_ALLOWED;
+}
+
+smcp_status_t
+smcp_node_router_handler(void* context) {
+	smcp_request_handler_func handler = NULL;
+	smcp_node_route(context, &handler, &context);
+	if(!handler)
+		return SMCP_STATUS_NOT_IMPLEMENTED;
+	return (*handler)(context);
 }
 
 smcp_status_t
@@ -126,7 +138,10 @@ smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** contex
 	}
 
 	*func = (void*)node->request_handler;
-	*context = (void*)node;
+	if(node->context)
+		*context = node->context;
+	else
+		*context = (void*)node;
 
 bail:
 	return ret;
@@ -445,8 +460,10 @@ smcp_node_get_root(smcp_node_t node) {
 		return smcp_node_get_root(node->parent); // Recursion should be optimized away.
 	return node;
 }
-smcp_node_t
-smcp_get_root_node(smcp_t self) {
-	return &self->root_node;
-}
+//smcp_node_t
+//smcp_get_root_node(smcp_t self) {
+//	return &self->root_node;
+//}
 #endif
+
+#endif // #if SMCP_CONF_NODE_ROUTER

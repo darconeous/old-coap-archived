@@ -29,11 +29,11 @@
 #ifndef __SMCP_INTERNAL_H__
 #define __SMCP_INTERNAL_H__ 1
 
+#include <stdbool.h>
+
 #include "smcp.h"
 #include "smcp-timer.h"
-
-#include "smcp-pairing.h"
-#include <stdbool.h>
+#include "smcp-node.h"
 #include "fasthash.h"
 
 #ifndef SMCP_FUNC_RANDOM_UINT32
@@ -81,9 +81,8 @@ struct smcp_vhost_s {
 
 // Consider members of this struct to be private!
 struct smcp_s {
-	struct smcp_node_s		root_node;
-
-	PAIRING_STATE
+	smcp_request_handler_func	request_handler;
+	void*						request_handler_context;
 
 #if SMCP_CONF_ENABLE_VHOSTS
 	struct smcp_vhost_s		vhost[SMCP_MAX_GROUPS];

@@ -66,12 +66,8 @@ extern uint16_t uip_slen;
 #include "ll.h"
 
 #include "url-helpers.h"
-#include "smcp-node.h"
 #include "smcp-logging.h"
 #include "smcp-auth.h"
-#if SMCP_ENABLE_PAIRING
-#include "smcp-pairing.h"
-#endif
 
 #if SMCP_USE_BSD_SOCKETS
 #include <poll.h>
@@ -252,15 +248,6 @@ smcp_init(
 #endif
 
 	self->is_processing_message = false;
-	require_string(
-		smcp_node_init(&self->root_node,NULL,NULL) != NULL,
-		bail,
-		"Unable to initialize root node"
-	);
-
-#if SMCP_ENABLE_PAIRING
-	smcp_pairing_init(smcp_get_root_node(self),NULL);
-#endif
 
 bail:
 	return self;
@@ -283,9 +270,6 @@ smcp_release(smcp_t self) {
 			timer->cancel(self, timer->context);
 		smcp_invalidate_timer(self, timer);
 	}
-
-	// Delete all nodes
-	smcp_node_delete(smcp_get_root_node(self));
 
 #if SMCP_USE_BSD_SOCKETS
 	if(self->fd>=0)
@@ -346,6 +330,16 @@ smcp_set_proxy_url(smcp_t self,const char* url) {
 	DEBUG_PRINTF("CoAP Proxy URL set to %s",self->proxy_url);
 }
 
+void
+smcp_set_default_request_handler(smcp_t self,smcp_request_handler_func request_handler, void* context)
+{
+	SMCP_EMBEDDED_SELF_HOOK;
+	assert(self);
+	self->request_handler = request_handler;
+	self->request_handler_context = context;
+}
+
+
 #pragma mark -
 #pragma mark Group Support
 
@@ -397,21 +391,34 @@ bail:
 	return ret;
 }
 
-smcp_status_t
+static smcp_status_t
 smcp_vhost_route(smcp_request_handler_func* func, void** context) {
+	smcp_t const self = smcp_get_current_instance();
 	coap_option_key_t key;
 	const uint8_t* value;
 	size_t value_len;
 
-	smcp_inbound_reset_next_option();
+	if(self->vhost_count) {
+		smcp_inbound_reset_next_option();
 
-	while((key = smcp_inbound_next_option(&value,&value_len))!=COAP_OPTION_INVALID) {
-		if(key >= COAP_OPTION_URI_HOST)
-			break;
-	}
+		while((key = smcp_inbound_next_option(&value,&value_len))!=COAP_OPTION_INVALID) {
+			if(key >= COAP_OPTION_URI_HOST)
+				break;
+		}
 
-	if(key == COAP_OPTION_URI_HOST) {
-		// TODO: Look up the host in the vhost list.
+		if(value_len>(sizeof(self->vhost[0].name)-1))
+			return SMCP_STATUS_INVALID_ARGUMENT;
+
+		if(key == COAP_OPTION_URI_HOST) {
+			int i;
+			for(i=0;i<self->vhost_count;i++) {
+				if(strncmp(self->vhost[i].name,(const char*)value,value_len) && self->vhost[i].name[value_len]==0) {
+					*func = self->vhost[i].func;
+					*context = self->vhost[i].context;
+					break;
+				}
+			}
+		}
 	}
 
 	return SMCP_STATUS_OK;
@@ -1018,8 +1025,8 @@ smcp_status_t
 smcp_handle_request() {
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
 	smcp_t const self = smcp_get_current_instance();
-	void* context;
-	smcp_request_handler_func request_handler = NULL;
+	smcp_request_handler_func request_handler = self->request_handler;
+	void* context = self->request_handler_context;
 
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
@@ -1031,26 +1038,20 @@ smcp_handle_request() {
 	}
 #endif
 
+	// TODO: Add proxy-server handler.
+
 	// Authenticate the request.
 	ret = smcp_auth_verify_request();
 	require_noerr(ret,bail);
 
-	// TODO: Add proxy route.
-
 #if SMCP_CONF_ENABLE_VHOSTS
 	smcp_vhost_route(&request_handler, &context);
 	require_noerr(ret,bail);
-
-	if(request_handler)
-		return (*request_handler)(context);
 #endif
 
-	// Route the request.
-	ret = smcp_node_route(smcp_get_root_node(smcp_get_current_instance()), &request_handler, &context);
-	require_noerr(ret,bail);
+	require_action(NULL!=request_handler,bail,ret=SMCP_STATUS_NOT_IMPLEMENTED);
 
-	if(request_handler)
-		return (*request_handler)(context);
+	return (*request_handler)(context);
 
 bail:
 	return ret;

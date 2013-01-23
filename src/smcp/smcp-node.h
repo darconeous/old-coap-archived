@@ -29,20 +29,9 @@
 #ifndef __SMCP_NODE_HEADER__
 #define __SMCP_NODE_HEADER__ 1
 
-#if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
-#if defined(__cplusplus)
-#define __BEGIN_DECLS   extern "C" {
-#define __END_DECLS \
-	}
-#else
-#define __BEGIN_DECLS
-#define __END_DECLS
-#endif
-#endif
-
-#include <stdbool.h>
-
 #include "smcp.h"
+
+#if SMCP_CONF_NODE_ROUTER
 
 __BEGIN_DECLS
 
@@ -67,20 +56,20 @@ struct smcp_node_s {
 
 	void						(*finalize)(smcp_node_t node);
 	smcp_node_inbound_handler_func	request_handler;
+	void*						context;
 };
 
 extern bt_compare_result_t smcp_node_compare(smcp_node_t lhs, smcp_node_t rhs);
 
 #if SMCP_EMBEDDED
-#define smcp_get_root_node(x)		((smcp_node_t)smcp_get_current_instance())
+//#define smcp_get_root_node(x)		((smcp_node_t)smcp_get_current_instance())
 #define smcp_node_get_root(x)		((smcp_node_t)smcp_get_current_instance())
 #else
-extern smcp_node_t smcp_get_root_node(smcp_t self);
+//extern smcp_node_t smcp_get_root_node(smcp_t self);
 extern smcp_node_t smcp_node_get_root(smcp_node_t node);
 #endif
 
-#define smcp_node_get_interface(x)	((smcp_t)smcp_node_get_root(x))
-
+extern smcp_status_t smcp_node_router_handler(void* context);
 extern smcp_status_t smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** context);
 
 extern smcp_node_t smcp_node_alloc();
@@ -132,5 +121,6 @@ extern smcp_status_t smcp_handle_list(smcp_node_t node);
 
 __END_DECLS
 
+#endif // #if SMCP_CONF_NODE_ROUTER
 
 #endif

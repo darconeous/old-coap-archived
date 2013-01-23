@@ -35,12 +35,20 @@
 
 #include <smcp/smcp.h>
 #include <smcp/smcp-opts.h>
+#include <smcp/smcp-node.h>
 #include "plugtest-server.h"
 
 int
 main(int argc, char * argv[]) {
 	smcp_t smcp = smcp_create(0);
 	struct plugtest_server_s plugtest_server;
+	struct smcp_node_s root_node;
+
+	// Set up the root node.
+	smcp_node_init(&root_node,NULL,NULL);
+
+	// Set up the node router.
+	smcp_set_default_request_handler(smcp, &smcp_node_router_handler, &root_node);
 
 #if DEBUG
 	fprintf(stderr,"DEBUG = %d\n",DEBUG);
@@ -82,7 +90,7 @@ main(int argc, char * argv[]) {
 #endif
 
 
-	plugtest_server_init(&plugtest_server,smcp_get_root_node(smcp));
+	plugtest_server_init(&plugtest_server,&root_node);
 
 	fprintf(stderr,"\nPlugtest server listening on port %d.\n", smcp_get_port(smcp));
 

@@ -42,6 +42,9 @@
 #endif
 
 #include "assert_macros.h"
+#include "smcp.h"
+
+#if SMCP_CONF_NODE_ROUTER
 
 #if HAVE_ALLOCA_H
 #include <alloca.h>
@@ -56,7 +59,6 @@
 #include "smcp-internal.h"
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
-#include "smcp.h"
 #include "ll.h"
 #include "url-helpers.h"
 
@@ -207,3 +209,5 @@ smcp_handle_list(
 bail:
 	return ret;
 }
+
+#endif // #if SMCP_CONF_NODE_ROUTER

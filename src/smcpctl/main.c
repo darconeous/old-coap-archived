@@ -32,10 +32,9 @@
 #include "cmd_list.h"
 #include "cmd_get.h"
 #include "cmd_post.h"
-#include "cmd_pair.h"
 #include "cmd_repeat.h"
 #include "cmd_delete.h"
-#include "cmd_monitor.h"
+//#include "cmd_pair.h"
 
 #include "smcpctl.h"
 
@@ -171,11 +170,6 @@ struct {
 		"Repeat the specified command",
 		&tool_cmd_repeat
 	},
-	{
-		"pair",
-		"Pairs an event to an action. (Experimental)",
-		&tool_cmd_pair
-	},
 	{ "cd",	 "Change current directory or URL (command mode)", &tool_cmd_cd },
 	{ "quit", "Terminate command line mode.", NULL },
 
@@ -184,7 +178,11 @@ struct {
 
 
 
-	{ "monitor", NULL, &tool_cmd_monitor, 1},
+//	{
+//		"pair",
+//		"Pairs an event to an action. (Experimental)",
+//		&tool_cmd_pair
+//	},
 
 	{ NULL }
 };

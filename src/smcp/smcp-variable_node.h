@@ -31,6 +31,7 @@
 
 #include "smcp-node.h"
 #include "smcp-opts.h"
+#include "smcp-observable.h"
 
 __BEGIN_DECLS
 
@@ -57,6 +58,7 @@ typedef smcp_status_t (*smcp_variable_node_func)(
 
 struct smcp_variable_node_s {
 	struct smcp_node_s node;
+	struct smcp_observable_s observable;
 	smcp_variable_node_func func;
 };
 
@@ -71,10 +73,6 @@ extern smcp_variable_node_t smcp_variable_node_init(
 extern smcp_status_t smcp_variable_request_handler(
 	smcp_variable_node_t		node
 );
-
-#if SMCP_ENABLE_PAIRING
-extern smcp_status_t smcp_variable_node_did_change(smcp_variable_node_t node, int i, const char* suffix);
-#endif
 
 __END_DECLS
 

@@ -30,8 +30,6 @@
 #define __SMCP_OBSERVABLE_H__ 1
 
 #include "smcp.h"
-#include "smcp-internal.h"
-#include "smcp-transaction.h"
 
 struct smcp_observable_s;
 
@@ -42,6 +40,8 @@ struct smcp_observable_s {
 	int8_t first_observer; // always +1, zero is end of list
 	int8_t last_observer; // always +1, zero is end of list
 };
+
+#define SMCP_OBSERVABLE_BROADCAST_KEY		(0xFF)
 
 typedef struct smcp_observable_s *smcp_observable_t;
 

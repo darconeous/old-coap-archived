@@ -27,6 +27,8 @@
 */
 
 #include "smcp-observable.h"
+#include "smcp-internal.h"
+#include "smcp-transaction.h"
 
 #ifdef SMCP_CONF_MAX_OBSERVERS
 #define SMCP_MAX_OBSERVERS			(SMCP_CONF_MAX_OBSERVERS)
@@ -74,7 +76,7 @@ free_observer(struct smcp_observer_s *observer) {
 #if SMCP_EMBEDDED
 	smcp_t const interface = smcp_get_current_instance();
 #else
-	printf("************freeing observer %d\n",i);
+	//printf("************freeing observer %d\n",i);
 	if(!observer->observable)
 		goto bail;
 	smcp_t const interface = observer->observable->interface;
@@ -245,8 +247,11 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key)
 		goto bail;
 
 	for(i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
-		if(observer_table[i].key != key)
+		if(	(observer_table[i].key == SMCP_OBSERVABLE_BROADCAST_KEY)
+			|| (observer_table[i].key != key)
+		) {
 			continue;
+		}
 
 		//printf("************trigging observer %d\n",i);
 

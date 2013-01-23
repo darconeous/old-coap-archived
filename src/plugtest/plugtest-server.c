@@ -41,8 +41,7 @@
 #define time(x)		clock_seconds()
 #endif
 
-// Eventually, this will go away.
-static struct smcp_observable_s gObservable;
+#define PLUGTEST_OBS_KEY			(0)		// Arbitrary.
 
 smcp_status_t
 plugtest_test_handler(smcp_node_t node)
@@ -200,9 +199,19 @@ bail:
 	return ret;
 }
 
+void
+plugtest_obs_timer_callback(smcp_t smcp, void* context) {
+	struct plugtest_server_s *self = (void*)context;
+
+	smcp_invalidate_timer(smcp,&self->obs_timer);
+	smcp_schedule_timer(smcp,&self->obs_timer,5 * MSEC_PER_SEC);
+
+	smcp_observable_trigger(&self->observable,PLUGTEST_OBS_KEY);
+}
+
 smcp_status_t
 plugtest_obs_handler(
-	smcp_node_t		node
+	struct plugtest_server_s *self
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	smcp_method_t method = smcp_inbound_get_code();
@@ -216,7 +225,10 @@ plugtest_obs_handler(
 
 		smcp_outbound_set_content_type(0);
 
-		smcp_observable_update(&gObservable,0);
+		if(!smcp_timer_is_scheduled(smcp_get_current_instance(), &self->obs_timer))
+			plugtest_obs_timer_callback(smcp_get_current_instance(),self);
+
+		smcp_observable_update(&self->observable,PLUGTEST_OBS_KEY);
 
 		ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,10);
 		if(ret) goto bail;
@@ -236,16 +248,6 @@ plugtest_obs_handler(
 	}
 bail:
 	return ret;
-}
-
-void
-plugtest_obs_timer_callback(smcp_t smcp, void* context) {
-	struct plugtest_server_s *self = (void*)context;
-
-	smcp_invalidate_timer(smcp,&self->obs_timer);
-	smcp_schedule_timer(smcp,&self->obs_timer,5 * MSEC_PER_SEC);
-
-	smcp_observable_trigger(&gObservable,0);
 }
 
 smcp_status_t
@@ -385,13 +387,11 @@ plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 */
 
 	smcp_node_init(&self->obs,root,"obs");
-	self->obs.request_handler = &plugtest_obs_handler;
+	self->obs.request_handler = (void*)&plugtest_obs_handler;
+	self->obs.context = (void*)self;
 	self->obs.is_observable = true;
 
 	smcp_timer_init(&self->obs_timer,&plugtest_obs_timer_callback,NULL,(void*)self);
-
-	// Starts the timer
-	plugtest_obs_timer_callback(smcp_node_get_interface(root),(void*)self);
 
 	return SMCP_STATUS_OK;
 }

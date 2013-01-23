@@ -126,17 +126,10 @@ typedef smcp_status_t (*smcp_request_handler_func)(void* context);
 
 typedef smcp_status_t (*smcp_inbound_resend_func)(void* context);
 
-typedef smcp_status_t (*smcp_router_t)(smcp_request_handler_func* func, void** handler_context);
+//typedef smcp_status_t (*smcp_router_t)(void* context, smcp_request_handler_func* func, void** handler_context);
 
 struct smcp_transaction_s;
 typedef struct smcp_transaction_s *smcp_transaction_t;
-
-////////////////////////////////////////////////////
-
-
-
-
-////////////////////////////////////////////////////
 
 #pragma mark -
 #pragma mark SMCP Daemon methods
@@ -163,6 +156,7 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
 #define smcp_inbound_start_packet(self,...)		smcp_inbound_start_packet(__VA_ARGS__)
 #define smcp_vhost_add(self,...)		smcp_vhost_add(__VA_ARGS__)
+#define smcp_set_default_request_handler(self,...)		smcp_set_default_request_handler(__VA_ARGS__)
 #else
 #define SMCP_EMBEDDED_SELF_HOOK
 #endif
@@ -177,6 +171,7 @@ extern uint16_t smcp_get_port(smcp_t self);
 extern smcp_status_t smcp_vhost_add(smcp_t self,const char* name,const char* addr,smcp_request_handler_func func, void* context);
 #endif
 
+extern void smcp_set_default_request_handler(smcp_t self,smcp_request_handler_func request_handler, void* router_context);
 
 #if SMCP_EMBEDDED
 extern struct smcp_s smcp_global_instance;
@@ -389,4 +384,5 @@ __END_DECLS
 #endif
 
 #include "smcp-transaction.h"
+#include "smcp-observable.h"
 #include "smcp-helpers.h"

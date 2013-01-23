@@ -150,6 +150,11 @@
 #define SMCP_DEBUG_OUTBOUND_DROP_PERCENT	(SMCP_CONF_DEBUG_OUTBOUND_DROP_PERCENT)
 #endif
 
+#ifndef SMCP_CONF_NODE_ROUTER
+#define SMCP_CONF_NODE_ROUTER		!SMCP_EMBEDDED
+#endif
+
+
 /*****************************************************************************/
 #pragma mark - Timer Node Options
 
@@ -165,7 +170,7 @@
 #pragma mark - Pairing/Observation Options
 
 #ifndef SMCP_ENABLE_PAIRING
-#define SMCP_ENABLE_PAIRING		1
+#define SMCP_ENABLE_PAIRING		0
 #endif
 
 #ifndef SMCP_CONF_OBSERVING_ONLY
