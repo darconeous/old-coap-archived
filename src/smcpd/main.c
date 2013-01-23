@@ -54,9 +54,9 @@
 
 #include <smcp/smcp.h>
 #include <smcp/smcp-node.h>
-#include <smcp/smcp-pairing.h>
+//#include <smcp/smcp-pairing.h>
 #include <missing/fgetln.h>
-#include <smcp/smcp-timer_node.h>
+//#include <smcp/smcp-timer_node.h>
 #include "help.h"
 
 #ifndef HAVE_DLFCN_H
@@ -109,6 +109,7 @@ static arg_list_item_t option_list[] = {
 };
 
 static smcp_t smcp;
+static struct smcp_node_s root_node;
 static int gRet;
 
 static const char* gProcessName = "smcpd";
@@ -203,8 +204,8 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 
 	if(!type || strcaseequal(type,"node")) {
 		init_func = &smcp_node_init;
-	} else if(strcaseequal(type,"timer")) {
-		init_func = &smcp_timer_node_init;
+//	} else if(strcaseequal(type,"timer")) {
+//		init_func = &smcp_timer_node_init;
 #if HAVE_LIBCURL
 	} else if(strcaseequal(type,"curl_proxy")) {
 		init_func = &smcp_curl_proxy_node_init;
@@ -321,7 +322,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 	FILE* file = fopen(filename,"r");
 	char* line = NULL;
 	size_t line_len = 0;
-	smcp_node_t node = smcp_get_root_node(smcp);
+	smcp_node_t node = &root_node;
 	int line_number = 0;
 	smcp_status_t status = 0;
 
@@ -369,6 +370,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 		} else if(strcaseequal(cmd,"Pair")) {
 			char* src_arg = get_next_arg(line,&line);
 			char* dest_arg = get_next_arg(line,&line);
+/*
 			if(!src_arg) {
 				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
@@ -399,13 +401,14 @@ read_configuration(smcp_t smcp,const char* filename) {
 				smcp,
 				src_path,
 				dest_path,
-				SMCP_PARING_FLAG_RELIABILITY_PART,
+				SMCP_PAIRING_FLAG_RELIABILITY_PART,
 				NULL
 			);
 			if(status) {
 				syslog(LOG_ERR,"%s:%d: Unable to add pairing, error %d \"%s\"",filename,line_number,status,smcp_status_to_cstr(status));
 				goto bail;
 			}
+*/
 		} else if(strcaseequal(cmd,"<node")) {
 			// Fix trailing '>'
 			int linelen = strlinelen(line);
@@ -534,10 +537,11 @@ main(
 		goto bail;
 	}
 
-//	smcp_pairing_init(
-//		smcp_get_root_node(smcp),
-//		SMCP_PAIRING_DEFAULT_ROOT_PATH
-//	);
+	// Set up the root node.
+	smcp_node_init(&root_node,NULL,NULL);
+
+	// Set up the node router.
+	smcp_set_default_request_handler(smcp, &smcp_node_router_handler, &root_node);
 
 	smcp_set_proxy_url(smcp,getenv("COAP_PROXY_URL"));
 

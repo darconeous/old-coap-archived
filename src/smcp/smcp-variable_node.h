@@ -62,8 +62,6 @@ struct smcp_variable_node_s {
 	smcp_variable_node_func func;
 };
 
-#define smcp_node_init_variable smcp_variable_node_init
-
 extern smcp_variable_node_t smcp_variable_node_init(
 	smcp_variable_node_t self,
 	smcp_node_t parent,

@@ -174,7 +174,7 @@ WriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp)
 	);
 
 	smcp_transaction_begin(
-		smcp_node_get_interface(&request->proxy_node->node),
+		request->proxy_node->interface,
 		&request->async_transaction,
 		10*1000	// Retry for thirty seconds.
 	);
@@ -183,8 +183,8 @@ bail:
 	return realsize;
 }
 
-static smcp_status_t
-smcp_curl_proxy_node_request_handler(
+smcp_status_t
+smcp_curl_proxy_request_handler(
 	smcp_curl_proxy_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
@@ -195,6 +195,8 @@ smcp_curl_proxy_node_request_handler(
 	//require_action(method<=COAP_METHOD_DELETE,bail,ret = SMCP_STATUS_NOT_ALLOWED);
 
 	//require_action(COAP_OPTION_URI_PATH!=smcp_inbound_peek_option(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
+
+	node->interface = smcp_get_current_instance();
 
 	smcp_inbound_reset_next_option();
 
@@ -316,13 +318,13 @@ smcp_curl_proxy_node_init(
 
 	curl_global_init(CURL_GLOBAL_ALL);
 	self->curl_multi_handle = curl_multi_init();
-	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_curl_proxy_node_request_handler;
+	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_curl_proxy_request_handler;
 
 	// Now set the proxy path
-	char path[64];
-	if(0==smcp_node_get_path(&self->node,path,sizeof(path))) {
-		smcp_set_proxy_url(smcp_node_get_interface(&self->node), path);
-	}
+//	char path[64];
+//	if(0==smcp_node_get_path(&self->node,path,sizeof(path))) {
+//		smcp_set_proxy_url(smcp_node_get_interface(&self->node), path);
+//	}
 
 bail:
 	return self;

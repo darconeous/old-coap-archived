@@ -116,6 +116,7 @@ typedef struct cgi_node_request_s* cgi_node_request_t;
 
 struct cgi_node_s {
 	struct smcp_node_s node;
+	smcp_t interface;
 	const char* shell;
 	const char* cmd;
 
@@ -419,7 +420,7 @@ cgi_node_send_next_block(cgi_node_t node,cgi_node_request_t request) {
 	}
 
 	ret = smcp_transaction_begin(
-		smcp_node_get_interface(&node->node),
+		node->interface,
 		transaction,
 		30*MSEC_PER_SEC
 	);
@@ -532,6 +533,8 @@ cgi_node_request_handler(
 	smcp_method_t	method = smcp_inbound_get_code();
 
 	require(node,bail);
+
+	node->interface = smcp_get_current_instance();
 
 	if(method==COAP_METHOD_GET) {
 		ret = 0;

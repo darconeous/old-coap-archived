@@ -320,7 +320,7 @@ bail:
 }
 
 smcp_variable_node_t
-smcp_node_init_variable(
+smcp_variable_node_init(
 	smcp_variable_node_t self, smcp_node_t node, const char* name
 ) {
 	smcp_variable_node_t ret = NULL;

@@ -65,7 +65,7 @@
 #pragma mark -
 #pragma mark Paring
 
-#define SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)		((pairing->flags&SMCP_PARING_FLAG_RELIABILITY_MASK) || !(pairing->seq&0x7))
+#define SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)		((pairing->flags&SMCP_PAIRING_FLAG_RELIABILITY_MASK) || !(pairing->seq&0x7))
 
 #define SMCP_PAIRING_CON_EVENT_EXPIRATION	(30*MSEC_PER_SEC)
 #define SMCP_PAIRING_NON_EVENT_EXPIRATION	(1*MSEC_PER_SEC)
@@ -166,13 +166,13 @@ smcp_pair_inbound_observe_update() {
 		pairing->node.node.request_handler = (smcp_node_inbound_handler_func)&smcp_pairing_node_request_handler;
 		pairing->node.func = (smcp_variable_node_func)&smcp_pairing_node_variable_func;
 
-		pairing->flags = SMCP_PARING_FLAG_OBSERVE;
+		pairing->flags = SMCP_PAIRING_FLAG_OBSERVE;
 //		pairing->content_type = COAP_CONTENT_TYPE_UNKNOWN;
 
 		if(self->inbound.packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)
-			pairing->flags |= SMCP_PARING_FLAG_RELIABILITY_ASAP;
+			pairing->flags |= SMCP_PAIRING_FLAG_RELIABILITY_ASAP;
 		else
-			pairing->flags |= SMCP_PARING_FLAG_RELIABILITY_NONE;
+			pairing->flags |= SMCP_PAIRING_FLAG_RELIABILITY_NONE;
 
 #if SMCP_CONF_USE_SEQ
 //#if DEBUG
@@ -390,7 +390,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		require_noerr(status,bail);
 	}
 
-	if(pairing->flags & SMCP_PARING_FLAG_OBSERVE) {
+	if(pairing->flags & SMCP_PAIRING_FLAG_OBSERVE) {
 		status = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		require_noerr(status,bail);
 
@@ -508,7 +508,7 @@ smcp_event_response_handler(
 
 	if(statuscode==SMCP_STATUS_TIMEOUT) {
 		if(SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)) {
-			if(pairing->flags&SMCP_PARING_FLAG_OBSERVE)
+			if(pairing->flags&SMCP_PAIRING_FLAG_OBSERVE)
 				statuscode = SMCP_STATUS_RESET;
 		} else {
 			statuscode = SMCP_STATUS_OK;
@@ -521,7 +521,7 @@ smcp_event_response_handler(
 #if SMCP_CONF_PAIRING_STATS
 			pairing->errors++;
 #endif
-			if(	(pairing->flags & SMCP_PARING_FLAG_OBSERVE)
+			if(	(pairing->flags & SMCP_PAIRING_FLAG_OBSERVE)
 #if SMCP_CONF_PAIRING_STATS
 				&& (pairing->errors>=10)
 #endif
@@ -529,7 +529,7 @@ smcp_event_response_handler(
 				DEBUG_PRINTF("Event:%p: Too many errors!\n",pairing);
 				statuscode = SMCP_STATUS_RESET;
 			}
-			if(statuscode==SMCP_STATUS_RESET && (pairing->flags&SMCP_PARING_FLAG_OBSERVE)) {
+			if(statuscode==SMCP_STATUS_RESET && (pairing->flags&SMCP_PAIRING_FLAG_OBSERVE)) {
 				smcp_delete_pairing(pairing);
 				return SMCP_STATUS_OK;
 			}
@@ -574,7 +574,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	char* original_path = NULL;
 	struct coap_header_s* packet;
 
-	if(pairing->flags & SMCP_PARING_FLAG_OBSERVE) {
+	if(pairing->flags & SMCP_PAIRING_FLAG_OBSERVE) {
 		status = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		require_noerr(status,bail);
 
@@ -967,7 +967,7 @@ smcp_delete_pairing(smcp_pairing_node_t pairing) {
 
 	DEBUG_PRINTF("%s: %p \"%s\"",__func__,pairing,pairing->node.node.name);
 
-	if(pairing->flags&SMCP_PARING_FLAG_OBSERVE)
+	if(pairing->flags&SMCP_PAIRING_FLAG_OBSERVE)
 		smcp_finish_async_response(&pairing->async_response);
 
 	if(pairing->currentEvent)
@@ -1044,7 +1044,7 @@ smcp_pairing_path_request_handler(
 			self,
 			path,
 			uri,
-			SMCP_PARING_FLAG_RELIABILITY_PART,
+			SMCP_PAIRING_FLAG_RELIABILITY_PART,
 			&idVal
 		);
 

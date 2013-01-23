@@ -63,49 +63,49 @@ struct smcp_pairing_node_s;
 typedef struct smcp_pairing_node_s *smcp_pairing_node_t;
 
 enum {
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_MASK
+	/*!	@enum SMCP_PAIRING_FLAG_RELIABILITY_MASK
 	**	@abstract Bitmask for obtaining the reliability from
 	**	          pairing flags.
 	*/
-	SMCP_PARING_FLAG_RELIABILITY_MASK = (3 << 0),
+	SMCP_PAIRING_FLAG_RELIABILITY_MASK = (3 << 0),
 
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_NONE
+	/*!	@enum SMCP_PAIRING_FLAG_RELIABILITY_NONE
 	**	@abstract Events are transmitted unreliably.
 	*/
-	SMCP_PARING_FLAG_RELIABILITY_NONE = (0 << 0),
+	SMCP_PAIRING_FLAG_RELIABILITY_NONE = (0 << 0),
 
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_ASAP
+	/*!	@enum SMCP_PAIRING_FLAG_RELIABILITY_ASAP
 	**	@abstract Events are transmitted reliably out-of-order.
 	**	          Order-of-events is maintained per-pairing.
 	**	          NOTE: Currently unimplemented!
 	*/
-	SMCP_PARING_FLAG_RELIABILITY_ASAP = (1 << 0),
+	SMCP_PAIRING_FLAG_RELIABILITY_ASAP = (1 << 0),
 
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_PART
+	/*!	@enum SMCP_PAIRING_FLAG_RELIABILITY_PART
 	**	@abstract Events transmitted and will be retransmitted
 	**	          until either the event is ACKed or the event
 	**	          is superceded by a more recent event.
 	**	          NOTE: Currently unimplemented!
 	*/
-	SMCP_PARING_FLAG_RELIABILITY_PART = (2 << 0),
+	SMCP_PAIRING_FLAG_RELIABILITY_PART = (2 << 0),
 
-	/*!	@enum SMCP_PARING_FLAG_RELIABILITY_FULL
+	/*!	@enum SMCP_PAIRING_FLAG_RELIABILITY_FULL
 	**	@abstract Events are transmitted reliably and in-order.
 	**	          Order-of-events is maintained per-pairing.
 	**	          NOTE: Currently unimplemented!
 	*/
-	SMCP_PARING_FLAG_RELIABILITY_FULL = (3 << 0),
+	SMCP_PAIRING_FLAG_RELIABILITY_FULL = (3 << 0),
 
-	/*!	@enum SMCP_PARING_FLAG_TEMPORARY
+	/*!	@enum SMCP_PAIRING_FLAG_TEMPORARY
 	**	@abstract Pairing is not to be comitted to
 	**	          non-volatile storage.
 	*/
-	SMCP_PARING_FLAG_TEMPORARY = (1 << 2),
+	SMCP_PAIRING_FLAG_TEMPORARY = (1 << 2),
 
-	/*!	@enum SMCP_PARING_FLAG_OBSERVE
+	/*!	@enum SMCP_PAIRING_FLAG_OBSERVE
 	**	@abstract This is an observation-style pairing.
 	*/
-	SMCP_PARING_FLAG_OBSERVE = (1 << 3),
+	SMCP_PAIRING_FLAG_OBSERVE = (1 << 3),
 };
 
 
