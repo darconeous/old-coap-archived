@@ -204,9 +204,11 @@ smcp_auth_verify_request() {
 	size_t authvalue_len;
 
 	// For testing purposes only!
-	if(smcp_inbound_get_packet()->code >1 && smcp_inbound_get_packet()->code<COAP_RESULT_100) {
+	if(smcp_inbound_get_code() >1 && smcp_inbound_get_code()<COAP_RESULT_100) {
 		ret = SMCP_STATUS_UNAUTHORIZED;
 	}
+
+	smcp_inbound_reset_next_option();
 
 	while((key = smcp_inbound_next_option(&authvalue,&authvalue_len))!=COAP_OPTION_INVALID) {
 		if(key==COAP_OPTION_PROXY_URI) {

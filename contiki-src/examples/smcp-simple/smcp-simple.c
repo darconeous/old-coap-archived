@@ -53,10 +53,10 @@ AUTOSTART_PROCESSES(
 
 smcp_status_t
 elapsed_time_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+	const smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
@@ -89,10 +89,10 @@ create_elapsed_time_node(
 
 smcp_status_t
 processes_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+	const smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
 		struct process* iter;
@@ -139,10 +139,10 @@ create_process_list_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 smcp_status_t
 reset_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+	const smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_POST) {
 		watchdog_reboot();
@@ -166,10 +166,10 @@ create_reset_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 smcp_status_t
 beep_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+	const smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_POST) {
 #if RAVEN_LCD_INTERFACE
@@ -205,10 +205,10 @@ extern uip_ds6_netif_t uip_ds6_if;
 
 smcp_status_t
 rpl_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+	const smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
 		int size=0,i,j;
@@ -292,10 +292,10 @@ create_rpl_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 #if RESOLV_CONF_MDNS_RESPONDER
 smcp_status_t
 hostname_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+	const smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);

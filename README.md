@@ -21,7 +21,7 @@ performance optimizations will become the focus later on.
 
  * Finish the CoAP-to-HTTP proxy, based on CuRL.
  * Finish *experimental* Digest-MD5 authentication mechanism.
- * Add multicast group support.
+ * Add multicast-group and vhost support.
  * Analyze and decrease stack usage.
  * Analyze and decrease RAM usage.
  * Analyze and decrease executabe code size.

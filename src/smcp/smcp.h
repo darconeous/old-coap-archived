@@ -108,8 +108,6 @@ typedef int smcp_status_t;
 struct smcp_s;
 typedef struct smcp_s *smcp_t;
 
-struct smcp_node_s;
-typedef struct smcp_node_s *smcp_node_t;
 
 
 typedef int32_t cms_t;
@@ -124,15 +122,21 @@ typedef smcp_status_t (*smcp_response_handler_func)(
 	void* context
 );
 
-typedef smcp_status_t (*smcp_inbound_handler_func)(
-	smcp_node_t node,
-    smcp_method_t method
-);
+typedef smcp_status_t (*smcp_request_handler_func)(void* context);
 
 typedef smcp_status_t (*smcp_inbound_resend_func)(void* context);
 
+typedef smcp_status_t (*smcp_router_t)(smcp_request_handler_func* func, void** handler_context);
+
 struct smcp_transaction_s;
 typedef struct smcp_transaction_s *smcp_transaction_t;
+
+////////////////////////////////////////////////////
+
+
+
+
+////////////////////////////////////////////////////
 
 #pragma mark -
 #pragma mark SMCP Daemon methods
@@ -158,11 +162,10 @@ typedef struct smcp_transaction_s *smcp_transaction_t;
 #define smcp_handle_inbound_packet(self,...)		smcp_handle_inbound_packet(__VA_ARGS__)
 #define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
 #define smcp_inbound_start_packet(self,...)		smcp_inbound_start_packet(__VA_ARGS__)
-#define smcp_add_group(self,...)		smcp_add_group(__VA_ARGS__)
+#define smcp_vhost_add(self,...)		smcp_vhost_add(__VA_ARGS__)
 #else
 #define SMCP_EMBEDDED_SELF_HOOK
 #endif
-
 
 extern smcp_t smcp_init(smcp_t self, uint16_t port);
 
@@ -170,19 +173,16 @@ extern void smcp_release(smcp_t self);
 
 extern uint16_t smcp_get_port(smcp_t self);
 
-#if SMCP_CONF_ENABLE_GROUPS
-extern smcp_status_t smcp_add_group(smcp_t self,const char* name,smcp_node_t root_node,const char* addr);
+#if SMCP_CONF_ENABLE_VHOSTS
+extern smcp_status_t smcp_vhost_add(smcp_t self,const char* name,const char* addr,smcp_request_handler_func func, void* context);
 #endif
+
 
 #if SMCP_EMBEDDED
 extern struct smcp_s smcp_global_instance;
 #define smcp_get_current_instance() (&smcp_global_instance)
-#define smcp_get_root_node(x)		((smcp_node_t)&smcp_global_instance)
-#define smcp_node_get_root(x)		((smcp_node_t)&smcp_global_instance)
 #else
 extern smcp_t smcp_get_current_instance(); // Used from callbacks
-extern smcp_node_t smcp_get_root_node(smcp_t self);
-extern smcp_node_t smcp_node_get_root(smcp_node_t node);
 extern smcp_t smcp_create(uint16_t port);
 #endif
 
@@ -237,6 +237,7 @@ extern smcp_status_t smcp_handle_inbound_packet(
 extern const struct coap_header_s* smcp_inbound_get_packet();
 extern size_t smcp_inbound_get_packet_length();
 
+#define smcp_inbound_get_code()		(smcp_inbound_get_packet()->code)
 #define smcp_inbound_get_msg_id()	(smcp_inbound_get_packet()->msg_id)
 
 extern bool smcp_inbound_is_dupe();
@@ -363,6 +364,8 @@ struct smcp_async_response_s {
 
 typedef struct smcp_async_response_s* smcp_async_response_t;
 
+extern bool smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x);
+
 extern smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,int flags);
 
 extern smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
@@ -372,54 +375,6 @@ extern smcp_status_t smcp_outbound_set_async_response(struct smcp_async_response
 extern smcp_status_t smcp_outbound_set_token(const uint8_t *token,uint8_t token_length);
 
 #pragma mark -
-#pragma mark Node Functions
-
-extern smcp_node_t smcp_node_alloc();
-
-extern smcp_node_t smcp_node_init(
-	smcp_node_t self,
-	smcp_node_t parent,
-	const char* name		// Unescaped.
-);
-
-extern void smcp_node_delete(smcp_node_t node);
-
-
-extern smcp_status_t smcp_node_get_path(
-	smcp_node_t node,
-	char* path,
-	size_t max_path_len
-);
-
-extern smcp_node_t smcp_node_find(
-	smcp_node_t node,
-	const char* name,		// Unescaped.
-	int name_len
-);
-
-extern smcp_node_t smcp_node_find_with_path(
-	smcp_node_t node,
-	const char* path		// Fully escaped path.
-);
-
-extern int smcp_node_find_closest_with_path(
-	smcp_node_t node,
-	const char* path,		// Fully escaped path.
-	smcp_node_t* closest
-);
-
-extern int smcp_node_find_next_with_path(
-	smcp_node_t node,
-	const char* path,		// Fully escaped path.
-	smcp_node_t* next
-);
-
-extern smcp_status_t smcp_default_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
-);
-
-#pragma mark -
 #pragma mark Helper Functions
 
 extern coap_msg_id_t smcp_get_next_msg_id(smcp_t self);
@@ -427,6 +382,7 @@ extern coap_msg_id_t smcp_get_next_msg_id(smcp_t self);
 extern int smcp_convert_status_to_result_code(smcp_status_t status);
 
 extern const char* smcp_status_to_cstr(smcp_status_t x);
+
 
 __END_DECLS
 

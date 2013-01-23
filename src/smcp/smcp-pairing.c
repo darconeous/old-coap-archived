@@ -72,8 +72,7 @@
 
 static smcp_status_t
 smcp_pairing_node_request_handler(
-	smcp_pairing_node_t	pairing,
-	smcp_method_t	method
+	smcp_pairing_node_t	pairing
 );
 
 static smcp_status_t
@@ -86,8 +85,7 @@ smcp_pairing_node_variable_func(
 
 static smcp_status_t
 smcp_pairing_path_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 );
 
 
@@ -165,7 +163,7 @@ smcp_pair_inbound_observe_update() {
 
 		require_action(pairing!=NULL,bail,{ free(uri); ret = SMCP_STATUS_FAILURE;});
 
-		pairing->node.node.request_handler = (smcp_inbound_handler_func)&smcp_pairing_node_request_handler;
+		pairing->node.node.request_handler = (smcp_node_inbound_handler_func)&smcp_pairing_node_request_handler;
 		pairing->node.func = (smcp_variable_node_func)&smcp_pairing_node_variable_func;
 
 		pairing->flags = SMCP_PARING_FLAG_OBSERVE;
@@ -280,7 +278,7 @@ smcp_pair_with_sockaddr(
 
 	smcp_variable_node_init(&pairing->node, path_node, strdup(uri));
 
-	pairing->node.node.request_handler = (smcp_inbound_handler_func)&smcp_pairing_node_request_handler;
+	pairing->node.node.request_handler = (smcp_node_inbound_handler_func)&smcp_pairing_node_request_handler;
 	pairing->node.func = (smcp_variable_node_func)&smcp_pairing_node_variable_func;
 
 	pairing->flags = flags;
@@ -934,7 +932,7 @@ smcp_trigger_custom_event_with_node(
 	smcp_content_fetcher_func contentFetcher,
 	void* context
 ) {
-	smcp_t const self = (smcp_t)smcp_node_get_root(node);
+	smcp_t const self = smcp_node_get_interface(node);
 	char path[SMCP_MAX_PATH_LENGTH + 1];
 
 	path[sizeof(path) - 1] = 0;
@@ -964,7 +962,7 @@ smcp_trigger_custom_event_with_node(
 extern smcp_status_t
 smcp_delete_pairing(smcp_pairing_node_t pairing) {
 	smcp_node_t parent = (smcp_node_t)pairing->node.node.parent;
-	smcp_t const self = (smcp_t)smcp_node_get_root(&pairing->node.node);
+	smcp_t const self = smcp_node_get_interface(&pairing->node.node);
 	char* name = (char*)pairing->node.node.name;
 
 	DEBUG_PRINTF("%s: %p \"%s\"",__func__,pairing,pairing->node.node.name);
@@ -989,10 +987,10 @@ smcp_delete_pairing(smcp_pairing_node_t pairing) {
 
 static smcp_status_t
 smcp_pairing_path_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = 0;
+	smcp_method_t method = smcp_inbound_get_code();
 
 #if !SMCP_CONF_OBSERVING_ONLY
 	smcp_t const self = smcp_get_current_instance();
@@ -1057,7 +1055,7 @@ smcp_pairing_path_request_handler(
 		smcp_outbound_send();
 	} else
 #endif // !SMCP_CONF_OBSERVING_ONLY
-	ret = smcp_default_request_handler(node, method);
+	ret = smcp_default_request_handler(node);
 
 bail:
 	return ret;
@@ -1175,10 +1173,10 @@ smcp_pairing_node_variable_func(
 
 static smcp_status_t
 smcp_pairing_node_request_handler(
-	smcp_pairing_node_t		pairing,
-	smcp_method_t	method
+	smcp_pairing_node_t		pairing
 ) {
 	smcp_status_t ret = 0;
+	const smcp_method_t method = smcp_inbound_get_code();
 
 	if(method == COAP_METHOD_DELETE) {
 		if(smcp_inbound_next_option(NULL, NULL)!=COAP_OPTION_URI_PATH) {
@@ -1190,7 +1188,7 @@ smcp_pairing_node_request_handler(
 			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else {
-		ret = smcp_variable_request_handler(&pairing->node, method);
+		ret = smcp_variable_request_handler(&pairing->node);
 	}
 
 bail:
@@ -1200,7 +1198,7 @@ bail:
 smcp_root_pairing_node_t smcp_pairing_init(
 	smcp_node_t parent, const char* name
 ) {
-	smcp_t const self = (smcp_t)smcp_node_get_root(parent);
+	smcp_t const self = smcp_node_get_interface(parent);
 	if(!name)
 		name = SMCP_PAIRING_DEFAULT_ROOT_PATH;
 	require((self->root_pairing_node = smcp_node_init(NULL, parent, name)), bail);

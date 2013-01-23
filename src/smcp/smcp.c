@@ -133,9 +133,6 @@ smcp_init(
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
 
-	if(port == 0)
-		port = SMCP_DEFAULT_PORT;
-
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
 #if SOCKADDR_HAS_LENGTH_FIELD
@@ -147,6 +144,12 @@ smcp_init(
 #endif
 
 	require(self != NULL, bail);
+
+	if(port == 0)
+		port = COAP_DEFAULT_PORT;
+
+	// Clear the entire structure.
+	memset(self, 0, sizeof(*self));
 
 	// Set up the UDP port for listening.
 #if SMCP_USE_BSD_SOCKETS
@@ -343,62 +346,77 @@ smcp_set_proxy_url(smcp_t self,const char* url) {
 	DEBUG_PRINTF("CoAP Proxy URL set to %s",self->proxy_url);
 }
 
-#if !SMCP_EMBEDDED
-smcp_node_t
-smcp_get_root_node(smcp_t self) {
-	return &self->root_node;
-}
-#endif
+#pragma mark -
+#pragma mark Group Support
 
-#if SMCP_CONF_ENABLE_GROUPS
+#if SMCP_CONF_ENABLE_VHOSTS
 smcp_status_t
-smcp_add_group(smcp_t self,const char* name,smcp_node_t root_node,const char* addr_str) {
+smcp_vhost_add(smcp_t self,const char* name,const char* addr_str,smcp_request_handler_func func, void* context) {
 	smcp_status_t ret = SMCP_STATUS_OK;
-	struct smcp_group_s *group;
+	struct smcp_vhost_s *vhost;
 	SMCP_EMBEDDED_SELF_HOOK;
 
 	if(!addr_str)
 		addr_str = name;
 
-	// TODO: Check to see if this group already exists...?
+	// TODO: Check to see if this vhost already exists...?
 
-	DEBUG_PRINTF("Adding Group \"%s\": addr:\"%s\", root:%p",name,addr_str,root_node);
-
-	if(!root_node)
-		root_node = &self->root_node;
+	DEBUG_PRINTF("Adding Group \"%s\": addr:\"%s\", handler:%p context:%p",name,addr_str,func,context);
 
 	require_action(name || (name[0]!=0),bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(addr_str[0]!=0,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(self->group_count<SMCP_MAX_GROUPS,bail,ret = SMCP_STATUS_FAILURE);
+	require_action(self->vhost_count<SMCP_MAX_GROUPS,bail,ret = SMCP_STATUS_FAILURE);
 
-	group = &self->group[self->group_count++];
+	vhost = &self->vhost[self->vhost_count++];
 
-	strncpy(group->name,name,sizeof(group->name)-1);
-	group->root = root_node;
+	strncpy(vhost->name,name,sizeof(vhost->name)-1);
+	vhost->func = func;
+	vhost->context = context;
 
-	memset(&group->addr, 0, sizeof(group->addr));
+	memset(&vhost->addr, 0, sizeof(vhost->addr));
 
 #if SMCP_USE_BSD_SOCKETS
 	ret = inet_pton(
 		AF_INET6,
 		addr_str,
-		&group->addr
+		&vhost->addr
 	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
 	require_noerr(ret, bail);
 #elif CONTIKI
 #if UIP_CONF_IPV6
 	ret = uiplib_ipaddrconv(
 		addr_str,
-		&group->addr
+		&vhost->addr
 	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
 	require_noerr(ret, bail);
-    uip_ds6_maddr_add(&group->addr);
+    uip_ds6_maddr_add(&vhost->addr);
 #endif
 #endif
 
 bail:
 	return ret;
 }
+
+smcp_status_t
+smcp_vhost_route(smcp_request_handler_func* func, void** context) {
+	coap_option_key_t key;
+	const uint8_t* value;
+	size_t value_len;
+
+	smcp_inbound_reset_next_option();
+
+	while((key = smcp_inbound_next_option(&value,&value_len))!=COAP_OPTION_INVALID) {
+		if(key >= COAP_OPTION_URI_HOST)
+			break;
+	}
+
+	if(key == COAP_OPTION_URI_HOST) {
+		// TODO: Look up the host in the vhost list.
+	}
+
+	return SMCP_STATUS_OK;
+}
+
 #endif
 
 #pragma mark -
@@ -997,20 +1015,12 @@ bail:
 #pragma mark Request/Response Handlers
 
 smcp_status_t
-smcp_default_request_handler(
-   smcp_node_t node,
-   smcp_method_t method
-) {
-   if(method == COAP_METHOD_GET) {
-	   return smcp_handle_list(node,method);
-   }
-   return SMCP_STATUS_NOT_ALLOWED;
-}
-
-smcp_status_t
 smcp_handle_request() {
-	smcp_status_t ret = 0;
+	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
 	smcp_t const self = smcp_get_current_instance();
+	void* context;
+	smcp_request_handler_func request_handler = NULL;
+
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		DEBUG_PRINTF(
@@ -1021,75 +1031,26 @@ smcp_handle_request() {
 	}
 #endif
 
-	smcp_node_t node = smcp_get_root_node(self);
-	smcp_inbound_handler_func request_handler = &smcp_default_request_handler;
-
-	// Authenticate this request.
+	// Authenticate the request.
 	ret = smcp_auth_verify_request();
 	require_noerr(ret,bail);
 
-	smcp_inbound_reset_next_option();
+	// TODO: Add proxy route.
 
-	{
-		// TODO: Rewrite this to be more efficient.
-		const uint8_t* prev_option_ptr = self->inbound.this_option;
-		coap_option_key_t prev_key = 0;
-		coap_option_key_t key;
-		const uint8_t* value;
-		size_t value_len;
-		while((key=smcp_inbound_next_option_(&value, &value_len))!=COAP_OPTION_INVALID) {
-			if(key>COAP_OPTION_URI_PATH) {
-				self->inbound.this_option = prev_option_ptr;
-				self->inbound.last_option_key = prev_key;
-				break;
-			} else if(key==COAP_OPTION_URI_PATH) {
-				smcp_node_t next = smcp_node_find(
-					node,
-					(const char*)value,
-					value_len
-				);
-				if(next) {
-					node = next;
-				} else {
-					self->inbound.this_option = prev_option_ptr;
-					self->inbound.last_option_key = prev_key;
-					break;
-				}
-			} else if(key==COAP_OPTION_URI_HOST) {
-				// Skip host at the moment,
-				// because we don't do virtual hosting yet.
-			} else if(key==COAP_OPTION_URI_PORT) {
-				// Skip port at the moment,
-				// because we don't do virtual hosting yet.
-			} else if(key==COAP_OPTION_PROXY_URI) {
-				// Skip the proxy URI for now.
-			} else if(key==COAP_OPTION_CONTENT_TYPE) {
-				// Skip.
-			} else {
-				if(COAP_OPTION_IS_CRITICAL(key)) {
-					ret=SMCP_STATUS_BAD_OPTION;
-					assert_printf("Unrecognized option %d, \"%s\"",
-						key,
-						coap_option_key_to_cstr(key, false)
-					);
-					goto bail;
-				}
-			}
-			prev_option_ptr = self->inbound.this_option;
-			prev_key = self->inbound.last_option_key;
-		}
-	}
+#if SMCP_CONF_ENABLE_VHOSTS
+	smcp_vhost_route(&request_handler, &context);
+	require_noerr(ret,bail);
 
-	if(node->request_handler)
-		request_handler = node->request_handler;
+	if(request_handler)
+		return (*request_handler)(context);
+#endif
 
-	// By returning directly here we can
-	// possibly avoid having the overhead of
-	// the current function on the stack.
-	return (*request_handler)(
-	    node,
-	    self->inbound.packet->code
-	);
+	// Route the request.
+	ret = smcp_node_route(smcp_get_root_node(smcp_get_current_instance()), &request_handler, &context);
+	require_noerr(ret,bail);
+
+	if(request_handler)
+		return (*request_handler)(context);
 
 bail:
 	return ret;
@@ -1390,8 +1351,21 @@ smcp_status_t
 smcp_finish_async_response(struct smcp_async_response_s* x) {
 	// This method is largely a hook for future functionality.
 	// It doesn't really do much at the moment, but it may later.
-
+	x->request_len = 0;
 	return SMCP_STATUS_OK;
+}
+
+bool
+smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
+{
+	smcp_t const self = smcp_get_current_instance();
+#if SMCP_USE_BSD_SOCKETS
+	return (x->socklen == self->inbound.socklen)
+		&& (0==memcmp(&x->saddr,self->inbound.saddr,sizeof(x->saddr)));
+#elif CONTIKI
+	return (x->toport == self->inbound.toport)
+		&& (0==memcmp(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr)));
+#endif
 }
 
 #pragma mark -

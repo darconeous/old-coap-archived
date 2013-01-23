@@ -54,6 +54,7 @@
 #endif
 
 #define PAIRING_STATE   smcp_root_pairing_node_t root_pairing_node;
+
 #define SMCP_PAIRING_EXPIRATION_INFINITE    (0x7FFFFFFF)
 
 __BEGIN_DECLS

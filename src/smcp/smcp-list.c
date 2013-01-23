@@ -62,8 +62,7 @@
 
 smcp_status_t
 smcp_handle_list(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = 0;
 	char* replyContent;

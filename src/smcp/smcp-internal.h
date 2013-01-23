@@ -66,26 +66,28 @@ extern void smcp_set_current_instance(smcp_t x);
 #pragma mark -
 #pragma mark Class Definitions
 
-#if SMCP_CONF_ENABLE_GROUPS
-struct smcp_group_s {
+#if SMCP_CONF_ENABLE_VHOSTS
+struct smcp_vhost_s {
 	char name[64];
 #if SMCP_USE_BSD_SOCKETS
 	struct in6_addr	addr;
 #elif CONTIKI
 	uip_ipaddr_t addr;
 #endif
-	smcp_node_t root;
+	smcp_request_handler_func func;
+	void* context;
 };
 #endif
 
 // Consider members of this struct to be private!
 struct smcp_s {
 	struct smcp_node_s		root_node;
-	void*					reserved_for_root_node_use;
 
-#if SMCP_CONF_ENABLE_GROUPS
-	struct smcp_group_s		group[SMCP_MAX_GROUPS];
-	uint8_t					group_count;
+	PAIRING_STATE
+
+#if SMCP_CONF_ENABLE_VHOSTS
+	struct smcp_vhost_s		vhost[SMCP_MAX_GROUPS];
+	uint8_t					vhost_count;
 #endif
 
 #if SMCP_USE_BSD_SOCKETS
@@ -174,8 +176,6 @@ struct smcp_s {
 #endif
 
 	const char* proxy_url;
-
-	PAIRING_STATE
 };
 
 
@@ -183,7 +183,6 @@ extern smcp_status_t smcp_handle_request();
 
 extern smcp_status_t smcp_handle_response();
 
-extern smcp_status_t smcp_handle_list(smcp_node_t node,smcp_method_t method);
 
 __END_DECLS
 

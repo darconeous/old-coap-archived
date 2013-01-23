@@ -149,8 +149,7 @@ list_response_handler(
 
 smcp_status_t
 sliced_post_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	return SMCP_STATUS_OK;
 }
@@ -203,10 +202,10 @@ async_response_ack_handler(int statuscode, void* context) {
 
 smcp_status_t
 async_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_OK;
+	smcp_method_t	method = smcp_inbound_get_code();
 	if(method==COAP_METHOD_GET) {
 		ret = smcp_start_async_response(&async_response,0);
 		if(ret==SMCP_STATUS_DUPE) {

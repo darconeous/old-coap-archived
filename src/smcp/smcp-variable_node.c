@@ -68,9 +68,9 @@ smcp_variable_node_alloc() {
 
 smcp_status_t
 smcp_variable_request_handler(
-	smcp_variable_node_t		node,
-	smcp_method_t	method
+	smcp_variable_node_t		node
 ) {
+	smcp_method_t method = smcp_inbound_get_code();
 	// TODO: Make this function use less stack space!
 
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
@@ -315,8 +315,7 @@ smcp_variable_request_handler(
 		}
 	} else {
 		ret = smcp_default_request_handler(
-			(void*)node,
-			method
+			(void*)node
 		);
 		check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 	}
@@ -340,7 +339,7 @@ smcp_variable_node_did_change(smcp_variable_node_t node, int i,const char* suffi
 
 		// trigger the event on the specific variable.
 		ret = smcp_trigger_event_with_node(
-			(smcp_t)smcp_node_get_root(&node->node),
+			smcp_node_get_interface(&node->node),
 			(smcp_node_t)node,
 			nodename
 		);
@@ -351,7 +350,7 @@ smcp_variable_node_did_change(smcp_variable_node_t node, int i,const char* suffi
 			strlcat(nodename,suffix,SMCP_VARIABLE_MAX_KEY_LENGTH);
 
 			ret = smcp_trigger_event_with_node(
-				(smcp_t)smcp_node_get_root(&node->node),
+				smcp_node_get_interface(&node->node),
 				(smcp_node_t)node,
 				nodename
 			);
@@ -361,7 +360,7 @@ smcp_variable_node_did_change(smcp_variable_node_t node, int i,const char* suffi
 
 	// Also trigger the event on parent.
 	ret = smcp_trigger_event_with_node(
-		(smcp_t)smcp_node_get_root(&node->node),
+		smcp_node_get_interface(&node->node),
 		(smcp_node_t)node,
 		NULL
 	);

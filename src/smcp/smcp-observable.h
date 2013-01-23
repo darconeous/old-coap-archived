@@ -1,7 +1,7 @@
-/*	@file smcp-variable_node.h
+/*	@file smcp-observable.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Copyright (C) 2011,2012 Robert Quattlebaum
+**	Copyright (C) 2013 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -26,56 +26,27 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_VARIABLE_NODE_H__
-#define __SMCP_VARIABLE_NODE_H__ 1
+#ifndef __SMCP_OBSERVABLE_H__
+#define __SMCP_OBSERVABLE_H__ 1
 
-#include "smcp-node.h"
-#include "smcp-opts.h"
+#include "smcp.h"
+#include "smcp-internal.h"
+#include "smcp-transaction.h"
 
-__BEGIN_DECLS
+struct smcp_observable_s;
 
-struct smcp_variable_node_s;
-typedef struct smcp_variable_node_s *smcp_variable_node_t;
-
-enum {
-	SMCP_VAR_GET_KEY,
-	SMCP_VAR_CHECK_KEY,
-	SMCP_VAR_SET_VALUE,
-	SMCP_VAR_GET_VALUE,
-	SMCP_VAR_GET_LF_TITLE,
-	SMCP_VAR_GET_MAX_AGE,
-	SMCP_VAR_GET_ETAG,
-	SMCP_VAR_GET_OBSERVABLE,
-};
-
-typedef smcp_status_t (*smcp_variable_node_func)(
-	smcp_variable_node_t node,
-	uint8_t action,
-	uint8_t i,
-	char* value
-);
-
-struct smcp_variable_node_s {
-	struct smcp_node_s node;
-	smcp_variable_node_func func;
-};
-
-#define smcp_node_init_variable smcp_variable_node_init
-
-extern smcp_variable_node_t smcp_variable_node_init(
-	smcp_variable_node_t self,
-	smcp_node_t parent,
-	const char* name
-);
-
-extern smcp_status_t smcp_variable_request_handler(
-	smcp_variable_node_t		node
-);
-
-#if SMCP_ENABLE_PAIRING
-extern smcp_status_t smcp_variable_node_did_change(smcp_variable_node_t node, int i, const char* suffix);
+struct smcp_observable_s {
+#if !SMCP_EMBEDDED
+	smcp_t interface;
 #endif
+	int8_t first_observer; // always +1, zero is end of list
+	int8_t last_observer; // always +1, zero is end of list
+};
 
-__END_DECLS
+typedef struct smcp_observable_s *smcp_observable_t;
 
-#endif //__SMCP_TIMER_NODE_H__
+extern smcp_status_t smcp_observable_update(smcp_observable_t context, uint8_t key);
+
+extern smcp_status_t smcp_observable_trigger(smcp_observable_t context, uint8_t key);
+
+#endif

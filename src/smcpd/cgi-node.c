@@ -419,7 +419,7 @@ cgi_node_send_next_block(cgi_node_t node,cgi_node_request_t request) {
 	}
 
 	ret = smcp_transaction_begin(
-		(smcp_t)smcp_node_get_root(&node->node),
+		smcp_node_get_interface(&node->node),
 		transaction,
 		30*MSEC_PER_SEC
 	);
@@ -523,13 +523,13 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 
 smcp_status_t
 cgi_node_request_handler(
-	cgi_node_t		node,
-	smcp_method_t	method
+	cgi_node_t		node
 ) {
 	smcp_status_t ret = 0;
 	cgi_node_request_t request = NULL;
 	uint32_t block2_option = BLOCK_OPTION_DEFAULT;
 	uint32_t block1_option = BLOCK_OPTION_UNSPECIFIED;
+	smcp_method_t	method = smcp_inbound_get_code();
 
 	require(node,bail);
 

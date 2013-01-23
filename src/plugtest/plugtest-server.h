@@ -30,6 +30,7 @@
 #include <smcp/smcp.h>
 #include <smcp/smcp-node.h>
 #include <smcp/smcp-timer.h>
+#include <smcp/smcp-observable.h>
 
 struct plugtest_server_s {
 	struct smcp_node_s test;
@@ -43,6 +44,7 @@ struct plugtest_server_s {
 	struct smcp_node_s large_create;
 	struct smcp_node_s obs;
 	struct smcp_timer_s obs_timer;
+	struct smcp_observable_s observable;
 };
 
 extern smcp_status_t plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root);

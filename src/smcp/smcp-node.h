@@ -46,6 +46,14 @@
 
 __BEGIN_DECLS
 
+struct smcp_node_s;
+typedef struct smcp_node_s* smcp_node_t;
+
+typedef smcp_status_t (*smcp_node_inbound_handler_func)(
+	smcp_node_t node
+//	, smcp_method_t method
+);
+
 // Struct size: 8*sizeof(void*)
 struct smcp_node_s {
 	struct bt_item_s			bt_item;
@@ -58,10 +66,69 @@ struct smcp_node_s {
 								should_free_name:1;
 
 	void						(*finalize)(smcp_node_t node);
-	smcp_inbound_handler_func	request_handler;
+	smcp_node_inbound_handler_func	request_handler;
 };
 
 extern bt_compare_result_t smcp_node_compare(smcp_node_t lhs, smcp_node_t rhs);
+
+#if SMCP_EMBEDDED
+#define smcp_get_root_node(x)		((smcp_node_t)smcp_get_current_instance())
+#define smcp_node_get_root(x)		((smcp_node_t)smcp_get_current_instance())
+#else
+extern smcp_node_t smcp_get_root_node(smcp_t self);
+extern smcp_node_t smcp_node_get_root(smcp_node_t node);
+#endif
+
+#define smcp_node_get_interface(x)	((smcp_t)smcp_node_get_root(x))
+
+extern smcp_status_t smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** context);
+
+extern smcp_node_t smcp_node_alloc();
+
+extern smcp_node_t smcp_node_init(
+	smcp_node_t self,
+	smcp_node_t parent,
+	const char* name		// Unescaped.
+);
+
+extern void smcp_node_delete(smcp_node_t node);
+
+
+extern smcp_status_t smcp_node_get_path(
+	smcp_node_t node,
+	char* path,
+	size_t max_path_len
+);
+
+extern smcp_node_t smcp_node_find(
+	smcp_node_t node,
+	const char* name,		// Unescaped.
+	int name_len
+);
+
+extern smcp_node_t smcp_node_find_with_path(
+	smcp_node_t node,
+	const char* path		// Fully escaped path.
+);
+
+extern int smcp_node_find_closest_with_path(
+	smcp_node_t node,
+	const char* path,		// Fully escaped path.
+	smcp_node_t* closest
+);
+
+extern int smcp_node_find_next_with_path(
+	smcp_node_t node,
+	const char* path,		// Fully escaped path.
+	smcp_node_t* next
+);
+
+extern smcp_status_t smcp_default_request_handler(
+	smcp_node_t		node
+);
+
+extern smcp_status_t smcp_handle_list(smcp_node_t node);
+
 
 __END_DECLS
 

@@ -30,7 +30,6 @@
 #include <smcp/smcp.h>
 
 #include "cmd_list.h"
-#include "cmd_test.h"
 #include "cmd_get.h"
 #include "cmd_post.h"
 #include "cmd_pair.h"
@@ -185,7 +184,6 @@ struct {
 
 
 
-	{ "test", "Self test mode.", &tool_cmd_test, 1 },
 	{ "monitor", NULL, &tool_cmd_monitor, 1},
 
 	{ NULL }
