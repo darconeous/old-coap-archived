@@ -339,6 +339,19 @@
 			name = Utils;
 			sourceTree = "<group>";
 		};
+		A6181DC316B0C2A900655F4F /* Old */ = {
+			isa = PBXGroup;
+			children = (
+				A63EA6D11278B13800B24867 /* cmd_pair.c */,
+				A63EA6D21278B13800B24867 /* cmd_pair.h */,
+				A63EA6D51278B13800B24867 /* cmd_test.c */,
+				A63EA6D61278B13800B24867 /* cmd_test.h */,
+				A65258361528F45300E389EC /* cmd_monitor.c */,
+				A65258391528F47C00E389EC /* cmd_monitor.h */,
+			);
+			name = Old;
+			sourceTree = "<group>";
+		};
 		A6290E4416766FBE008914FD /* Plugtest Server */ = {
 			isa = PBXGroup;
 			children = (
@@ -406,6 +419,7 @@
 		A6C6C483121B2EE200CAB3A3 /* Tool Source */ = {
 			isa = PBXGroup;
 			children = (
+				A6181DC316B0C2A900655F4F /* Old */,
 				A6BE9A3C164CC66100473330 /* Makefile.am */,
 				A63EA6CD1278B13800B24867 /* cmd_get.c */,
 				A63EA6CE1278B13800B24867 /* cmd_get.h */,
@@ -413,16 +427,10 @@
 				A63EA6D01278B13800B24867 /* cmd_list.h */,
 				A6A27BA1127B934F003708DF /* cmd_delete.h */,
 				A6A27BA2127B934F003708DF /* cmd_delete.c */,
-				A63EA6D11278B13800B24867 /* cmd_pair.c */,
-				A63EA6D21278B13800B24867 /* cmd_pair.h */,
 				A63EA6D31278B13800B24867 /* cmd_post.c */,
 				A63EA6D41278B13800B24867 /* cmd_post.h */,
-				A63EA6D51278B13800B24867 /* cmd_test.c */,
-				A63EA6D61278B13800B24867 /* cmd_test.h */,
 				A63EB2871278CBB100B24867 /* cmd_repeat.h */,
 				A63EB2881278CBB100B24867 /* cmd_repeat.c */,
-				A65258361528F45300E389EC /* cmd_monitor.c */,
-				A65258391528F47C00E389EC /* cmd_monitor.h */,
 				A63EA6D71278B13800B24867 /* help.c */,
 				A63EA6D81278B13800B24867 /* help.h */,
 				A63EA6D91278B13800B24867 /* main.c */,
@@ -438,8 +446,6 @@
 				A63EA6ED1278B16D00B24867 /* smcp-pairing.h */,
 				A63EA6EE1278B16D00B24867 /* smcp-timer_node.c */,
 				A63EA6EF1278B16D00B24867 /* smcp-timer_node.h */,
-				A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */,
-				A6F536ED155F0E5200E0E324 /* smcp-curl_proxy.h */,
 			);
 			name = Deferred;
 			sourceTree = "<group>";
@@ -457,6 +463,8 @@
 		A6DB621A16AFBBCB00D7248E /* Extras */ = {
 			isa = PBXGroup;
 			children = (
+				A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */,
+				A6F536ED155F0E5200E0E324 /* smcp-curl_proxy.h */,
 				A63EA6F21278B16D00B24867 /* smcp-variable_node.c */,
 				A63EA6F31278B16D00B24867 /* smcp-variable_node.h */,
 			);

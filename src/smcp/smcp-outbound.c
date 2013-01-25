@@ -304,6 +304,7 @@ smcp_outbound_add_options_up_to_key_(
 	smcp_status_t ret = SMCP_STATUS_OK;
 	smcp_t const self = smcp_get_current_instance();
 
+#if SMCP_CONF_TRANS_ENABLE_BLOCK2
 	if(	(self->current_transaction
 		&& self->current_transaction->next_block2)
 		&& self->outbound.last_option_key<COAP_OPTION_BLOCK2
@@ -317,7 +318,9 @@ smcp_outbound_add_options_up_to_key_(
 			size
 		);
 	}
+#endif
 
+#if SMCP_CONF_TRANS_ENABLE_OBSERVING
 	if(	(self->current_transaction && self->current_transaction->flags&SMCP_TRANSACTION_OBSERVE)
 		&& self->outbound.last_option_key<COAP_OPTION_OBSERVE
 		&& key>COAP_OPTION_OBSERVE
@@ -331,6 +334,7 @@ smcp_outbound_add_options_up_to_key_(
 			);
 		}
 	}
+#endif
 
 	if(	self->outbound.last_option_key<COAP_OPTION_AUTHENTICATE
 		&& key>COAP_OPTION_AUTHENTICATE
@@ -359,18 +363,21 @@ smcp_outbound_add_option(
 	coap_option_key_t key, const char* value, size_t len
 ) {
 	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
 
 	ret = smcp_outbound_add_options_up_to_key_(key);
 	require_noerr(ret, bail);
 
-	if(key!=COAP_OPTION_BLOCK2
-		|| !self->current_transaction
-		|| !self->current_transaction->next_block2
+#if SMCP_CONF_TRANS_ENABLE_BLOCK2
+	if(key==COAP_OPTION_BLOCK2
+		&& smcp_get_current_instance()->current_transaction
+		&& smcp_get_current_instance()->current_transaction->next_block2
 	) {
-		ret = smcp_outbound_add_option_(key,value,len);
-		require_noerr(ret, bail);
+		goto bail;
 	}
+#endif
+
+	ret = smcp_outbound_add_option_(key,value,len);
+	require_noerr(ret, bail);
 
 bail:
 	return ret;
@@ -403,13 +410,8 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	};
 
 	struct addrinfo hint = {
-#if 0
-		.ai_flags		= AI_ADDRCONFIG | AI_ALL | AI_V4MAPPED,
-		.ai_family		= AF_INET6,
-#else
 		.ai_flags		= AI_ADDRCONFIG,
 		.ai_family		= AF_UNSPEC,
-#endif
 	};
 
 	struct addrinfo *results = NULL;
@@ -587,7 +589,7 @@ smcp_outbound_set_uri(
 		);
 
 		if(!proto_str && !addr_str) {
-			// Pairing with ourselves
+			// Talking to ourself.
 			proto_str = "coap";
 			addr_str = "::1";
 			toport = smcp_get_port(smcp_get_current_instance());
@@ -605,10 +607,7 @@ smcp_outbound_set_uri(
 		);
 	}
 
-	if(	proto_str
-		&& !strequal_const(proto_str, "coap")
-		&& !strequal_const(proto_str, "smcp")
-	) {
+	if(	proto_str && !strequal_const(proto_str, "coap") ) {
 		require_action_string(
 			self->proxy_url,
 			bail,
@@ -668,7 +667,7 @@ smcp_outbound_set_uri(
 		char* key;
 
 		while(url_form_next_value(&query_str,&key,NULL)) {
-			int len = strlen(key);
+			size_t len = strlen(key);
 			if(len)
 				ret = smcp_outbound_add_option(COAP_OPTION_URI_QUERY, key, len);
 			require_noerr(ret,bail);

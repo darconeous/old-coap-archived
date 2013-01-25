@@ -102,9 +102,6 @@ smcp_get_current_instance() {
 #endif
 
 #pragma mark -
-#pragma mark SMCP Globals
-
-#pragma mark -
 #pragma mark SMCP Implementation
 
 #if !SMCP_EMBEDDED
@@ -353,13 +350,11 @@ smcp_vhost_add(smcp_t self,const char* name,const char* addr_str,smcp_request_ha
 	if(!addr_str)
 		addr_str = name;
 
-	// TODO: Check to see if this vhost already exists...?
-
 	DEBUG_PRINTF("Adding Group \"%s\": addr:\"%s\", handler:%p context:%p",name,addr_str,func,context);
 
 	require_action(name || (name[0]!=0),bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(addr_str[0]!=0,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(self->vhost_count<SMCP_MAX_GROUPS,bail,ret = SMCP_STATUS_FAILURE);
+	require_action(self->vhost_count<SMCP_MAX_VHOSTS,bail,ret = SMCP_STATUS_FAILURE);
 
 	vhost = &self->vhost[self->vhost_count++];
 
@@ -436,8 +431,8 @@ smcp_inbound_reset_next_option() {
 	self->inbound.this_option = self->inbound.packet->token + self->inbound.packet->token_len;
 }
 
-static coap_option_key_t
-smcp_inbound_next_option_(const uint8_t** value, size_t* len) {
+coap_option_key_t
+smcp_inbound_next_option(const uint8_t** value, size_t* len) {
 	smcp_t const self = smcp_get_current_instance();
 	if(self->inbound.this_option<((uint8_t*)self->inbound.packet+self->inbound.packet_len)
 		&& self->inbound.this_option[0]!=0xFF
@@ -452,13 +447,6 @@ smcp_inbound_next_option_(const uint8_t** value, size_t* len) {
 		self->inbound.last_option_key = COAP_OPTION_INVALID;
 	}
 	return self->inbound.last_option_key;
-}
-
-coap_option_key_t
-smcp_inbound_next_option(const uint8_t** value, size_t* len) {
-	coap_option_key_t ret;
-	ret = smcp_inbound_next_option_(value, len);
-	return ret;
 }
 
 coap_option_key_t
@@ -830,7 +818,7 @@ smcp_inbound_finish_packet() {
 				if(self->inbound.max_age<5)
 					self->inbound.max_age = 5;
 			}
-		} while(smcp_inbound_next_option_(NULL,NULL)!=COAP_OPTION_INVALID);
+		} while(smcp_inbound_next_option(NULL,NULL)!=COAP_OPTION_INVALID);
 
 		require(((unsigned)(self->inbound.this_option-(uint8_t*)self->inbound.packet)==self->inbound.packet_len) || self->inbound.this_option[0]==0xFF,bail);
 
@@ -870,12 +858,6 @@ smcp_inbound_finish_packet() {
 	if(	(ret == SMCP_STATUS_OK)
 		&& !self->inbound.is_fake
 		&& !self->inbound.is_dupe
-//		&& (self->inbound.packet->code != COAP_METHOD_GET
-//			|| (self->did_respond
-//				&& self->outbound.packet->code == COAP_CODE_EMPTY
-//				&& self->outbound.packet->tt == COAP_TRANS_TYPE_ACK
-//			)
-//		)
 	) {
 		// This is not a dupe, add it to the list.
 		self->dupe[self->dupe_index].hash = self->inbound.transaction_hash;
@@ -915,34 +897,6 @@ bail:
 	self->inbound.content_ptr = NULL;
 	self->inbound.content_len = 0;
 	smcp_set_current_instance(NULL);
-	return ret;
-}
-
-
-// DEPRECATED. DON'T USE.
-smcp_status_t
-smcp_handle_inbound_packet(
-	smcp_t	self,
-	char*			buffer,
-	size_t			packet_length,
-	SMCP_SOCKET_ARGS
-) {
-	SMCP_EMBEDDED_SELF_HOOK;
-	smcp_status_t ret = 0;
-
-	ret = smcp_inbound_start_packet(self, buffer, packet_length);
-	require(ret==SMCP_STATUS_OK,bail);
-
-#if SMCP_USE_BSD_SOCKETS
-	ret = smcp_inbound_set_srcaddr(saddr, socklen);
-#elif CONTIKI
-	ret = smcp_inbound_set_srcaddr(toaddr, toport);
-#endif
-	require(ret==SMCP_STATUS_OK,bail);
-
-	return smcp_inbound_finish_packet();
-
-bail:
 	return ret;
 }
 
@@ -1014,10 +968,6 @@ bail:
 	return ret;
 }
 
-
-#pragma mark -
-#pragma mark Transaction Support
-
 #pragma mark -
 #pragma mark Request/Response Handlers
 
@@ -1062,22 +1012,17 @@ smcp_handle_response() {
 	smcp_status_t ret = 0;
 	smcp_t const self = smcp_get_current_instance();
 	smcp_transaction_t handler = NULL;
-	coap_msg_id_t msg_id;
+	coap_msg_id_t msg_id = smcp_inbound_get_msg_id();
 
 #if VERBOSE_DEBUG
-	{   // Print out debugging information.
-		DEBUG_PRINTF(
-			"smcp(%p): Incoming response! tid=%d",
-			self,
-			smcp_inbound_get_msg_id()
-		);
-	}
-#endif
-
-	DEBUG_PRINTF(CSTR("%p: Total Pending Transactions: %d"), self,
+	DEBUG_PRINTF(
+		"smcp(%p): Incoming response! tid=%d",
+		self,
+		smcp_inbound_get_msg_id()
+	);
+	DEBUG_PRINTF("%p: Total Pending Transactions: %d", self,
 		(int)bt_count((void**)&self->transactions));
-
-	msg_id = smcp_inbound_get_msg_id();
+#endif
 
 	{
 		coap_msg_id_t token = 0;
@@ -1104,13 +1049,9 @@ smcp_handle_response() {
 		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {
 			DEBUG_PRINTF("Inbound: Unknown Response, sending reset. . .");
 
-			ret = smcp_outbound_begin_response(0);
-			require_noerr(ret,bail);
-
+			smcp_outbound_begin_response(0);
 			self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
-
 			ret = smcp_outbound_send();
-			require_noerr(ret,bail);
 		} else {
 			DEBUG_PRINTF("Inbound: Unknown ack or reset, ignoring. . .");
 		}
@@ -1131,6 +1072,7 @@ smcp_handle_response() {
 
 		smcp_inbound_reset_next_option();
 
+#if SMCP_CONF_TRANS_ENABLE_OBSERVING
 		if((handler->flags & SMCP_TRANSACTION_OBSERVE) && self->inbound.has_observe_option) {
 			cms_t cms = self->inbound.max_age*MSEC_PER_SEC;
 
@@ -1190,7 +1132,9 @@ smcp_handle_response() {
 				&handler->timer,
 				cms
 			);
-		} else {
+		} else
+#endif // #if SMCP_CONF_TRANS_ENABLE_OBSERVING
+		{
 			smcp_response_handler_func callback = handler->callback;
 			if(!(handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE) && !(handler->flags&SMCP_TRANSACTION_OBSERVE)) {
 				handler->callback = NULL;
@@ -1207,6 +1151,7 @@ smcp_handle_response() {
 
 			handler->attemptCount = 0;
 			handler->waiting_for_async_response = false;
+#if SMCP_CONF_TRANS_ENABLE_BLOCK2
 			if(handler->active && msg_id==handler->msg_id) {
 				if(!ret && (self->inbound.block2_value&(1<<3)) && (handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE)) {
 					DEBUG_PRINTF("Inbound: Preparing to request next block...");
@@ -1251,6 +1196,7 @@ smcp_handle_response() {
 					);
 				}
 			}
+#endif // SMCP_CONF_TRANS_ENABLE_BLOCK2
 		}
 	}
 
@@ -1388,6 +1334,7 @@ smcp_get_next_msg_id(smcp_t self) {
 	return next_msg_id;
 }
 
+#if !SMCP_EMBEDDED || DEBUG
 const char* smcp_status_to_cstr(int x) {
 	switch(x) {
 	case SMCP_STATUS_OK: return "OK"; break;
@@ -1435,6 +1382,7 @@ const char* smcp_status_to_cstr(int x) {
 	}
 	return NULL;
 }
+#endif
 
 int smcp_convert_status_to_result_code(smcp_status_t status) {
 	int ret = COAP_RESULT_500_INTERNAL_SERVER_ERROR;

@@ -352,7 +352,7 @@ struct smcp_async_response_s {
 
 	union {
 		struct coap_header_s header;
-		uint8_t bytes[128];
+		uint8_t bytes[80];
 	} request;
 	size_t request_len;
 };

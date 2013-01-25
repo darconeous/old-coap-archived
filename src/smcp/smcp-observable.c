@@ -30,17 +30,9 @@
 #include "smcp-internal.h"
 #include "smcp-transaction.h"
 
-#ifdef SMCP_CONF_MAX_OBSERVERS
-#define SMCP_MAX_OBSERVERS			(SMCP_CONF_MAX_OBSERVERS)
-#else
-#define SMCP_MAX_OBSERVERS			(4)
-#endif
-
 #define INVALID_OBSERVER_INDEX		(SMCP_MAX_OBSERVERS)
 
 #define SHOULD_CONFIRM_EVENT_FOR_OBSERVER(obs)		(!((obs)->seq&0x7))
-#define SMCP_OBSERVER_CON_EVENT_EXPIRATION	(30*MSEC_PER_SEC)
-#define SMCP_OBSERVER_NON_EVENT_EXPIRATION	(1*MSEC_PER_SEC)
 
 struct smcp_observer_s {
 	/**** All of this is private. Don't touch. ****/

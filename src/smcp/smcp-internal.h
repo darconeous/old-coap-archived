@@ -85,7 +85,7 @@ struct smcp_s {
 	void*						request_handler_context;
 
 #if SMCP_CONF_ENABLE_VHOSTS
-	struct smcp_vhost_s		vhost[SMCP_MAX_GROUPS];
+	struct smcp_vhost_s		vhost[SMCP_MAX_VHOSTS];
 	uint8_t					vhost_count;
 #endif
 

@@ -227,8 +227,12 @@ smcp_internal_transaction_timeout_(
 
 		handler->waiting_for_async_response = false;
 		handler->attemptCount = 0;
+#if SMCP_CONF_TRANS_ENABLE_OBSERVING
 		handler->last_observe = 0;
+#endif
+#if SMCP_CONF_TRANS_ENABLE_BLOCK2
 		handler->next_block2 = 0;
+#endif
 		smcp_transaction_new_msg_id(self,handler,smcp_get_next_msg_id(self));
 		convert_cms_to_timeval(&handler->expiration, SMCP_OBSERVATION_DEFAULT_MAX_AGE);
 
@@ -360,8 +364,12 @@ smcp_transaction_begin(
 	handler->msg_id = handler->token;
 	handler->waiting_for_async_response = false;
 	handler->attemptCount = 0;
+#if SMCP_CONF_TRANS_ENABLE_OBSERVING
 	handler->last_observe = 0;
+#endif
+#if SMCP_CONF_TRANS_ENABLE_BLOCK2
 	handler->next_block2 = 0;
+#endif
 	handler->active = 1;
 	handler->has_fired = false;
 	convert_cms_to_timeval(&handler->expiration, expiration);
@@ -442,52 +450,52 @@ smcp_transaction_end(
 
 
 
-
-//! DEPRECATED.
-smcp_status_t
-smcp_begin_transaction_old(
-	smcp_t						self,
-	coap_msg_id_t		tid,
-	cms_t						cmsExpiration,
-	int							flags,
-	smcp_inbound_resend_func	resendCallback,
-	smcp_response_handler_func	callback,
-	void*						context
-) {
-	smcp_status_t ret = 0;
-	smcp_transaction_t transaction = NULL;
-
-	transaction = smcp_transaction_init(
-		transaction,
-		flags,
-		resendCallback,
-		callback,
-		context
-	);
-
-	ret = smcp_transaction_begin(self,transaction,cmsExpiration);
-
-	require_noerr(ret,bail);
-	require(transaction!=NULL,bail);
-
-	transaction->token = tid;
-
-bail:
-	return ret;
-}
-
-//! DEPRECATED.
-smcp_status_t
-smcp_invalidate_transaction_old(
-	smcp_t			self,
-	coap_msg_id_t	tid
-) {
-	smcp_transaction_t transaction = smcp_transaction_find_via_msg_id(self, tid);
-	if(!transaction) {
-		transaction = smcp_transaction_find_via_token(self, tid);
-	}
-	if(transaction)
-		smcp_transaction_end(self, transaction);
-	return 0;
-}
-
+//
+////! DEPRECATED.
+//smcp_status_t
+//smcp_begin_transaction_old(
+//	smcp_t						self,
+//	coap_msg_id_t		tid,
+//	cms_t						cmsExpiration,
+//	int							flags,
+//	smcp_inbound_resend_func	resendCallback,
+//	smcp_response_handler_func	callback,
+//	void*						context
+//) {
+//	smcp_status_t ret = 0;
+//	smcp_transaction_t transaction = NULL;
+//
+//	transaction = smcp_transaction_init(
+//		transaction,
+//		flags,
+//		resendCallback,
+//		callback,
+//		context
+//	);
+//
+//	ret = smcp_transaction_begin(self,transaction,cmsExpiration);
+//
+//	require_noerr(ret,bail);
+//	require(transaction!=NULL,bail);
+//
+//	transaction->token = tid;
+//
+//bail:
+//	return ret;
+//}
+//
+////! DEPRECATED.
+//smcp_status_t
+//smcp_invalidate_transaction_old(
+//	smcp_t			self,
+//	coap_msg_id_t	tid
+//) {
+//	smcp_transaction_t transaction = smcp_transaction_find_via_msg_id(self, tid);
+//	if(!transaction) {
+//		transaction = smcp_transaction_find_via_token(self, tid);
+//	}
+//	if(transaction)
+//		smcp_transaction_end(self, transaction);
+//	return 0;
+//}
+//
