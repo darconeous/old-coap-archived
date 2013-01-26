@@ -26,8 +26,8 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef SMCP_smcp_opts_h
-#define SMCP_smcp_opts_h
+#ifndef __SMCP_OPS_H__
+#define __SMCP_OPS_H__
 
 #include "coap.h"
 

@@ -398,7 +398,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		require_noerr(status,bail);
 
 		if(event->contentFetcher) {
-			status = smcp_outbound_set_content_type(content_type);
+			status = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, content_type);
 			check_noerr(status);
 		}
 
@@ -432,7 +432,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		status = smcp_outbound_set_uri(smcp_pairing_get_uri_cstr(pairing),0);
 		require_noerr(status,bail);
 
-		status = smcp_outbound_add_option(SMCP_OPTION_ORIGIN, smcp_pairing_get_path_cstr(pairing), HEADER_CSTR_LEN);
+		status = smcp_outbound_add_option(SMCP_OPTION_ORIGIN, smcp_pairing_get_path_cstr(pairing), SMCP_CSTR_LEN);
 		require_noerr(status,bail);
 
 //#if SMCP_CONF_USE_SEQ
@@ -451,7 +451,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 //			(long unsigned int)pairing->seq
 //		);
 //#endif
-//		status = smcp_outbound_add_option(SMCP_OPTION_CSEQ, cseq, HEADER_CSTR_LEN);
+//		status = smcp_outbound_add_option(SMCP_OPTION_CSEQ, cseq, SMCP_CSTR_LEN);
 //		require_noerr(status,bail);
 //#endif
 #endif // !SMCP_CONF_OBSERVING_ONLY
@@ -625,7 +625,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 		status = smcp_outbound_add_option(
 			SMCP_OPTION_ORIGIN,
 			smcp_pairing_get_path_cstr(pairing),
-			HEADER_CSTR_LEN
+			SMCP_CSTR_LEN
 		);
 		require_noerr(status,bail);
 
@@ -645,7 +645,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 //			(long unsigned int)pairing->seq
 //		);
 //#endif // !__AVR__
-//		status = smcp_outbound_add_option(SMCP_OPTION_CSEQ, cseq, HEADER_CSTR_LEN);
+//		status = smcp_outbound_add_option(SMCP_OPTION_CSEQ, cseq, SMCP_CSTR_LEN);
 //		require_noerr(status,bail);
 //#endif // SMCP_CONF_USE_SEQ
 #endif // !SMCP_CONF_OBSERVING_ONLY
@@ -1049,9 +1049,9 @@ smcp_pairing_path_request_handler(
 		);
 
 		smcp_outbound_begin_response(COAP_RESULT_201_CREATED);
-		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, self->root_pairing_node->name, HEADER_CSTR_LEN);
-		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, path, HEADER_CSTR_LEN);
-		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, uri, HEADER_CSTR_LEN);
+		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, self->root_pairing_node->name, SMCP_CSTR_LEN);
+		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, path, SMCP_CSTR_LEN);
+		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, uri, SMCP_CSTR_LEN);
 		smcp_outbound_send();
 	} else
 #endif // !SMCP_CONF_OBSERVING_ONLY

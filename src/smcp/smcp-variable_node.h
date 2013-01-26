@@ -35,6 +35,15 @@
 
 __BEGIN_DECLS
 
+/*!	@addtogroup smcp_extras
+**	@{
+*/
+
+/*!	@defgroup smcp_variable_node Variable Node
+**	@{
+*/
+
+
 struct smcp_variable_node_s;
 typedef struct smcp_variable_node_s *smcp_variable_node_t;
 
@@ -71,6 +80,9 @@ extern smcp_variable_node_t smcp_variable_node_init(
 extern smcp_status_t smcp_variable_request_handler(
 	smcp_variable_node_t		node
 );
+
+/*!	@} */
+/*!	@} */
 
 __END_DECLS
 

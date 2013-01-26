@@ -103,7 +103,7 @@ smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** contex
 				smcp_node_t next = smcp_node_find(
 					node,
 					(const char*)value,
-					value_len
+					(int)value_len
 				);
 				if(next) {
 					node = next;
@@ -363,8 +363,6 @@ smcp_node_find_next_with_path(
 		{
 #if HAVE_C99_VLA
 			char unescaped_name[namelen+1];
-//#elif SMCP_AVOID_MALLOC
-//			static char unescaped_name[SMCP_MAX_PATH_LENGTH+1];
 #else
 			char *unescaped_name = malloc(namelen+1);
 #endif
@@ -377,23 +375,23 @@ smcp_node_find_next_with_path(
 			*next = smcp_node_find(
 				node,
 				unescaped_name,
-				escaped_len
+				(int)escaped_len
 			);
 #if !HAVE_C99_VLA // && !SMCP_AVOID_MALLOC
 			free(unescaped_name);
 #endif
 		}
 		if(!*next) {
-			DEBUG_PRINTF(CSTR(
-					"Unable to find node. node->name=%s, path=%s, namelen=%d"),
+			DEBUG_PRINTF(
+					"Unable to find node. node->name=%s, path=%s, namelen=%d",
 				node->name, path, namelen);
 			goto bail;
 		}
 	}
 
 	if(!*next) {
-		DEBUG_PRINTF(CSTR(
-				"Unable to find node. node->name=%s, path=%s"), node->name,
+		DEBUG_PRINTF(
+				"Unable to find node. node->name=%s, path=%s", node->name,
 			path);
 		goto bail;
 	}
@@ -408,7 +406,7 @@ smcp_node_find_next_with_path(
 		path++;
 
 bail:
-	return path - orig_path;
+	return (int)(path - orig_path);
 }
 
 smcp_node_t
@@ -425,7 +423,7 @@ again:
 		const char* nextPath = path;
 		nextPath += smcp_node_find_next_with_path(node, path, &ret);
 		node = ret;
-		DEBUG_PRINTF(CSTR("%s: %p (nextPath = %s)"), path, node, nextPath);
+		DEBUG_PRINTF("%s: %p (nextPath = %s)", path, node, nextPath);
 		path = nextPath;
 	} while(ret && path[0]);
 
@@ -460,10 +458,6 @@ smcp_node_get_root(smcp_node_t node) {
 		return smcp_node_get_root(node->parent); // Recursion should be optimized away.
 	return node;
 }
-//smcp_node_t
-//smcp_get_root_node(smcp_t self) {
-//	return &self->root_node;
-//}
 #endif
 
 #endif // #if SMCP_CONF_NODE_ROUTER

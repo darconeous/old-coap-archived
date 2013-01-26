@@ -1,4 +1,4 @@
-/*	@file coap.h
+/*!	@file coap.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum

@@ -27,8 +27,8 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef SMCP_smcp_transaction_h
-#define SMCP_smcp_transaction_h
+#ifndef __SMCP_TRANSACTION_H__
+#define __SMCP_TRANSACTION_H__
 
 #include "smcp-timer.h"
 #include "btree.h"
@@ -48,25 +48,20 @@
 #endif
 
 __BEGIN_DECLS
-
-/* Transaction State Machine
-
-Simple Case:
-
-	* Uninitialized/Unallocated.
-	>>> init()
-	* Initialized.
-	>>> begin()
-	* Active (Sending and listening)
-	>>> received packet
-	* Passive (Listening Only)
-	>>> end()
-	* Initialized if used in place, unallocated if used from pool.
-
-
-
+/*!	@addtogroup smcp
+**	@{
 */
 
+/*!	@defgroup smcp_trans Transaction API
+**	@{
+*/
+
+/*! Returning pretty much anything here except SMCP_STATUS_OK will
+**	cause the handler to invalidate. */
+typedef smcp_status_t (*smcp_response_handler_func)(
+	int statuscode,
+	void* context
+);
 
 struct smcp_transaction_s {
 	struct bt_item_s			bt_item;
@@ -106,6 +101,8 @@ struct smcp_transaction_s {
 								has_fired:1;
 };
 
+typedef struct smcp_transaction_s* smcp_transaction_t;
+
 enum {
 	SMCP_TRANSACTION_ALWAYS_INVALIDATE = (1 << 0),
 	SMCP_TRANSACTION_OBSERVE = (1 << 1),
@@ -144,27 +141,8 @@ extern void smcp_transaction_new_msg_id(
 	coap_msg_id_t msg_id
 );
 
-extern smcp_transaction_t smcp_transaction_find_via_msg_id(smcp_t self, coap_msg_id_t msg_id);
-
-extern smcp_transaction_t smcp_transaction_find_via_token(smcp_t self, coap_msg_id_t token);
-
-
-//! DEPRECATED.
-extern smcp_status_t smcp_begin_transaction_old(
-	smcp_t self,
-	coap_msg_id_t tid,
-	cms_t cmsExpiration,
-	int	flags,
-	smcp_inbound_resend_func requestResend,
-	smcp_response_handler_func responseHandler,
-	void* context
-);
-
-//! DEPRECATED.
-extern smcp_status_t smcp_invalidate_transaction_old(
-	smcp_t self,
-	coap_msg_id_t tid
-);
+/*!	@} */
+/*!	@} */
 
 __END_DECLS
 

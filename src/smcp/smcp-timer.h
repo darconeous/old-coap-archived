@@ -46,6 +46,13 @@
 #endif
 
 __BEGIN_DECLS
+/*!	@addtogroup smcp
+**	@{
+*/
+
+/*!	@defgroup smcp_timer Timer API
+**	@{
+*/
 
 typedef void (*smcp_timer_callback_t)(smcp_t, void*);
 
@@ -75,8 +82,16 @@ extern cms_t smcp_get_timeout(smcp_t self);
 extern void smcp_handle_timers(smcp_t self);
 extern bool smcp_timer_is_scheduled(smcp_t self, smcp_timer_t timer);
 
-extern void convert_cms_to_timeval(struct timeval* tv, cms_t cms);
+//!< Converts `cms` into an absolute time.
+extern void convert_cms_to_timeval(
+	struct timeval* tv, //!< [OUT] Pointer to timeval struct.
+	cms_t cms //!< [IN] Time from now, in milliseconds
+);
+
 extern cms_t convert_timeval_to_cms(const struct timeval* tv);
+
+/*!	@} */
+/*!	@} */
 
 __END_DECLS
 

@@ -31,6 +31,7 @@
 #include "smcp.h"
 #include "smcp-internal.h"
 #include "smcp-transaction.h"
+#include "smcp-auth.h"
 
 #if SMCP_AVOID_MALLOC
 static struct smcp_transaction_s smcp_transaction_pool[SMCP_CONF_MAX_TRANSACTIONS];
@@ -447,55 +448,203 @@ smcp_transaction_end(
 	return 0;
 }
 
+smcp_status_t
+smcp_handle_response() {
+	smcp_status_t ret = 0;
+	smcp_t const self = smcp_get_current_instance();
+	smcp_transaction_t handler = NULL;
+	coap_msg_id_t msg_id = smcp_inbound_get_msg_id();
 
+#if VERBOSE_DEBUG
+	DEBUG_PRINTF(
+		"smcp(%p): Incoming response! tid=%d",
+		self,
+		smcp_inbound_get_msg_id()
+	);
+	DEBUG_PRINTF("%p: Total Pending Transactions: %d", self,
+		(int)bt_count((void**)&self->transactions));
+#endif
 
+	{
+		coap_msg_id_t token = 0;
+		if(self->inbound.packet->token_len == sizeof(coap_msg_id_t))
+			memcpy(&token,self->inbound.packet->token,sizeof(token));
+		if(self->inbound.packet->tt < COAP_TRANS_TYPE_ACK) {
+			handler = smcp_transaction_find_via_token(self,token);
+		} else {
+			handler = smcp_transaction_find_via_msg_id(self,msg_id);
+			if(handler && smcp_inbound_get_packet()->code && token!=handler->token)
+				handler = NULL;
+		}
+	}
 
-//
-////! DEPRECATED.
-//smcp_status_t
-//smcp_begin_transaction_old(
-//	smcp_t						self,
-//	coap_msg_id_t		tid,
-//	cms_t						cmsExpiration,
-//	int							flags,
-//	smcp_inbound_resend_func	resendCallback,
-//	smcp_response_handler_func	callback,
-//	void*						context
-//) {
-//	smcp_status_t ret = 0;
-//	smcp_transaction_t transaction = NULL;
-//
-//	transaction = smcp_transaction_init(
-//		transaction,
-//		flags,
-//		resendCallback,
-//		callback,
-//		context
-//	);
-//
-//	ret = smcp_transaction_begin(self,transaction,cmsExpiration);
-//
-//	require_noerr(ret,bail);
-//	require(transaction!=NULL,bail);
-//
-//	transaction->token = tid;
-//
-//bail:
-//	return ret;
-//}
-//
-////! DEPRECATED.
-//smcp_status_t
-//smcp_invalidate_transaction_old(
-//	smcp_t			self,
-//	coap_msg_id_t	tid
-//) {
-//	smcp_transaction_t transaction = smcp_transaction_find_via_msg_id(self, tid);
-//	if(!transaction) {
-//		transaction = smcp_transaction_find_via_token(self, tid);
-//	}
-//	if(transaction)
-//		smcp_transaction_end(self, transaction);
-//	return 0;
-//}
-//
+	if(handler && !handler->multicast) {
+		// TODO: Verify source address and port!
+	}
+
+	self->current_transaction = handler;
+
+	if(!handler) {
+		// This is an unknown response. If the packet
+		// if confirmable, send a reset. If not, don't bother.
+		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {
+			DEBUG_PRINTF("Inbound: Unknown Response, sending reset. . .");
+
+			smcp_outbound_begin_response(0);
+			self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
+			ret = smcp_outbound_send();
+		} else {
+			DEBUG_PRINTF("Inbound: Unknown ack or reset, ignoring. . .");
+		}
+	} else if(	(	self->inbound.packet->tt == COAP_TRANS_TYPE_ACK
+			|| self->inbound.packet->tt == COAP_TRANS_TYPE_NONCONFIRMABLE
+		)
+		&& !self->inbound.packet->code
+		&& (handler->sent_code<COAP_RESULT_100)
+	) {
+		DEBUG_PRINTF("Inbound: Empty ACK, Async response expected.");
+		handler->waiting_for_async_response = true;
+	} else if(handler->callback) {
+		msg_id = handler->msg_id;
+
+		// Handle any authentication headers.
+		ret = smcp_auth_handle_response(handler);
+		require_noerr(ret,bail);
+
+		smcp_inbound_reset_next_option();
+
+#if SMCP_CONF_TRANS_ENABLE_OBSERVING
+		if((handler->flags & SMCP_TRANSACTION_OBSERVE) && self->inbound.has_observe_option) {
+			cms_t cms = self->inbound.max_age*MSEC_PER_SEC;
+
+			if(	self->inbound.has_observe_option
+				&& (self->inbound.observe_value<=handler->last_observe)
+				&& ((handler->last_observe-self->inbound.observe_value)>0x7FFFFF)
+			) {
+				DEBUG_PRINTF("Inbound: Skipping older inbound observation. (%d<=%d)",self->inbound.observe_value,handler->last_observe);
+				// We've already seen this one. Skip it.
+				ret = SMCP_STATUS_DUPE;
+				goto bail;
+			}
+
+			handler->last_observe = self->inbound.observe_value;
+
+			ret = (*handler->callback)(
+				self->inbound.packet->tt==COAP_TRANS_TYPE_RESET?SMCP_STATUS_RESET:self->inbound.packet->code,
+				handler->context
+			);
+
+			if(!self->current_transaction) {
+				handler = NULL;
+				goto bail;
+			}
+
+			if(msg_id!=handler->msg_id) {
+				handler = NULL;
+				goto bail;
+			}
+
+			if(self->inbound.has_observe_option) {
+				handler->waiting_for_async_response = true;
+			}
+
+			handler->attemptCount = 0;
+			handler->timer.cancel = NULL;
+
+			smcp_invalidate_timer(self, &handler->timer);
+
+			if(!cms) {
+				if(self->inbound.has_observe_option)
+					cms = CMS_DISTANT_FUTURE;
+				else
+					cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
+			}
+
+			convert_cms_to_timeval(&handler->expiration, cms);
+
+			if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
+				&& cms>SMCP_OBSERVATION_KEEPALIVE_INTERVAL
+			) {
+				cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
+			}
+
+			smcp_schedule_timer(
+				self,
+				&handler->timer,
+				cms
+			);
+		} else
+#endif // #if SMCP_CONF_TRANS_ENABLE_OBSERVING
+		{
+			smcp_response_handler_func callback = handler->callback;
+			if(!(handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE) && !(handler->flags&SMCP_TRANSACTION_OBSERVE)) {
+				handler->callback = NULL;
+			}
+			ret = (*callback)(
+				(self->inbound.packet->tt==COAP_TRANS_TYPE_RESET)?SMCP_STATUS_RESET:self->inbound.packet->code,
+				handler->context
+			);
+
+			if(self->current_transaction != handler) {
+				handler = NULL;
+				goto bail;
+			}
+
+			handler->attemptCount = 0;
+			handler->waiting_for_async_response = false;
+#if SMCP_CONF_TRANS_ENABLE_BLOCK2
+			if(handler->active && msg_id==handler->msg_id) {
+				if(!ret && (self->inbound.block2_value&(1<<3)) && (handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE)) {
+					DEBUG_PRINTF("Inbound: Preparing to request next block...");
+					handler->next_block2 = self->inbound.block2_value + (1<<4);
+					smcp_transaction_new_msg_id(self, handler, smcp_get_next_msg_id(self));
+					smcp_invalidate_timer(self, &handler->timer);
+					smcp_schedule_timer(
+						self,
+						&handler->timer,
+						0
+					);
+				} else if (!(handler->flags&SMCP_TRANSACTION_OBSERVE)) {
+					handler->resendCallback = NULL;
+					if(!(handler->flags&SMCP_TRANSACTION_NO_AUTO_END))
+						smcp_transaction_end(self, handler);
+					handler = NULL;
+				} else {
+					cms_t cms = self->inbound.max_age*1000;
+					handler->next_block2 = 0;
+
+					smcp_invalidate_timer(self, &handler->timer);
+
+					if(!cms) {
+						if(self->inbound.has_observe_option)
+							cms = CMS_DISTANT_FUTURE;
+						else
+							cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
+					}
+
+					convert_cms_to_timeval(&handler->expiration, cms);
+
+					if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
+						&& cms>SMCP_OBSERVATION_KEEPALIVE_INTERVAL
+					) {
+						cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
+					}
+
+					smcp_schedule_timer(
+						self,
+						&handler->timer,
+						cms
+					);
+				}
+			}
+#endif // SMCP_CONF_TRANS_ENABLE_BLOCK2
+		}
+	}
+
+bail:
+	if(ret && handler && !(handler->flags&SMCP_TRANSACTION_NO_AUTO_END)) {
+		smcp_transaction_end(self, handler);
+	}
+	return ret;
+}
+

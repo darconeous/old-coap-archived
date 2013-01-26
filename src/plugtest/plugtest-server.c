@@ -63,7 +63,7 @@ plugtest_test_handler(smcp_node_t node)
 
 	if(ret) goto bail;
 
-	smcp_outbound_set_content_type(0);
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 
 	content = smcp_outbound_get_content_ptr(&max_len);
 	if(!content) {
@@ -114,7 +114,7 @@ plugtest_separate_async_resend_response(void* context)
 	ret = smcp_outbound_set_async_response(async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_set_content_formatted("This was an asynchronous response!");
@@ -223,7 +223,7 @@ plugtest_obs_handler(
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		if(ret) goto bail;
 
-		smcp_outbound_set_content_type(0);
+		smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 
 		if(!smcp_timer_is_scheduled(smcp_get_current_instance(), &self->obs_timer))
 			plugtest_obs_timer_callback(smcp_get_current_instance(),self);
@@ -296,7 +296,7 @@ plugtest_large_handler(
 	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	if(ret) goto bail;
 
-	ret = smcp_outbound_set_content_type(0);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,block_option);

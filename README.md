@@ -1,30 +1,19 @@
-SMCP — A C-Based CoAP Stack
-===========================
+SMCP — README
+=============
 
 SMCP is a C-based CoAP stack which is suitable for embedded environments.
 Features include:
 
  * Supports draft-ietf-core-coap-13.
  * Fully asynchronous I/O.
- * Supports both Contiki and BSD sockets.
+ * Supports both BSD sockets and [UIP](http://en.wikipedia.org/wiki/UIP_(micro_IP%29).
  * Supports sending and receiving asynchronous CoAP responses.
  * Supports observing resources and offering observable resources.
  * Supports retransmission of confirmable transactions.
- * Supports "pairing", which allows you to automatically induce POSTs to arbitrary
-   URLs when a value chagnes.
  * `smcpctl` - a powerful command line tool for browsing and configuring CoAP nodes.
 
 Initial focus is on correctness of implementation. Stack usage and other
 performance optimizations will become the focus later on.
-
-## To-Do List ##
-
- * Finish the CoAP-to-HTTP proxy, based on CuRL.
- * Finish *experimental* Digest-MD5 authentication mechanism.
- * Add multicast-group and vhost support.
- * Analyze and decrease stack usage.
- * Analyze and decrease RAM usage.
- * Analyze and decrease executabe code size.
 
 ## Why is it called *SMCP*? ##
 
@@ -32,9 +21,9 @@ Historical reasons. Don't think about it too much.
 
 ## Contiki Support ##
 
-SMCP fully supports Contiki. To build the Contiki examples, just make
-sure that the `CONTIKI` environment variable is set point to your Contiki
-root, like so:
+SMCP fully supports [Contiki](http://contiki-os.org/). To build the Contiki
+examples, just make sure that the `CONTIKI` environment variable is set point
+to your Contiki root, like so:
 
 	$ cd contiki-src/examples/smcp-simple
 	$ make CONTIKI=~/Projects/contiki TARGET=minimal-net

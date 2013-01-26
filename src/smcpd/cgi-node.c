@@ -299,7 +299,7 @@ cgi_node_async_resend_response(void* context) {
 	ret = smcp_outbound_set_async_response(&request->async_response);
 	require_noerr(ret,bail);
 
-//	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+//	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 //	require_noerr(ret,bail);
 
 	if(request->block1!=BLOCK_OPTION_UNSPECIFIED) {
@@ -692,7 +692,7 @@ cgi_node_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-//			ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+//			ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 //			require_noerr(ret,bail);
 
 			if(request->stdout_buffer_len>block_len || request->fd_cmd_stdout>=0) {

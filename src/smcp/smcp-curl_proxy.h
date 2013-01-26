@@ -33,6 +33,15 @@
 #include "smcp-node.h"
 #include <curl/curl.h>
 
+/*!	@addtogroup smcp_extras
+**	@{
+*/
+
+/*!	@defgroup smcp_curl_proxy CuRL Proxy
+**	@{
+*/
+
+
 typedef struct smcp_curl_proxy_node_s {
 	struct smcp_node_s	node;
 	CURLM *curl_multi_handle;
@@ -59,5 +68,8 @@ extern smcp_status_t smcp_curl_proxy_node_update_fdset(
 extern smcp_status_t smcp_curl_proxy_node_process(smcp_curl_proxy_node_t node);
 
 extern smcp_status_t smcp_curl_proxy_request_handler(smcp_curl_proxy_node_t node);
+
+/*!	@} */
+/*!	@} */
 
 #endif //__SMCP_TIMER_NODE_H__

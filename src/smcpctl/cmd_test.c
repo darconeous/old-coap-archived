@@ -167,7 +167,7 @@ resend_async_response(void* context) {
 	ret = smcp_outbound_set_async_response(async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_set_content_formatted("This was an asynchronous response!");

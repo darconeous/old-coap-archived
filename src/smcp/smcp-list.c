@@ -149,7 +149,7 @@ smcp_handle_list(
 		node = NULL;
 
 	smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
-	smcp_outbound_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 
 	replyContent = smcp_outbound_get_content_ptr(&content_break_threshold);
 	replyContent[0] = 0;

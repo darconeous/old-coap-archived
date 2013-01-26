@@ -69,11 +69,6 @@ extern void smcp_set_current_instance(smcp_t x);
 #if SMCP_CONF_ENABLE_VHOSTS
 struct smcp_vhost_s {
 	char name[64];
-#if SMCP_USE_BSD_SOCKETS
-	struct in6_addr	addr;
-#elif CONTIKI
-	uip_ipaddr_t addr;
-#endif
 	smcp_request_handler_func func;
 	void* context;
 };
@@ -83,11 +78,6 @@ struct smcp_vhost_s {
 struct smcp_s {
 	smcp_request_handler_func	request_handler;
 	void*						request_handler_context;
-
-#if SMCP_CONF_ENABLE_VHOSTS
-	struct smcp_vhost_s		vhost[SMCP_MAX_VHOSTS];
-	uint8_t					vhost_count;
-#endif
 
 #if SMCP_USE_BSD_SOCKETS
 	int						fd;
@@ -101,10 +91,6 @@ struct smcp_s {
 	smcp_transaction_t		transactions;
 	smcp_transaction_t		current_transaction;
 
-#if SMCP_USE_CASCADE_COUNT
-	uint8_t					cascade_count;
-#endif
-
 	// Operational Flags
 	uint8_t					is_responding:1,
 							did_respond:1,
@@ -112,7 +98,7 @@ struct smcp_s {
 							has_cascade_count:1,
 							force_current_outbound_code:1;
 
-	// Inbound packet variables.
+	//! Inbound packet variables.
 	struct {
 		const struct coap_header_s*	packet;
 		size_t					packet_len;
@@ -141,11 +127,11 @@ struct smcp_s {
 		socklen_t				socklen;
 #elif CONTIKI
 		uip_ipaddr_t			toaddr;
-		uint16_t				toport;	// Always in network order.
+		uint16_t				toport;	//!^ Always in network order.
 #endif
 	} inbound;
 
-	// Outbound packet variables.
+	//! Outbound packet variables.
 	struct {
 		struct coap_header_s*	packet;
 
@@ -172,6 +158,15 @@ struct smcp_s {
 	uint8_t dupe_index;
 #else
 	uint16_t dupe_index;
+#endif
+
+#if SMCP_CONF_ENABLE_VHOSTS
+	struct smcp_vhost_s		vhost[SMCP_MAX_VHOSTS];
+	uint8_t					vhost_count;
+#endif
+
+#if SMCP_USE_CASCADE_COUNT
+	uint8_t					cascade_count;
 #endif
 
 	const char* proxy_url;

@@ -260,13 +260,20 @@ smcp_outbound_add_option_(
 ) {
 	smcp_t const self = smcp_get_current_instance();
 
-#warning TODO: Check for overflow!
+	if(	(	self->outbound.content_ptr
+			- (char*)self->outbound.packet
+			+ len + 10
+		) > SMCP_MAX_PACKET_LENGTH
+	) {
+		// We ran out of room!
+		return SMCP_STATUS_MESSAGE_TOO_BIG;
+	}
 
 	if(key<self->outbound.last_option_key) {
 		assert_printf("warning: Out of order header: %s",coap_option_key_to_cstr(key, self->is_responding));
 	}
 
-	if(len == HEADER_CSTR_LEN)
+	if(len == SMCP_CSTR_LEN)
 		len = strlen(value);
 
 	if(self->outbound.content_ptr!=(char*)self->outbound.packet->token+self->outbound.packet->token_len)
@@ -654,7 +661,7 @@ smcp_outbound_set_uri(
 			path_str++;
 
 		while(url_path_next_component(&path_str,&component)) {
-			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, component, HEADER_CSTR_LEN);
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, component, SMCP_CSTR_LEN);
 			require_noerr(ret,bail);
 		}
 		if(has_trailing_slash) {
@@ -693,7 +700,7 @@ smcp_outbound_append_content(const char* value,size_t len) {
 	size_t max_len = self->outbound.content_len;
 	char* dest;
 
-	if(len==HEADER_CSTR_LEN)
+	if(len==SMCP_CSTR_LEN)
 		len = strlen(value);
 
 	max_len += len;
@@ -855,11 +862,6 @@ bail:
 #pragma mark -
 
 smcp_status_t
-smcp_outbound_set_content_type(coap_content_type_t t) {
-	return smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, t);
-}
-
-smcp_status_t
 smcp_outbound_set_content_formatted(const char* fmt, ...) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	size_t len = 0;
@@ -886,10 +888,15 @@ bail:
 }
 
 smcp_status_t
+smcp_outbound_set_content_cstr(const char* cstr) {
+	return smcp_outbound_set_content_formatted("%s",cstr);
+}
+
+smcp_status_t
 smcp_outbound_set_var_content_int(int v) {
-	smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 //#if SMCP_AVOID_PRINTF
-//	smcp_outbound_append_content("v=", HEADER_CSTR_LEN);
+//	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
 //
 //#else
 	return smcp_outbound_set_content_formatted_const("v=%d",v);
@@ -898,12 +905,21 @@ smcp_outbound_set_var_content_int(int v) {
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_int(unsigned int v) {
-	smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	return smcp_outbound_set_content_formatted_const("v=%u",v);
 }
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v) {
-	smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	return smcp_outbound_set_content_formatted_const("v=%ul",v);
+}
+
+
+smcp_status_t
+smcp_outbound_quick_response(coap_code_t code, const char* body) {
+	smcp_outbound_begin_response(code);
+	if(body)
+		smcp_outbound_append_content(body, SMCP_CSTR_LEN);
+	return smcp_outbound_send();
 }

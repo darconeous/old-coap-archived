@@ -116,7 +116,7 @@ resend_post_request(struct post_request_s *request) {
 	status = smcp_outbound_begin(smcp_get_current_instance(),request->method, COAP_TRANS_TYPE_CONFIRMABLE);
 	require_noerr(status, bail);
 
-	status = smcp_outbound_set_content_type(request->content_type);
+	status = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, request->content_type);
 	require_noerr(status, bail);
 
 	status = smcp_outbound_set_uri(request->url, 0);
@@ -141,8 +141,7 @@ bail:
 	return status;
 }
 
-
-static coap_msg_id_t
+static smcp_transaction_t
 send_post_request(
 	smcp_t	smcp,
 	const char*		url,
@@ -151,9 +150,8 @@ send_post_request(
 	int				content_len,
 	coap_content_type_t content_type
 ) {
+	smcp_transaction_t ret;
 	struct post_request_s *request;
-	coap_msg_id_t tid;
-	bool ret = false;
 
 	request = calloc(1,sizeof(*request));
 	require(request!=NULL,bail);
@@ -164,36 +162,29 @@ send_post_request(
 	request->content_type = content_type;
 	request->method = method;
 
-	tid = smcp_get_next_msg_id(smcp);
-
 	gRet = ERRORCODE_INPROGRESS;
 
-	require_noerr(smcp_begin_transaction_old(
-			smcp,
-			tid,
-			30*1000,	// Retry for thirty seconds.
-			0, // Flags
-			(void*)&resend_post_request,
-			(void*)&post_response_handler,
-			(void*)request
-		), bail);
-
-	ret = true;
+	ret = smcp_transaction_init(
+		NULL,
+		SMCP_TRANSACTION_ALWAYS_INVALIDATE, // Flags
+		(void*)&resend_post_request,
+		(void*)&post_response_handler,
+		(void*)request
+	);
+	smcp_transaction_begin(smcp, ret, 30*MSEC_PER_SEC);
 
 bail:
-	if(!ret)
-		tid = 0;
-	return tid;
+	return ret;
 }
 
 int
 tool_cmd_post(
 	smcp_t smcp, int argc, char* argv[]
 ) {
-	coap_msg_id_t tid=0;
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 	coap_content_type_t content_type = 0;
 	coap_code_t method = COAP_METHOD_POST;
+	smcp_transaction_t transaction;
 	int i;
 	char url[1000];
 	url[0] = 0;
@@ -257,13 +248,13 @@ tool_cmd_post(
 
 	gRet = ERRORCODE_INPROGRESS;
 
-	tid = send_post_request(smcp, url, method,content, strlen(content),content_type);
+	transaction = send_post_request(smcp, url, method,content, strlen(content),content_type);
 
 	while(ERRORCODE_INPROGRESS == gRet)
 		smcp_process(smcp, -1);
 
 bail:
-	smcp_invalidate_transaction_old(smcp, tid);
+	smcp_transaction_end(smcp, transaction);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

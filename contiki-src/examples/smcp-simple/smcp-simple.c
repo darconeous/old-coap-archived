@@ -103,7 +103,7 @@ processes_request_handler(
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		if(ret) goto bail;
 
-		smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_CSV);
+		smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_CSV);
 
 		content = smcp_outbound_get_content_ptr(&content_len);
 		if(!content) goto bail;
@@ -218,7 +218,7 @@ rpl_request_handler(
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		if(ret) goto bail;
 
-		smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+		smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 
 		content = smcp_outbound_get_content_ptr(&content_len);
 		if(!content) goto bail;

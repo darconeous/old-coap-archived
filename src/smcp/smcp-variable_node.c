@@ -189,7 +189,7 @@ smcp_variable_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-			smcp_outbound_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+			smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 
 			ret = smcp_observable_update(&node->observable, SMCP_OBSERVABLE_BROADCAST_KEY);
 			check_string(ret==0,smcp_status_to_cstr(ret));
@@ -281,7 +281,7 @@ smcp_variable_request_handler(
 				fasthash_feed((const uint8_t*)buffer,strlen(buffer));
 				etag = fasthash_finish_uint32();
 
-				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+				smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 
 				smcp_outbound_add_option_uint(COAP_OPTION_ETAG, etag);
 
@@ -300,7 +300,7 @@ smcp_variable_request_handler(
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
 
-				ret = smcp_outbound_append_content(buffer, HEADER_CSTR_LEN);
+				ret = smcp_outbound_append_content(buffer, SMCP_CSTR_LEN);
 			}
 
 			require_noerr(ret,bail);

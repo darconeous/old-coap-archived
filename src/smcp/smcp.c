@@ -338,22 +338,18 @@ smcp_set_default_request_handler(smcp_t self,smcp_request_handler_func request_h
 
 
 #pragma mark -
-#pragma mark Group Support
+#pragma mark VHost Support
 
 #if SMCP_CONF_ENABLE_VHOSTS
 smcp_status_t
-smcp_vhost_add(smcp_t self,const char* name,const char* addr_str,smcp_request_handler_func func, void* context) {
+smcp_vhost_add(smcp_t self,const char* name,smcp_request_handler_func func, void* context) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	struct smcp_vhost_s *vhost;
 	SMCP_EMBEDDED_SELF_HOOK;
 
-	if(!addr_str)
-		addr_str = name;
+	DEBUG_PRINTF("Adding Group \"%s\": handler:%p context:%p",name,func,context);
 
-	DEBUG_PRINTF("Adding Group \"%s\": addr:\"%s\", handler:%p context:%p",name,addr_str,func,context);
-
-	require_action(name || (name[0]!=0),bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(addr_str[0]!=0,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(name && (name[0]!=0),bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(self->vhost_count<SMCP_MAX_VHOSTS,bail,ret = SMCP_STATUS_FAILURE);
 
 	vhost = &self->vhost[self->vhost_count++];
@@ -361,26 +357,6 @@ smcp_vhost_add(smcp_t self,const char* name,const char* addr_str,smcp_request_ha
 	strncpy(vhost->name,name,sizeof(vhost->name)-1);
 	vhost->func = func;
 	vhost->context = context;
-
-	memset(&vhost->addr, 0, sizeof(vhost->addr));
-
-#if SMCP_USE_BSD_SOCKETS
-	ret = inet_pton(
-		AF_INET6,
-		addr_str,
-		&vhost->addr
-	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
-	require_noerr(ret, bail);
-#elif CONTIKI
-#if UIP_CONF_IPV6
-	ret = uiplib_ipaddrconv(
-		addr_str,
-		&vhost->addr
-	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
-	require_noerr(ret, bail);
-    uip_ds6_maddr_add(&vhost->addr);
-#endif
-#endif
 
 bail:
 	return ret;
@@ -390,10 +366,11 @@ static smcp_status_t
 smcp_vhost_route(smcp_request_handler_func* func, void** context) {
 	smcp_t const self = smcp_get_current_instance();
 	coap_option_key_t key;
-	const uint8_t* value;
-	size_t value_len;
 
 	if(self->vhost_count) {
+		const uint8_t* value;
+		size_t value_len = 0;
+
 		smcp_inbound_reset_next_option();
 
 		while((key = smcp_inbound_next_option(&value,&value_len))!=COAP_OPTION_INVALID) {
@@ -769,7 +746,7 @@ smcp_inbound_finish_packet() {
 	smcp_inbound_reset_next_option();
 	{	// Initial options scan.
 		coap_option_key_t key;
-		int i;
+		unsigned int i;
 
 		// Update dupe hash.
 		fasthash_start(0);
@@ -788,7 +765,6 @@ smcp_inbound_finish_packet() {
 			size_t value_len;
 			key = smcp_inbound_peek_option(&value,&value_len);
 			if(key==COAP_OPTION_CONTENT_TYPE) {
-				uint8_t i;
 				self->inbound.content_type = 0;
 				for(i = 0; i < value_len; i++)
 					self->inbound.content_type = (self->inbound.content_type << 8) + value[i];
@@ -799,18 +775,16 @@ smcp_inbound_finish_packet() {
 			) {
 				fasthash_feed(value,value_len);
 			} else if(key==COAP_OPTION_BLOCK2) {
-				uint8_t i;
 				self->inbound.block2_value = 0;
 				for(i = 0; i < value_len; i++)
 					self->inbound.block2_value = (self->inbound.block2_value << 8) + value[i];
+				fasthash_feed(value,value_len);
 			} else if(key==COAP_OPTION_OBSERVE) {
-				uint8_t i;
 				self->inbound.has_observe_option = 1;
 				self->inbound.observe_value = 0;
 				for(i = 0; i < value_len; i++)
 					self->inbound.observe_value = (self->inbound.observe_value << 8) + value[i];
 			} else if(key==COAP_OPTION_MAX_AGE) {
-				uint8_t i;
 				self->inbound.max_age = 0;
 				for(i = 0; i < value_len; i++)
 					self->inbound.max_age = (self->inbound.max_age << 8) + value[i];
@@ -1007,205 +981,6 @@ bail:
 	return ret;
 }
 
-smcp_status_t
-smcp_handle_response() {
-	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
-	smcp_transaction_t handler = NULL;
-	coap_msg_id_t msg_id = smcp_inbound_get_msg_id();
-
-#if VERBOSE_DEBUG
-	DEBUG_PRINTF(
-		"smcp(%p): Incoming response! tid=%d",
-		self,
-		smcp_inbound_get_msg_id()
-	);
-	DEBUG_PRINTF("%p: Total Pending Transactions: %d", self,
-		(int)bt_count((void**)&self->transactions));
-#endif
-
-	{
-		coap_msg_id_t token = 0;
-		if(self->inbound.packet->token_len == sizeof(coap_msg_id_t))
-			memcpy(&token,self->inbound.packet->token,sizeof(token));
-		if(self->inbound.packet->tt < COAP_TRANS_TYPE_ACK) {
-			handler = smcp_transaction_find_via_token(self,token);
-		} else {
-			handler = smcp_transaction_find_via_msg_id(self,msg_id);
-			if(handler && smcp_inbound_get_packet()->code && token!=handler->token)
-				handler = NULL;
-		}
-	}
-
-	if(handler && !handler->multicast) {
-		// TODO: Verify source address and port!
-	}
-
-	self->current_transaction = handler;
-
-	if(!handler) {
-		// This is an unknown response. If the packet
-		// if confirmable, send a reset. If not, don't bother.
-		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {
-			DEBUG_PRINTF("Inbound: Unknown Response, sending reset. . .");
-
-			smcp_outbound_begin_response(0);
-			self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
-			ret = smcp_outbound_send();
-		} else {
-			DEBUG_PRINTF("Inbound: Unknown ack or reset, ignoring. . .");
-		}
-	} else if(	(	self->inbound.packet->tt == COAP_TRANS_TYPE_ACK
-			|| self->inbound.packet->tt == COAP_TRANS_TYPE_NONCONFIRMABLE
-		)
-		&& !self->inbound.packet->code
-		&& (handler->sent_code<COAP_RESULT_100)
-	) {
-		DEBUG_PRINTF("Inbound: Empty ACK, Async response expected.");
-		handler->waiting_for_async_response = true;
-	} else if(handler->callback) {
-		coap_msg_id_t msg_id = handler->msg_id;
-
-		// Handle any authentication headers.
-		ret = smcp_auth_handle_response(handler);
-		require_noerr(ret,bail);
-
-		smcp_inbound_reset_next_option();
-
-#if SMCP_CONF_TRANS_ENABLE_OBSERVING
-		if((handler->flags & SMCP_TRANSACTION_OBSERVE) && self->inbound.has_observe_option) {
-			cms_t cms = self->inbound.max_age*MSEC_PER_SEC;
-
-			if(	self->inbound.has_observe_option
-				&& (self->inbound.observe_value<=handler->last_observe)
-				&& ((handler->last_observe-self->inbound.observe_value)>0x7FFFFF)
-			) {
-				DEBUG_PRINTF("Inbound: Skipping older inbound observation. (%d<=%d)",self->inbound.observe_value,handler->last_observe);
-				// We've already seen this one. Skip it.
-				ret = SMCP_STATUS_DUPE;
-				goto bail;
-			}
-
-			handler->last_observe = self->inbound.observe_value;
-
-			ret = (*handler->callback)(
-				self->inbound.packet->tt==COAP_TRANS_TYPE_RESET?SMCP_STATUS_RESET:self->inbound.packet->code,
-				handler->context
-			);
-
-			if(!self->current_transaction) {
-				handler = NULL;
-				goto bail;
-			}
-
-			if(msg_id!=handler->msg_id) {
-				handler = NULL;
-				goto bail;
-			}
-
-			if(self->inbound.has_observe_option) {
-				handler->waiting_for_async_response = true;
-			}
-
-			handler->attemptCount = 0;
-			handler->timer.cancel = NULL;
-
-			smcp_invalidate_timer(self, &handler->timer);
-
-			if(!cms) {
-				if(self->inbound.has_observe_option)
-					cms = CMS_DISTANT_FUTURE;
-				else
-					cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
-			}
-
-			convert_cms_to_timeval(&handler->expiration, cms);
-
-			if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
-				&& cms>SMCP_OBSERVATION_KEEPALIVE_INTERVAL
-			) {
-				cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
-			}
-
-			smcp_schedule_timer(
-				self,
-				&handler->timer,
-				cms
-			);
-		} else
-#endif // #if SMCP_CONF_TRANS_ENABLE_OBSERVING
-		{
-			smcp_response_handler_func callback = handler->callback;
-			if(!(handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE) && !(handler->flags&SMCP_TRANSACTION_OBSERVE)) {
-				handler->callback = NULL;
-			}
-			ret = (*callback)(
-				(self->inbound.packet->tt==COAP_TRANS_TYPE_RESET)?SMCP_STATUS_RESET:self->inbound.packet->code,
-				handler->context
-			);
-
-			if(self->current_transaction != handler) {
-				handler = NULL;
-				goto bail;
-			}
-
-			handler->attemptCount = 0;
-			handler->waiting_for_async_response = false;
-#if SMCP_CONF_TRANS_ENABLE_BLOCK2
-			if(handler->active && msg_id==handler->msg_id) {
-				if(!ret && (self->inbound.block2_value&(1<<3)) && (handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE)) {
-					DEBUG_PRINTF("Inbound: Preparing to request next block...");
-					handler->next_block2 = self->inbound.block2_value + (1<<4);
-					smcp_transaction_new_msg_id(self, handler, smcp_get_next_msg_id(self));
-					smcp_invalidate_timer(self, &handler->timer);
-					smcp_schedule_timer(
-						self,
-						&handler->timer,
-						0
-					);
-				} else if (!(handler->flags&SMCP_TRANSACTION_OBSERVE)) {
-					handler->resendCallback = NULL;
-					if(!(handler->flags&SMCP_TRANSACTION_NO_AUTO_END))
-						smcp_transaction_end(self, handler);
-					handler = NULL;
-				} else {
-					cms_t cms = self->inbound.max_age*1000;
-					handler->next_block2 = 0;
-
-					smcp_invalidate_timer(self, &handler->timer);
-
-					if(!cms) {
-						if(self->inbound.has_observe_option)
-							cms = CMS_DISTANT_FUTURE;
-						else
-							cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
-					}
-
-					convert_cms_to_timeval(&handler->expiration, cms);
-
-					if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
-						&& cms>SMCP_OBSERVATION_KEEPALIVE_INTERVAL
-					) {
-						cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
-					}
-
-					smcp_schedule_timer(
-						self,
-						&handler->timer,
-						cms
-					);
-				}
-			}
-#endif // SMCP_CONF_TRANS_ENABLE_BLOCK2
-		}
-	}
-
-bail:
-	if(ret && handler && !(handler->flags&SMCP_TRANSACTION_NO_AUTO_END)) {
-		smcp_transaction_end(self, handler);
-	}
-	return ret;
-}
 
 #pragma mark -
 #pragma mark Asynchronous Response Support
@@ -1247,11 +1022,10 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 
 	require_action_string(x!=NULL,bail,ret=SMCP_STATUS_INVALID_ARGUMENT,"NULL async_response arg");
 
-	// TODO: Be more graceful...?
 	require_action_string(
 		smcp_inbound_get_packet_length()-smcp_inbound_get_content_len()<=sizeof(x->request),
 		bail,
-		ret=SMCP_STATUS_FAILURE,
+		(smcp_outbound_quick_response(COAP_RESULT_413_REQUEST_ENTITY_TOO_LARGE,NULL),ret=SMCP_STATUS_FAILURE),
 		"Request too big for async response"
 	);
 
@@ -1342,7 +1116,6 @@ const char* smcp_status_to_cstr(int x) {
 		break;
 	case SMCP_STATUS_FAILURE: return "Unspecified Failure"; break;
 	case SMCP_STATUS_INVALID_ARGUMENT: return "Invalid Argument"; break;
-	case SMCP_STATUS_BAD_NODE_TYPE: return "Bad Node Type"; break;
 	case SMCP_STATUS_UNSUPPORTED_URI: return "Unsupported URI"; break;
 	case SMCP_STATUS_MALLOC_FAILURE: return "Malloc Failure"; break;
 	case SMCP_STATUS_TRANSACTION_INVALIDATED: return "Handler Invalidated";
@@ -1400,7 +1173,6 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 	case SMCP_STATUS_NOT_ALLOWED:
 		ret = COAP_RESULT_405_METHOD_NOT_ALLOWED;
 		break;
-	case SMCP_STATUS_BAD_NODE_TYPE:
 	case SMCP_STATUS_UNSUPPORTED_URI:
 		ret = COAP_RESULT_400_BAD_REQUEST;
 		break;

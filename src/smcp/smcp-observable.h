@@ -31,14 +31,22 @@
 
 #include "smcp.h"
 
-struct smcp_observable_s;
+__BEGIN_DECLS
+
+/*!	@addtogroup smcp
+**	@{
+*/
+
+/*!	@defgroup smcp_observable Observable API
+**	@{
+*/
 
 struct smcp_observable_s {
 #if !SMCP_EMBEDDED
 	smcp_t interface;
 #endif
-	int8_t first_observer; // always +1, zero is end of list
-	int8_t last_observer; // always +1, zero is end of list
+	int8_t first_observer; //!^ always +1, zero is end of list
+	int8_t last_observer; //!^ always +1, zero is end of list
 };
 
 #define SMCP_OBSERVABLE_BROADCAST_KEY		(0xFF)
@@ -48,5 +56,10 @@ typedef struct smcp_observable_s *smcp_observable_t;
 extern smcp_status_t smcp_observable_update(smcp_observable_t context, uint8_t key);
 
 extern smcp_status_t smcp_observable_trigger(smcp_observable_t context, uint8_t key);
+
+/*!	@} */
+/*!	@} */
+
+__END_DECLS
 
 #endif

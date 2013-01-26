@@ -101,7 +101,7 @@ resend_async_response(void* context) {
 		curl_easy_getinfo(request->curl, CURLINFO_CONTENT_TYPE,&content_type_string);
 		coap_content_type_t content_type = coap_content_type_from_cstr(content_type_string);
 		if(content_type!=COAP_CONTENT_TYPE_UNKNOWN) {
-			ret = smcp_outbound_set_content_type(content_type);
+			ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, content_type);
 			check_noerr(ret);
 		} else {
 			DEBUG_PRINTF("Unrecognised content-type: %s",content_type_string);

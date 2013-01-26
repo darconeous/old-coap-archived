@@ -102,7 +102,7 @@ smcp_status_t
 smcp_observable_update(smcp_observable_t context, uint8_t key) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	smcp_t const interface = smcp_get_current_instance();
-	int8_t prev=-1,i;
+	int8_t i;
 
 #if !SMCP_EMBEDDED
 	context->interface = interface;
@@ -112,7 +112,7 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 		goto bail;
 	}
 
-	for(i = context->first_observer-1; i >= 0; prev = i, i = observer_table[i].next - 1) {
+	for(i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
 		if(observer_table[i].key != key)
 			continue;
 		if(smcp_inbound_is_related_to_async_response(&observer_table[i].async_response))
