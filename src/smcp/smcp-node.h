@@ -35,12 +35,13 @@
 
 __BEGIN_DECLS
 
-/*!	@addtogroup smcp_extras
+/*!	@addtogroup smcp-extras
 **	@{
 */
 
-/*!	@defgroup smcp_node_router Node Router
+/*!	@defgroup smcp-node-router Node Router
 **	@{
+**	@sa @ref smcp-example-3
 */
 
 struct smcp_node_s;
@@ -59,7 +60,7 @@ struct smcp_node_s {
 								should_free_name:1;
 
 	void						(*finalize)(smcp_node_t node);
-	smcp_node_inbound_handler_func	request_handler;
+	smcp_request_handler_func	request_handler;
 	void*						context;
 };
 

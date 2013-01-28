@@ -37,10 +37,20 @@ __BEGIN_DECLS
 **	@{
 */
 
-/*!	@defgroup smcp_observable Observable API
+/*!	@defgroup smcp-observable Observable API
 **	@{
+**	@brief Functions for creating observable resources.
+**
+**	@sa @ref smcp-example-4
 */
 
+//! Observable context.
+/*!	The observable context is a datastructure that keeps track of
+**	who is observing which resources. You may have as many or as few as
+**	you like.
+**
+**	@sa smcp_observable_update(), smcp_observable_trigger()
+*/
 struct smcp_observable_s {
 #if !SMCP_EMBEDDED
 	smcp_t interface;
@@ -53,9 +63,32 @@ struct smcp_observable_s {
 
 typedef struct smcp_observable_s *smcp_observable_t;
 
-extern smcp_status_t smcp_observable_update(smcp_observable_t context, uint8_t key);
+//!	Hook for making a resource observable.
+/*!	This must be called after you have "begun" to compose the outbound
+**	response message but *before* you have started to compose the content.
+**	More explicitly:
+**
+**	 * *After* smcp_outbound_begin() or smcp_outbound_begin_response()
+**	 * *Before* smcp_outbound_get_content_ptr(), smcp_outbound_append_content(),
+**	   smcp_outbound_send(), etc.
+**
+**	You may choose any value for `key`, as long as it matches what you pass
+**	to smcp_observable_trigger() to trigger updates.
+*/
+extern smcp_status_t smcp_observable_update(
+	smcp_observable_t context, //!< [IN] Pointer to observable context
+	uint8_t key		//!< [IN] Key for this resource (must be same as used in trigger)
+);
 
-extern smcp_status_t smcp_observable_trigger(smcp_observable_t context, uint8_t key);
+//!	Triggers an observable resource to send an update to its observers.
+/*!
+**	You may use SMCP_OBSERVABLE_BROADCAST_KEY for the key to trigger
+**	all resources associated with this observable context to update.
+*/
+extern smcp_status_t smcp_observable_trigger(
+	smcp_observable_t context, //!< [IN] Pointer to observable context
+	uint8_t key		//!< [IN] Key for this resource (must be same as used in update)
+);
 
 /*!	@} */
 /*!	@} */

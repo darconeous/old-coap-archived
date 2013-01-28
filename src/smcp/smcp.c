@@ -126,6 +126,11 @@ smcp_init(
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
 
+	require(self != NULL, bail);
+
+	if(port == 0)
+		port = COAP_DEFAULT_PORT;
+
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
 #if SOCKADDR_HAS_LENGTH_FIELD
@@ -135,11 +140,6 @@ smcp_init(
 		.sin6_port		= htons(port),
 	};
 #endif
-
-	require(self != NULL, bail);
-
-	if(port == 0)
-		port = COAP_DEFAULT_PORT;
 
 	// Clear the entire structure.
 	memset(self, 0, sizeof(*self));
@@ -974,6 +974,8 @@ smcp_handle_request() {
 #endif
 
 	require_action(NULL!=request_handler,bail,ret=SMCP_STATUS_NOT_IMPLEMENTED);
+
+	smcp_inbound_reset_next_option();
 
 	return (*request_handler)(context);
 

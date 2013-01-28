@@ -33,11 +33,11 @@
 #include "smcp-node.h"
 #include <curl/curl.h>
 
-/*!	@addtogroup smcp_extras
+/*!	@addtogroup smcp-extras
 **	@{
 */
 
-/*!	@defgroup smcp_curl_proxy CuRL Proxy
+/*!	@defgroup smcp-curl_proxy CuRL Proxy
 **	@{
 */
 

@@ -102,7 +102,7 @@
 */
 
 
-/*!	@defgroup smcp_extras SMCP Extras
+/*!	@defgroup smcp-extras SMCP Extras
 **	@{ @}
 */
 
@@ -192,8 +192,9 @@ typedef smcp_callback_func smcp_inbound_resend_func;
 #pragma mark -
 #pragma mark SMCP Instance Methods
 
-/*!	@defgroup smcp_instance Instance Methods
+/*!	@defgroup smcp-instance Instance Methods
 **	@{
+**	@brief Initializing, Configuring, and Releasing the SMCP instance.
 */
 
 //! Initializes an SMCP instance
@@ -215,15 +216,6 @@ extern smcp_t smcp_get_current_instance();
 //! Allocates and initializes an SMCP instance.
 extern smcp_t smcp_create(uint16_t port);
 #endif
-
-//!	Processes one event and (if using BSD sockets) processes one packet if available.
-/*!	This function must be called periodically for SMCP to handle events and packets.
-**	When using with BSD sockets, smcp_process() will wait for `cms` milliseconds
-**	to see if a packet arrives. */
-extern smcp_status_t smcp_process(smcp_t self, cms_t cms);
-
-//!	Maximum amount of time that can pass before smcp_process() must be called again.
-extern cms_t smcp_get_timeout(smcp_t self);
 
 //!	Sets the URL to use as a CoAP proxy.
 /*!	The proxy is used whenever the scheme is
@@ -253,7 +245,7 @@ extern void smcp_set_default_request_handler(
 **	This can also be used to implement groups. */
 extern smcp_status_t smcp_vhost_add(
 	smcp_t self,
-	const char* name,
+	const char* name, //!^ Hostname of the virtual host
 	smcp_request_handler_func request_handler,
 	void* context
 );
@@ -262,11 +254,21 @@ extern smcp_status_t smcp_vhost_add(
 /*!	@} */
 
 #pragma mark -
-#pragma mark Network Interface
+#pragma mark Async IO
 
-/*!	@defgroup smcp_net Network Interface
+/*!	@defgroup smcp-asyncio Asynchronous IO
 **	@{
+**	@brief Functions supporting non-blocking asynchronous IO.
 */
+
+//!	Processes one event and (if using BSD sockets) processes one packet if available.
+/*!	This function must be called periodically for SMCP to handle events and packets.
+**	When using with BSD sockets, smcp_process() will wait for `cms` milliseconds
+**	to see if a packet arrives. */
+extern smcp_status_t smcp_process(smcp_t self, cms_t cms);
+
+//!	Maximum amount of time that can pass before smcp_process() must be called again.
+extern cms_t smcp_get_timeout(smcp_t self);
 
 #if SMCP_USE_BSD_SOCKETS
 //!	Gets the file descriptor for the UDP socket.
@@ -277,6 +279,16 @@ extern int smcp_get_fd(smcp_t self);
 #elif defined(CONTIKI)
 extern struct uip_udp_conn* smcp_get_udp_conn(smcp_t self);
 #endif
+
+/*!	@} */
+
+#pragma mark -
+#pragma mark Inbound Packet Interface
+
+/*!	@defgroup smcp-net Network Interface
+**	@{
+**	@brief Functions for manually handling inbound packets.
+*/
 
 //! Start describing the inbound packet.
 /*!	If you are using BSD sockets, you don't need to use this function. */
@@ -319,10 +331,11 @@ extern smcp_status_t smcp_inbound_finish_packet();
 #pragma mark -
 #pragma mark Inbound Message Parsing API
 
-/*!	@defgroup smcp_inbound Inbound Message Parsing API
+/*!	@defgroup smcp-inbound Inbound Message Parsing API
 **	@{
-**	These functions allow callbacks to examine the current
-**	inbound packet. Calling these functions from outside
+**	@brief These functions allow callbacks to examine the current inbound packet.
+**
+**	Calling these functions from outside
 **	of an SMCP callback is an error.
 */
 
@@ -389,11 +402,12 @@ extern char* smcp_inbound_get_path(char* where,uint8_t flags);
 #pragma mark -
 #pragma mark Outbound Message Composing API
 
-/*!	@defgroup smcp_outbound Outbound Message Composing API
+/*!	@defgroup smcp-outbound Outbound Message Composing API
 **	@{
-**	These functions are for constructing outbound CoAP messages
-**	from an SMCP callback. Calling these functions from outside
-**	of an SMCP callback is an error.
+**	@brief These functions are for constructing outbound CoAP messages from an
+**	       SMCP callback.
+**
+**	Calling these functions from outside of an SMCP callback is an error.
 */
 
 extern smcp_status_t smcp_outbound_begin(
@@ -429,6 +443,7 @@ extern smcp_status_t smcp_outbound_set_destaddr(
 #endif
 );
 
+// These next four flags are for smcp_outbound_set_uri().
 #define SMCP_MSG_SKIP_DESTADDR		(1<<0)
 #define SMCP_MSG_SKIP_AUTHORITY		(1<<1)
 #define SMCP_MSG_SKIP_PATH			(1<<2)
@@ -441,8 +456,11 @@ extern smcp_status_t smcp_outbound_set_uri(const char* uri,char flags);
 
 /*!	After the following function is called you cannot add any more options
 **	without loosing the content. */
-extern char* smcp_outbound_get_content_ptr(size_t* max_len);
+extern char* smcp_outbound_get_content_ptr(
+	size_t* max_len //^< [OUT] maximum content length
+);
 
+//!	Sets the actual length of the content. Called after smcp_outbound_get_content_ptr().
 extern smcp_status_t smcp_outbound_set_content_len(size_t len);
 
 extern smcp_status_t smcp_outbound_append_content(const char* value,size_t len);

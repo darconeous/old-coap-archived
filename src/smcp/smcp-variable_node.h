@@ -35,11 +35,11 @@
 
 __BEGIN_DECLS
 
-/*!	@addtogroup smcp_extras
+/*!	@addtogroup smcp-extras
 **	@{
 */
 
-/*!	@defgroup smcp_variable_node Variable Node
+/*!	@defgroup smcp-variable_node Variable Node
 **	@{
 */
 

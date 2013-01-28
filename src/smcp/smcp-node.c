@@ -231,7 +231,7 @@ smcp_node_init(
 
 	ret = (smcp_node_t)self;
 
-	ret->request_handler = &smcp_default_request_handler;
+	ret->request_handler = (void*)&smcp_default_request_handler;
 
 	if(node) {
 		require(name, bail);
