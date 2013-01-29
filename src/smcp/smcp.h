@@ -102,10 +102,6 @@
 */
 
 
-/*!	@defgroup smcp-extras SMCP Extras
-**	@{ @}
-*/
-
 __BEGIN_DECLS
 
 typedef int smcp_method_t;
@@ -546,8 +542,12 @@ extern int smcp_convert_status_to_result_code(smcp_status_t status);
 
 extern const char* smcp_status_to_cstr(smcp_status_t x);
 
-
 __END_DECLS
+
+/*!	@defgroup smcp-extras SMCP Extras
+**	@{ @}
+*/
+
 
 /*!	@} */
 
