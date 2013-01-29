@@ -1,0 +1,26 @@
+#!/bin/sh
+
+die() {
+	echo fatal error $*
+	exit -1
+}
+
+set -x
+
+
+[ -d smcp ] && rm -fr smcp
+
+git clone .git smcp || die
+cd smcp || die
+
+git checkout latest-release || die
+git merge origin/master origin/master-autoconf || die
+git tag -f latest-release || die
+
+git push -f --tags || die
+
+cd .. || die
+
+rm -fr smcp || die
+
+git push origin -f latest-release || die
