@@ -41,8 +41,8 @@
 int
 main(int argc, char * argv[]) {
 	smcp_t smcp = smcp_create(0);
-	struct plugtest_server_s plugtest_server;
-	struct smcp_node_s root_node;
+	struct plugtest_server_s plugtest_server = {};
+	struct smcp_node_s root_node = {};
 
 	// Set up the root node.
 	smcp_node_init(&root_node,NULL,NULL);
