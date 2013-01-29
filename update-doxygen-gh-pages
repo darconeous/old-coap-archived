@@ -1,0 +1,38 @@
+#!/bin/sh
+
+die() {
+	echo fatal error $*
+	exit -1
+}
+
+set -x
+
+[ -d smcp ] && rm -fr smcp
+
+git fetch origin gh-pages || die
+
+git clone .git smcp || die
+cd smcp || die
+
+git checkout latest-release || die
+
+./configure || die
+
+doxygen doxygen.cfg
+rm -fr doc/latex
+
+git add doc -f || die
+git stash || die
+git clean -f -d -x || die
+git checkout gh-pages || die
+git rm -fr doc || die
+git stash pop || die
+
+git commit -m "Doxygen update" || die
+git push  || die
+
+cd .. || die
+
+rm -fr smcp || die
+
+git push origin gh-pages || die
