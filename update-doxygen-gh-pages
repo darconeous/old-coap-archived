@@ -14,7 +14,8 @@ git fetch origin gh-pages || die
 git clone .git smcp || die
 cd smcp || die
 
-git checkout latest-release || die
+git checkout master || die
+git archive origin/master-autoconf | tar xv  || die
 
 ./configure || die
 
