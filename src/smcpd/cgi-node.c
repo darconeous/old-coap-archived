@@ -230,7 +230,7 @@ cgi_node_create_request(cgi_node_t node) {
 		smcp_node_get_path(&node->node,path,sizeof(path));
 		setenv("SCRIPT_NAME",path,1);
 
-		setenv("SERVER_SOFTWARE","smcpd/0.5",1);
+		setenv("SERVER_SOFTWARE","smcpd/"PACKAGE_VERSION,1);
 		setenv("REQUEST_METHOD",coap_code_to_cstr(smcp_inbound_get_packet()->code),1);
 		setenv("REQUEST_URI",smcp_inbound_get_path(path,2),1);
 		setenv("GATEWAY_INTERFACE","CGI/1.1",1);
