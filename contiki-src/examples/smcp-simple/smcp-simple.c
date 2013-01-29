@@ -32,7 +32,6 @@ AUTOSTART_PROCESSES(
 
 #include <smcp/smcp.h>
 #include <smcp/smcp-node-router.h>
-#include <smcp/smcp-timer_node.h>
 #include <smcp/smcp-variable_node.h>
 #include "led-node.h"
 
@@ -245,22 +244,22 @@ rpl_request_handler(
 		}
 		if (j) 	size+=snprintf(content+size,content_len-size,"\t<NONE>\n");
 
-		size+=snprintf(content+size,content_len-size,"\nRoutes [%u max]\n",UIP_DS6_ROUTE_NB);
-		for(i = 0,j=1; i < UIP_DS6_ROUTE_NB; i++) {
-			if(uip_ds6_routing_table[i].isused) {
-				size+=snprintf(content+size,content_len-size,"\t");
-				ADD_6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-				size+=snprintf(content+size,content_len-size,"/%u (via ", uip_ds6_routing_table[i].length);
-				ADD_6ADDR(&uip_ds6_routing_table[i].nexthop);
-				if(uip_ds6_routing_table[i].state.lifetime < 600) {
-					size+=snprintf(content+size,content_len-size,") %lus\n", uip_ds6_routing_table[i].state.lifetime);
-				} else {
-					size+=snprintf(content+size,content_len-size,")\n");
-				}
-				j=0;
-			}
-		}
-		if (j) 	size+=snprintf(content+size,content_len-size,"\t<NONE>\n");
+//		size+=snprintf(content+size,content_len-size,"\nRoutes [%u max]\n",UIP_DS6_ROUTE_NB);
+//		for(i = 0,j=1; i < UIP_DS6_ROUTE_NB; i++) {
+//			if(uip_ds6_routing_table[i].isused) {
+//				size+=snprintf(content+size,content_len-size,"\t");
+//				ADD_6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+//				size+=snprintf(content+size,content_len-size,"/%u (via ", uip_ds6_routing_table[i].length);
+//				ADD_6ADDR(&uip_ds6_routing_table[i].nexthop);
+//				if(uip_ds6_routing_table[i].state.lifetime < 600) {
+//					size+=snprintf(content+size,content_len-size,") %lus\n", uip_ds6_routing_table[i].state.lifetime);
+//				} else {
+//					size+=snprintf(content+size,content_len-size,")\n");
+//				}
+//				j=0;
+//			}
+//		}
+//		if (j) 	size+=snprintf(content+size,content_len-size,"\t<NONE>\n");
 
 		ret = smcp_outbound_set_content_len(size);
 		if(ret) goto bail;
@@ -330,9 +329,10 @@ create_hostname_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 PROCESS_THREAD(smcp_simple, ev, data)
 {
+	static struct smcp_node_s root_node = {};
+
 	static struct smcp_node_s reset_node;
 	static struct smcp_node_s uptime_node;
-	static struct smcp_timer_node_s timer_node;
 	static struct smcp_node_s processes_node;
 	static struct smcp_node_s hostname_node;
 	static struct smcp_node_s beep_node;
@@ -340,44 +340,43 @@ PROCESS_THREAD(smcp_simple, ev, data)
 
 	PROCESS_BEGIN();
 
-	smcp_init_led_node(smcp_get_root_node(smcp),"leds");
+	// Set up the root node.
+	smcp_node_init(&root_node,NULL,NULL);
+
+	// Set up the node router.
+	smcp_set_default_request_handler(smcp, &smcp_node_router_handler, &root_node);
+
+	smcp_init_led_node(&root_node,"leds");
 
 #if !CONTIKI_TARGET_MINIMAL_NET
-	smcp_init_sensor_node(smcp_get_root_node(smcp),"sensors");
+	smcp_init_sensor_node(&root_node,"sensors");
 #endif
 
 	// Create the "reset" node.
 	create_reset_node(
 		&reset_node,
-		smcp_get_root_node(smcp),
+		&root_node,
 		"reset"
 	);
 
 	// Create the "uptime" node.
 	create_elapsed_time_node(
 		&uptime_node,
-		smcp_get_root_node(smcp),
+		&root_node,
 		"uptime"
-	);
-
-	// Create the "timer" node.
-	smcp_timer_node_init(
-		&timer_node,
-		smcp_get_root_node(smcp),
-		"timer"
 	);
 
 	// Create the "processes" node.
 	create_process_list_node(
 		&processes_node,
-		smcp_get_root_node(smcp),
+		&root_node,
 		"processes"
 	);
 
 	// Create the "beep" node.
 	create_beep_node(
 		&beep_node,
-		smcp_get_root_node(smcp),
+		&root_node,
 		"beep"
 	);
 
@@ -385,7 +384,7 @@ PROCESS_THREAD(smcp_simple, ev, data)
 	// Create the "hostname" node.
 	create_hostname_node(
 		&hostname_node,
-		smcp_get_root_node(smcp),
+		&root_node,
 		"hostname"
 	);
 #endif // RESOLV_CONF_MDNS_RESPONDER
@@ -394,7 +393,7 @@ PROCESS_THREAD(smcp_simple, ev, data)
 	// Create the "hostname" node.
 	create_rpl_node(
 		&rpl_node,
-		smcp_get_root_node(smcp),
+		&root_node,
 		"rpl"
 	);
 #endif // UIP_CONF_IPV6_RPL

@@ -364,21 +364,21 @@ plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 	memset(self,0,sizeof(*self));
 
 	smcp_node_init(&self->test,root,"test");
-	self->test.request_handler = &plugtest_test_handler;
+	self->test.request_handler = (smcp_callback_func)&plugtest_test_handler;
 
 	smcp_node_init(&self->seg1,root,"seg1");
 	smcp_node_init(&self->seg2,&self->seg1,"seg2");
 	smcp_node_init(&self->seg3,&self->seg2,"seg3");
-	self->seg3.request_handler = &plugtest_test_handler;
+	self->seg3.request_handler = (smcp_callback_func)&plugtest_test_handler;
 
 	smcp_node_init(&self->separate,root,"separate");
-	self->separate.request_handler = &plugtest_separate_handler;
+	self->separate.request_handler = (smcp_callback_func)&plugtest_separate_handler;
 
 	smcp_node_init(&self->query,root,"query");
-	self->query.request_handler = &plugtest_test_handler;
+	self->query.request_handler = (smcp_callback_func)&plugtest_test_handler;
 
 	smcp_node_init(&self->large,root,"large");
-	self->large.request_handler = &plugtest_large_handler;
+	self->large.request_handler = (smcp_callback_func)&plugtest_large_handler;
 
 /*
 	// Not yet implemented.
@@ -390,7 +390,7 @@ plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 */
 
 	smcp_node_init(&self->obs,root,"obs");
-	self->obs.request_handler = (void*)&plugtest_obs_handler;
+	self->obs.request_handler = (smcp_callback_func)&plugtest_obs_handler;
 	self->obs.context = (void*)self;
 	self->obs.is_observable = true;
 

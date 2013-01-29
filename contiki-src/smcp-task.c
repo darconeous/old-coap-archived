@@ -32,7 +32,6 @@
 #include <string.h>
 
 #include <smcp/smcp.h>
-#include <smcp/smcp-pairing.h>
 
 #include "smcp-task.h"
 
