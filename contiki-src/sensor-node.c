@@ -27,9 +27,9 @@
 */
 
 #include "sensor-node.h"
-#include "assert_macros.h"
+#include "assert-macros.h"
 #include "lib/sensors.h"
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 #include <smcp/smcp-variable_node.h>
 
 const extern struct sensors_sensor *sensors[];

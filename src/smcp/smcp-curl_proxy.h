@@ -31,7 +31,7 @@
 #define __SMCP_CURL_PROXY_H__ 1
 
 #include "smcp.h"
-#include "smcp-node.h"
+#include "smcp-node-router.h"
 #include <curl/curl.h>
 
 /*!	@addtogroup smcp-extras

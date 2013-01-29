@@ -31,7 +31,7 @@
 #include <config.h>
 #endif
 
-#include <smcp/assert_macros.h>
+#include <smcp/assert-macros.h>
 #include <stdlib.h>
 
 #include <smcp/smcp.h>
@@ -41,7 +41,7 @@
 #define time(x)		clock_seconds()
 #endif
 
-#define PLUGTEST_OBS_KEY			(0)		// Arbitrary.
+#define PLUGTEST_OBS_KEY			(42)
 
 smcp_status_t
 plugtest_test_handler(smcp_node_t node)
@@ -182,7 +182,7 @@ plugtest_separate_handler(
 			transaction,
 			(smcp_inbound_get_packet()->tt==COAP_TRANS_TYPE_CONFIRMABLE)?COAP_MAX_TRANSMIT_WAIT*MSEC_PER_SEC:1
 		);
-		if(ret) {
+		if(SMCP_STATUS_OK != ret) {
 			smcp_transaction_end(smcp_get_current_instance(),transaction);
 			goto bail;
 		}
@@ -206,7 +206,7 @@ plugtest_obs_timer_callback(smcp_t smcp, void* context) {
 	smcp_invalidate_timer(smcp,&self->obs_timer);
 	smcp_schedule_timer(smcp,&self->obs_timer,5 * MSEC_PER_SEC);
 
-	smcp_observable_trigger(&self->observable,PLUGTEST_OBS_KEY);
+	smcp_observable_trigger(&self->observable,PLUGTEST_OBS_KEY,0);
 }
 
 smcp_status_t
@@ -331,6 +331,8 @@ bail:
 }
 
 /*
+// Not yet implemented.
+
 smcp_status_t
 plugtest_large_update_handler(
 	smcp_node_t		node
@@ -362,23 +364,24 @@ plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 	memset(self,0,sizeof(*self));
 
 	smcp_node_init(&self->test,root,"test");
-	self->test.request_handler = &plugtest_test_handler;
+	self->test.request_handler = (smcp_callback_func)&plugtest_test_handler;
 
 	smcp_node_init(&self->seg1,root,"seg1");
 	smcp_node_init(&self->seg2,&self->seg1,"seg2");
 	smcp_node_init(&self->seg3,&self->seg2,"seg3");
-	self->seg3.request_handler = &plugtest_test_handler;
+	self->seg3.request_handler = (smcp_callback_func)&plugtest_test_handler;
 
 	smcp_node_init(&self->separate,root,"separate");
-	self->separate.request_handler = &plugtest_separate_handler;
+	self->separate.request_handler = (smcp_callback_func)&plugtest_separate_handler;
 
 	smcp_node_init(&self->query,root,"query");
-	self->query.request_handler = &plugtest_test_handler;
+	self->query.request_handler = (smcp_callback_func)&plugtest_test_handler;
 
 	smcp_node_init(&self->large,root,"large");
-	self->large.request_handler = &plugtest_large_handler;
+	self->large.request_handler = (smcp_callback_func)&plugtest_large_handler;
 
 /*
+	// Not yet implemented.
 	smcp_node_init(&self->large_update,root,"large_update");
 	self->large_update.request_handler = &plugtest_large_update_handler;
 
@@ -387,7 +390,7 @@ plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 */
 
 	smcp_node_init(&self->obs,root,"obs");
-	self->obs.request_handler = (void*)&plugtest_obs_handler;
+	self->obs.request_handler = (smcp_callback_func)&plugtest_obs_handler;
 	self->obs.context = (void*)self;
 	self->obs.is_observable = true;
 

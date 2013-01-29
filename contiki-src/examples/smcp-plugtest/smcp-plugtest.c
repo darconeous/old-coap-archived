@@ -4,7 +4,7 @@
 #include "net/resolv.h"
 
 #include <smcp/smcp.h>
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 
 #include <plugtest/plugtest-server.h>
 

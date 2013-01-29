@@ -41,7 +41,9 @@ __BEGIN_DECLS
 
 /*!	@defgroup smcp-auth Authentication API
 **	@{
-**	@brief This is an experimental interface for handling both internal
+**	@brief Experimental authentication interface
+**
+**	This is an experimental interface for handling both internal
 **	(i.e. DIGEST-MD5) and external (i.e. DTLS) authentication. It
 **	is a work in progress and is subject to change.
 */
@@ -61,7 +63,6 @@ extern smcp_status_t smcp_auth_outbound_finish();
 extern smcp_status_t smcp_auth_handle_response(smcp_transaction_t transaction);
 
 extern const char* smcp_auth_get_username();
-
 
 extern smcp_status_t smcp_auth_get_cred(
 	const char* realm,

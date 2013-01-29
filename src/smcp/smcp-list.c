@@ -41,7 +41,7 @@
 #define DEBUG VERBOSE_DEBUG
 #endif
 
-#include "assert_macros.h"
+#include "assert-macros.h"
 #include "smcp.h"
 
 #if SMCP_CONF_NODE_ROUTER

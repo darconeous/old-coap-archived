@@ -9,13 +9,13 @@ libsmcp_a_SOURCES = smcp.c smcp-timer.c coap.c smcp-outbound.c smcp-observable.c
 
 libsmcp_a_SOURCES += btree.c url-helpers.c fasthash.c
 
-libsmcp_a_SOURCES += smcp-node.c smcp-node.h smcp-list.c
+libsmcp_a_SOURCES += smcp-node-router.c smcp-node-router.h smcp-list.c
 
 #libsmcp_a_SOURCES += smcp-timer_node.c smcp-timer_node.h
 
 libsmcp_a_SOURCES += smcp-variable_node.c smcp-variable_node.h
 
-libsmcp_a_SOURCES += assert_macros.h btree.h coap.h ll.h smcp-curl_proxy.h smcp-helpers.h smcp-internal.h smcp-logging.h smcp-opts.h smcp-observable.h smcp-timer.h smcp.h url-helpers.h smcp-auth.h smcp-transaction.h fasthash.h
+libsmcp_a_SOURCES += assert-macros.h btree.h coap.h ll.h smcp-curl_proxy.h smcp-helpers.h smcp-internal.h smcp-logging.h smcp-opts.h smcp-observable.h smcp-timer.h smcp.h url-helpers.h smcp-auth.h smcp-transaction.h fasthash.h
 
 libsmcp_a_LIBADD = $(LIBOBJS) $(ALLOCA)
 

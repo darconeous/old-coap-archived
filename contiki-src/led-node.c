@@ -27,9 +27,9 @@
 */
 
 #include "led-node.h"
-#include "assert_macros.h"
+#include "assert-macros.h"
 #include "dev/leds.h"
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 #include <smcp/smcp-variable_node.h>
 
 static smcp_status_t

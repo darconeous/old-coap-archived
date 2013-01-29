@@ -12,7 +12,7 @@
 #endif
 
 #include "smcpctl.h"
-#include <smcp/assert_macros.h>
+#include <smcp/assert-macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -21,7 +21,7 @@
 #include <signal.h>
 
 #include <smcp/smcp.h>
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 #include <smcp/smcp-timer_node.h>
 #include <smcp/smcp-variable_node.h>
 #include <smcp/smcp-pairing.h>

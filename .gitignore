@@ -34,3 +34,5 @@ src/config.h.in
 src/smcpd/smcpd.conf
 src/plugtest/smcp-plugtest-client
 src/plugtest/smcp-plugtest-server
+doxygen.cfg
+*.gz

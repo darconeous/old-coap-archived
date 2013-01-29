@@ -94,6 +94,11 @@ applications. There are other configuration options for doing things like
 limiting `malloc()` usage, avoiding use of `printf()` (and variants),
 enabling/disabling observing, etc.
 
+## API Documentation ##
+
+You can find an online version of the API documentation here:
+<http://darconeous.github.com/smcp/doc/html/>
+
 ## SMCPCTL ##
 
 `smcpctl` is a command-line interface for browsing, observing, and

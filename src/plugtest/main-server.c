@@ -31,11 +31,11 @@
 #include <config.h>
 #endif
 
-#include <smcp/assert_macros.h>
+#include <smcp/assert-macros.h>
 
 #include <smcp/smcp.h>
 #include <smcp/smcp-opts.h>
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 #include "plugtest-server.h"
 
 int

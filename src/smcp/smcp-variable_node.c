@@ -34,11 +34,11 @@
 #define VERBOSE_DEBUG 0
 #endif
 
-#include "assert_macros.h"
+#include "assert-macros.h"
 
 #include "smcp-opts.h"
 #include "smcp.h"
-#include "smcp-node.h"
+#include "smcp-node-router.h"
 #include "smcp-helpers.h"
 #include "smcp-variable_node.h"
 #include "smcp-logging.h"
