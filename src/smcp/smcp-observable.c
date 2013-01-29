@@ -222,7 +222,7 @@ bail:
 }
 
 smcp_status_t
-smcp_observable_trigger(smcp_observable_t context, uint8_t key)
+smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	int8_t i;

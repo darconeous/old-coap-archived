@@ -32,7 +32,7 @@
 
 //#define SMCP_DEBUG_TIMERS	0
 
-#include "assert_macros.h"
+#include "assert-macros.h"
 #include "smcp.h"
 
 #if !SMCP_DEBUG_TIMERS && !VERBOSE_DEBUG
@@ -45,7 +45,7 @@
 #include "smcp-timer.h"
 #include "smcp.h"
 #include "url-helpers.h"
-#include "smcp-node.h"
+#include "smcp-node-router.h"
 #include <string.h>
 #include "smcp-internal.h"
 

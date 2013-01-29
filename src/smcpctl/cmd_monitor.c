@@ -10,7 +10,7 @@
 #include <config.h>
 #endif
 
-#include <smcp/assert_macros.h>
+#include <smcp/assert-macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -24,7 +24,7 @@
 #include <math.h>
 #include <signal.h>
 #include "smcpctl.h"
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",		 NULL,	 "Print Help"				 },

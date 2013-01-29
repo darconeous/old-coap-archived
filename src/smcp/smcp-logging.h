@@ -30,7 +30,7 @@
 #ifndef __SMCP_LOGGING_HEADER__
 #define __SMCP_LOGGING_HEADER__ 1
 
-#include "assert_macros.h"
+#include "assert-macros.h"
 
 #if !VERBOSE_DEBUG
 

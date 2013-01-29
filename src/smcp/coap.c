@@ -30,7 +30,7 @@
 #include <config.h>
 #endif
 
-#include "assert_macros.h"
+#include "assert-macros.h"
 #include "coap.h"
 #include <stdlib.h>
 #include "ctype.h"

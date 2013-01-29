@@ -38,7 +38,7 @@
 #define DEBUG VERBOSE_DEBUG
 #endif
 
-#include "assert_macros.h"
+#include "assert-macros.h"
 
 #include <stdarg.h>
 #include <stdio.h>

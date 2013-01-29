@@ -43,7 +43,7 @@
 
 #include <stdio.h>
 #include <smcp/smcp.h>
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 #include <smcp/smcp-observable.h>
 
 #define ARBITRARY_OBSERVABLE_KEY			(23)
@@ -97,7 +97,7 @@ main(void) {
 	while(1) {
 		smcp_process(instance, (next_trigger-time(NULL))*MSEC_PER_SEC);
 		if((next_trigger-time(NULL))<=0) {
-			smcp_observable_trigger(&observable,ARBITRARY_OBSERVABLE_KEY);
+			smcp_observable_trigger(&observable,ARBITRARY_OBSERVABLE_KEY,0);
 			next_trigger = time(NULL)+TRIGGER_FREQUENCY;
 		}
 	}

@@ -31,7 +31,7 @@ AUTOSTART_PROCESSES(
 #endif
 
 #include <smcp/smcp.h>
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 #include <smcp/smcp-timer_node.h>
 #include <smcp/smcp-variable_node.h>
 #include "led-node.h"

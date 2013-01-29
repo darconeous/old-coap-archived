@@ -28,7 +28,7 @@
 */
 
 #include <smcp/smcp.h>
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 #include <smcp/smcp-timer.h>
 #include <smcp/smcp-observable.h>
 

@@ -40,7 +40,7 @@
 
 #define __APPLE_USE_RFC_3542 1
 
-#include "assert_macros.h"
+#include "assert-macros.h"
 
 #if CONTIKI
 #include "contiki.h"

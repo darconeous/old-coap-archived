@@ -11,7 +11,7 @@
 #include <config.h>
 #endif
 
-#include <smcp/assert_macros.h>
+#include <smcp/assert-macros.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>

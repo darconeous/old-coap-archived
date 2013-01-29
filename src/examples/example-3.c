@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 #include <smcp/smcp.h>
-#include <smcp/smcp-node.h>
+#include <smcp/smcp-node-router.h>
 
 static smcp_status_t
 request_handler(void* context) {

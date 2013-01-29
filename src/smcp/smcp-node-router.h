@@ -1,4 +1,4 @@
-/*!	@file smcp-node.h
+/*!	@file smcp-node-router.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **	@brief Node router functions
 **

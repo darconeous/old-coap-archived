@@ -34,7 +34,7 @@
 
 #include "smcp.h"
 #include "smcp-timer.h"
-#include "smcp-node.h"
+#include "smcp-node-router.h"
 #include "fasthash.h"
 
 #ifndef SMCP_FUNC_RANDOM_UINT32

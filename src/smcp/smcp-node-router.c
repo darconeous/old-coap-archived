@@ -34,7 +34,7 @@
 #define VERBOSE_DEBUG 0
 #endif
 
-#include "assert_macros.h"
+#include "assert-macros.h"
 #include "smcp.h"
 
 #if SMCP_CONF_NODE_ROUTER
@@ -47,7 +47,7 @@
 #include "url-helpers.h"
 
 #include "smcp.h"
-#include "smcp-node.h"
+#include "smcp-node-router.h"
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
 #include "smcp-internal.h"

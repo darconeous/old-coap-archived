@@ -29,7 +29,7 @@
 #ifndef __SMCP_VARIABLE_NODE_H__
 #define __SMCP_VARIABLE_NODE_H__ 1
 
-#include "smcp-node.h"
+#include "smcp-node-router.h"
 #include "smcp-opts.h"
 #include "smcp-observable.h"
 

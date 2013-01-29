@@ -107,7 +107,7 @@ PROCESS_THREAD(smcp_task, ev, data)
         } else if(uip_poll())
 					smcp_process(smcp, 0);
 
-				etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/1000+1);
+				etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/MSEC_PER_SEC+1);
 			}
 		} else if(ev == PROCESS_EVENT_TIMER) {
 			if(etimer_expired(&et)) {

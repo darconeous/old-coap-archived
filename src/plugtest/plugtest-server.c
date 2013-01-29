@@ -31,7 +31,7 @@
 #include <config.h>
 #endif
 
-#include <smcp/assert_macros.h>
+#include <smcp/assert-macros.h>
 #include <stdlib.h>
 
 #include <smcp/smcp.h>
@@ -41,7 +41,7 @@
 #define time(x)		clock_seconds()
 #endif
 
-#define PLUGTEST_OBS_KEY			(0)		// Arbitrary.
+#define PLUGTEST_OBS_KEY			(42)
 
 smcp_status_t
 plugtest_test_handler(smcp_node_t node)
@@ -182,7 +182,7 @@ plugtest_separate_handler(
 			transaction,
 			(smcp_inbound_get_packet()->tt==COAP_TRANS_TYPE_CONFIRMABLE)?COAP_MAX_TRANSMIT_WAIT*MSEC_PER_SEC:1
 		);
-		if(ret) {
+		if(SMCP_STATUS_OK != ret) {
 			smcp_transaction_end(smcp_get_current_instance(),transaction);
 			goto bail;
 		}
@@ -206,7 +206,7 @@ plugtest_obs_timer_callback(smcp_t smcp, void* context) {
 	smcp_invalidate_timer(smcp,&self->obs_timer);
 	smcp_schedule_timer(smcp,&self->obs_timer,5 * MSEC_PER_SEC);
 
-	smcp_observable_trigger(&self->observable,PLUGTEST_OBS_KEY);
+	smcp_observable_trigger(&self->observable,PLUGTEST_OBS_KEY,0);
 }
 
 smcp_status_t
@@ -331,6 +331,8 @@ bail:
 }
 
 /*
+// Not yet implemented.
+
 smcp_status_t
 plugtest_large_update_handler(
 	smcp_node_t		node
@@ -379,6 +381,7 @@ plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 	self->large.request_handler = &plugtest_large_handler;
 
 /*
+	// Not yet implemented.
 	smcp_node_init(&self->large_update,root,"large_update");
 	self->large_update.request_handler = &plugtest_large_update_handler;
 
