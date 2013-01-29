@@ -394,7 +394,6 @@ send_list_request(
 	int flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE;
 	tid = smcp_get_next_msg_id(smcp);
 	gRet = ERRORCODE_INPROGRESS;
-
 //	if(!next)
 //		tokenid = tid;
 
@@ -452,6 +451,7 @@ tool_cmd_list(
 	redirect_count = 10;
 	redirect_url[0] = 0;
 	size_request = 0;
+	list_data_size = 0;
 
 	timeout_cms = 30*1000;
 	list_filename_only = false;
