@@ -68,9 +68,8 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_smcpctl_OBJECTS = main.$(OBJEXT) cmd_list.$(OBJEXT) \
-	cmd_test.$(OBJEXT) cmd_get.$(OBJEXT) cmd_post.$(OBJEXT) \
-	cmd_pair.$(OBJEXT) help.$(OBJEXT) cmd_repeat.$(OBJEXT) \
-	cmd_delete.$(OBJEXT) cmd_monitor.$(OBJEXT)
+	cmd_get.$(OBJEXT) cmd_post.$(OBJEXT) help.$(OBJEXT) \
+	cmd_repeat.$(OBJEXT) cmd_delete.$(OBJEXT)
 smcpctl_OBJECTS = $(am_smcpctl_OBJECTS)
 smcpctl_DEPENDENCIES = ../smcp/libsmcp.a
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
@@ -212,10 +211,9 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = -I.. -I$(top_srcdir)/src
-smcpctl_SOURCES = main.c cmd_list.c cmd_test.c cmd_get.c cmd_post.c \
-	cmd_pair.c help.c cmd_repeat.c cmd_delete.c cmd_monitor.c \
-	cmd_delete.h cmd_get.h cmd_list.h cmd_monitor.h cmd_pair.h \
-	cmd_post.h cmd_repeat.h cmd_test.h help.h smcpctl.h
+smcpctl_SOURCES = main.c cmd_list.c cmd_get.c cmd_post.c help.c \
+	cmd_repeat.c cmd_delete.c cmd_delete.h cmd_get.h cmd_list.h \
+	cmd_post.h cmd_repeat.h help.h smcpctl.h
 smcpctl_LDADD = ../smcp/libsmcp.a
 DISTCLEANFILES = .deps Makefile
 all: all-am
@@ -311,11 +309,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_delete.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_get.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_list.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_monitor.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_pair.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_post.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_repeat.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/help.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 
