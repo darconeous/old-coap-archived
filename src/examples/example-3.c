@@ -1,9 +1,9 @@
 /*!	@page smcp-example-3 example-3.c: Using the node router
 **
-**	src/examples/example-3.c
-**
 **	This example shows how to respond to a request for specific resources
 **	using the node router.
+**
+**	@include example-3.c
 **
 **	## Results ##
 **

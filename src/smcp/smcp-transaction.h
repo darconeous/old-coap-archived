@@ -1,6 +1,6 @@
-/*	@file smcp-transaction.h
+/*!	@file smcp-transaction.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
-**	@desc Transaction functions
+**	@brief Transaction functions
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **

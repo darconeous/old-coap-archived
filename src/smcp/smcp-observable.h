@@ -1,4 +1,4 @@
-/*	@file smcp-observable.h
+/*!	@file smcp-observable.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2013 Robert Quattlebaum

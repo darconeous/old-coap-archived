@@ -1,5 +1,6 @@
-/*	@file smcp_internal.c
+/*!	@file smcp_internal.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Internal structures and functions
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **

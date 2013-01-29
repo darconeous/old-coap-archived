@@ -447,8 +447,6 @@ coap_option_key_to_cstr(
 
 		case COAP_OPTION_CASCADE_COUNT: ret = "Cascade-count"; break;
 		case COAP_OPTION_AUTHENTICATE: ret = for_response?"X-Authenticate":"X-Authorization"; break;
-		case SMCP_OPTION_CSEQ: ret = "Cseq"; break;
-		case SMCP_OPTION_ORIGIN: ret = "Origin"; break;
 #endif
 
 	}
@@ -459,7 +457,6 @@ bool
 coap_option_value_is_string(coap_option_key_t key) {
 	switch(key) {
 		case COAP_OPTION_PROXY_URI:
-		case SMCP_OPTION_CSEQ:
 		case COAP_OPTION_ETAG:
 		case COAP_OPTION_URI_HOST:
 		case COAP_OPTION_URI_QUERY:
@@ -546,12 +543,6 @@ coap_option_key_from_cstr(const char* key) {
 		return COAP_OPTION_BLOCK1;
 	else if(strcasecmp(key, "Block2") == 0)
 		return COAP_OPTION_BLOCK2;
-
-
-	else if(strcasecmp(key, "Cseq") == 0)
-		return SMCP_OPTION_CSEQ;
-	else if(strcasecmp(key, "Origin") == 0)
-		return SMCP_OPTION_ORIGIN;
 
 	return COAP_OPTION_INVALID;
 }
@@ -766,10 +757,6 @@ coap_dump_header(
 		case COAP_OPTION_PROXY_URI:
 		case COAP_OPTION_LOCATION_PATH:
 		case COAP_OPTION_LOCATION_QUERY:
-
-		case SMCP_OPTION_ORIGIN:
-		case SMCP_OPTION_CSEQ:
-
 			fprintf(outstream, "\"");
 			if(value_len > COAP_MAX_OPTION_VALUE_SIZE)
 				fprintf(outstream, "%s",value);

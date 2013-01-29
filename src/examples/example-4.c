@@ -1,8 +1,8 @@
 /*!	@page smcp-example-4 example-4.c: Making observable resources
 **
-**	src/examples/example-4.c
-**
 **	This example shows how to make resources observable.
+**
+**	@include example-4.c
 **
 **	## Results ##
 **

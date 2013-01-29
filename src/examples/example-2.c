@@ -1,8 +1,8 @@
-/*!	@page smcp-example-2 example-3.c: Responding to a specific request
-**
-**	src/examples/example-2.c
+/*!	@page smcp-example-2 example-2.c: Responding to a specific request
 **
 **	This example shows how to respond to a request for a specific resource.
+**
+**	@include example-2.c
 **
 **	@sa @ref smcp-instance, @ref smcp-inbound, @ref smcp-outbound
 */

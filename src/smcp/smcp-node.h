@@ -1,5 +1,6 @@
-/*	@file smcp-node.h
+/*!	@file smcp-node.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Node router functions
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **

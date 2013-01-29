@@ -1,0 +1,10 @@
+language: c
+before_script:
+
+script:
+    - "mkdir build"
+    - "cd build"
+    - "../bootstrap.sh"
+    - "../configure"
+    - "make distcheck"
+

@@ -1,6 +1,6 @@
 /*!	@file smcp.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
-**	@desc Primary header
+**	@brief Primary header
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **

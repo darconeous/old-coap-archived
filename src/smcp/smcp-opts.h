@@ -1,5 +1,6 @@
-/*	@file smcp-opts.h
+/*!	@file smcp-opts.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief SMCP Build Options
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **

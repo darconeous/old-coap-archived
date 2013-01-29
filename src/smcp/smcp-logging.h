@@ -1,5 +1,6 @@
-/*	@file smcp-logging.h
+/*!	@file smcp-logging.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Logging support
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **

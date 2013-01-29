@@ -1,5 +1,6 @@
-/*	@file smcp-auth.h
+/*!	@file smcp-auth.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Experimental authentication functions
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **
@@ -38,7 +39,7 @@ __BEGIN_DECLS
 **	@{
 */
 
-/*!	@defgroup smcp_auth Authentication API
+/*!	@defgroup smcp-auth Authentication API
 **	@{
 **	@brief This is an experimental interface for handling both internal
 **	(i.e. DIGEST-MD5) and external (i.e. DTLS) authentication. It
@@ -72,13 +73,13 @@ extern smcp_status_t smcp_auth_get_cred(
 
 /*!	@} */
 
-/*!	@addtogroup smcp_net
+/*!	@addtogroup smcp-net
 **	@{
 */
 
 //! Describes external authentication (e.g. DTLS)
 /*!	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet().
-**	@sa smcp_auth */
+**	@sa smcp-auth */
 extern smcp_status_t smcp_inbound_set_ext_auth(
 	const char* cn,			//!< Common Name
 	const char* mechanism	//!< Authentication Mechanism
