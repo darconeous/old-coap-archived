@@ -23,5 +23,10 @@ if HAVE_LIBCURL
 libsmcp_a_SOURCES += smcp-curl_proxy.c
 endif
 
+noinst_PROGRAMS = btreetest
+btreetest_SOURCES = btree.c
+btreetest_CFLAGS = -DBTREE_SELF_TEST=1
+
 DISTCLEANFILES = .deps Makefile
 
+TESTS = btreetest

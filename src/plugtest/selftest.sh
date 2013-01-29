@@ -1,9 +1,9 @@
 #!/bin/sh
 
-./smcp-plugtest-server > /dev/stderr &
+DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib ./smcp-plugtest-server > /dev/stderr &
 SERVER_PID=$!
 
-./smcp-plugtest-client > /dev/stderr
+DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib ./smcp-plugtest-client > /dev/stderr
 RESULT=$?
 
 kill $SERVER_PID
