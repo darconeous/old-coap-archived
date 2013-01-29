@@ -13,7 +13,6 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
-
 VPATH = @srcdir@
 am__make_dryrun = \
   { \
@@ -98,10 +97,9 @@ am__uninstall_files_from_dir = { \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
 man1dir = $(mandir)/man1
-am__installdirs = "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(pkgdatadir)"
+am__installdirs = "$(DESTDIR)$(man1dir)"
 NROFF = nroff
 MANS = $(man_MANS)
-DATA = $(pkgdata_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
@@ -219,8 +217,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 man_MANS = smcpctl.1
-EXTRA_DIST = smcpctl.1 smcpd.example.conf
-pkgdata_DATA = smcpd.example.conf
+EXTRA_DIST = smcpctl.1
 all: all-am
 
 .SUFFIXES:
@@ -303,27 +300,6 @@ uninstall-man1:
 	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^1][0-9a-z]*$$,1,;x' \
 	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
 	dir='$(DESTDIR)$(man1dir)'; $(am__uninstall_files_from_dir)
-install-pkgdataDATA: $(pkgdata_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(pkgdata_DATA)'; test -n "$(pkgdatadir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(pkgdatadir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(pkgdatadir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(pkgdatadir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(pkgdatadir)" || exit $$?; \
-	done
-
-uninstall-pkgdataDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(pkgdata_DATA)'; test -n "$(pkgdatadir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(pkgdatadir)'; $(am__uninstall_files_from_dir)
 tags: TAGS
 TAGS:
 
@@ -378,9 +354,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(MANS) $(DATA)
+all-am: Makefile $(MANS)
 installdirs:
-	for dir in "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(pkgdatadir)"; do \
+	for dir in "$(DESTDIR)$(man1dir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -433,7 +409,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-man install-pkgdataDATA
+install-data-am: install-man
 
 install-dvi: install-dvi-am
 
@@ -477,7 +453,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-man uninstall-pkgdataDATA
+uninstall-am: uninstall-man
 
 uninstall-man: uninstall-man1
 
@@ -489,12 +465,11 @@ uninstall-man: uninstall-man1
 	install-data install-data-am install-dvi install-dvi-am \
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-man install-man1 \
-	install-pdf install-pdf-am install-pkgdataDATA install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
-	ps ps-am uninstall uninstall-am uninstall-man uninstall-man1 \
-	uninstall-pkgdataDATA
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	uninstall uninstall-am uninstall-man uninstall-man1
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
