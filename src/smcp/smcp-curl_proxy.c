@@ -1,4 +1,4 @@
-/*	@file smcp_curl_proxy.c
+/*!	@file smcp-curl_proxy.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum

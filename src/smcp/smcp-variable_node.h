@@ -1,4 +1,4 @@
-/*	@file smcp-variable_node.h
+/*!	@file smcp-variable_node.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum

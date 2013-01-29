@@ -11,6 +11,8 @@
 #include <config.h>
 #endif
 
+/* This file is a total mess and needs to be cleaned up! */
+
 #include <smcp/assert_macros.h>
 #include <smcp/smcp.h>
 #include <smcp/smcp-timer.h>

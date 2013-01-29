@@ -177,13 +177,6 @@ struct {
 	{ "?",	 NULL, &tool_cmd_help,  1 },
 
 
-
-//	{
-//		"pair",
-//		"Pairs an event to an action. (Experimental)",
-//		&tool_cmd_pair
-//	},
-
 	{ NULL }
 };
 

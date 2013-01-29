@@ -7,6 +7,8 @@
  *
  */
 
+/* This file is a total mess and needs to be cleaned up! */
+
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif

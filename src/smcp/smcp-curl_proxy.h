@@ -1,5 +1,6 @@
-/*	@file smcp-curl_proxy.h
+/*!	@file smcp-curl_proxy.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Curl-based CoAP-HTTP Proxy Request Handler
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **
@@ -39,6 +40,8 @@
 
 /*!	@defgroup smcp-curl_proxy CuRL Proxy
 **	@{
+**	@brief Curl-based CoAP-HTTP Proxy Request Handler (Experimental)
+**
 */
 
 

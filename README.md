@@ -7,9 +7,9 @@ Features include:
  * Supports draft-ietf-core-coap-13.
  * Fully asynchronous I/O.
  * Supports both BSD sockets and [UIP](http://en.wikipedia.org/wiki/UIP_(micro_IP%29).
- * Supports sending and receiving asynchronous CoAP responses.
- * Supports observing resources and offering observable resources.
- * Supports retransmission of confirmable transactions.
+ * Sending and receiving asynchronous CoAP responses.
+ * Observing resources and offering observable resources.
+ * Retransmission of confirmable transactions.
  * `smcpctl` - a powerful command line tool for browsing and configuring CoAP nodes.
 
 Initial focus is on correctness of implementation. Stack usage and other

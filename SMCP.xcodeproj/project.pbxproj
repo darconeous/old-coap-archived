@@ -311,7 +311,7 @@
 		A6F536F71561B7A600E0E324 /* smcp-list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-list.c"; path = "src/smcp/smcp-list.c"; sourceTree = "<group>"; };
 		A6FB241C16B7748400BA6C0F /* selftest.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = selftest.sh; path = src/plugtest/selftest.sh; sourceTree = "<group>"; };
 		A6FB241E16B77A7D00BA6C0F /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
-		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = smcpctl.1; sourceTree = "<group>"; };
+		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; name = smcpctl.1; path = docs/smcpctl.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
