@@ -1,5 +1,6 @@
-/*	@file smcp_internal.c
+/*!	@file smcp_internal.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Internal structures and functions
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **
@@ -29,11 +30,11 @@
 #ifndef __SMCP_INTERNAL_H__
 #define __SMCP_INTERNAL_H__ 1
 
+#include <stdbool.h>
+
 #include "smcp.h"
 #include "smcp-timer.h"
-
-#include "smcp-pairing.h"
-#include <stdbool.h>
+#include "smcp-node.h"
 #include "fasthash.h"
 
 #ifndef SMCP_FUNC_RANDOM_UINT32
@@ -66,27 +67,18 @@ extern void smcp_set_current_instance(smcp_t x);
 #pragma mark -
 #pragma mark Class Definitions
 
-#if SMCP_CONF_ENABLE_GROUPS
-struct smcp_group_s {
+#if SMCP_CONF_ENABLE_VHOSTS
+struct smcp_vhost_s {
 	char name[64];
-#if SMCP_USE_BSD_SOCKETS
-	struct in6_addr	addr;
-#elif CONTIKI
-	uip_ipaddr_t addr;
-#endif
-	smcp_node_t root;
+	smcp_request_handler_func func;
+	void* context;
 };
 #endif
 
 // Consider members of this struct to be private!
 struct smcp_s {
-	struct smcp_node_s		root_node;
-	void*					reserved_for_root_node_use;
-
-#if SMCP_CONF_ENABLE_GROUPS
-	struct smcp_group_s		group[SMCP_MAX_GROUPS];
-	uint8_t					group_count;
-#endif
+	smcp_request_handler_func	request_handler;
+	void*						request_handler_context;
 
 #if SMCP_USE_BSD_SOCKETS
 	int						fd;
@@ -100,10 +92,6 @@ struct smcp_s {
 	smcp_transaction_t		transactions;
 	smcp_transaction_t		current_transaction;
 
-#if SMCP_USE_CASCADE_COUNT
-	uint8_t					cascade_count;
-#endif
-
 	// Operational Flags
 	uint8_t					is_responding:1,
 							did_respond:1,
@@ -111,7 +99,7 @@ struct smcp_s {
 							has_cascade_count:1,
 							force_current_outbound_code:1;
 
-	// Inbound packet variables.
+	//! Inbound packet variables.
 	struct {
 		const struct coap_header_s*	packet;
 		size_t					packet_len;
@@ -140,11 +128,11 @@ struct smcp_s {
 		socklen_t				socklen;
 #elif CONTIKI
 		uip_ipaddr_t			toaddr;
-		uint16_t				toport;	// Always in network order.
+		uint16_t				toport;	//!^ Always in network order.
 #endif
 	} inbound;
 
-	// Outbound packet variables.
+	//! Outbound packet variables.
 	struct {
 		struct coap_header_s*	packet;
 
@@ -173,9 +161,16 @@ struct smcp_s {
 	uint16_t dupe_index;
 #endif
 
-	const char* proxy_url;
+#if SMCP_CONF_ENABLE_VHOSTS
+	struct smcp_vhost_s		vhost[SMCP_MAX_VHOSTS];
+	uint8_t					vhost_count;
+#endif
 
-	PAIRING_STATE
+#if SMCP_USE_CASCADE_COUNT
+	uint8_t					cascade_count;
+#endif
+
+	const char* proxy_url;
 };
 
 
@@ -183,7 +178,6 @@ extern smcp_status_t smcp_handle_request();
 
 extern smcp_status_t smcp_handle_response();
 
-extern smcp_status_t smcp_handle_list(smcp_node_t node,smcp_method_t method);
 
 __END_DECLS
 

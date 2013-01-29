@@ -35,21 +35,21 @@
 #include <stdlib.h>
 
 #include <smcp/smcp.h>
-#include <smcp/smcp-pairing.h>
 #include "plugtest-server.h"
 
 #if CONTIKI && !defined(time)
 #define time(x)		clock_seconds()
 #endif
 
+#define PLUGTEST_OBS_KEY			(0)		// Arbitrary.
+
 smcp_status_t
-plugtest_test_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
-) {
+plugtest_test_handler(smcp_node_t node)
+{
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	char* content = NULL;
 	size_t max_len = 0;
+	smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
@@ -63,7 +63,7 @@ plugtest_test_handler(
 
 	if(ret) goto bail;
 
-	smcp_outbound_set_content_type(0);
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 
 	content = smcp_outbound_get_content_ptr(&max_len);
 	if(!content) {
@@ -101,7 +101,8 @@ bail:
 }
 
 smcp_status_t
-plugtest_separate_async_resend_response(void* context) {
+plugtest_separate_async_resend_response(void* context)
+{
 	smcp_status_t ret = 0;
 	struct smcp_async_response_s* async_response = (void*)context;
 
@@ -113,7 +114,7 @@ plugtest_separate_async_resend_response(void* context) {
 	ret = smcp_outbound_set_async_response(async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_set_content_formatted("This was an asynchronous response!");
@@ -140,12 +141,12 @@ plugtest_separate_async_ack_handler(int statuscode, void* context) {
 
 smcp_status_t
 plugtest_separate_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	struct smcp_async_response_s* async_response = NULL;
 	smcp_transaction_t transaction = NULL;
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+	smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
 		printf("This request needs an async response.\n");
@@ -198,12 +199,22 @@ bail:
 	return ret;
 }
 
+void
+plugtest_obs_timer_callback(smcp_t smcp, void* context) {
+	struct plugtest_server_s *self = (void*)context;
+
+	smcp_invalidate_timer(smcp,&self->obs_timer);
+	smcp_schedule_timer(smcp,&self->obs_timer,5 * MSEC_PER_SEC);
+
+	smcp_observable_trigger(&self->observable,PLUGTEST_OBS_KEY);
+}
+
 smcp_status_t
 plugtest_obs_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	struct plugtest_server_s *self
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+	smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
 		char* content = NULL;
@@ -212,9 +223,12 @@ plugtest_obs_handler(
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		if(ret) goto bail;
 
-		smcp_outbound_set_content_type(0);
+		smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 
-		smcp_pair_inbound_observe_update();
+		if(!smcp_timer_is_scheduled(smcp_get_current_instance(), &self->obs_timer))
+			plugtest_obs_timer_callback(smcp_get_current_instance(),self);
+
+		smcp_observable_update(&self->observable,PLUGTEST_OBS_KEY);
 
 		ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,10);
 		if(ret) goto bail;
@@ -236,24 +250,14 @@ bail:
 	return ret;
 }
 
-void
-plugtest_obs_timer_callback(smcp_t smcp, void* context) {
-	struct plugtest_server_s *self = (void*)context;
-
-	smcp_invalidate_timer(smcp,&self->obs_timer);
-	smcp_schedule_timer(smcp,&self->obs_timer,5 * MSEC_PER_SEC);
-
-	smcp_trigger_event_with_node(smcp,&self->obs,NULL);
-}
-
 smcp_status_t
 plugtest_large_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	char* content = NULL;
 	size_t max_len = 0;
+	smcp_method_t method = smcp_inbound_get_code();
 	uint32_t block_option = 0x03;
 	uint32_t block_start = 0;
 	uint32_t block_stop = 0;
@@ -292,7 +296,7 @@ plugtest_large_handler(
 	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	if(ret) goto bail;
 
-	ret = smcp_outbound_set_content_type(0);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,block_option);
@@ -329,8 +333,7 @@ bail:
 /*
 smcp_status_t
 plugtest_large_update_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 
@@ -342,8 +345,7 @@ bail:
 
 smcp_status_t
 plugtest_large_create_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 
@@ -385,13 +387,11 @@ plugtest_server_init(struct plugtest_server_s *self,smcp_node_t root) {
 */
 
 	smcp_node_init(&self->obs,root,"obs");
-	self->obs.request_handler = &plugtest_obs_handler;
+	self->obs.request_handler = (void*)&plugtest_obs_handler;
+	self->obs.context = (void*)self;
 	self->obs.is_observable = true;
 
 	smcp_timer_init(&self->obs_timer,&plugtest_obs_timer_callback,NULL,(void*)self);
-
-	// Starts the timer
-	plugtest_obs_timer_callback((smcp_t)smcp_node_get_root(root),(void*)self);
 
 	return SMCP_STATUS_OK;
 }

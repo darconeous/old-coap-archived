@@ -5,29 +5,35 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/*!	@defgroup url-helpers URL Helpers
+**	@{
+*/
+
+
 #define URL_HELPERS_MAX_URL_COMPONENTS      (15)
+
 #define MAX_URL_SIZE        (256)
 
 /*!	Perfoms a URL encoding of the given string.
 **	@returns	Number of bytes in encoded string
 */
 extern size_t url_encode_cstr(
-	char *dest,
-	const char* src,		// Must be zero-terminated.
+	char *dest,				//!< [OUT] Destination C-string
+	const char* src,		//!< [IN] Must be zero-terminated.
 	size_t dest_max_size
 );
 
 extern size_t url_encode_str(
 	char *dest,
 	size_t dest_max_size,
-	const char* src,		// Length determined by src_len.
+	const char* src,		//!< Length determined by `src_len`.
 	size_t src_len
 );
 
 extern size_t url_decode_str(
 	char *dest,
 	size_t dest_max_size,
-	const char* src,		// Length determined by src_len.
+	const char* src,		//!< Length determined by `src_len`.
 	size_t src_len
 );
 
@@ -36,7 +42,7 @@ extern size_t url_decode_str(
 */
 extern size_t url_decode_cstr(
 	char *dest,
-	const char* src,		// Must be zero-terminated.
+	const char* src,		//!< Must be zero-terminated.
 	size_t dest_max_size
 );
 
@@ -45,21 +51,23 @@ extern void url_decode_cstr_inplace(char *str);
 
 extern size_t quoted_cstr(
 	char *dest,
-	const char* src,		// Must be zero-terminated.
+	const char* src,		//!< Must be zero-terminated.
 	size_t dest_max_size
 );
 
-
-
 extern size_t url_form_next_value(
-	char** form_string, char** key, char** value);
+	char** form_string, //!< [IN/OUT]
+	char** key,			//!< [OUT]
+	char** value		//!< [OUT]
+);
 
 extern size_t url_path_next_component(
-	char** path_string, char** component
+	char** path_string,	//!< [IN/OUT]
+	char** component	//!< [OUT]
 );
 
 extern int url_parse(
-	char*	url,
+	char*	url,		//!< [IN] URL to parse (will be modified)
 	char**	protocol,
 	char**	username,
 	char**	password,
@@ -78,13 +86,19 @@ extern bool url_is_root(const char* url);
 inline static bool path_is_absolute(const char* path) { return path[0] == '/'; }
 #endif
 
-// Transforms new_url into a shorter, possibly relative, path/url.
+//! Transforms new_url into a shorter, possibly relative, path/url.
 extern void url_shorten_reference(
-	const char* current_url, char* new_url);
+	const char* current_url,
+	char* new_url
+);
 
 extern bool string_contains_colons(const char* str);
 
 extern bool url_change(
-	char* current_url, const char* new_url);
+	char* current_url,
+	const char* new_url
+);
+
+/*!	@} */
 
 #endif // __URL_HELPERS_H__

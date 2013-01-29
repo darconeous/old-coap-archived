@@ -7,6 +7,8 @@
  *
  */
 
+/* This file is a total mess and needs to be cleaned up! */
+
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -215,20 +217,10 @@ send_get_request(
 	bool ret = false;
 	smcp_status_t status = 0;
 	int flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE;
-	tid = smcp_get_next_msg_id(smcp);
 	gRet = ERRORCODE_INPROGRESS;
-
-	if(!next)
-		tokenid = tid;
 
 	retries = 0;
 	url_data = url;
-	if(next) {
-		memcpy(next_data, next, nextlen);
-		next_len = nextlen;
-	} else {
-		next_len = ((size_t)(-1));
-	}
 
 	if(get_observe)
 		flags |= SMCP_TRANSACTION_OBSERVE;
@@ -244,11 +236,6 @@ send_get_request(
 		(void*)url_data
 	);
 	status = smcp_transaction_begin(smcp, &transaction, get_timeout);
-	if(next)
-		transaction.token = tokenid;
-	else
-		tokenid = transaction.token;
-	tid = transaction.msg_id;
 
 	if(status) {
 		check(!status);

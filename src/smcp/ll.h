@@ -1,5 +1,6 @@
-/*	@file ll.h
+/*!	@file ll.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Linked-List functions
 **
 **	Originally published 2010-8-31.
 **
@@ -46,6 +47,11 @@
 
 #include <stdbool.h>
 
+/*!	@defgroup ll Linked-List Functions
+**	@{
+*/
+
+
 #if LL_DEBUG
 #include <assert.h>
 #define LL_ASSERT(x)	assert(x)
@@ -56,13 +62,16 @@
 __BEGIN_DECLS
 
 struct ll_item_s;
+
 typedef struct ll_item_s *ll_item_t;
+
 struct ll_item_s {
 	ll_item_t	next;
 	ll_item_t	prev;
 };
 
 typedef int ll_compare_result_t;
+
 typedef ll_compare_result_t (*ll_compare_func_t)(const void* lhs,
     const void* rhs, void* context);
 
@@ -218,5 +227,7 @@ ll_count(void* item) {
 }
 
 __END_DECLS
+
+/*!	@} */
 
 #endif

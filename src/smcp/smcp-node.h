@@ -1,5 +1,6 @@
-/*	@file smcp-node.h
+/*!	@file smcp-node.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Node router functions
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **
@@ -29,24 +30,26 @@
 #ifndef __SMCP_NODE_HEADER__
 #define __SMCP_NODE_HEADER__ 1
 
-#if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
-#if defined(__cplusplus)
-#define __BEGIN_DECLS   extern "C" {
-#define __END_DECLS \
-	}
-#else
-#define __BEGIN_DECLS
-#define __END_DECLS
-#endif
-#endif
-
-#include <stdbool.h>
-
 #include "smcp.h"
+
+#if SMCP_CONF_NODE_ROUTER
 
 __BEGIN_DECLS
 
-// Struct size: 8*sizeof(void*)
+/*!	@addtogroup smcp-extras
+**	@{
+*/
+
+/*!	@defgroup smcp-node-router Node Router
+**	@{
+**	@sa @ref smcp-example-3
+*/
+
+struct smcp_node_s;
+typedef struct smcp_node_s* smcp_node_t;
+
+typedef smcp_status_t (*smcp_node_inbound_handler_func)(smcp_node_t node);
+
 struct smcp_node_s {
 	struct bt_item_s			bt_item;
 	const char*					name;
@@ -58,12 +61,72 @@ struct smcp_node_s {
 								should_free_name:1;
 
 	void						(*finalize)(smcp_node_t node);
-	smcp_inbound_handler_func	request_handler;
+	smcp_request_handler_func	request_handler;
+	void*						context;
 };
 
 extern bt_compare_result_t smcp_node_compare(smcp_node_t lhs, smcp_node_t rhs);
 
+#if SMCP_EMBEDDED
+#define smcp_node_get_root(x)		((smcp_node_t)smcp_get_current_instance())
+#else
+extern smcp_node_t smcp_node_get_root(smcp_node_t node);
+#endif
+
+extern smcp_status_t smcp_node_router_handler(void* context);
+extern smcp_status_t smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** context);
+
+extern smcp_node_t smcp_node_alloc();
+
+extern smcp_node_t smcp_node_init(
+	smcp_node_t self,
+	smcp_node_t parent,
+	const char* name		//!< [IN] Unescaped.
+);
+
+extern void smcp_node_delete(smcp_node_t node);
+
+
+extern smcp_status_t smcp_node_get_path(
+	smcp_node_t node,
+	char* path,			//!< [OUT] Pointer to where the path will be written.
+	size_t max_path_len
+);
+
+extern smcp_node_t smcp_node_find(
+	smcp_node_t node,
+	const char* name,		//!< [IN] Unescaped.
+	int name_len
+);
+
+extern smcp_node_t smcp_node_find_with_path(
+	smcp_node_t node,
+	const char* path		//!< [IN] Fully escaped path.
+);
+
+extern int smcp_node_find_closest_with_path(
+	smcp_node_t node,
+	const char* path,		//!< [IN] Fully escaped path.
+	smcp_node_t* closest
+);
+
+extern int smcp_node_find_next_with_path(
+	smcp_node_t node,
+	const char* path,		//!< [IN] Fully escaped path.
+	smcp_node_t* next
+);
+
+extern smcp_status_t smcp_default_request_handler(
+	smcp_node_t		node
+);
+
+extern smcp_status_t smcp_handle_list(smcp_node_t node);
+
+/*!	@} */
+/*!	@} */
+
 __END_DECLS
 
+#endif // #if SMCP_CONF_NODE_ROUTER
 
 #endif

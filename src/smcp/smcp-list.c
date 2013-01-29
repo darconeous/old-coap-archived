@@ -42,6 +42,9 @@
 #endif
 
 #include "assert_macros.h"
+#include "smcp.h"
+
+#if SMCP_CONF_NODE_ROUTER
 
 #if HAVE_ALLOCA_H
 #include <alloca.h>
@@ -56,14 +59,12 @@
 #include "smcp-internal.h"
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
-#include "smcp.h"
 #include "ll.h"
 #include "url-helpers.h"
 
 smcp_status_t
 smcp_handle_list(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = 0;
 	char* replyContent;
@@ -148,7 +149,7 @@ smcp_handle_list(
 		node = NULL;
 
 	smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
-	smcp_outbound_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 
 	replyContent = smcp_outbound_get_content_ptr(&content_break_threshold);
 	replyContent[0] = 0;
@@ -208,3 +209,5 @@ smcp_handle_list(
 bail:
 	return ret;
 }
+
+#endif // #if SMCP_CONF_NODE_ROUTER

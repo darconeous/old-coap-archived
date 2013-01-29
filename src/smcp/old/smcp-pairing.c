@@ -65,15 +65,14 @@
 #pragma mark -
 #pragma mark Paring
 
-#define SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)		((pairing->flags&SMCP_PARING_FLAG_RELIABILITY_MASK) || !(pairing->seq&0x7))
+#define SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)		((pairing->flags&SMCP_PAIRING_FLAG_RELIABILITY_MASK) || !(pairing->seq&0x7))
 
 #define SMCP_PAIRING_CON_EVENT_EXPIRATION	(30*MSEC_PER_SEC)
 #define SMCP_PAIRING_NON_EVENT_EXPIRATION	(1*MSEC_PER_SEC)
 
 static smcp_status_t
 smcp_pairing_node_request_handler(
-	smcp_pairing_node_t	pairing,
-	smcp_method_t	method
+	smcp_pairing_node_t	pairing
 );
 
 static smcp_status_t
@@ -86,8 +85,7 @@ smcp_pairing_node_variable_func(
 
 static smcp_status_t
 smcp_pairing_path_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 );
 
 
@@ -165,16 +163,16 @@ smcp_pair_inbound_observe_update() {
 
 		require_action(pairing!=NULL,bail,{ free(uri); ret = SMCP_STATUS_FAILURE;});
 
-		pairing->node.node.request_handler = (smcp_inbound_handler_func)&smcp_pairing_node_request_handler;
+		pairing->node.node.request_handler = (smcp_node_inbound_handler_func)&smcp_pairing_node_request_handler;
 		pairing->node.func = (smcp_variable_node_func)&smcp_pairing_node_variable_func;
 
-		pairing->flags = SMCP_PARING_FLAG_OBSERVE;
+		pairing->flags = SMCP_PAIRING_FLAG_OBSERVE;
 //		pairing->content_type = COAP_CONTENT_TYPE_UNKNOWN;
 
 		if(self->inbound.packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)
-			pairing->flags |= SMCP_PARING_FLAG_RELIABILITY_ASAP;
+			pairing->flags |= SMCP_PAIRING_FLAG_RELIABILITY_ASAP;
 		else
-			pairing->flags |= SMCP_PARING_FLAG_RELIABILITY_NONE;
+			pairing->flags |= SMCP_PAIRING_FLAG_RELIABILITY_NONE;
 
 #if SMCP_CONF_USE_SEQ
 //#if DEBUG
@@ -280,7 +278,7 @@ smcp_pair_with_sockaddr(
 
 	smcp_variable_node_init(&pairing->node, path_node, strdup(uri));
 
-	pairing->node.node.request_handler = (smcp_inbound_handler_func)&smcp_pairing_node_request_handler;
+	pairing->node.node.request_handler = (smcp_node_inbound_handler_func)&smcp_pairing_node_request_handler;
 	pairing->node.func = (smcp_variable_node_func)&smcp_pairing_node_variable_func;
 
 	pairing->flags = flags;
@@ -392,7 +390,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		require_noerr(status,bail);
 	}
 
-	if(pairing->flags & SMCP_PARING_FLAG_OBSERVE) {
+	if(pairing->flags & SMCP_PAIRING_FLAG_OBSERVE) {
 		status = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		require_noerr(status,bail);
 
@@ -400,7 +398,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		require_noerr(status,bail);
 
 		if(event->contentFetcher) {
-			status = smcp_outbound_set_content_type(content_type);
+			status = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, content_type);
 			check_noerr(status);
 		}
 
@@ -434,7 +432,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 		status = smcp_outbound_set_uri(smcp_pairing_get_uri_cstr(pairing),0);
 		require_noerr(status,bail);
 
-		status = smcp_outbound_add_option(SMCP_OPTION_ORIGIN, smcp_pairing_get_path_cstr(pairing), HEADER_CSTR_LEN);
+		status = smcp_outbound_add_option(SMCP_OPTION_ORIGIN, smcp_pairing_get_path_cstr(pairing), SMCP_CSTR_LEN);
 		require_noerr(status,bail);
 
 //#if SMCP_CONF_USE_SEQ
@@ -453,7 +451,7 @@ smcp_retry_custom_event(smcp_pairing_node_t pairing) {
 //			(long unsigned int)pairing->seq
 //		);
 //#endif
-//		status = smcp_outbound_add_option(SMCP_OPTION_CSEQ, cseq, HEADER_CSTR_LEN);
+//		status = smcp_outbound_add_option(SMCP_OPTION_CSEQ, cseq, SMCP_CSTR_LEN);
 //		require_noerr(status,bail);
 //#endif
 #endif // !SMCP_CONF_OBSERVING_ONLY
@@ -510,7 +508,7 @@ smcp_event_response_handler(
 
 	if(statuscode==SMCP_STATUS_TIMEOUT) {
 		if(SHOULD_CONFIRM_EVENT_FOR_PAIRING(pairing)) {
-			if(pairing->flags&SMCP_PARING_FLAG_OBSERVE)
+			if(pairing->flags&SMCP_PAIRING_FLAG_OBSERVE)
 				statuscode = SMCP_STATUS_RESET;
 		} else {
 			statuscode = SMCP_STATUS_OK;
@@ -523,7 +521,7 @@ smcp_event_response_handler(
 #if SMCP_CONF_PAIRING_STATS
 			pairing->errors++;
 #endif
-			if(	(pairing->flags & SMCP_PARING_FLAG_OBSERVE)
+			if(	(pairing->flags & SMCP_PAIRING_FLAG_OBSERVE)
 #if SMCP_CONF_PAIRING_STATS
 				&& (pairing->errors>=10)
 #endif
@@ -531,7 +529,7 @@ smcp_event_response_handler(
 				DEBUG_PRINTF("Event:%p: Too many errors!\n",pairing);
 				statuscode = SMCP_STATUS_RESET;
 			}
-			if(statuscode==SMCP_STATUS_RESET && (pairing->flags&SMCP_PARING_FLAG_OBSERVE)) {
+			if(statuscode==SMCP_STATUS_RESET && (pairing->flags&SMCP_PAIRING_FLAG_OBSERVE)) {
 				smcp_delete_pairing(pairing);
 				return SMCP_STATUS_OK;
 			}
@@ -576,7 +574,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 	char* original_path = NULL;
 	struct coap_header_s* packet;
 
-	if(pairing->flags & SMCP_PARING_FLAG_OBSERVE) {
+	if(pairing->flags & SMCP_PAIRING_FLAG_OBSERVE) {
 		status = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		require_noerr(status,bail);
 
@@ -627,7 +625,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 		status = smcp_outbound_add_option(
 			SMCP_OPTION_ORIGIN,
 			smcp_pairing_get_path_cstr(pairing),
-			HEADER_CSTR_LEN
+			SMCP_CSTR_LEN
 		);
 		require_noerr(status,bail);
 
@@ -647,7 +645,7 @@ smcp_retry_event(smcp_pairing_node_t pairing) {
 //			(long unsigned int)pairing->seq
 //		);
 //#endif // !__AVR__
-//		status = smcp_outbound_add_option(SMCP_OPTION_CSEQ, cseq, HEADER_CSTR_LEN);
+//		status = smcp_outbound_add_option(SMCP_OPTION_CSEQ, cseq, SMCP_CSTR_LEN);
 //		require_noerr(status,bail);
 //#endif // SMCP_CONF_USE_SEQ
 #endif // !SMCP_CONF_OBSERVING_ONLY
@@ -934,7 +932,7 @@ smcp_trigger_custom_event_with_node(
 	smcp_content_fetcher_func contentFetcher,
 	void* context
 ) {
-	smcp_t const self = (smcp_t)smcp_node_get_root(node);
+	smcp_t const self = smcp_node_get_interface(node);
 	char path[SMCP_MAX_PATH_LENGTH + 1];
 
 	path[sizeof(path) - 1] = 0;
@@ -964,12 +962,12 @@ smcp_trigger_custom_event_with_node(
 extern smcp_status_t
 smcp_delete_pairing(smcp_pairing_node_t pairing) {
 	smcp_node_t parent = (smcp_node_t)pairing->node.node.parent;
-	smcp_t const self = (smcp_t)smcp_node_get_root(&pairing->node.node);
+	smcp_t const self = smcp_node_get_interface(&pairing->node.node);
 	char* name = (char*)pairing->node.node.name;
 
 	DEBUG_PRINTF("%s: %p \"%s\"",__func__,pairing,pairing->node.node.name);
 
-	if(pairing->flags&SMCP_PARING_FLAG_OBSERVE)
+	if(pairing->flags&SMCP_PAIRING_FLAG_OBSERVE)
 		smcp_finish_async_response(&pairing->async_response);
 
 	if(pairing->currentEvent)
@@ -989,10 +987,10 @@ smcp_delete_pairing(smcp_pairing_node_t pairing) {
 
 static smcp_status_t
 smcp_pairing_path_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = 0;
+	smcp_method_t method = smcp_inbound_get_code();
 
 #if !SMCP_CONF_OBSERVING_ONLY
 	smcp_t const self = smcp_get_current_instance();
@@ -1046,18 +1044,18 @@ smcp_pairing_path_request_handler(
 			self,
 			path,
 			uri,
-			SMCP_PARING_FLAG_RELIABILITY_PART,
+			SMCP_PAIRING_FLAG_RELIABILITY_PART,
 			&idVal
 		);
 
 		smcp_outbound_begin_response(COAP_RESULT_201_CREATED);
-		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, self->root_pairing_node->name, HEADER_CSTR_LEN);
-		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, path, HEADER_CSTR_LEN);
-		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, uri, HEADER_CSTR_LEN);
+		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, self->root_pairing_node->name, SMCP_CSTR_LEN);
+		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, path, SMCP_CSTR_LEN);
+		smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, uri, SMCP_CSTR_LEN);
 		smcp_outbound_send();
 	} else
 #endif // !SMCP_CONF_OBSERVING_ONLY
-	ret = smcp_default_request_handler(node, method);
+	ret = smcp_default_request_handler(node);
 
 bail:
 	return ret;
@@ -1175,10 +1173,10 @@ smcp_pairing_node_variable_func(
 
 static smcp_status_t
 smcp_pairing_node_request_handler(
-	smcp_pairing_node_t		pairing,
-	smcp_method_t	method
+	smcp_pairing_node_t		pairing
 ) {
 	smcp_status_t ret = 0;
+	const smcp_method_t method = smcp_inbound_get_code();
 
 	if(method == COAP_METHOD_DELETE) {
 		if(smcp_inbound_next_option(NULL, NULL)!=COAP_OPTION_URI_PATH) {
@@ -1190,7 +1188,7 @@ smcp_pairing_node_request_handler(
 			ret = SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else {
-		ret = smcp_variable_request_handler(&pairing->node, method);
+		ret = smcp_variable_request_handler(&pairing->node);
 	}
 
 bail:
@@ -1200,7 +1198,7 @@ bail:
 smcp_root_pairing_node_t smcp_pairing_init(
 	smcp_node_t parent, const char* name
 ) {
-	smcp_t const self = (smcp_t)smcp_node_get_root(parent);
+	smcp_t const self = smcp_node_get_interface(parent);
 	if(!name)
 		name = SMCP_PAIRING_DEFAULT_ROOT_PATH;
 	require((self->root_pairing_node = smcp_node_init(NULL, parent, name)), bail);

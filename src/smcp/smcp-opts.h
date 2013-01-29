@@ -1,5 +1,6 @@
-/*	@file smcp-opts.h
+/*!	@file smcp-opts.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief SMCP Build Options
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **
@@ -26,8 +27,8 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef SMCP_smcp_opts_h
-#define SMCP_smcp_opts_h
+#ifndef __SMCP_OPS_H__
+#define __SMCP_OPS_H__
 
 #include "coap.h"
 
@@ -121,87 +122,85 @@
 #endif
 
 #ifndef SMCP_CONF_USE_DNS
-#define SMCP_CONF_USE_DNS		1
+#define SMCP_CONF_USE_DNS						1
 #endif
 
 //!	Only relevant when SMCP_AVOID_MALLOC is set.
 #ifndef SMCP_CONF_MAX_TRANSACTIONS
-#define SMCP_CONF_MAX_TRANSACTIONS	4
+#define SMCP_CONF_MAX_TRANSACTIONS				4
 #endif
 
 //!	Only relevant when SMCP_AVOID_MALLOC is set.
 #ifndef SMCP_CONF_MAX_ALLOCED_NODES
-#define SMCP_CONF_MAX_ALLOCED_NODES	4
+#define SMCP_CONF_MAX_ALLOCED_NODES				4
 #endif
 
 #ifndef SMCP_CONF_MAX_TIMEOUT
-#define SMCP_CONF_MAX_TIMEOUT	30
+#define SMCP_CONF_MAX_TIMEOUT					30
 #endif
 
 #ifndef SMCP_CONF_DUPE_BUFFER_SIZE
-#define SMCP_CONF_DUPE_BUFFER_SIZE	(16)
+#define SMCP_CONF_DUPE_BUFFER_SIZE				(16)
 #endif
+
+#ifndef SMCP_CONF_ENABLE_VHOSTS
+#define SMCP_CONF_ENABLE_VHOSTS					1
+#endif
+
+#ifndef SMCP_MAX_VHOSTS
+#define SMCP_MAX_VHOSTS							3
+#endif
+
+#ifndef SMCP_CONF_TRANS_ENABLE_BLOCK2
+#define SMCP_CONF_TRANS_ENABLE_BLOCK2			!SMCP_EMBEDDED
+#endif
+
+#ifndef SMCP_CONF_TRANS_ENABLE_OBSERVING
+#define SMCP_CONF_TRANS_ENABLE_OBSERVING		!SMCP_EMBEDDED
+#endif
+
+/*****************************************************************************/
+#pragma mark - Debugging
 
 #ifdef SMCP_CONF_DEBUG_INBOUND_DROP_PERCENT
 #define SMCP_DEBUG_INBOUND_DROP_PERCENT	(SMCP_CONF_DEBUG_INBOUND_DROP_PERCENT)
 #endif
 
 #ifdef SMCP_CONF_DEBUG_OUTBOUND_DROP_PERCENT
-#define SMCP_DEBUG_OUTBOUND_DROP_PERCENT	(SMCP_CONF_DEBUG_OUTBOUND_DROP_PERCENT)
+#define SMCP_DEBUG_OUTBOUND_DROP_PERCENT (SMCP_CONF_DEBUG_OUTBOUND_DROP_PERCENT)
 #endif
 
 /*****************************************************************************/
-#pragma mark - Timer Node Options
+#pragma mark - Observation Options
 
-#ifndef SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
-#ifndef __SDCC
-#define SMCP_CONF_TIMER_NODE_INCLUDE_COUNT (1)
+#ifdef SMCP_CONF_MAX_OBSERVERS
+#define SMCP_MAX_OBSERVERS			(SMCP_CONF_MAX_OBSERVERS)
 #else
-#define SMCP_CONF_TIMER_NODE_INCLUDE_COUNT (0)
-#endif
-#endif
-
-/*****************************************************************************/
-#pragma mark - Pairing/Observation Options
-
-#ifndef SMCP_ENABLE_PAIRING
-#define SMCP_ENABLE_PAIRING		1
-#endif
-
-#ifndef SMCP_CONF_OBSERVING_ONLY
-#define SMCP_CONF_OBSERVING_ONLY	SMCP_EMBEDDED
+#define SMCP_MAX_OBSERVERS			(4)
 #endif
 
 #ifndef SMCP_OBSERVATION_KEEPALIVE_INTERVAL
-#define SMCP_OBSERVATION_KEEPALIVE_INTERVAL		(45*1000)
+#define SMCP_OBSERVATION_KEEPALIVE_INTERVAL		(45*MSEC_PER_SEC)
 #endif
 
 #ifndef SMCP_OBSERVATION_DEFAULT_MAX_AGE
-#define SMCP_OBSERVATION_DEFAULT_MAX_AGE		(30*1000)
+#define SMCP_OBSERVATION_DEFAULT_MAX_AGE		(30*MSEC_PER_SEC)
 #endif
 
-#ifndef SMCP_CONF_PAIRING_STATS
-#define SMCP_CONF_PAIRING_STATS !SMCP_EMBEDDED
+#ifndef SMCP_OBSERVER_CON_EVENT_EXPIRATION
+#define SMCP_OBSERVER_CON_EVENT_EXPIRATION		(30*MSEC_PER_SEC)
 #endif
 
-#ifndef SMCP_CONF_USE_SEQ
-#define SMCP_CONF_USE_SEQ		1
-#endif
-
-#ifndef SMCP_PAIRING_DEFAULT_ROOT_PATH
-#define SMCP_PAIRING_DEFAULT_ROOT_PATH	".p"
-#endif
-
-#ifndef SMCP_CONF_ENABLE_GROUPS
-#define SMCP_CONF_ENABLE_GROUPS		1
-#endif
-
-#ifndef SMCP_MAX_GROUPS
-#define SMCP_MAX_GROUPS			3
+#ifndef SMCP_OBSERVER_NON_EVENT_EXPIRATION
+#define SMCP_OBSERVER_NON_EVENT_EXPIRATION		(1*MSEC_PER_SEC)
 #endif
 
 /*****************************************************************************/
-#pragma mark - SMCP Compiler Stuff
+#pragma mark - Extras
+
+#ifndef SMCP_CONF_NODE_ROUTER
+#define SMCP_CONF_NODE_ROUTER		!SMCP_EMBEDDED
+#endif
 
 #ifndef SMCP_VARIABLE_MAX_VALUE_LENGTH
 #define SMCP_VARIABLE_MAX_VALUE_LENGTH		(127)

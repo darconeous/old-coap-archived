@@ -2,20 +2,28 @@ ifndef SMCP_ROOT
   ${error SMCP_ROOT not defined! You must specify where SMCP resides}
 endif
 
-CONTIKI_SOURCEFILES += smcp.c smcp-auth.c smcp-list.c smcp-outbound.c smcp-node.c smcp-pairing.c url-helpers.c coap.c smcp-timer.c smcp-transaction.c
-CONTIKI_SOURCEFILES += btree.c fasthash.c
+CONTIKI_SOURCEFILES += smcp.c smcp-auth.c smcp-outbound.c smcp-observable.c url-helpers.c coap.c smcp-timer.c smcp-transaction.c
+CONTIKI_SOURCEFILES += fasthash.c btree.c
 CONTIKI_SOURCEFILES += smcp-task.c
 
-CONTIKI_SOURCEFILES += smcp-variable_node.c
+ifeq ($(SMCP_CONF_NODE_ROUTER),1)
+CONTIKI_SOURCEFILES += smcp-list.c smcp-node.c
+CFLAGS += -DSMCP_CONF_NODE_ROUTER=1
+endif
 
-CONTIKI_SOURCEFILES += smcp-timer_node.c
+ifeq ($(SMCP_CONF_NODE_EXTRAS),1)
+CONTIKI_SOURCEFILES += smcp-variable_node.c
 CONTIKI_SOURCEFILES += led-node.c
 CONTIKI_SOURCEFILES += sensor-node.c
+endif
 
 USING_SMCP = 1
 
+CFLAGS += -DUIP_CONF_BROADCAST=1
+
 ifdef VERBOSE_DEBUG
 CFLAGS += -DDEBUG=$(VERBOSE_DEBUG) -D_DEBUG=$(VERBOSE_DEBUG) -DVERBOSE_DEBUG=$(VERBOSE_DEBUG)
+#CFLAGS += -DUIP_CONF_LOGGING=$(VERBOSE_DEBUG)
 endif
 
 CFLAGS += -DUIP_UDP_SEND_UNREACH_NOPORT=1

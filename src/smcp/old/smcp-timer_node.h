@@ -34,6 +34,18 @@
 #include "smcp-node.h"
 #include "smcp-variable_node.h"
 
+
+/*****************************************************************************/
+#pragma mark - Timer Node Options
+
+#ifndef SMCP_CONF_TIMER_NODE_INCLUDE_COUNT
+#ifndef __SDCC
+#define SMCP_CONF_TIMER_NODE_INCLUDE_COUNT (1)
+#else
+#define SMCP_CONF_TIMER_NODE_INCLUDE_COUNT (0)
+#endif
+#endif
+
 __BEGIN_DECLS
 
 typedef struct smcp_timer_node_s {

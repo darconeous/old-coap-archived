@@ -35,12 +35,20 @@
 
 #include <smcp/smcp.h>
 #include <smcp/smcp-opts.h>
+#include <smcp/smcp-node.h>
 #include "plugtest-server.h"
 
 int
 main(int argc, char * argv[]) {
 	smcp_t smcp = smcp_create(0);
-	struct plugtest_server_s plugtest_server;
+	struct plugtest_server_s plugtest_server = {};
+	struct smcp_node_s root_node = {};
+
+	// Set up the root node.
+	smcp_node_init(&root_node,NULL,NULL);
+
+	// Set up the node router.
+	smcp_set_default_request_handler(smcp, &smcp_node_router_handler, &root_node);
 
 #if DEBUG
 	fprintf(stderr,"DEBUG = %d\n",DEBUG);
@@ -65,13 +73,8 @@ main(int argc, char * argv[]) {
 	fprintf(stderr,"SMCP_CONF_MAX_ALLOCED_NODES = %d\n",SMCP_CONF_MAX_ALLOCED_NODES);
 	fprintf(stderr,"SMCP_CONF_MAX_TIMEOUT = %d\n",SMCP_CONF_MAX_TIMEOUT);
 	fprintf(stderr,"SMCP_CONF_DUPE_BUFFER_SIZE = %d\n",SMCP_CONF_DUPE_BUFFER_SIZE);
-	fprintf(stderr,"SMCP_CONF_TIMER_NODE_INCLUDE_COUNT = %d\n",SMCP_CONF_TIMER_NODE_INCLUDE_COUNT);
-	fprintf(stderr,"SMCP_ENABLE_PAIRING = %d\n",SMCP_ENABLE_PAIRING);
-	fprintf(stderr,"SMCP_CONF_OBSERVING_ONLY = %d\n",SMCP_CONF_OBSERVING_ONLY);
 	fprintf(stderr,"SMCP_OBSERVATION_KEEPALIVE_INTERVAL = %d\n",SMCP_OBSERVATION_KEEPALIVE_INTERVAL);
 	fprintf(stderr,"SMCP_OBSERVATION_DEFAULT_MAX_AGE = %d\n",SMCP_OBSERVATION_DEFAULT_MAX_AGE);
-	fprintf(stderr,"SMCP_CONF_PAIRING_STATS = %d\n",SMCP_CONF_PAIRING_STATS);
-	fprintf(stderr,"SMCP_PAIRING_DEFAULT_ROOT_PATH = %s\n",SMCP_PAIRING_DEFAULT_ROOT_PATH);
 	fprintf(stderr,"SMCP_VARIABLE_MAX_VALUE_LENGTH = %d\n",SMCP_VARIABLE_MAX_VALUE_LENGTH);
 	fprintf(stderr,"SMCP_VARIABLE_MAX_KEY_LENGTH = %d\n",SMCP_VARIABLE_MAX_KEY_LENGTH);
 #ifdef SMCP_DEBUG_OUTBOUND_DROP_PERCENT
@@ -82,7 +85,7 @@ main(int argc, char * argv[]) {
 #endif
 
 
-	plugtest_server_init(&plugtest_server,smcp_get_root_node(smcp));
+	plugtest_server_init(&plugtest_server,&root_node);
 
 	fprintf(stderr,"\nPlugtest server listening on port %d.\n", smcp_get_port(smcp));
 

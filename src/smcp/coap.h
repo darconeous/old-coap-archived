@@ -1,5 +1,6 @@
-/*	@file coap.h
+/*!	@file coap.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief CoAP Functions and Constants
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
 **
@@ -41,21 +42,29 @@
 #define ntohs(x)    uip_ntohs(x)
 #endif
 
+/*!	@defgroup coap CoAP Functions and Constants
+**	@{
+*/
+
 #define COAP_VERSION    (1)
 
 // Port numbers
 #define COAP_DEFAULT_PORT			(5683)
-#define COAP_DEFAULT_TLSPORT		(COAP_DEFAULT_PORT+100)	// Guess
-#define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT+1)	// Guess
-#define COAP_DEFAULT_PROXY_TLS_PORT	(COAP_DEFAULT_PORT+101)	// Guess
+#define COAP_DEFAULT_TLSPORT		(COAP_DEFAULT_PORT+100)	//!< Guess
+#define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT+1)	//!< Guess
+#define COAP_DEFAULT_PROXY_TLS_PORT	(COAP_DEFAULT_PORT+101)	//!< Guess
 
+//! IPv6 multicast address for CoAP all-devices.
+/*!	Note that the official multicast address has not yet been chosen.
+**	This is just a temporary address until the official address
+**	has been chosen. */
 #define COAP_MULTICAST_IP6_ALLDEVICES	"FF02::436F:4150"
 
 // General limits.
 #define COAP_MAX_MESSAGE_SIZE				(1280-40)
 #define COAP_MAX_TOKEN_SIZE					(8)
 #define COAP_MAX_OPTION_VALUE_SIZE			(1034)
-#define COAP_MAX_ACK_RETRANSMIT_DURATION	(14)		// Seconds
+#define COAP_MAX_ACK_RETRANSMIT_DURATION	(14)		//!< Seconds
 #define COAP_DEFAULT_MAX_AGE				(60)
 
 // The following constants are defined by
@@ -208,8 +217,6 @@ typedef enum {
 	COAP_OPTION_CASCADE_COUNT = 65100 + 1,    //!< Used for preventing pairing loops.
 	COAP_OPTION_AUTHENTICATE = 65100 + 2,
 
-	SMCP_OPTION_ORIGIN = 65100 + 4,           //!< Used for SMCP Pairing.
-	SMCP_OPTION_CSEQ = 65100 + 6,             //!< Used for SMCP Pairing.
 } coap_option_key_t;
 
 
@@ -278,8 +285,9 @@ extern uint8_t* coap_encode_option(
 	size_t len
 );
 
-// Correctly inserts an option maintining order.
-// Returns the number of bytes inserted into the options.
+//!	Correctly inserts an option maintining order.
+/*!	@return The number of bytes inserted into the options.
+ */
 extern size_t coap_insert_option(
 	uint8_t* start_of_options,
 	uint8_t* end_of_options,
@@ -314,5 +322,7 @@ extern void coap_dump_header(
 	size_t packet_size
 );
 #endif
+
+/*!	@} */
 
 #endif // __SMCP_COAP_H__

@@ -41,8 +41,7 @@ signal_interrupt(int sig) {
 
 static smcp_status_t
 monitor_action_func(
-	smcp_node_t node,
-    smcp_method_t method
+	smcp_node_t node
 ) {
 	char* content = (char*)smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();

@@ -7,6 +7,8 @@
  *
  */
 
+/* This file is a total mess and needs to be cleaned up! */
+
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -125,26 +127,25 @@ bail:
 }
 
 
-coap_msg_id_t
+static smcp_transaction_t
 send_delete_request(
 	smcp_t smcp, const char* url
 ) {
-	coap_msg_id_t tid = smcp_get_next_msg_id(smcp);
-
-	require_noerr(smcp_begin_transaction_old(
-			smcp,
-			tid,
-			30*1000,	// Retry for thirty seconds.
-			0, // Flags
-			(void*)&resend_delete_request,
-			&delete_response_handler,
-			    (void*)url
-		), bail);
+	smcp_transaction_t ret;
 
 	gRet = ERRORCODE_INPROGRESS;
 
+	ret = smcp_transaction_init(
+		NULL,
+		SMCP_TRANSACTION_ALWAYS_INVALIDATE, // Flags
+		(void*)&resend_delete_request,
+		&delete_response_handler,
+		(void*)url
+	);
+	smcp_transaction_begin(smcp, ret, 30*MSEC_PER_SEC);
+
 bail:
-	return tid;
+	return ret;
 }
 
 int
@@ -152,7 +153,7 @@ tool_cmd_delete(
 	smcp_t smcp, int argc, char* argv[]
 ) {
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
-	coap_msg_id_t tid = 0;
+	smcp_transaction_t transaction;
 
 	char url[1000] = "";
 
@@ -174,7 +175,7 @@ tool_cmd_delete(
 		goto bail;
 	}
 
-	require((tid=send_delete_request(smcp, url)), bail);
+	require((transaction=send_delete_request(smcp, url)), bail);
 
 	gRet = ERRORCODE_INPROGRESS;
 
@@ -182,7 +183,7 @@ tool_cmd_delete(
 		smcp_process(smcp, -1);
 
 bail:
-	smcp_invalidate_transaction_old(smcp, tid);
+	smcp_transaction_end(smcp, transaction);
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

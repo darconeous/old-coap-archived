@@ -4,6 +4,8 @@ CONTIKI = ../../../../contiki
 SMCP_ROOT = ../../..
 
 UIP_CONF_IPV6 = 1
+SMCP_CONF_NODE_ROUTER = 1
+#VERBOSE_DEBUG = 0
 
 include $(SMCP_ROOT)/contiki-src/Makefile.smcp
 
@@ -16,10 +18,6 @@ APPS += raven-lcd-interface
 endif
 
 CLEAN += *.hex *.elf symbols.c symbols.h
-
-#CFLAGS += -DUIP_CONF_LOGGING=1
-CFLAGS += -DUIP_CONF_TCP=0
-CFLAGS += -DDEBUG=0 -DNDEBUG=1
 
 all: $(CONTIKI_PROJECT)
 

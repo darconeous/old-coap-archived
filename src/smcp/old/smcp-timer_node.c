@@ -122,7 +122,7 @@ void smcp_timer_node_fired(
 }
 
 void smcp_timer_node_start(smcp_timer_node_t self) {
-	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node.node);
+	smcp_t smcp = smcp_node_get_interface(&self->node.node);
 	if(!smcp_timer_is_scheduled(smcp,
 			&self->timer)) {
 		smcp_timer_init(&self->timer, &smcp_timer_node_fired, NULL, self);
@@ -148,7 +148,7 @@ void smcp_timer_node_start(smcp_timer_node_t self) {
 }
 
 void smcp_timer_node_stop(smcp_timer_node_t self) {
-	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node.node);
+	smcp_t smcp = smcp_node_get_interface(&self->node.node);
 	if(smcp_timer_is_scheduled(smcp,
 			&self->timer)) {
 		self->remaining = convert_timeval_to_cms(&self->timer.fire_date);
@@ -167,7 +167,7 @@ void smcp_timer_node_stop(smcp_timer_node_t self) {
 }
 
 void smcp_timer_node_toggle(smcp_timer_node_t self) {
-	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node.node);
+	smcp_t smcp = smcp_node_get_interface(&self->node.node);
 	if(smcp_timer_is_scheduled(smcp, &self->timer))
 		smcp_timer_node_stop(self);
 	else
@@ -175,7 +175,7 @@ void smcp_timer_node_toggle(smcp_timer_node_t self) {
 }
 
 void smcp_timer_node_restart(smcp_timer_node_t self) {
-	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node.node);
+	smcp_t smcp = smcp_node_get_interface(&self->node.node);
 	bool previously_running = smcp_timer_is_scheduled(
 		smcp,
 		&self->timer
@@ -200,7 +200,7 @@ void smcp_timer_node_restart(smcp_timer_node_t self) {
 }
 
 void smcp_timer_node_reset(smcp_timer_node_t self) {
-	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node.node);
+	smcp_t smcp = smcp_node_get_interface(&self->node.node);
 	if(smcp_timer_is_scheduled(smcp,
 			&self->timer) || self->remaining == 0)
 		smcp_timer_node_restart(self);
@@ -212,7 +212,7 @@ void smcp_timer_node_reset(smcp_timer_node_t self) {
 }
 
 int smcp_timer_node_get_remaining(smcp_timer_node_t self) {
-	smcp_t smcp = (smcp_t)smcp_node_get_root(&self->node.node);
+	smcp_t smcp = smcp_node_get_interface(&self->node.node);
 	if(smcp_timer_is_scheduled(smcp, &self->timer))
 		return convert_timeval_to_cms(&self->timer.fire_date);
 	return self->remaining;

@@ -1,5 +1,6 @@
-/*	@file assert-macros.h
+/*!	@file assert_macros.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief "Assert" and "Require" macros
 **
 **	Originally published 2010-8-31.
 **

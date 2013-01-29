@@ -1,5 +1,6 @@
-/*	@file btree.h
+/*!	@file btree.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Binary Tree Functions
 **
 **	Originally published 2010-8-31.
 **
@@ -48,6 +49,11 @@
 #include <stdio.h>      // For ssize_t
 
 __BEGIN_DECLS
+
+/*!	@defgroup btree Binary Tree Functions
+**	@{
+*/
+
 
 struct bt_item_s;
 
@@ -119,5 +125,7 @@ extern unsigned int bt_unbalance(void** bt);
 extern unsigned int bt_splay(void** bt, void* root);
 
 __END_DECLS
+
+/*!	@} */
 
 #endif

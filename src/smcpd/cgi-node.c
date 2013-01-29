@@ -116,6 +116,7 @@ typedef struct cgi_node_request_s* cgi_node_request_t;
 
 struct cgi_node_s {
 	struct smcp_node_s node;
+	smcp_t interface;
 	const char* shell;
 	const char* cmd;
 
@@ -229,7 +230,7 @@ cgi_node_create_request(cgi_node_t node) {
 		smcp_node_get_path(&node->node,path,sizeof(path));
 		setenv("SCRIPT_NAME",path,1);
 
-		setenv("SERVER_SOFTWARE","smcpd/0.5",1);
+		setenv("SERVER_SOFTWARE","smcpd/"PACKAGE_VERSION,1);
 		setenv("REQUEST_METHOD",coap_code_to_cstr(smcp_inbound_get_packet()->code),1);
 		setenv("REQUEST_URI",smcp_inbound_get_path(path,2),1);
 		setenv("GATEWAY_INTERFACE","CGI/1.1",1);
@@ -298,7 +299,7 @@ cgi_node_async_resend_response(void* context) {
 	ret = smcp_outbound_set_async_response(&request->async_response);
 	require_noerr(ret,bail);
 
-//	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+//	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 //	require_noerr(ret,bail);
 
 	if(request->block1!=BLOCK_OPTION_UNSPECIFIED) {
@@ -419,7 +420,7 @@ cgi_node_send_next_block(cgi_node_t node,cgi_node_request_t request) {
 	}
 
 	ret = smcp_transaction_begin(
-		(smcp_t)smcp_node_get_root(&node->node),
+		node->interface,
 		transaction,
 		30*MSEC_PER_SEC
 	);
@@ -523,15 +524,17 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 
 smcp_status_t
 cgi_node_request_handler(
-	cgi_node_t		node,
-	smcp_method_t	method
+	cgi_node_t		node
 ) {
 	smcp_status_t ret = 0;
 	cgi_node_request_t request = NULL;
 	uint32_t block2_option = BLOCK_OPTION_DEFAULT;
 	uint32_t block1_option = BLOCK_OPTION_UNSPECIFIED;
+	smcp_method_t	method = smcp_inbound_get_code();
 
 	require(node,bail);
+
+	node->interface = smcp_get_current_instance();
 
 	if(method==COAP_METHOD_GET) {
 		ret = 0;
@@ -689,7 +692,7 @@ cgi_node_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-//			ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+//			ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 //			require_noerr(ret,bail);
 
 			if(request->stdout_buffer_len>block_len || request->fd_cmd_stdout>=0) {

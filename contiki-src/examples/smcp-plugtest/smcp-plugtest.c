@@ -21,10 +21,17 @@ AUTOSTART_PROCESSES(
 PROCESS_THREAD(smcp_plugtest, ev, data)
 {
 	static struct plugtest_server_s plugtest_server;
+	static struct smcp_node_s root_node;
+
+	// Set up the root node.
+	smcp_node_init(&root_node,NULL,NULL);
+
+	// Set up the node router.
+	smcp_set_default_request_handler(smcp, &smcp_node_router_handler, &root_node);
 
 	PROCESS_BEGIN();
 
-	plugtest_server_init(&plugtest_server,smcp_get_root_node(smcp));
+	plugtest_server_init(&plugtest_server,&root_node);
 
 	PROCESS_END();
 }

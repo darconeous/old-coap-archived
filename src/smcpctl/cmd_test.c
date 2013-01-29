@@ -149,8 +149,7 @@ list_response_handler(
 
 smcp_status_t
 sliced_post_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	return SMCP_STATUS_OK;
 }
@@ -168,7 +167,7 @@ resend_async_response(void* context) {
 	ret = smcp_outbound_set_async_response(async_response);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_type(COAP_CONTENT_TYPE_TEXT_PLAIN);
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_set_content_formatted("This was an asynchronous response!");
@@ -203,10 +202,10 @@ async_response_ack_handler(int statuscode, void* context) {
 
 smcp_status_t
 async_request_handler(
-	smcp_node_t		node,
-	smcp_method_t	method
+	smcp_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_OK;
+	smcp_method_t	method = smcp_inbound_get_code();
 	if(method==COAP_METHOD_GET) {
 		ret = smcp_start_async_response(&async_response,0);
 		if(ret==SMCP_STATUS_DUPE) {

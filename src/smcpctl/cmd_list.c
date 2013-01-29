@@ -7,6 +7,8 @@
  *
  */
 
+/* This file is a total mess and needs to be cleaned up! */
+
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -65,6 +67,7 @@ static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
 
 static char* list_data;
 static size_t list_data_size;
+static struct smcp_transaction_s transaction;
 
 void
 parse_link_format(char* content, size_t content_length, void* context) {
@@ -388,10 +391,13 @@ send_list_request(
 ) {
 	bool ret = false;
 	smcp_status_t status = 0;
-
+	int flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE;
 	tid = smcp_get_next_msg_id(smcp);
 	gRet = ERRORCODE_INPROGRESS;
-	list_data_size = 0;
+
+//	if(!next)
+//		tokenid = tid;
+
 	retries = 0;
 	url_data = url;
 	if(next) {
@@ -401,15 +407,20 @@ send_list_request(
 		next_len = ((size_t)(-1));
 	}
 
-	status = smcp_begin_transaction_old(
-		smcp,
-		tid,
-		timeout_cms,	// Retry for thirty seconds.
-		SMCP_TRANSACTION_ALWAYS_INVALIDATE, // Flags
+	smcp_transaction_end(smcp,&transaction);
+	smcp_transaction_init(
+		&transaction,
+		flags, // Flags
 		(void*)&resend_list_request,
 		(void*)&list_response_handler,
 		(void*)url_data
 	);
+	status = smcp_transaction_begin(smcp, &transaction, timeout_cms);
+//	if(next)
+//		transaction.token = tokenid;
+//	else
+//		tokenid = transaction.token;
+	tid = transaction.msg_id;
 
 	if(status) {
 		check(!status);
@@ -509,7 +520,7 @@ tool_cmd_list(
 		smcp_process(smcp, 50);
 
 bail:
-	smcp_invalidate_transaction_old(smcp, tid);
+	smcp_transaction_end(smcp,&transaction);
 	signal(SIGINT, previous_sigint_handler);
 	url_data = NULL;
 	return gRet;

@@ -42,7 +42,6 @@
 #include "smcp-helpers.h"
 #include "smcp-variable_node.h"
 #include "smcp-logging.h"
-#include "smcp-pairing.h"
 #include "fasthash.h"
 
 #include "url-helpers.h"
@@ -68,11 +67,11 @@ smcp_variable_node_alloc() {
 
 smcp_status_t
 smcp_variable_request_handler(
-	smcp_variable_node_t		node,
-	smcp_method_t	method
+	smcp_variable_node_t		node
 ) {
 	// TODO: Make this function use less stack space!
 
+	smcp_method_t method = smcp_inbound_get_code();
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
 	coap_content_type_t content_type = smcp_inbound_get_content_type();
 	char* content_ptr = (char*)smcp_inbound_get_content_ptr();
@@ -105,7 +104,6 @@ smcp_variable_request_handler(
 	{
 		coap_option_key_t key;
 		const uint8_t* value;
-//		size_t value_len;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			require_action(key!=COAP_OPTION_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key==COAP_OPTION_URI_QUERY) {
@@ -191,12 +189,10 @@ smcp_variable_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-			smcp_outbound_set_content_type(COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+			smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 
-#if SMCP_ENABLE_PAIRING
-			ret = smcp_pair_inbound_observe_update();
+			ret = smcp_observable_update(&node->observable, SMCP_OBSERVABLE_BROADCAST_KEY);
 			check_string(ret==0,smcp_status_to_cstr(ret));
-#endif
 
 			content_ptr = smcp_outbound_get_content_ptr(&content_len);
 			content_end_ptr = content_ptr+content_len;
@@ -261,12 +257,10 @@ smcp_variable_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-#if SMCP_ENABLE_PAIRING
 			if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,buffer)) {
-				ret = smcp_pair_inbound_observe_update();
+				ret = smcp_observable_update(&node->observable, key_index);
 				check_string(ret==0,smcp_status_to_cstr(ret));
 			}
-#endif
 
 			if(reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 				uint32_t etag;
@@ -284,10 +278,10 @@ smcp_variable_request_handler(
 				require_noerr(ret,bail);
 
 				fasthash_start(0);
-				fasthash_feed(buffer,strlen(buffer));
+				fasthash_feed((const uint8_t*)buffer,strlen(buffer));
 				etag = fasthash_finish_uint32();
 
-				smcp_outbound_set_content_type(SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+				smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 
 				smcp_outbound_add_option_uint(COAP_OPTION_ETAG, etag);
 
@@ -306,7 +300,7 @@ smcp_variable_request_handler(
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
 
-				ret = smcp_outbound_append_content(buffer, HEADER_CSTR_LEN);
+				ret = smcp_outbound_append_content(buffer, SMCP_CSTR_LEN);
 			}
 
 			require_noerr(ret,bail);
@@ -315,8 +309,7 @@ smcp_variable_request_handler(
 		}
 	} else {
 		ret = smcp_default_request_handler(
-			(void*)node,
-			method
+			(void*)node
 		);
 		check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 	}
@@ -326,54 +319,8 @@ bail:
 	return ret;
 }
 
-#if SMCP_ENABLE_PAIRING
-smcp_status_t
-smcp_variable_node_did_change(smcp_variable_node_t node, int i,const char* suffix) {
-	smcp_status_t ret = 0;
-	char nodename[SMCP_VARIABLE_MAX_KEY_LENGTH];
-
-	require_action(node != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
-
-	if(i>=0) {
-		ret = node->func(node,SMCP_VAR_GET_KEY,i,nodename);
-		require_noerr(ret,bail);
-
-		// trigger the event on the specific variable.
-		ret = smcp_trigger_event_with_node(
-			(smcp_t)smcp_node_get_root(&node->node),
-			(smcp_node_t)node,
-			nodename
-		);
-		require_noerr(ret,bail);
-
-		if(suffix) {
-			strlcat(nodename,"!",SMCP_VARIABLE_MAX_KEY_LENGTH);
-			strlcat(nodename,suffix,SMCP_VARIABLE_MAX_KEY_LENGTH);
-
-			ret = smcp_trigger_event_with_node(
-				(smcp_t)smcp_node_get_root(&node->node),
-				(smcp_node_t)node,
-				nodename
-			);
-			require_noerr(ret,bail);
-		}
-	}
-
-	// Also trigger the event on parent.
-	ret = smcp_trigger_event_with_node(
-		(smcp_t)smcp_node_get_root(&node->node),
-		(smcp_node_t)node,
-		NULL
-	);
-	require_noerr(ret,bail);
-
-bail:
-	return ret;
-}
-#endif
-
 smcp_variable_node_t
-smcp_node_init_variable(
+smcp_variable_node_init(
 	smcp_variable_node_t self, smcp_node_t node, const char* name
 ) {
 	smcp_variable_node_t ret = NULL;

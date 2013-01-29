@@ -181,6 +181,12 @@ smcp_auth_user_set(smcp_auth_user_t auth_user,const char* username,const char* p
 	fasthash_feed_byte(':');
 	fasthash_feed((const uint8_t*)password, strlen(password));
 	auth_user->ha1 = fasthash_finish();
+
+	// Get the compiler to shut up while this code is in development.
+	(void)current_outbound_user;
+	(void)current_outbound_nonce;
+	(void)global_temp_auth_user;
+	(void)global_nonce_table;
 }
 
 
@@ -204,9 +210,11 @@ smcp_auth_verify_request() {
 	size_t authvalue_len;
 
 	// For testing purposes only!
-	if(smcp_inbound_get_packet()->code >1 && smcp_inbound_get_packet()->code<COAP_RESULT_100) {
+	if(smcp_inbound_get_code() >1 && smcp_inbound_get_code()<COAP_RESULT_100) {
 		ret = SMCP_STATUS_UNAUTHORIZED;
 	}
+
+	smcp_inbound_reset_next_option();
 
 	while((key = smcp_inbound_next_option(&authvalue,&authvalue_len))!=COAP_OPTION_INVALID) {
 		if(key==COAP_OPTION_PROXY_URI) {
@@ -264,7 +272,7 @@ smcp_auth_outbound_set_credentials(const char* username, const char* password) {
 
 	// TODO: Writeme!
 	smcp_auth_user_t auth_user = smcp_auth_get_remote_user(username);
-	struct smcp_auth_nonce_s *auth_nonce;
+	//struct smcp_auth_nonce_s *auth_nonce;
 
 	if(!auth_user) {
 		require(username,bail);

@@ -35,9 +35,12 @@
 #endif
 
 #include "assert_macros.h"
+#include "smcp.h"
+
+#if SMCP_CONF_NODE_ROUTER
+
 #include <stdio.h>
 #include <stdlib.h>
-#include "smcp.h"
 #include <string.h>
 #include <ctype.h>
 #include "ll.h"
@@ -47,6 +50,7 @@
 #include "smcp-node.h"
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
+#include "smcp-internal.h"
 
 #pragma mark -
 #pragma mark Globals
@@ -54,6 +58,94 @@
 #if SMCP_AVOID_MALLOC
 static struct smcp_node_s smcp_node_pool[SMCP_CONF_MAX_ALLOCED_NODES];
 #endif
+
+#pragma mark -
+
+smcp_status_t
+smcp_default_request_handler(
+   smcp_node_t node
+) {
+   if(smcp_inbound_get_code() == COAP_METHOD_GET) {
+	   return smcp_handle_list(node);
+   }
+   return SMCP_STATUS_NOT_ALLOWED;
+}
+
+smcp_status_t
+smcp_node_router_handler(void* context) {
+	smcp_request_handler_func handler = NULL;
+	smcp_node_route(context, &handler, &context);
+	if(!handler)
+		return SMCP_STATUS_NOT_IMPLEMENTED;
+	return (*handler)(context);
+}
+
+smcp_status_t
+smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** context) {
+	smcp_status_t ret = 0;
+	smcp_t const self = smcp_get_current_instance();
+
+	smcp_inbound_reset_next_option();
+
+	{
+		// TODO: Rewrite this to be more efficient.
+		const uint8_t* prev_option_ptr = self->inbound.this_option;
+		coap_option_key_t prev_key = 0;
+		coap_option_key_t key;
+		const uint8_t* value;
+		size_t value_len;
+		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+			if(key>COAP_OPTION_URI_PATH) {
+				self->inbound.this_option = prev_option_ptr;
+				self->inbound.last_option_key = prev_key;
+				break;
+			} else if(key==COAP_OPTION_URI_PATH) {
+				smcp_node_t next = smcp_node_find(
+					node,
+					(const char*)value,
+					(int)value_len
+				);
+				if(next) {
+					node = next;
+				} else {
+					self->inbound.this_option = prev_option_ptr;
+					self->inbound.last_option_key = prev_key;
+					break;
+				}
+			} else if(key==COAP_OPTION_URI_HOST) {
+				// Skip host at the moment,
+				// because we don't do virtual hosting yet.
+			} else if(key==COAP_OPTION_URI_PORT) {
+				// Skip port at the moment,
+				// because we don't do virtual hosting yet.
+			} else if(key==COAP_OPTION_PROXY_URI) {
+				// Skip the proxy URI for now.
+			} else if(key==COAP_OPTION_CONTENT_TYPE) {
+				// Skip.
+			} else {
+				if(COAP_OPTION_IS_CRITICAL(key)) {
+					ret=SMCP_STATUS_BAD_OPTION;
+					assert_printf("Unrecognized option %d, \"%s\"",
+						key,
+						coap_option_key_to_cstr(key, false)
+					);
+					goto bail;
+				}
+			}
+			prev_option_ptr = self->inbound.this_option;
+			prev_key = self->inbound.last_option_key;
+		}
+	}
+
+	*func = (void*)node->request_handler;
+	if(node->context)
+		*context = node->context;
+	else
+		*context = (void*)node;
+
+bail:
+	return ret;
+}
 
 #pragma mark -
 #pragma mark Node Funcs
@@ -139,7 +231,7 @@ smcp_node_init(
 
 	ret = (smcp_node_t)self;
 
-	ret->request_handler = &smcp_default_request_handler;
+	ret->request_handler = (void*)&smcp_default_request_handler;
 
 	if(node) {
 		require(name, bail);
@@ -271,8 +363,6 @@ smcp_node_find_next_with_path(
 		{
 #if HAVE_C99_VLA
 			char unescaped_name[namelen+1];
-//#elif SMCP_AVOID_MALLOC
-//			static char unescaped_name[SMCP_MAX_PATH_LENGTH+1];
 #else
 			char *unescaped_name = malloc(namelen+1);
 #endif
@@ -285,23 +375,23 @@ smcp_node_find_next_with_path(
 			*next = smcp_node_find(
 				node,
 				unescaped_name,
-				escaped_len
+				(int)escaped_len
 			);
 #if !HAVE_C99_VLA // && !SMCP_AVOID_MALLOC
 			free(unescaped_name);
 #endif
 		}
 		if(!*next) {
-			DEBUG_PRINTF(CSTR(
-					"Unable to find node. node->name=%s, path=%s, namelen=%d"),
+			DEBUG_PRINTF(
+					"Unable to find node. node->name=%s, path=%s, namelen=%d",
 				node->name, path, namelen);
 			goto bail;
 		}
 	}
 
 	if(!*next) {
-		DEBUG_PRINTF(CSTR(
-				"Unable to find node. node->name=%s, path=%s"), node->name,
+		DEBUG_PRINTF(
+				"Unable to find node. node->name=%s, path=%s", node->name,
 			path);
 		goto bail;
 	}
@@ -316,7 +406,7 @@ smcp_node_find_next_with_path(
 		path++;
 
 bail:
-	return path - orig_path;
+	return (int)(path - orig_path);
 }
 
 smcp_node_t
@@ -333,7 +423,7 @@ again:
 		const char* nextPath = path;
 		nextPath += smcp_node_find_next_with_path(node, path, &ret);
 		node = ret;
-		DEBUG_PRINTF(CSTR("%s: %p (nextPath = %s)"), path, node, nextPath);
+		DEBUG_PRINTF("%s: %p (nextPath = %s)", path, node, nextPath);
 		path = nextPath;
 	} while(ret && path[0]);
 
@@ -369,3 +459,5 @@ smcp_node_get_root(smcp_node_t node) {
 	return node;
 }
 #endif
+
+#endif // #if SMCP_CONF_NODE_ROUTER

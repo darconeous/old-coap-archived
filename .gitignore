@@ -1,3 +1,7 @@
+/doc/html
+/doc/latex
+/docs/html
+/docs/latex
 .DS_Store
 *.swp
 *.o
