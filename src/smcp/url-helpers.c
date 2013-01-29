@@ -59,9 +59,9 @@
 char *
 strsep_x(char **stringp, const char *delim)
 {
-	register char *s;
-	register const char *spanp;
-	register int c, sc;
+	char *s;
+	const char *spanp;
+	int c, sc;
 	char *tok;
 
 	if ((s = *stringp) == NULL)
@@ -123,8 +123,7 @@ static char int_to_hex_digit(uint8_t x) {
 }
 #else
 static char int_to_hex_digit(uint8_t x) {
-	return "0123456789ABCDEF"[x &
-	    0xF];
+	return "0123456789ABCDEF"[x & 0xF];
 }
 #endif
 
@@ -434,8 +433,8 @@ int
 url_parse(
 	char*	uri,
 	char**	protocol,
-	char**	username,	// Not yet supported: will be skipped if present.
-	char**	password,	// Not yet supported: will be skipped if present.
+	char**	username,
+	char**	password,
 	char**	host,
 	char**	port,
 	char**	path,
@@ -651,6 +650,7 @@ string_contains_colons(const char* str) {
 	return *str == ':';
 }
 
+#if !SMCP_EMBEDDED && !defined(__SDCC) && !defined(__AVR__)
 bool
 url_change(
 	char* url, const char* new_url_
@@ -855,14 +855,16 @@ make_relative:
 		strncpy(temp, current_url, sizeof(temp));
 		url_change(temp, new_url);
 
-		url_parse(temp,
+		url_parse(
+			temp,
 			NULL,
 			NULL,
 			NULL,
 			NULL,
 			NULL,
 			&new_path,
-			&new_query);
+			&new_query
+		);
 		url_parse(temp2, NULL, NULL, NULL, NULL, NULL, &curr_path, NULL);
 
 		while(true) {
@@ -933,3 +935,5 @@ bail:
 #endif
 	return;
 }
+
+#endif

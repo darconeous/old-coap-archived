@@ -226,6 +226,7 @@ bt_prev(void* item) {
 	return (void*)item_;
 }
 
+#ifndef __SDCC
 size_t
 bt_count(void*const* bt) {
 	size_t ret = 0;
@@ -386,6 +387,8 @@ bt_rebalance(void** bt) {
 bail:
 	return ret;
 }
+
+#endif // !__SDCC
 
 /* -------------------------------------------------------------------------- */
 

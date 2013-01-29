@@ -46,6 +46,9 @@
 #include "contiki.h"
 #include "net/uip-udp-packet.h"
 #include "net/uiplib.h"
+#if UIP_CONF_IPV6
+#include "net/uip-ds6.h"
+#endif
 #include "net/tcpip.h"
 #include "net/resolv.h"
 extern uint16_t uip_slen;
@@ -195,14 +198,26 @@ smcp_init(
 	self->udp_conn = udp_new(NULL, 0, NULL);
 	uip_udp_bind(self->udp_conn, htons(port));
 	self->udp_conn->rport = 0;
+
+#if UIP_CONF_IPV6
+	{
+		uip_ipaddr_t all_coap_nodes_addr;
+		if(uiplib_ipaddrconv(
+			COAP_MULTICAST_IP6_ALLDEVICES,
+			&all_coap_nodes_addr
+		)) {
+			uip_ds6_maddr_add(&all_coap_nodes_addr);
+		}
+	}
+#endif
 #endif
 
 	// Go ahead and start listening on our multicast address as well.
 #if SMCP_USE_BSD_SOCKETS
-	{   // Join the multicast group for SMCP_IPV6_MULTICAST_ADDRESS
+	{   // Join the multicast group for COAP_MULTICAST_IP6_ALLDEVICES
 		struct ipv6_mreq imreq;
 		int btrue = 1;
-		struct hostent *tmp = gethostbyname2(SMCP_IPV6_MULTICAST_ADDRESS,
+		struct hostent *tmp = gethostbyname2(COAP_MULTICAST_IP6_ALLDEVICES,
 			AF_INET6);
 		memset(&imreq, 0, sizeof(imreq));
 		self->mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -332,6 +347,57 @@ smcp_set_proxy_url(smcp_t self,const char* url) {
 smcp_node_t
 smcp_get_root_node(smcp_t self) {
 	return &self->root_node;
+}
+#endif
+
+#if SMCP_CONF_ENABLE_GROUPS
+smcp_status_t
+smcp_add_group(smcp_t self,const char* name,smcp_node_t root_node,const char* addr_str) {
+	smcp_status_t ret = SMCP_STATUS_OK;
+	struct smcp_group_s *group;
+	SMCP_EMBEDDED_SELF_HOOK;
+
+	if(!addr_str)
+		addr_str = name;
+
+	// TODO: Check to see if this group already exists...?
+
+	DEBUG_PRINTF("Adding Group \"%s\": addr:\"%s\", root:%p",name,addr_str,root_node);
+
+	if(!root_node)
+		root_node = &self->root_node;
+
+	require_action(name || (name[0]!=0),bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(addr_str[0]!=0,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(self->group_count<SMCP_MAX_GROUPS,bail,ret = SMCP_STATUS_FAILURE);
+
+	group = &self->group[self->group_count++];
+
+	strncpy(group->name,name,sizeof(group->name)-1);
+	group->root = root_node;
+
+	memset(&group->addr, 0, sizeof(group->addr));
+
+#if SMCP_USE_BSD_SOCKETS
+	ret = inet_pton(
+		AF_INET6,
+		addr_str,
+		&group->addr
+	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
+	require_noerr(ret, bail);
+#elif CONTIKI
+#if UIP_CONF_IPV6
+	ret = uiplib_ipaddrconv(
+		addr_str,
+		&group->addr
+	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
+	require_noerr(ret, bail);
+    uip_ds6_maddr_add(&group->addr);
+#endif
+#endif
+
+bail:
+	return ret;
 }
 #endif
 
@@ -467,6 +533,9 @@ smcp_inbound_origin_is_local() {
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6* const saddr = (struct sockaddr_in6*)smcp_inbound_get_saddr();
 
+	if(!saddr)
+		return false;
+
 	// TODO: Are these checks adequate?
 
 	if(saddr->sin6_port!=htonl(smcp_get_port(smcp_get_current_instance())))
@@ -501,6 +570,9 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 	if(!where)
 		where = calloc(1,SMCP_MAX_URI_LENGTH+1);
 
+	if(!where)
+		return 0;
+
 	iter = where;
 
 	if(!(flags&SMCP_GET_PATH_REMAINING))
@@ -517,23 +589,43 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 		if(iter!=where || (flags&SMCP_GET_PATH_LEADING_SLASH))
 			*iter++='/';
 		filename[filename_len] = 0;
-		iter+=url_encode_cstr(iter, filename, (iter-where)+SMCP_MAX_URI_LENGTH);
+		iter+=url_encode_cstr(iter, filename, SMCP_MAX_URI_LENGTH-(iter-where));
 		filename[filename_len] = old_end;
 	}
 
-//	THIS CODE IS NOT READY YET
-//	if(flags&SMCP_GET_PATH_INCLUDE_QUERY) {
-//
-//		*iter++='?';
-//		while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_QUERY) {
-//			char old_end = filename[filename_len];
-//			if(iter!=where || (flags&SMCP_GET_PATH_LEADING_SLASH))
-//				*iter++=';';
-//			filename[filename_len] = 0;
-//			iter+=url_encode_cstr(iter, filename, (iter-where)+SMCP_MAX_URI_LENGTH);
-//			filename[filename_len] = old_end;
-//		}
-//	}
+	if(flags&SMCP_GET_PATH_INCLUDE_QUERY) {
+		smcp_inbound_reset_next_option();
+		while((key = smcp_inbound_peek_option((const uint8_t**)&filename, &filename_len))!=COAP_OPTION_URI_QUERY
+			&& key!=COAP_OPTION_INVALID
+		) {
+			smcp_inbound_next_option(NULL,NULL);
+		}
+		if(key==COAP_OPTION_URI_QUERY) {
+			*iter++='?';
+			while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_QUERY) {
+				char old_end = filename[filename_len];
+				char* equal_sign;
+
+				if(iter[-1]!='?')
+					*iter++=';';
+
+				filename[filename_len] = 0;
+				equal_sign = strchr(filename,'=');
+
+				if(equal_sign)
+					*equal_sign = 0;
+
+				iter+=url_encode_cstr(iter, filename, SMCP_MAX_URI_LENGTH-(iter-where));
+
+				if(equal_sign) {
+					*iter++='=';
+					iter+=url_encode_cstr(iter, equal_sign+1, SMCP_MAX_URI_LENGTH-(iter-where));
+					*equal_sign = '=';
+				}
+				filename[filename_len] = old_end;
+			}
+		}
+	}
 
 	*iter = 0;
 
@@ -743,9 +835,9 @@ smcp_inbound_finish_packet() {
 #endif
 
 	if(COAP_CODE_IS_REQUEST(packet->code)) {
-		ret = smcp_handle_request(self);
+		ret = smcp_handle_request();
 	} else if(COAP_CODE_IS_RESULT(packet->code)) {
-		ret = smcp_handle_response(self);
+		ret = smcp_handle_response();
 	}
 
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
@@ -916,11 +1008,9 @@ smcp_default_request_handler(
 }
 
 smcp_status_t
-smcp_handle_request(
-	smcp_t	self
-) {
+smcp_handle_request() {
 	smcp_status_t ret = 0;
-
+	smcp_t const self = smcp_get_current_instance();
 #if VERBOSE_DEBUG
 	{   // Print out debugging information.
 		DEBUG_PRINTF(
@@ -1006,10 +1096,9 @@ bail:
 }
 
 smcp_status_t
-smcp_handle_response(
-	smcp_t	self
-) {
+smcp_handle_response() {
 	smcp_status_t ret = 0;
+	smcp_t const self = smcp_get_current_instance();
 	smcp_transaction_t handler = NULL;
 	coap_msg_id_t msg_id;
 
@@ -1160,7 +1249,7 @@ smcp_handle_response(
 				if(!ret && (self->inbound.block2_value&(1<<3)) && (handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE)) {
 					DEBUG_PRINTF("Inbound: Preparing to request next block...");
 					handler->next_block2 = self->inbound.block2_value + (1<<4);
-					smcp_transaction_new_msg_id(self, handler, smcp_get_next_msg_id(self, NULL));
+					smcp_transaction_new_msg_id(self, handler, smcp_get_next_msg_id(self));
 					smcp_invalidate_timer(self, &handler->timer);
 					smcp_schedule_timer(
 						self,
@@ -1309,29 +1398,19 @@ smcp_finish_async_response(struct smcp_async_response_s* x) {
 #pragma mark Other
 
 coap_msg_id_t
-smcp_get_next_msg_id(smcp_t self, void* context) {
-#if 0
-	static uint16_t table[16];
-	uint8_t hash;
-
-	fasthash_start(0x31337);
-	fasthash_feed((uint8_t*)&context, sizeof(void*));
-	hash = fasthash_finish_uint8();
-
-	if(!table[hash])
-		table[hash] = (uint16_t)SMCP_FUNC_RANDOM_UINT32();
-
-	table[hash] = table[hash]*23873+41;
-
-	return table[hash];
-#else
+smcp_get_next_msg_id(smcp_t self) {
 	static coap_msg_id_t next_msg_id;
 
 	if(!next_msg_id)
 		next_msg_id = SMCP_FUNC_RANDOM_UINT32();
 
-	return next_msg_id++;
+#if DEBUG
+	next_msg_id++;
+#else
+	next_msg_id = next_msg_id*23873 + 41;
 #endif
+
+	return next_msg_id;
 }
 
 const char* smcp_status_to_cstr(int x) {

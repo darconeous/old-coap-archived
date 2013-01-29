@@ -378,9 +378,11 @@ bail:
 
 smcp_status_t
 smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value) {
-	if(value>65535)
+	if(value>>24)
+		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+0, 4);
+	else if(value>>16)
 		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+1, 3);
-	else if(value>255)
+	else if(value>>8)
 		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+2, 2);
 	else if(value)
 		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+3, 1);
@@ -413,11 +415,9 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	struct addrinfo *results = NULL;
 	struct addrinfo *iter = NULL;
 
-//	if(strcasecmp(addr_str, "all-smcp-devices")==0)
-//		addr_str = SMCP_IPV6_MULTICAST_ADDRESS;
-//
-//	if(strcasecmp(addr_str, "all-coap-devices")==0)
-//		addr_str = SMCP_IPV6_MULTICAST_ADDRESS;
+	// Check to see if this host is a group we know about.
+	if(strcasecmp(addr_str, "coap-alldevices")==0)
+		addr_str = COAP_MULTICAST_IP6_ALLDEVICES;
 
 	int error = getaddrinfo(addr_str, NULL, &hint, &results);
 
@@ -567,6 +567,8 @@ smcp_outbound_set_uri(
 		uri_copy = strdup(uri);
 #endif
 
+		require_action(uri_copy!=NULL,bail,ret = SMCP_STATUS_MALLOC_FAILURE);
+
 		// Parse the URI.
 		require_action_string(
 			url_parse(
@@ -622,14 +624,12 @@ smcp_outbound_set_uri(
 	}
 
 	if(!(flags&SMCP_MSG_SKIP_AUTHORITY)) {
-		if(addr_str) {
+		if(addr_str && !string_contains_colons(addr_str)) {
 			ret = smcp_outbound_add_option(COAP_OPTION_URI_HOST, addr_str, strlen(addr_str));
 			require_noerr(ret, bail);
 		}
 		if(port_str) {
-			toport = htons(toport);
-			ret = smcp_outbound_add_option(COAP_OPTION_URI_PORT, (char*)&toport, sizeof(toport));
-			toport = ntohs(toport);
+			ret = smcp_outbound_add_option_uint(COAP_OPTION_URI_PORT, toport);
 			require_noerr(ret, bail);
 		}
 	}
@@ -676,13 +676,13 @@ smcp_outbound_set_uri(
 	}
 
 bail:
-	if(ret) DEBUG_PRINTF(
-		"URI Parse failed for URI: \"%s\"",
-		uri
-	);
+	if(ret)
+		DEBUG_PRINTF("URI Parse failed for URI: \"%s\"",uri);
+
 #if !HAVE_ALLOCA
 	free(uri_copy);
 #endif
+
 	return ret;
 }
 

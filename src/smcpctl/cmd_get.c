@@ -215,7 +215,7 @@ send_get_request(
 	bool ret = false;
 	smcp_status_t status = 0;
 	int flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE;
-	tid = smcp_get_next_msg_id(smcp,NULL);
+	tid = smcp_get_next_msg_id(smcp);
 	gRet = ERRORCODE_INPROGRESS;
 
 	if(!next)

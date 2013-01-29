@@ -129,7 +129,7 @@ coap_msg_id_t
 send_delete_request(
 	smcp_t smcp, const char* url
 ) {
-	coap_msg_id_t tid = smcp_get_next_msg_id(smcp,NULL);
+	coap_msg_id_t tid = smcp_get_next_msg_id(smcp);
 
 	require_noerr(smcp_begin_transaction_old(
 			smcp,

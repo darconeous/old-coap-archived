@@ -29,6 +29,8 @@
 #ifndef SMCP_smcp_opts_h
 #define SMCP_smcp_opts_h
 
+#include "coap.h"
+
 /*****************************************************************************/
 #pragma mark - SMCP Build Parameters
 
@@ -49,14 +51,10 @@
 #endif
 
 #ifndef SMCP_DEFAULT_PORT
-#define SMCP_DEFAULT_PORT           5683
+#define SMCP_DEFAULT_PORT           COAP_DEFAULT_PORT
 #endif
 
 #define SMCP_DEFAULT_PORT_CSTR      #SMCP_DEFAULT_PORT
-
-#ifndef SMCP_IPV6_MULTICAST_ADDRESS
-#define SMCP_IPV6_MULTICAST_ADDRESS "FF02::5343:4D50"
-#endif
 
 #ifndef IPv4_COMPATIBLE_IPv6_PREFIX
 #define IPv4_COMPATIBLE_IPv6_PREFIX "::FFFF:"
@@ -67,10 +65,15 @@
 #endif
 
 #ifndef SMCP_MAX_URI_LENGTH
-// I can't for the life of me remember where I got these numbers from.
-// TODO: Determine where these numbers come from!
-//#define SMCP_MAX_URI_LENGTH (SMCP_MAX_PATH_LENGTH + 7 + 6 + 8 * 4 + 7 + 2)
+// This is calclated as the sum of the following:
+//	* strlen("coap://")
+//	* strlen("[0000:0000:0000:0000:0000:0000:0000:0000]:65535")
+//	* SMCP_MAX_PATH_LENGTH
+#if SMCP_EMBEDDED
+#define SMCP_MAX_URI_LENGTH (7 + 47 + (SMCP_MAX_PATH_LENGTH) )
+#else
 #define SMCP_MAX_URI_LENGTH (1024)
+#endif
 #endif
 
 #if !defined(SMCP_MAX_PACKET_LENGTH) && !defined(SMCP_MAX_CONTENT_LENGTH)
@@ -182,11 +185,19 @@
 #endif
 
 #ifndef SMCP_CONF_USE_SEQ
-#define SMCP_CONF_USE_SEQ		1 //!SMCP_EMBEDDED
+#define SMCP_CONF_USE_SEQ		1
 #endif
 
 #ifndef SMCP_PAIRING_DEFAULT_ROOT_PATH
 #define SMCP_PAIRING_DEFAULT_ROOT_PATH	".p"
+#endif
+
+#ifndef SMCP_CONF_ENABLE_GROUPS
+#define SMCP_CONF_ENABLE_GROUPS		1
+#endif
+
+#ifndef SMCP_MAX_GROUPS
+#define SMCP_MAX_GROUPS			3
 #endif
 
 /*****************************************************************************/

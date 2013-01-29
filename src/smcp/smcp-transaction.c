@@ -68,7 +68,7 @@ smcp_transaction_t
 smcp_transaction_find_via_msg_id(smcp_t self, coap_msg_id_t msg_id) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	return (smcp_transaction_t)bt_find(
-		(void**)&self->transactions,
+		(void*)&self->transactions,
 		(void*)(uintptr_t)msg_id,
 		(bt_compare_func_t)smcp_transaction_compare_msg_id,
 		self
@@ -229,7 +229,7 @@ smcp_internal_transaction_timeout_(
 		handler->attemptCount = 0;
 		handler->last_observe = 0;
 		handler->next_block2 = 0;
-		smcp_transaction_new_msg_id(self,handler,smcp_get_next_msg_id(self, NULL));
+		smcp_transaction_new_msg_id(self,handler,smcp_get_next_msg_id(self));
 		convert_cms_to_timeval(&handler->expiration, SMCP_OBSERVATION_DEFAULT_MAX_AGE);
 
 		if(handler->resendCallback) {
@@ -356,7 +356,7 @@ smcp_transaction_begin(
 	if(expiration<0)
 		expiration = COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC;
 
-	handler->token = smcp_get_next_msg_id(self, NULL);
+	handler->token = smcp_get_next_msg_id(self);
 	handler->msg_id = handler->token;
 	handler->waiting_for_async_response = false;
 	handler->attemptCount = 0;

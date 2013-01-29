@@ -53,10 +53,12 @@ struct smcp_node_s {
 	smcp_node_t					parent;
 	smcp_node_t					children;
 
+	uint8_t						has_link_content:1,
+								is_observable:1,
+								should_free_name:1;
+
 	void						(*finalize)(smcp_node_t node);
 	smcp_inbound_handler_func	request_handler;
-
-	void* context; // DEPRECATED, TO BE REMOVED!
 };
 
 extern bt_compare_result_t smcp_node_compare(smcp_node_t lhs, smcp_node_t rhs);

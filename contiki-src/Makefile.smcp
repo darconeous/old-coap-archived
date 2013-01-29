@@ -3,16 +3,14 @@ ifndef SMCP_ROOT
 endif
 
 CONTIKI_SOURCEFILES += smcp.c smcp-auth.c smcp-list.c smcp-outbound.c smcp-node.c smcp-pairing.c url-helpers.c coap.c smcp-timer.c smcp-transaction.c
-
 CONTIKI_SOURCEFILES += btree.c fasthash.c
+CONTIKI_SOURCEFILES += smcp-task.c
 
-CONTIKI_SOURCEFILES += smcp-timer_node.c
 CONTIKI_SOURCEFILES += smcp-variable_node.c
 
+CONTIKI_SOURCEFILES += smcp-timer_node.c
 CONTIKI_SOURCEFILES += led-node.c
 CONTIKI_SOURCEFILES += sensor-node.c
-
-CONTIKI_SOURCEFILES += smcp-task.c
 
 USING_SMCP = 1
 
