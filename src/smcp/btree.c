@@ -48,6 +48,14 @@
 #include "btree.h"
 #include <assert.h>
 
+#if CONTIKI
+/* Contiki is having problems with asserts. */
+#ifdef assert
+#undef assert
+#endif
+#define assert(x)		do { } while (0)
+#endif
+
 int
 bt_insert(
 	void** bt,
