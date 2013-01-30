@@ -1,6 +1,9 @@
 CONTIKI_PROJECT = smcp-plugtest
 
+ifeq ($(CONTIKI),)
 CONTIKI = ../../../../contiki
+endif
+
 SMCP_ROOT = ../../..
 
 UIP_CONF_IPV6 = 1

@@ -1,6 +1,9 @@
 CONTIKI_PROJECT = smcp-simple
 
+ifeq ($(CONTIKI),)
 CONTIKI = ../../../../contiki
+endif
+
 SMCP_ROOT = ../../..
 
 SMCP_CONF_NODE_ROUTER = 1
