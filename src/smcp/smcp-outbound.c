@@ -700,7 +700,7 @@ smcp_outbound_append_content(const char* value,size_t len) {
 	size_t max_len = self->outbound.content_len;
 	char* dest;
 
-	if(len==SMCP_CSTR_LEN)
+	if(len == SMCP_CSTR_LEN)
 		len = strlen(value);
 
 	max_len += len;
@@ -861,6 +861,7 @@ bail:
 
 #pragma mark -
 
+#if !SMCP_AVOID_PRINTF
 smcp_status_t
 smcp_outbound_set_content_formatted(const char* fmt, ...) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
@@ -886,33 +887,42 @@ bail:
 	va_end(args);
 	return ret;
 }
-
-smcp_status_t
-smcp_outbound_set_content_cstr(const char* cstr) {
-	return smcp_outbound_set_content_formatted("%s",cstr);
-}
+#endif
 
 smcp_status_t
 smcp_outbound_set_var_content_int(int v) {
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-//#if SMCP_AVOID_PRINTF
-//	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
-//
-//#else
+#if SMCP_AVOID_PRINTF
+	char nstr[12];
+	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
+	smcp_outbound_append_content(int32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
+#else
 	return smcp_outbound_set_content_formatted_const("v=%d",v);
-//#endif
+#endif
 }
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_int(unsigned int v) {
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+#if SMCP_AVOID_PRINTF
+	char nstr[11];
+	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
+	smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
+#else
 	return smcp_outbound_set_content_formatted_const("v=%u",v);
+#endif
 }
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v) {
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+#if SMCP_AVOID_PRINTF
+	char nstr[11];
+	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
+	smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
+#else
 	return smcp_outbound_set_content_formatted_const("v=%ul",v);
+#endif
 }
 
 

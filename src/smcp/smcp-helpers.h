@@ -119,8 +119,9 @@ stpncpy(char* dest, const char* src, size_t len) {
 #define SMCP_PURE_FUNC
 #endif
 
+/* TODO: Consider moving these functions to a C file somewhere */
 static inline char *
-uint32_to_hex(char *str,uint32_t v) {
+uint32_to_hex_cstr(char *str,uint32_t v) {
 	char *ret = str;
 	int i;
 	for(i=0;i<8;i++) {
@@ -129,6 +130,38 @@ uint32_to_hex(char *str,uint32_t v) {
 	}
 	*str=0;
 	return ret;
+}
+
+/*!	Adapted from K&R's "The C Programming Language", page 60.
+ *	Somewhat naive. Make sure the string has at least 11 bytes available! */
+static inline char *
+uint32_to_dec_cstr(char s[],uint32_t n) {
+	uint8_t i = 0, j;
+
+	do {       /* generate digits in reverse order */
+		s[i++] = n % 10 + '0';   /* get next digit */
+	} while((n /= 10) > 0);     /* delete it */
+	s[i--] = '\0';
+
+	/* Reverse the string */
+	for(j = 0; j < i; j++, i--) {
+		char x = s[j];
+		s[j] = s[i];
+		s[i] = x;
+	}
+
+	return s;
+}
+
+/*! Make sure the string has at least 12 bytes available! */
+static inline char *
+int32_to_dec_cstr(char s[],int32_t n) {
+	if(n < 0) {
+		s[0] = '-';
+		uint32_to_dec_cstr(s+1, (uint32_t)-n);
+		return s;
+	}
+	return uint32_to_dec_cstr(s, (uint32_t)n);
 }
 
 #if CONTIKI && !defined(htonl)

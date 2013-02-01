@@ -75,6 +75,7 @@ typedef int ll_compare_result_t;
 typedef ll_compare_result_t (*ll_compare_func_t)(const void* lhs,
     const void* rhs, void* context);
 
+//!	Returns the last item in the linked list.
 static inline void*
 ll_last(
 	void* item
@@ -87,6 +88,7 @@ ll_last(
 	return iter;
 }
 
+//!	Verifies that the linked list is internally consistent.
 static inline bool
 ll_verify(void* item) {
 	int ret = 0;
@@ -147,6 +149,7 @@ ll_prepend(
 	LL_ASSERT(ll_verify(*list));
 }
 
+//!	Inserts an item into a sorted linked list.
 static inline void
 ll_sorted_insert(
 	void** list, void* item, ll_compare_func_t compare_func, void* context

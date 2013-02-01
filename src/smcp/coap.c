@@ -367,7 +367,9 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 	default: break;
 	}
 	if(!content_type_string) {
-#if !defined(__SDCC)
+#if SMCP_AVOID_PRINTF
+		content_type_string = "unknown";
+#else
 		// TODO: Make thread safe!
 		static char ret[40];
 		if(content_type < 20)
@@ -391,8 +393,6 @@ coap_content_type_to_cstr(coap_content_type_t content_type) {
 			snprintf(ret, sizeof(ret), "application/x-coap-%u",
 				    (unsigned int)content_type);
 		content_type_string = ret;
-#else
-		content_type_string = "unknown";
 #endif
 	}
 	return content_type_string;
@@ -423,7 +423,9 @@ coap_option_key_to_cstr(
 		case COAP_OPTION_BLOCK2: ret = "Block2"; break;
 
 		default:
-#if !defined(__SDCC)
+#if SMCP_AVOID_PRINTF
+			ret = "unknown-option";
+#else
 		{
 			// NOTE: Not reentrant or thread safe.
 			static char x[48];
@@ -437,8 +439,6 @@ coap_option_key_to_cstr(
 
 			ret = x;
 		}
-#else
-			ret = "unknown-option";
 #endif
 		break;
 

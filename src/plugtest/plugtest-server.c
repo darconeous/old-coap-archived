@@ -72,7 +72,9 @@ plugtest_test_handler(smcp_node_t node)
 	}
 
 	smcp_inbound_get_path(content, SMCP_GET_PATH_LEADING_SLASH|SMCP_GET_PATH_INCLUDE_QUERY);
-	sprintf(content+strlen(content),"\nPlugtest!\nMethod = %s\n",coap_code_to_cstr(method));
+	strlcat(content,"\nPlugtest!\nMethod = ",max_len);
+	strlcat(content,coap_code_to_cstr(method),max_len);
+	strlcat(content,"\n",max_len);
 
 	{
 		const uint8_t* value;
@@ -106,7 +108,9 @@ plugtest_separate_async_resend_response(void* context)
 	smcp_status_t ret = 0;
 	struct smcp_async_response_s* async_response = (void*)context;
 
+#if !SMCP_AVOID_PRINTF
 	printf("Resending async response. . .\n");
+#endif
 
 	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	require_noerr(ret,bail);
@@ -117,7 +121,7 @@ plugtest_separate_async_resend_response(void* context)
 	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_content_formatted("This was an asynchronous response!");
+	ret = smcp_outbound_append_content("This was an asynchronous response!",SMCP_CSTR_LEN);
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_send();
@@ -131,7 +135,9 @@ smcp_status_t
 plugtest_separate_async_ack_handler(int statuscode, void* context) {
 	struct smcp_async_response_s* async_response = (void*)context;
 
+#if !SMCP_AVOID_PRINTF
 	printf("Finished sending async response.\n");
+#endif
 
 	smcp_finish_async_response(async_response);
 	free(async_response);
@@ -149,7 +155,9 @@ plugtest_separate_handler(
 	smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
+#if !SMCP_AVOID_PRINTF
 		printf("This request needs an async response.\n");
+#endif
 
 		if(smcp_inbound_is_dupe()) {
 			smcp_outbound_begin_response(COAP_CODE_EMPTY);
@@ -240,7 +248,7 @@ plugtest_obs_handler(
 		}
 
 		ret = smcp_outbound_set_content_len(
-			sprintf(content,"%u",(uint32_t)time(NULL))
+			strlen(uint32_to_dec_cstr(content, (uint32_t)time(NULL)))
 		);
 		if(ret) goto bail;
 

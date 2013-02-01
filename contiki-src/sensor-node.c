@@ -58,7 +58,7 @@ sensor_var_func(
 	if(action==SMCP_VAR_GET_KEY) {
 		strcpy(value,sensor->type);
 	} else if(action==SMCP_VAR_GET_VALUE) {
-		sprintf(value,"%d",sensor->value(0));
+		int32_to_dec_cstr(value,sensor->value(0));
 	} else if(action==SMCP_VAR_SET_VALUE) {
 		ret = SMCP_STATUS_NOT_IMPLEMENTED;
 	} else {

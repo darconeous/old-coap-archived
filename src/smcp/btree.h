@@ -74,18 +74,20 @@ typedef void (*bt_delete_func_t)(void* item, void* context);
 
 //! Inserts the given item into the tree.
 extern int bt_insert(
-	void**				bt,
-	void*				item,
-	bt_compare_func_t	compare_func,
-	bt_delete_func_t	delete_func,
-	void*				context);
+	void**				bt,		//!< Pointer to the root of the tree
+	void*				item,	//!< Item to insert
+	bt_compare_func_t	compare_func,	//!< Comparison function
+	bt_delete_func_t	delete_func,	//!< Deletion function, used if comparison is equal
+	void*				context	//!< Context, passed into comparison and deletion callbacks.
+);
 
 //! Finds and returns a node matching the given criteria.
 extern void* bt_find(
 	void*const*			bt,
 	const void*			item,
 	bt_compare_func_t	compare_func,
-	void*				context);
+	void*				context
+);
 
 //! Removes the given item from the tree, if present.
 extern bool bt_remove(
@@ -93,7 +95,8 @@ extern bool bt_remove(
 	void*				item,
 	bt_compare_func_t	compare_func,
 	bt_delete_func_t	delete_func,
-	void*				context);
+	void*				context
+);
 
 //!	Finds the left-most node in the subtree described by item.
 extern void* bt_first(void* item);
@@ -118,10 +121,13 @@ extern void bt_rotate_left(void** pivot);
 
 extern void bt_rotate_right(void** pivot);
 
+//!	Completely rebalance of the tree.
 extern unsigned int bt_rebalance(void** bt);
 
+//!	Completely unbalances the tree. Primarily useful for debugging.
 extern unsigned int bt_unbalance(void** bt);
 
+//!	Splays the tree to a new root. Useful for splay trees.
 extern unsigned int bt_splay(void** bt, void* root);
 
 __END_DECLS
