@@ -42,6 +42,7 @@
 #define SMCP_FUNC_RANDOM_UINT32()   arc4random()
 #define SMCP_RANDOM_MAX			(uint32_t)(0xFFFFFFFF)
 #elif CONTIKI
+#include "lib/random.h"
 #define SMCP_FUNC_RANDOM_UINT32() \
         ((uint32_t)random_rand() ^ \
             ((uint32_t)random_rand() << 16))

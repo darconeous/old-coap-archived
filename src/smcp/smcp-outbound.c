@@ -891,21 +891,23 @@ bail:
 
 smcp_status_t
 smcp_outbound_set_var_content_int(int v) {
-	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 #if SMCP_AVOID_PRINTF
 	char nstr[12];
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
-	smcp_outbound_append_content(int32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
+	int32_to_dec_cstr(nstr,v);
+	smcp_outbound_append_content(nstr, SMCP_CSTR_LEN);
 #else
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	return smcp_outbound_set_content_formatted_const("v=%d",v);
 #endif
 }
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_int(unsigned int v) {
-	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 #if SMCP_AVOID_PRINTF
 	char nstr[11];
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
 	smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
 #else
@@ -915,9 +917,9 @@ smcp_outbound_set_var_content_unsigned_int(unsigned int v) {
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v) {
-	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 #if SMCP_AVOID_PRINTF
 	char nstr[11];
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
 	smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
 #else

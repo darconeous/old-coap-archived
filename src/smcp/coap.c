@@ -31,6 +31,7 @@
 #endif
 
 #include "assert-macros.h"
+#include "smcp-opts.h"
 #include "coap.h"
 #include <stdlib.h>
 #include "ctype.h"

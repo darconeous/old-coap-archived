@@ -65,6 +65,7 @@
 #define HAVE_STRTOL (!defined(__SDCC))
 #endif
 
+#if !SMCP_AVOID_PRINTF
 #ifndef HAVE_VSNPRINTF
 #define HAVE_VSNPRINTF (!defined(__SDCC))
 #endif
@@ -72,6 +73,7 @@
 #if !HAVE_VSNPRINTF && !defined(vsnprintf)
 #warning VSNPRINTF NOT IMPLEMENTED, VSPRINTF COULD OVERFLOW!
 #define vsnprintf(d,n,fmt,lst) vsprintf(d,fmt,lst)
+#endif
 #endif
 
 #if !HAVE_STRDUP && !defined(strdup)

@@ -36,3 +36,8 @@ src/plugtest/smcp-plugtest-client
 src/plugtest/smcp-plugtest-server
 doxygen.cfg
 *.gz
+src/examples/example-1
+src/examples/example-2
+src/examples/example-3
+src/examples/example-4
+src/smcp/btreetest

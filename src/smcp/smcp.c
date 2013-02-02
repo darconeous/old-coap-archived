@@ -699,6 +699,9 @@ smcp_inbound_set_destaddr(SMCP_SOCKET_ARGS) {
 	}
 #elif CONTIKI
 	self->inbound.was_sent_to_multicast = uip_is_addr_mcast(toaddr);
+
+	// toport isn't being used at the moment.
+	(void)toport;
 #endif
 
 	return SMCP_STATUS_OK;
@@ -931,6 +934,8 @@ smcp_process(
 		ret = smcp_inbound_finish_packet();
 		require(ret==SMCP_STATUS_OK,bail);
 	}
+#else
+	(void)cms;
 #endif
 
 	smcp_set_current_instance(self);
