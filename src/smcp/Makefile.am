@@ -5,7 +5,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 noinst_LIBRARIES = libsmcp.a
 
-libsmcp_a_SOURCES = smcp.c smcp-timer.c coap.c smcp-outbound.c smcp-observable.c smcp-auth.c smcp-transaction.c
+libsmcp_a_SOURCES = smcp.c smcp-timer.c coap.c smcp-outbound.c smcp-inbound.c smcp-observable.c smcp-auth.c smcp-transaction.c
 
 libsmcp_a_SOURCES += btree.c url-helpers.c fasthash.c
 
