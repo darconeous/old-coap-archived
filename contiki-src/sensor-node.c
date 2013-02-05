@@ -29,12 +29,11 @@
 #include "sensor-node.h"
 #include "assert-macros.h"
 #include "lib/sensors.h"
-#include <smcp/smcp-node-router.h>
 #include <smcp/smcp-variable_node.h>
 
 const extern struct sensors_sensor *sensors[];
 
-static smcp_status_t
+smcp_status_t
 sensor_var_func(
 	smcp_variable_node_t node,
 	uint8_t action,
@@ -69,15 +68,3 @@ bail:
 	return ret;
 }
 
-
-smcp_node_t
-smcp_init_sensor_node(smcp_node_t parent,const char* name) {
-
-	static struct smcp_variable_node_s node;
-
-	smcp_variable_node_init(&node,(void*)parent, name);
-
-	node.func = &sensor_var_func;
-
-	return &node.node;
-}

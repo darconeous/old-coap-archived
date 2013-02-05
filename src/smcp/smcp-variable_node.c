@@ -38,7 +38,6 @@
 
 #include "smcp-opts.h"
 #include "smcp.h"
-#include "smcp-node-router.h"
 #include "smcp-helpers.h"
 #include "smcp-variable_node.h"
 #include "smcp-logging.h"
@@ -47,26 +46,10 @@
 #include "url-helpers.h"
 #include <stdlib.h>
 
-void
-smcp_variable_node_dealloc(smcp_variable_node_t x) {
-	free(x);
-}
-
-smcp_variable_node_t
-smcp_variable_node_alloc() {
-	smcp_variable_node_t ret =
-	    (smcp_variable_node_t)calloc(sizeof(struct smcp_variable_node_s),
-		1);
-
-	ret->node.finalize = (void (*)(smcp_node_t)) &
-	    smcp_variable_node_dealloc;
-	return ret;
-}
-
 #define BAD_KEY_INDEX		(255)
 
 smcp_status_t
-smcp_variable_request_handler(
+smcp_variable_node_request_handler(
 	smcp_variable_node_t		node
 ) {
 	// TODO: Make this function use less stack space!
@@ -81,6 +64,7 @@ smcp_variable_request_handler(
 	uint8_t key_index = BAD_KEY_INDEX;
 	size_t value_len;
 	bool needs_prefix = true;
+	char* prefix_name = "";
 
 	reply_content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
 
@@ -208,7 +192,7 @@ smcp_variable_request_handler(
 
 				*content_ptr++ = '<';
 				if(needs_prefix) {
-					content_ptr += url_encode_cstr(content_ptr, node->node.name, (content_end_ptr-content_ptr)-1);
+					content_ptr += url_encode_cstr(content_ptr, prefix_name, (content_end_ptr-content_ptr)-1);
 					content_ptr = stpncpy(content_ptr,"/",(content_end_ptr-content_ptr)-1);
 				}
 				content_ptr += url_encode_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
@@ -319,23 +303,3 @@ bail:
 	return ret;
 }
 
-smcp_variable_node_t
-smcp_variable_node_init(
-	smcp_variable_node_t self, smcp_node_t node, const char* name
-) {
-	smcp_variable_node_t ret = NULL;
-
-	require(node, bail);
-
-	require(self || (self = smcp_variable_node_alloc()), bail);
-
-	ret = (smcp_variable_node_t)self;
-
-	smcp_node_init(&ret->node, node, name);
-
-	ret->node.request_handler = (void*)&smcp_variable_request_handler;
-	ret->node.has_link_content = true;
-
-bail:
-	return ret;
-}

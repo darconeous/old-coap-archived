@@ -29,7 +29,6 @@
 #ifndef __SMCP_VARIABLE_NODE_H__
 #define __SMCP_VARIABLE_NODE_H__ 1
 
-#include "smcp-node-router.h"
 #include "smcp-opts.h"
 #include "smcp-observable.h"
 
@@ -42,7 +41,6 @@ __BEGIN_DECLS
 /*!	@defgroup smcp-variable_node Variable Node
 **	@{
 */
-
 
 struct smcp_variable_node_s;
 typedef struct smcp_variable_node_s *smcp_variable_node_t;
@@ -66,18 +64,11 @@ typedef smcp_status_t (*smcp_variable_node_func)(
 );
 
 struct smcp_variable_node_s {
-	struct smcp_node_s node;
 	struct smcp_observable_s observable;
 	smcp_variable_node_func func;
 };
 
-extern smcp_variable_node_t smcp_variable_node_init(
-	smcp_variable_node_t self,
-	smcp_node_t parent,
-	const char* name
-);
-
-extern smcp_status_t smcp_variable_request_handler(
+extern smcp_status_t smcp_variable_node_request_handler(
 	smcp_variable_node_t		node
 );
 

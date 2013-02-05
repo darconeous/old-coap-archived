@@ -346,11 +346,11 @@ PROCESS_THREAD(smcp_simple, ev, data)
 	// Set up the node router.
 	smcp_set_default_request_handler(smcp, &smcp_node_router_handler, &root_node);
 
-	smcp_init_led_node(&root_node,"leds");
-
-#if !CONTIKI_TARGET_MINIMAL_NET
-	smcp_init_sensor_node(&root_node,"sensors");
-#endif
+//	smcp_init_led_node(&root_node,"leds");
+//
+//#if !CONTIKI_TARGET_MINIMAL_NET
+//	smcp_init_sensor_node(&root_node,"sensors");
+//#endif
 
 	// Create the "reset" node.
 	create_reset_node(

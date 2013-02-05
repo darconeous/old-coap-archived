@@ -11,7 +11,7 @@ CONTIKI_SOURCEFILES += smcp-list.c smcp-node-router.c
 CFLAGS += -DSMCP_CONF_NODE_ROUTER=1
 endif
 
-ifeq ($(SMCP_CONF_NODE_EXTRAS),1)
+ifeq ($(SMCP_CONF_EXTRAS),1)
 CONTIKI_SOURCEFILES += smcp-variable_node.c
 CONTIKI_SOURCEFILES += led-node.c
 CONTIKI_SOURCEFILES += sensor-node.c
