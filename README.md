@@ -32,11 +32,13 @@ to your Contiki root, like so:
 
 To get the "latest-release":
 
-	$ brew install https://raw.github.com/darconeous/smcp/formula/smcp.rb
+	$ brew tap darconeous/embedded
+	$ brew install smcp
 
 To get the bleeding-edge release:
 
-	$ brew install https://raw.github.com/darconeous/smcp/formula/smcp.rb --HEAD
+	$ brew tap darconeous/embedded
+	$ brew install smcp --HEAD
 
 Node: This is mostly for people who just want to use `smcpctl` (described below).
 If you want to compile against SMCP, you'll currently need to grab the sources
