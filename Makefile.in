@@ -262,6 +262,12 @@ EXTRA_DIST = bootstrap.sh README.md .gitignore .uncrustify.cfg \
 	.travis.yml contiki-src/examples/smcp-simple/.gitignore \
 	contiki-src/examples/smcp-simple/Makefile \
 	contiki-src/examples/smcp-simple/smcp-simple.c \
+	contiki-src/examples/smcp-plugtest/.gitignore \
+	contiki-src/examples/smcp-plugtest/Makefile \
+	contiki-src/examples/smcp-plugtest/smcp-plugtest.c \
+	contiki-src/examples/smcp-complex/.gitignore \
+	contiki-src/examples/smcp-complex/Makefile \
+	contiki-src/examples/smcp-complex/smcp-complex.c \
 	contiki-src/led-node.c contiki-src/led-node.h \
 	contiki-src/Makefile.smcp contiki-src/sensor-node.c \
 	contiki-src/sensor-node.h contiki-src/smcp-task.c \
