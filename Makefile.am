@@ -4,7 +4,7 @@ SUBDIRS = src docs
 
 DISTCLEANFILES = config.log config.status Makefile libtool make.out
 
-EXTRA_DIST = bootstrap.sh README.md 
+EXTRA_DIST = bootstrap.sh README.md NEWS.md
 
 # Metafiles
 EXTRA_DIST += .gitignore .uncrustify.cfg .travis.yml
