@@ -38,7 +38,7 @@
 #include <stdlib.h>
 #include <smcp/smcp.h>
 #include <smcp/smcp-transaction.h>
-#include <smcp/smcp-variable_node.h>
+#include <smcp/smcp-node-router.h>
 #include <smcp/coap.h>
 #include <time.h>
 #include <errno.h>

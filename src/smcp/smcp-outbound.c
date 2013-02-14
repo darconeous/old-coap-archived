@@ -91,24 +91,30 @@ smcp_outbound_begin(
 	smcp_t self, coap_code_t code, coap_transaction_type_t tt
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
+
 #if !SMCP_EMBEDDED
 	if(!self)
 		self = smcp_get_current_instance();
 #endif
 
 	check(!smcp_get_current_instance() || smcp_get_current_instance()==self);
+
 	smcp_set_current_instance(self);
+
+#if SMCP_USE_CASCADE_COUNT
+	if(self->cascade_count == 1)
+		return SMCP_STATUS_CASCADE_LOOP;
+#endif
 
 #if SMCP_USE_BSD_SOCKETS
 	self->outbound.packet = (struct coap_header_s*)self->outbound.packet_bytes;
+	self->outbound.socklen = 0;
 #elif CONTIKI
 	uip_udp_conn = self->udp_conn;
 	self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
-	if(self->outbound.packet==self->inbound.packet) {
+
+	if(self->outbound.packet == self->inbound.packet)
 		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + self->inbound.packet_len + 1];
-	}
-#else
-#warning WRITEME!
 #endif
 
 	self->outbound.packet->tt = tt;
@@ -120,11 +126,10 @@ smcp_outbound_begin(
 	if(	self->is_processing_message
 		&& self->inbound.packet->token_len
 		&& code
-		&& tt != COAP_TRANS_TYPE_RESET
 	) {
 		self->outbound.packet->token_len = self->inbound.packet->token_len;
 		memcpy(self->outbound.packet->token,self->inbound.packet->token,self->outbound.packet->token_len);
-	} else if(code && code<COAP_RESULT_100 && self->current_transaction) {
+	} else if(code && (code < COAP_RESULT_100) && self->current_transaction) {
 		// For sending a request.
 		self->outbound.packet->token_len = sizeof(self->current_transaction->token);
 		memcpy(self->outbound.packet->token,(void*)&self->current_transaction->token,self->outbound.packet->token_len);
@@ -135,16 +140,11 @@ smcp_outbound_begin(
 	self->outbound.last_option_key = 0;
 
 	self->outbound.content_ptr = (char*)self->outbound.packet->token + self->outbound.packet->token_len;
-	*self->outbound.content_ptr++ = 0xFF;  // Add end-of-options marker
+	*self->outbound.content_ptr++ = 0xFF;  // start-of-content marker
 	self->outbound.content_len = 0;
 	self->force_current_outbound_code = false;
 	self->is_responding = false;
 
-#if SMCP_USE_BSD_SOCKETS
-	self->outbound.socklen = 0;
-#elif defined(CONTIKI)
-	// Writeme!
-#endif
 	return SMCP_STATUS_OK;
 }
 
@@ -352,11 +352,12 @@ smcp_outbound_add_options_up_to_key_(
 #if SMCP_USE_CASCADE_COUNT
 	if(	self->outbound.last_option_key<COAP_OPTION_CASCADE_COUNT
 		&& key>COAP_OPTION_CASCADE_COUNT
-		&& self->has_cascade_count
+		&& self->cascade_count
 	) {
+		uint8_t cc = self->cascade_count-1;
 		ret = smcp_outbound_add_option_(
 			COAP_OPTION_CASCADE_COUNT,
-			(char*)&self->cascade_count,
+			(char*)&cc,
 			1
 		);
 	}
@@ -700,7 +701,7 @@ smcp_outbound_append_content(const char* value,size_t len) {
 	size_t max_len = self->outbound.content_len;
 	char* dest;
 
-	if(len==SMCP_CSTR_LEN)
+	if(len == SMCP_CSTR_LEN)
 		len = strlen(value);
 
 	max_len += len;
@@ -861,6 +862,7 @@ bail:
 
 #pragma mark -
 
+#if !SMCP_AVOID_PRINTF
 smcp_status_t
 smcp_outbound_set_content_formatted(const char* fmt, ...) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
@@ -886,33 +888,44 @@ bail:
 	va_end(args);
 	return ret;
 }
-
-smcp_status_t
-smcp_outbound_set_content_cstr(const char* cstr) {
-	return smcp_outbound_set_content_formatted("%s",cstr);
-}
+#endif
 
 smcp_status_t
 smcp_outbound_set_var_content_int(int v) {
+#if SMCP_AVOID_PRINTF
+	char nstr[12];
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
-//#if SMCP_AVOID_PRINTF
-//	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
-//
-//#else
+	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
+	int32_to_dec_cstr(nstr,v);
+	smcp_outbound_append_content(nstr, SMCP_CSTR_LEN);
+#else
+	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	return smcp_outbound_set_content_formatted_const("v=%d",v);
-//#endif
+#endif
 }
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_int(unsigned int v) {
+#if SMCP_AVOID_PRINTF
+	char nstr[11];
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
+	smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
+#else
 	return smcp_outbound_set_content_formatted_const("v=%u",v);
+#endif
 }
 
 smcp_status_t
 smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v) {
+#if SMCP_AVOID_PRINTF
+	char nstr[11];
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
+	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
+	smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
+#else
 	return smcp_outbound_set_content_formatted_const("v=%ul",v);
+#endif
 }
 
 

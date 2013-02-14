@@ -29,10 +29,9 @@
 #include "led-node.h"
 #include "assert-macros.h"
 #include "dev/leds.h"
-#include <smcp/smcp-node-router.h>
 #include <smcp/smcp-variable_node.h>
 
-static smcp_status_t
+smcp_status_t
 led_var_func(
 	smcp_variable_node_t node,
 	uint8_t action,
@@ -74,17 +73,4 @@ led_var_func(
 	}
 
 	return ret;
-}
-
-
-smcp_node_t
-smcp_init_led_node(smcp_node_t parent,const char* name) {
-
-	static struct smcp_variable_node_s node;
-
-	smcp_variable_node_init(&node,(void*)parent, name);
-
-	node.func = &led_var_func;
-
-	return &node.node;
 }

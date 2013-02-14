@@ -42,7 +42,7 @@
 #endif
 
 #include "assert-macros.h"
-#include "smcp.h"
+#include "smcp-node-router.h"
 
 #if SMCP_CONF_NODE_ROUTER
 

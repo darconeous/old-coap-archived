@@ -7,8 +7,9 @@ CFLAGS += -DASSERT_MACROS_USES_SYSLOG=1
 
 bin_PROGRAMS = smcpd
 
-smcpd_SOURCES = main.c system-node.c cgi-node.c
-smcpd_SOURCES += help.h
+smcpd_SOURCES = main.c help.h
+smcpd_SOURCES += cgi-node.c
+#smcpd_SOURCES += system-node.c
 smcpd_LDADD = ../smcp/libsmcp.a
 
 if HAVE_GE_RS232

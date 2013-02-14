@@ -18,14 +18,20 @@ static struct fasthash_state_s global_fasthash_state;
 
 static void
 fasthash_feed_block(uint32_t blk) {
+	// XOR the block count into the block.
 	blk ^= (global_fasthash_state.bytes>>2);
+
+	// XOR the previous result into the hash state.
 	global_fasthash_state.hash ^= blk;
+
+	// Mix up the hash state using a linear congruential generator.
 	global_fasthash_state.hash = global_fasthash_state.hash*1664525 + 1013904223;
 }
 
 void
 fasthash_start(uint32_t salt) {
 	memset((void*)&global_fasthash_state,0,sizeof(global_fasthash_state));
+	// Feed in the salt first.
 	fasthash_feed_block(salt);
 }
 

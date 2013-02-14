@@ -461,10 +461,12 @@ extern smcp_status_t smcp_outbound_set_content_len(size_t len);
 
 extern smcp_status_t smcp_outbound_append_content(const char* value,size_t len);
 
+#if !SMCP_AVOID_PRINTF
 extern smcp_status_t smcp_outbound_set_content_formatted(const char* fmt, ...);
 
 #define smcp_outbound_set_content_formatted_const(fmt,...)	\
 	smcp_outbound_set_content_formatted(fmt,__VA_ARGS__)
+#endif
 
 //!	Sends the outbound packet.
 /*!	After calling this function, you are done for this callback. You may not

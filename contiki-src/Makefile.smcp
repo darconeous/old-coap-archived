@@ -2,7 +2,7 @@ ifndef SMCP_ROOT
   ${error SMCP_ROOT not defined! You must specify where SMCP resides}
 endif
 
-CONTIKI_SOURCEFILES += smcp.c smcp-auth.c smcp-outbound.c smcp-observable.c url-helpers.c coap.c smcp-timer.c smcp-transaction.c
+CONTIKI_SOURCEFILES += smcp.c smcp-auth.c smcp-inbound.c smcp-outbound.c smcp-observable.c url-helpers.c coap.c smcp-timer.c smcp-transaction.c
 CONTIKI_SOURCEFILES += fasthash.c btree.c
 CONTIKI_SOURCEFILES += smcp-task.c
 
@@ -11,7 +11,7 @@ CONTIKI_SOURCEFILES += smcp-list.c smcp-node-router.c
 CFLAGS += -DSMCP_CONF_NODE_ROUTER=1
 endif
 
-ifeq ($(SMCP_CONF_NODE_EXTRAS),1)
+ifeq ($(SMCP_CONF_EXTRAS),1)
 CONTIKI_SOURCEFILES += smcp-variable_node.c
 CONTIKI_SOURCEFILES += led-node.c
 CONTIKI_SOURCEFILES += sensor-node.c

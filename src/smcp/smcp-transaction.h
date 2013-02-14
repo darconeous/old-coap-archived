@@ -81,6 +81,8 @@ struct smcp_transaction_s {
 	coap_msg_id_t				token;
 	coap_msg_id_t				msg_id;
 
+	uint32_t					transaction_hash;
+
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 	uint32_t					last_observe;
 #endif

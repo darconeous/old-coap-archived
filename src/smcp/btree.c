@@ -1,4 +1,4 @@
-/*	@file btree.c
+/*!	@file btree.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Originally published 2010-8-31.
@@ -47,6 +47,14 @@
 
 #include "btree.h"
 #include <assert.h>
+
+#if CONTIKI
+/* Contiki is having problems with asserts. */
+#ifdef assert
+#undef assert
+#endif
+#define assert(x)		do { } while (0)
+#endif
 
 int
 bt_insert(

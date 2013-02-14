@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = smcp-plugtest
+CONTIKI_PROJECT = smcp-complex
 
 ifeq ($(CONTIKI),)
 CONTIKI = ../../../../contiki
@@ -6,20 +6,12 @@ endif
 
 SMCP_ROOT = ../../..
 
-UIP_CONF_IPV6 = 1
-UIP_CONF_RPL = 0
 SMCP_CONF_NODE_ROUTER = 1
+SMCP_CONF_EXTRAS = 1
+UIP_CONF_IPV6 = 1
 #VERBOSE_DEBUG = 0
 
 include $(SMCP_ROOT)/contiki-src/Makefile.smcp
-
-CONTIKI_SOURCEFILES += plugtest-server.c
-APPDIRS += $(SMCP_ROOT)/src/plugtest
-
-ifeq ($(TARGET),avr-raven)
-#APPS += raven-webserver
-APPS += raven-lcd-interface
-endif
 
 CLEAN += *.hex *.elf symbols.c symbols.h
 

@@ -33,6 +33,12 @@
 #include <smcp/smcp.h>
 #include <smcp/smcp-variable_node.h>
 
-smcp_node_t smcp_init_led_node(smcp_node_t parent,const char* name);
+smcp_status_t
+led_var_func(
+	smcp_variable_node_t node,
+	uint8_t action,
+	uint8_t i,
+	char* value
+);
 
 #endif

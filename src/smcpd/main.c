@@ -59,10 +59,6 @@
 //#include <smcp/smcp-timer_node.h>
 #include "help.h"
 
-#ifndef HAVE_DLFCN_H
-#define HAVE_DLFCN_H	1
-#endif
-
 #if HAVE_DLFCN_H
 #include <dlfcn.h>
 #ifndef RTLD_DEFAULT

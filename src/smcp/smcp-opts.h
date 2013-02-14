@@ -144,7 +144,7 @@
 #endif
 
 #ifndef SMCP_CONF_ENABLE_VHOSTS
-#define SMCP_CONF_ENABLE_VHOSTS					1
+#define SMCP_CONF_ENABLE_VHOSTS					!SMCP_EMBEDDED
 #endif
 
 #ifndef SMCP_MAX_VHOSTS
@@ -176,7 +176,11 @@
 #ifdef SMCP_CONF_MAX_OBSERVERS
 #define SMCP_MAX_OBSERVERS			(SMCP_CONF_MAX_OBSERVERS)
 #else
-#define SMCP_MAX_OBSERVERS			(4)
+#if SMCP_EMBEDDED
+#define SMCP_MAX_OBSERVERS			(2)
+#else
+#define SMCP_MAX_OBSERVERS			(8)
+#endif
 #endif
 
 #ifndef SMCP_OBSERVATION_KEEPALIVE_INTERVAL
@@ -220,7 +224,7 @@
 #endif
 
 #ifndef SMCP_DEPRECATED
-#if __GCC_VERSION__
+#if __GCC_VERSION__ || defined(__SDCC)
 #define SMCP_DEPRECATED
 #else
 #define SMCP_DEPRECATED __attribute__ ((deprecated))

@@ -1,7 +1,7 @@
 
 AC_PREREQ(2.59)
 
-AC_INIT([smcp],[0.6])
+AC_INIT([smcp],[0.6.1])
 
 AC_CONFIG_AUX_DIR([m4])
 AC_CONFIG_MACRO_DIR([m4])
@@ -74,7 +74,7 @@ dnl echo LOAD_ALL_SYMBOLS_FLAG = $LOAD_ALL_SYMBOLS_FLAG
 AC_SUBST(LOAD_ALL_SYMBOLS_FLAG)
 
 AC_CONFIG_SRCDIR([src/smcp/smcp.c])
-AM_CONFIG_HEADER([src/config.h])
+AC_CONFIG_HEADERS([src/config.h])
 
 AM_MAINTAINER_MODE
 
@@ -114,7 +114,7 @@ AC_CHECK_FUNCS([rl_set_prompt])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h])
+AC_CHECK_HEADERS([stdlib.h dlfcn.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h])
 
 AC_CHECK_HEADERS([alloca.h])
 dnl AC_FUNC_ALLOCA

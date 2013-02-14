@@ -47,6 +47,7 @@ static bool istty = true;
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",	NULL, "Print Help"				},
+	{ 'v', "version", NULL, "Print Version Information" },
 	{ 'd', "debug", NULL, "Enable debugging mode"	},
 	{ 'p', "port",	NULL, "Port number"				},
 	{ 'f', NULL,	NULL, "Read commands from file" },
@@ -567,6 +568,11 @@ bail:
 }
 #endif
 
+void
+print_version() {
+	printf(PACKAGE_TARNAME"ctl "PACKAGE_VERSION"\n");
+}
+
 #pragma mark -
 
 
@@ -583,7 +589,13 @@ main(
 	HANDLE_LONG_ARGUMENT("port") port = strtol(argv[++i], NULL, 0);
 	HANDLE_LONG_ARGUMENT("debug") debug_mode++;
 
+	HANDLE_LONG_ARGUMENT("version") {
+		print_version();
+		gRet = 0;
+		goto bail;
+	}
 	HANDLE_LONG_ARGUMENT("help") {
+		print_version();
 		print_arg_list_help(option_list,
 			argv[0],
 			"[options] <sub-command> [args]");
@@ -606,7 +618,13 @@ main(
 		}
 	}
 #endif
+	HANDLE_SHORT_ARGUMENT('v') {
+		print_version();
+		gRet = 0;
+		goto bail;
+	}
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
+		print_version();
 		print_arg_list_help(option_list,
 			argv[0],
 			"[options] <sub-command> [args]");
