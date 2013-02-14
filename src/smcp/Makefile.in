@@ -74,7 +74,7 @@ libsmcp_a_AR = $(AR) $(ARFLAGS)
 LIBOBJDIR = ../../src/missing//
 libsmcp_a_DEPENDENCIES = $(LIBOBJS)
 am__libsmcp_a_SOURCES_DIST = smcp.c smcp-timer.c coap.c \
-	smcp-outbound.c smcp-observable.c smcp-auth.c \
+	smcp-outbound.c smcp-inbound.c smcp-observable.c smcp-auth.c \
 	smcp-transaction.c btree.c url-helpers.c fasthash.c \
 	smcp-node-router.c smcp-node-router.h smcp-list.c \
 	smcp-variable_node.c smcp-variable_node.h assert-macros.h \
@@ -84,7 +84,7 @@ am__libsmcp_a_SOURCES_DIST = smcp.c smcp-timer.c coap.c \
 	smcp-transaction.h fasthash.h smcp-curl_proxy.c
 @HAVE_LIBCURL_TRUE@am__objects_1 = smcp-curl_proxy.$(OBJEXT)
 am_libsmcp_a_OBJECTS = smcp.$(OBJEXT) smcp-timer.$(OBJEXT) \
-	coap.$(OBJEXT) smcp-outbound.$(OBJEXT) \
+	coap.$(OBJEXT) smcp-outbound.$(OBJEXT) smcp-inbound.$(OBJEXT) \
 	smcp-observable.$(OBJEXT) smcp-auth.$(OBJEXT) \
 	smcp-transaction.$(OBJEXT) btree.$(OBJEXT) \
 	url-helpers.$(OBJEXT) fasthash.$(OBJEXT) \
@@ -247,13 +247,14 @@ noinst_LIBRARIES = libsmcp.a
 
 #libsmcp_a_SOURCES += smcp-timer_node.c smcp-timer_node.h
 libsmcp_a_SOURCES = smcp.c smcp-timer.c coap.c smcp-outbound.c \
-	smcp-observable.c smcp-auth.c smcp-transaction.c btree.c \
-	url-helpers.c fasthash.c smcp-node-router.c smcp-node-router.h \
-	smcp-list.c smcp-variable_node.c smcp-variable_node.h \
-	assert-macros.h btree.h coap.h ll.h smcp-curl_proxy.h \
-	smcp-helpers.h smcp-internal.h smcp-logging.h smcp-opts.h \
-	smcp-observable.h smcp-timer.h smcp.h url-helpers.h \
-	smcp-auth.h smcp-transaction.h fasthash.h $(am__append_1)
+	smcp-inbound.c smcp-observable.c smcp-auth.c \
+	smcp-transaction.c btree.c url-helpers.c fasthash.c \
+	smcp-node-router.c smcp-node-router.h smcp-list.c \
+	smcp-variable_node.c smcp-variable_node.h assert-macros.h \
+	btree.h coap.h ll.h smcp-curl_proxy.h smcp-helpers.h \
+	smcp-internal.h smcp-logging.h smcp-opts.h smcp-observable.h \
+	smcp-timer.h smcp.h url-helpers.h smcp-auth.h \
+	smcp-transaction.h fasthash.h $(am__append_1)
 libsmcp_a_LIBADD = $(LIBOBJS) $(ALLOCA)
 btreetest_SOURCES = btree.c
 btreetest_CFLAGS = -DBTREE_SELF_TEST=1
@@ -325,6 +326,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fasthash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-auth.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-curl_proxy.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-inbound.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-node-router.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcp-observable.Po@am__quote@

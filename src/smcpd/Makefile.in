@@ -68,8 +68,7 @@ CONFIG_CLEAN_FILES = smcpd.conf
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_smcpd_OBJECTS = main.$(OBJEXT) system-node.$(OBJEXT) \
-	cgi-node.$(OBJEXT)
+am_smcpd_OBJECTS = main.$(OBJEXT) cgi-node.$(OBJEXT)
 smcpd_OBJECTS = $(am_smcpd_OBJECTS)
 smcpd_DEPENDENCIES = ../smcp/libsmcp.a $(am__append_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
@@ -213,7 +212,8 @@ top_srcdir = @top_srcdir@
 INCLUDES = -I.. -I$(top_srcdir)/src
 #AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 AM_LDFLAGS = -export-dynamic @LOAD_ALL_SYMBOLS_FLAG@
-smcpd_SOURCES = main.c system-node.c cgi-node.c help.h
+smcpd_SOURCES = main.c help.h cgi-node.c
+#smcpd_SOURCES += system-node.c
 smcpd_LDADD = ../smcp/libsmcp.a $(am__append_1)
 
 # Commented out for now, until we get configuration directory support added.
@@ -313,7 +313,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cgi-node.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/system-node.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
