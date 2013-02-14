@@ -10,7 +10,6 @@ UIP_CONF_IPV6 = 1
 UIP_CONF_RPL = 0
 SMCP_CONF_NODE_ROUTER = 1
 #VERBOSE_DEBUG = 0
-CFLAGS += -DUIP_CONF_IPV6_RPL=0 -mthumb
 
 include $(SMCP_ROOT)/contiki-src/Makefile.smcp
 
