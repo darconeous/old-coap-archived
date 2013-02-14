@@ -1,0 +1,17 @@
+/obj_*
+/Makefile.target
+/*.minimal-net
+/*.native
+/contiki-*.a
+/symbols.c
+/symbols.h
+/*.hex
+/*.lib
+/*.a
+/*.avr-raven
+/*.cooja
+/*.banks
+/*.map
+/*.mem
+/*.lk
+/*.ihx
