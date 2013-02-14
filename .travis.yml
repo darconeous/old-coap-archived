@@ -13,3 +13,5 @@ script:
     - "cd .."
     - "cd contiki-src/examples/smcp-plugtest"
     - "make TARGET=minimal-net CONTIKI=../../../contiki || exit $?"
+    - "cd ../smcp-simple"
+    - "make TARGET=minimal-net CONTIKI=../../../contiki || exit $?"
