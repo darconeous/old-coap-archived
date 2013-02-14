@@ -317,7 +317,7 @@ list_response_handler(
 					if((content[content_length - 1] != '\n'))
 						fprintf(stdout,"\n");
 				} else {
-					fprintf(stderr, " *** Not a directory\n");
+					fprintf(stderr, " *** Not a directory (content type is '%s')\n",coap_content_type_to_cstr(content_type));
 					gRet = 0;
 					return SMCP_STATUS_TRANSACTION_INVALIDATED;
 				}

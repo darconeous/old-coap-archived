@@ -68,7 +68,6 @@ free_observer(struct smcp_observer_s *observer) {
 #if SMCP_EMBEDDED
 	smcp_t const interface = smcp_get_current_instance();
 #else
-	//printf("************freeing observer %d\n",i);
 	if(!observer->observable)
 		goto bail;
 	smcp_t const interface = observer->observable->interface;
@@ -120,10 +119,8 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 	}
 
 	if(interface->inbound.has_observe_option) {
-		//printf("************handling with observe option (observer %d)\n",i);
 		if(i == -1) {
 			i = get_unused_observer_index();
-			//printf("************making a new observer %d\n",i);
 			if(i == -1)
 				goto bail;
 			if(context->last_observer == 0) {
@@ -141,7 +138,6 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 
 		ret = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE,observer_table[i].seq);
 	} else if(i != -1) {
-		//printf("************explicit removal observer %d\n",i);
 		free_observer(&observer_table[i]);
 	}
 
@@ -167,7 +163,6 @@ event_response_handler(int statuscode, struct smcp_observer_s* observer)
 	}
 
 	if(statuscode==SMCP_STATUS_RESET) {
-		//printf("************implicit removal\n");
 		free_observer(observer);
 		return SMCP_STATUS_RESET;
 	}
@@ -239,13 +234,12 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 		goto bail;
 
 	for(i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
-		if(	(observer_table[i].key == SMCP_OBSERVABLE_BROADCAST_KEY)
-			|| (observer_table[i].key != key)
+		if(	(observer_table[i].key != SMCP_OBSERVABLE_BROADCAST_KEY)
+			&& (key != SMCP_OBSERVABLE_BROADCAST_KEY)
+			&& (observer_table[i].key != key)
 		) {
 			continue;
 		}
-
-		//printf("************trigging observer %d\n",i);
 
 		observer_table[i].seq++;
 

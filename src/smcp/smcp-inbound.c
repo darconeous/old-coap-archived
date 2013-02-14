@@ -85,6 +85,8 @@ extern uint16_t uip_slen;
 #include "smcp-timer.h"
 #include "smcp-internal.h"
 
+#define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
+
 #pragma mark -
 #pragma mark Simple inbound getters
 
@@ -149,7 +151,7 @@ smcp_inbound_reset_next_option() {
 coap_option_key_t
 smcp_inbound_next_option(const uint8_t** value, size_t* len) {
 	smcp_t const self = smcp_get_current_instance();
-	if(self->inbound.this_option<((uint8_t*)self->inbound.packet+self->inbound.packet_len)
+	if(self->inbound.this_option < ((uint8_t*)self->inbound.packet+self->inbound.packet_len)
 		&& self->inbound.this_option[0]!=0xFF
 	) {
 		self->inbound.this_option = coap_decode_option(
@@ -418,7 +420,6 @@ smcp_inbound_finish_packet() {
 		port = ntohs(((struct sockaddr_in6*)self->inbound.saddr)->sin6_port);
 #elif CONTIKI
 		port = ntohs(self->inbound.toport);
-#define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
 		CSTR_FROM_6ADDR(addr_str,&self->inbound.toaddr);
 #endif
 		DEBUG_PRINTF(CSTR("smcp(%p): Inbound packet from [%s]:%d"), self,addr_str,(int)port);
@@ -440,70 +441,23 @@ smcp_inbound_finish_packet() {
 		);
 	}
 
-	smcp_inbound_reset_next_option();
-	{	// Initial options scan.
-		coap_option_key_t key;
-		unsigned int i;
-
-		// Update dupe hash.
-		fasthash_start(0);
-#if SMCP_USE_BSD_SOCKETS
-		fasthash_feed((void*)self->inbound.saddr,self->inbound.socklen);
-#elif CONTIKI
-		fasthash_feed((void*)&self->inbound.toaddr,sizeof(self->inbound.toaddr));
-		fasthash_feed((void*)&self->inbound.toport,sizeof(self->inbound.toport));
+#if SMCP_USE_CASCADE_COUNT
+	self->cascade_count = 100;
 #endif
-		fasthash_feed_byte(self->inbound.packet->code);
-		fasthash_feed((const uint8_t*)&self->inbound.packet->msg_id,sizeof(self->inbound.packet->msg_id));
-		fasthash_feed((void*)&self->inbound.packet->token,self->inbound.packet->token_len);
 
-		do {
-			const uint8_t* value;
-			size_t value_len;
-			key = smcp_inbound_peek_option(&value,&value_len);
-			if(key==COAP_OPTION_CONTENT_TYPE) {
-				self->inbound.content_type = 0;
-				for(i = 0; i < value_len; i++)
-					self->inbound.content_type = (self->inbound.content_type << 8) + value[i];
-			} else if(key==COAP_OPTION_URI_HOST
-				|| key==COAP_OPTION_URI_PORT
-				|| key==COAP_OPTION_URI_PATH
-				|| key==COAP_OPTION_URI_QUERY
-			) {
-				fasthash_feed(value,value_len);
-			} else if(key==COAP_OPTION_BLOCK2) {
-				self->inbound.block2_value = 0;
-				for(i = 0; i < value_len; i++)
-					self->inbound.block2_value = (self->inbound.block2_value << 8) + value[i];
-				fasthash_feed(value,value_len);
-			} else if(key==COAP_OPTION_OBSERVE) {
-				self->inbound.has_observe_option = 1;
-				self->inbound.observe_value = 0;
-				for(i = 0; i < value_len; i++)
-					self->inbound.observe_value = (self->inbound.observe_value << 8) + value[i];
-			} else if(key==COAP_OPTION_MAX_AGE) {
-				self->inbound.max_age = 0;
-				for(i = 0; i < value_len; i++)
-					self->inbound.max_age = (self->inbound.max_age << 8) + value[i];
-				self->inbound.max_age += 1;
-				if(self->inbound.max_age<5)
-					self->inbound.max_age = 5;
-			}
-		} while(smcp_inbound_next_option(NULL,NULL)!=COAP_OPTION_INVALID);
+	// Calculate the message-id hash (address+port+message_id)
+	fasthash_start(0);
+#if SMCP_USE_BSD_SOCKETS
+	fasthash_feed((void*)self->inbound.saddr,self->inbound.socklen);
+#elif CONTIKI
+	fasthash_feed((void*)&self->inbound.toaddr,sizeof(self->inbound.toaddr));
+	fasthash_feed((void*)&self->inbound.toport,sizeof(self->inbound.toport));
+#endif
+	fasthash_feed((const uint8_t*)&packet->msg_id,sizeof(packet->msg_id));
+	self->inbound.transaction_hash = fasthash_finish_uint32();
 
-		require(((unsigned)(self->inbound.this_option-(uint8_t*)self->inbound.packet)==self->inbound.packet_len) || self->inbound.this_option[0]==0xFF,bail);
-
-		// Now that we are at the end of the options, we know
-		// where the content starts.
-		self->inbound.content_ptr = (char*)self->inbound.this_option;
-		self->inbound.content_len = self->inbound.packet_len-((uint8_t*)self->inbound.content_ptr-(uint8_t*)self->inbound.packet);
-		if(self->inbound.content_len) {
-			self->inbound.content_ptr++;
-			self->inbound.content_len--;
-		}
-
-		self->inbound.transaction_hash = fasthash_finish_uint32();
-		i = SMCP_CONF_DUPE_BUFFER_SIZE;
+	{	// Check to see if this packet is a duplicate.
+		unsigned int i = SMCP_CONF_DUPE_BUFFER_SIZE;
 		while(i--) {
 			if(self->dupe[i].hash == self->inbound.transaction_hash) {
 				self->inbound.is_dupe = true;
@@ -512,11 +466,64 @@ smcp_inbound_finish_packet() {
 		}
 	}
 
-	smcp_inbound_reset_next_option();
+	{	// Initial scan thru all of the options.
+		const uint8_t* value;
+		size_t value_len;
+		coap_option_key_t key;
+
+		// Reset option scanner for initial option scan.
+		smcp_inbound_reset_next_option();
+
+		while((key = smcp_inbound_next_option(&value,&value_len)) != COAP_OPTION_INVALID) {
+			switch(key) {
+			case COAP_OPTION_CONTENT_TYPE:
+				self->inbound.content_type = coap_decode_uint32(value,(uint8_t)value_len);
+				break;
+
+			case COAP_OPTION_OBSERVE:
+				self->inbound.observe_value = coap_decode_uint32(value,(uint8_t)value_len);
+				self->inbound.has_observe_option = 1;
+				break;
+
+			case COAP_OPTION_MAX_AGE:
+				self->inbound.max_age = coap_decode_uint32(value,(uint8_t)value_len);
+				self->inbound.max_age++;
+				if(self->inbound.max_age < 5)
+					self->inbound.max_age = 5;
+				break;
+
+			case COAP_OPTION_BLOCK2:
+				self->inbound.block2_value = coap_decode_uint32(value,(uint8_t)value_len);
+				break;
 
 #if SMCP_USE_CASCADE_COUNT
-	self->cascade_count--;
+			case COAP_OPTION_CASCADE_COUNT:
+				self->cascade_count = coap_decode_uint32(value,(uint8_t)value_len);
+				break;
 #endif
+
+			default:
+				break;
+			}
+		}
+	}
+
+	// Sanity check on debug builds.
+	check(((unsigned)(self->inbound.this_option-(uint8_t*)packet)==self->inbound.packet_len) || self->inbound.this_option[0]==0xFF);
+
+	// Now that we are at the end of the options, we know
+	// where the content starts.
+	self->inbound.content_ptr = (char*)self->inbound.this_option;
+	self->inbound.content_len = self->inbound.packet_len-((uint8_t*)self->inbound.content_ptr-(uint8_t*)packet);
+
+	// Move past start-of-content marker.
+	if(self->inbound.content_len) {
+		self->inbound.content_ptr++;
+		self->inbound.content_len--;
+	}
+
+	// Be nice and reset the option scanner for the handler.
+	smcp_inbound_reset_next_option();
 
 	if(COAP_CODE_IS_REQUEST(packet->code)) {
 		// See code below.
@@ -535,7 +542,7 @@ smcp_inbound_finish_packet() {
 		// This is not a dupe, add it to the list.
 		self->dupe[self->dupe_index].hash = self->inbound.transaction_hash;
 		self->dupe_index++;
-		self->dupe_index%=SMCP_CONF_DUPE_BUFFER_SIZE;
+		self->dupe_index %= SMCP_CONF_DUPE_BUFFER_SIZE;
 	}
 
 	// Check to make sure we have responded by now. If not, we need to.

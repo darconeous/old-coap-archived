@@ -171,7 +171,7 @@ bail:
 	return;
 }
 
-void
+static void
 smcp_internal_transaction_timeout_(
 	smcp_t			self,
 	smcp_transaction_t handler
@@ -188,7 +188,7 @@ smcp_internal_transaction_timeout_(
 			cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
 		}
 
-		if(cms<=0)
+		if(cms <= 0)
 			cms = 0;
 
 		if(!handler->has_fired && handler->waiting_for_async_response && !(handler->flags&SMCP_TRANSACTION_KEEPALIVE)) {
@@ -330,11 +330,7 @@ smcp_transaction_tickle(
 
 	smcp_invalidate_timer(self, &handler->timer);
 
-	smcp_schedule_timer(
-		self,
-		&handler->timer,
-		0
-	);
+	smcp_schedule_timer(self,&handler->timer,0);
 
 	return 0;
 }
@@ -346,6 +342,7 @@ smcp_transaction_begin(
 	cms_t expiration
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
+
 	require(handler!=NULL, bail);
 
 	DEBUG_PRINTF("smcp_transaction_begin: %p",handler);

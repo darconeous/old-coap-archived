@@ -114,7 +114,7 @@ AC_CHECK_FUNCS([rl_set_prompt])
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h])
+AC_CHECK_HEADERS([stdlib.h dlfcn.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h])
 
 AC_CHECK_HEADERS([alloca.h])
 dnl AC_FUNC_ALLOCA

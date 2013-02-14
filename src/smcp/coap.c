@@ -117,14 +117,15 @@ coap_encode_option(
 	uint16_t option_delta = key - prev_key;
 
 	if(option_delta>=269) {
+		option_delta -= 269;
 		buffer[0] = (14<<4);
-		buffer[1] = ((option_delta-269)>>8);
-		buffer[2] = ((option_delta-269)&0xFF);
-		value_offset+=2;
+		buffer[1] = (option_delta >> 8);
+		buffer[2] = (option_delta & 0xFF);
+		value_offset += 2;
 	} else if(option_delta>=13) {
 		buffer[0] = (13<<4);
-		buffer[1] = option_delta-13;
-		value_offset+=1;
+		buffer[1] = option_delta - 13;
+		value_offset += 1;
 	} else {
 		*buffer = (option_delta<<4);
 	}
@@ -141,10 +142,10 @@ coap_encode_option(
 		value_offset+=2;
 	} else if(len>=13) {
 		buffer[0] |= 13;
-		buffer[value_offset] = len-13;
-		value_offset+=1;
+		buffer[value_offset] = len - 13;
+		value_offset += 1;
 	} else {
-		*buffer |= len&15;
+		buffer[0] |= (len & 15);
 	}
 
 	buffer += value_offset;
@@ -169,7 +170,7 @@ size_t coap_insert_option(
 	coap_option_key_t prev_key = 0;
 	coap_option_key_t iter_key = 0;
 
-	// Find out insertion point.
+	// Find the insertion point.
 	if(start_of_options==end_of_options) {
 		iter = NULL;
 	} else {
@@ -184,7 +185,7 @@ size_t coap_insert_option(
 		} while(iter && iter<end_of_options);
 	}
 
-	if(iter && (iter_key>key || iter<end_of_options)) {
+	if(iter && ((iter_key > key) || (iter < end_of_options))) {
 		const uint8_t* next_value=NULL;
 		size_t next_len=0;
 
@@ -199,9 +200,9 @@ size_t coap_insert_option(
 		if((key-prev_key)>=269)
 			size_diff++;
 
-		if((insertion_point[0]&0xF0) == (13<<4)) {
+		if((insertion_point[0] & 0xF0) == (13<<4)) {
 			size_diff--;
-		} else if((insertion_point[0]&0xF0) == (14<<4)) {
+		} else if((insertion_point[0] & 0xF0) == (14<<4)) {
 			size_diff-=2;
 		}
 
@@ -222,7 +223,7 @@ size_t coap_insert_option(
 		// Update fisrt option after
 		coap_encode_option(iter, key, iter_key, next_value, next_len);
 	} else {
-		// encode new option
+		// Trivial case: Just append.
 		size_diff = coap_encode_option(end_of_options, prev_key, key, value, len) - end_of_options;
 	}
 
@@ -312,6 +313,16 @@ coap_verify_packet(const char* packet,size_t packet_size) {
 	}
 
 	return true;
+}
+
+uint32_t
+coap_decode_uint32(const uint8_t* value,uint8_t value_len) {
+	uint32_t ret = 0;
+	for(; value_len; value_len--) {
+		ret <<= 8;
+		ret += *value++;
+	}
+	return ret;
 }
 
 

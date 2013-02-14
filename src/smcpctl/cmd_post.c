@@ -104,9 +104,11 @@ post_response_handler(
 bail:
 	if(gRet == ERRORCODE_INPROGRESS)
 		gRet = 0;
-	free(request->content);
-	free(request->url);
-	free(request);
+	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
+		free(request->content);
+		free(request->url);
+		free(request);
+	}
 	return SMCP_STATUS_OK;
 }
 

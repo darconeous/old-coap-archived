@@ -34,7 +34,6 @@
 
 #include "smcp.h"
 #include "smcp-timer.h"
-#include "smcp-node-router.h"
 #include "fasthash.h"
 
 #ifndef SMCP_FUNC_RANDOM_UINT32
@@ -112,17 +111,17 @@ struct smcp_s {
 		size_t					content_len;
 		coap_content_type_t		content_type;
 
-		int32_t					max_age;
-
 		uint8_t					was_sent_to_multicast:1,
 								is_fake:1,
 								is_dupe:1,
 								has_observe_option:1;
 
+		uint32_t				transaction_hash;
+
+		int32_t					max_age;
 		uint32_t				observe_value;
 		uint32_t				block2_value;
 
-		uint32_t				transaction_hash;
 
 #if SMCP_USE_BSD_SOCKETS
 		struct sockaddr*		saddr;
