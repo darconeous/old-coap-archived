@@ -5,7 +5,9 @@ AM_LDFLAGS = -export-dynamic @LOAD_ALL_SYMBOLS_FLAG@
 
 CFLAGS += -DASSERT_MACROS_USES_SYSLOG=1
 
+if HAVE_LIBDL
 bin_PROGRAMS = smcpd
+endif
 
 smcpd_SOURCES = main.c help.h
 smcpd_SOURCES += cgi-node.c

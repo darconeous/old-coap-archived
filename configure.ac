@@ -116,9 +116,21 @@ AC_CHECK_FUNCS([rl_set_prompt])
 AC_HEADER_STDC
 AC_CHECK_HEADERS([stdlib.h dlfcn.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h])
 
+HAVE_LIBDL=false
+AC_ARG_ENABLE(libdl,
+    [  --disable-libdl  Do not use libdl],
+	smcp_check_for_libdl="$enableval",
+	smcp_check_for_libdl=yes
+)
+if test x"$smcp_check_for_libdl" = xyes; then :
+	AC_CHECK_HEADER([dlfcn.h],AC_CHECK_LIB([dl], [dlsym]))
+	if test "x$ac_cv_lib_readline_readline" = xyes; then :
+		HAVE_LIBDL=true
+	fi
+fi
+AM_CONDITIONAL([HAVE_LIBDL],$HAVE_LIBDL)
+
 AC_CHECK_HEADERS([alloca.h])
-dnl AC_FUNC_ALLOCA
-dnl AC_FUNC_GETLOADAVG
 AC_HEADER_TIME
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -130,8 +142,6 @@ AC_C_INLINE
 AC_C_VOLATILE
 
 # Checks for library functions.
-dnl AC_FUNC_MALLOC
-dnl AC_FUNC_MEMCMP
 AC_CHECK_FUNCS([alloca memcmp memset strtol strdup strndup strlcpy strlcat stpncpy vsnprintf vsprintf snprintf])
 
 AC_REPLACE_FUNCS([getline])
@@ -144,3 +154,7 @@ AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
 
 AC_CONFIG_FILES(Makefile src/smcpd/smcpd.conf doxygen.cfg src/Makefile docs/Makefile src/plugtest/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile src/examples/Makefile)
 AC_OUTPUT
+
+$HAVE_LIBREADLINE || echo "warning: libreadline was disabled or not found, interactive smcpctl command line interface will not be enabled."
+$HAVE_LIBDL || echo "warning: libdl was disabled or not found, smcpd will not be built."
+

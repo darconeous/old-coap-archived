@@ -9,10 +9,8 @@ SMCP_ROOT = ../../..
 SMCP_CONF_NODE_ROUTER = 0
 SMCP_CONF_EXTRAS = 0
 UIP_CONF_IPV6 = 1
-UIP_CONF_RPL = 0
 #VERBOSE_DEBUG = 0
 
-CFLAGS += -DUIP_CONF_IPV6_RPL=0
 
 include $(SMCP_ROOT)/contiki-src/Makefile.smcp
 
