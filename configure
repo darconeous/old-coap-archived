@@ -636,6 +636,8 @@ LTLIBOBJS
 HAVE_GE_RS232_FALSE
 HAVE_GE_RS232_TRUE
 LIBOBJS
+HAVE_LIBDL_FALSE
+HAVE_LIBDL_TRUE
 HAVE_LIBREADLINE_FALSE
 HAVE_LIBREADLINE_TRUE
 HAVE_LIBCURL_FALSE
@@ -771,6 +773,7 @@ enable_libtool_lock
 enable_maintainer_mode
 enable_libcurl
 enable_libreadline
+enable_libdl
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1415,6 +1418,7 @@ Optional Features:
                           sometimes confusing) to the casual installer
   --disable-libcurl  Do not use libcurl
   --disable-libreadline  Do not use libreadline
+  --disable-libdl  Do not use libdl
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -12966,6 +12970,79 @@ fi
 done
 
 
+HAVE_LIBDL=false
+# Check whether --enable-libdl was given.
+if test "${enable_libdl+set}" = set; then :
+  enableval=$enable_libdl; smcp_check_for_libdl="$enableval"
+else
+  smcp_check_for_libdl=yes
+
+fi
+
+if test x"$smcp_check_for_libdl" = xyes; then :
+	ac_fn_c_check_header_mongrel "$LINENO" "dlfcn.h" "ac_cv_header_dlfcn_h" "$ac_includes_default"
+if test "x$ac_cv_header_dlfcn_h" = xyes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for dlsym in -ldl" >&5
+$as_echo_n "checking for dlsym in -ldl... " >&6; }
+if ${ac_cv_lib_dl_dlsym+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ldl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char dlsym ();
+int
+main ()
+{
+return dlsym ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_dl_dlsym=yes
+else
+  ac_cv_lib_dl_dlsym=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_dl_dlsym" >&5
+$as_echo "$ac_cv_lib_dl_dlsym" >&6; }
+if test "x$ac_cv_lib_dl_dlsym" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBDL 1
+_ACEOF
+
+  LIBS="-ldl $LIBS"
+
+fi
+
+fi
+
+
+	if test "x$ac_cv_lib_readline_readline" = xyes; then :
+		HAVE_LIBDL=true
+	fi
+fi
+ if $HAVE_LIBDL; then
+  HAVE_LIBDL_TRUE=
+  HAVE_LIBDL_FALSE='#'
+else
+  HAVE_LIBDL_TRUE='#'
+  HAVE_LIBDL_FALSE=
+fi
+
+
 for ac_header in alloca.h
 do :
   ac_fn_c_check_header_mongrel "$LINENO" "alloca.h" "ac_cv_header_alloca_h" "$ac_includes_default"
@@ -13383,6 +13460,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_LIBREADLINE_TRUE}" && test -z "${HAVE_LIBREADLINE_FALSE}"; then
   as_fn_error $? "conditional \"HAVE_LIBREADLINE\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_LIBDL_TRUE}" && test -z "${HAVE_LIBDL_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_LIBDL\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_GE_RS232_TRUE}" && test -z "${HAVE_GE_RS232_FALSE}"; then
@@ -15626,4 +15707,8 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
+
+
+$HAVE_LIBREADLINE || echo "warning: libreadline was disabled or not found, interactive smcpctl command line interface will not be enabled."
+$HAVE_LIBDL || echo "warning: libdl was disabled or not found, smcpd will not be built."
 
