@@ -16,4 +16,4 @@ script:
     - "cd ../smcp-simple"
     - "make TARGET=minimal-net CONTIKI=../../../contiki || exit $?"
     - "cd ../smcp-complex"
-    - "make TARGET=minimal-net CONTIKI=../../../complex || exit $?"
+    - "make TARGET=minimal-net CONTIKI=../../../contiki || exit $?"
