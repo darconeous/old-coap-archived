@@ -1,4 +1,4 @@
-SMCP — README
+SMCP — ReadMe
 =============
 
 SMCP is a C-based CoAP stack which is suitable for embedded environments.
@@ -6,7 +6,7 @@ Features include:
 
  * Supports draft-ietf-core-coap-13.
  * Fully asynchronous I/O.
- * Supports both BSD sockets and [UIP](http://en.wikipedia.org/wiki/UIP_(micro_IP%29).
+ * Supports both BSD sockets and [µIP](http://en.wikipedia.org/wiki/UIP_(micro_IP%29).
  * Sending and receiving asynchronous CoAP responses.
  * Observing resources and offering observable resources.
  * Retransmission of confirmable transactions.
@@ -19,30 +19,12 @@ performance optimizations will become the focus later on.
 
 Historical reasons. Don't think about it too much.
 
-## Contiki Support ##
+## Getting Help ##
 
-SMCP fully supports [Contiki](http://contiki-os.org/). To build the Contiki
-examples, just make sure that the `CONTIKI` environment variable is set point
-to your Contiki root, like so:
+If you are having trouble with SMCP, you can join the official SMCP mailing
+list and ask your questions there.
 
-	$ cd contiki-src/examples/smcp-simple
-	$ make CONTIKI=~/Projects/contiki TARGET=minimal-net
-
-## Installing via Homebrew on OS X ##
-
-To get the "latest-release":
-
-	$ brew tap darconeous/embedded
-	$ brew install smcp
-
-To get the bleeding-edge release:
-
-	$ brew tap darconeous/embedded
-	$ brew install smcp --HEAD
-
-Node: This is mostly for people who just want to use `smcpctl` (described below).
-If you want to compile against SMCP, you'll currently need to grab the sources
-and build against them directly.
+* [SMCP Developers Group](https://groups.google.com/group/smcp-dev) <smcp-dev@googlegroups.com>
 
 ## Getting, building, and installing via Git ##
 
@@ -61,10 +43,35 @@ To just build the latest tagged stable release:
 For bleeding-edge:
 
 	$ git checkout master
-	$ git archive master-autoconf | tar xv
+	$ git archive master-autoconf | tar xv # Or you should run `./bootstrap.sh`
 	$ ./configure
 	$ make
 	$ sudo make install
+
+## Getting, building, and installing from an archive ##
+
+	$ curl https://github.com/darconeous/smcp/archive/latest-release.zip > smcp-latest-release.zip
+	$ unzip latest-release.zip
+	$ cd smcp-latest-release
+	$ ./configure
+	$ make
+	$ sudo make install	
+
+## Installing via Homebrew on OS X ##
+
+To get the "latest-release":
+
+	$ brew tap darconeous/embedded
+	$ brew install smcp
+
+To get the bleeding-edge release:
+
+	$ brew tap darconeous/embedded
+	$ brew install smcp --HEAD
+
+Node: This is mostly for people who just want to use `smcpctl` (described below).
+If you want to compile against SMCP, you'll currently need to grab the sources
+and build against them directly.
 
 ## Getting Started ##
 
@@ -95,6 +102,15 @@ This makes it easy to use the same codebase for both embedded and non-embedded
 applications. There are other configuration options for doing things like
 limiting `malloc()` usage, avoiding use of `printf()` (and variants),
 enabling/disabling observing, etc.
+
+## Contiki Support ##
+
+SMCP fully supports [Contiki](http://contiki-os.org/). To build the Contiki
+examples, just make sure that the `CONTIKI` environment variable is set point
+to your Contiki root, like so:
+
+	$ cd contiki-src/examples/smcp-simple
+	$ make CONTIKI=~/Projects/contiki TARGET=minimal-net
 
 ## API Documentation ##
 
