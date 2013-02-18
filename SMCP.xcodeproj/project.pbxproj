@@ -298,6 +298,7 @@
 		A6D0C8C21661CC3C00E9F440 /* cgi-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "cgi-node.c"; sourceTree = "<group>"; };
 		A6DB61F816AF131800D7248E /* smcp-observable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-observable.h"; path = "src/smcp/smcp-observable.h"; sourceTree = "<group>"; };
 		A6DB61F916AF190A00D7248E /* smcp-observable.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-observable.c"; path = "src/smcp/smcp-observable.c"; sourceTree = "<group>"; };
+		A6DC100916CEADAE00DD2180 /* NEWS.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = NEWS.md; sourceTree = "<group>"; };
 		A6F358931687909100F72DF3 /* fasthash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fasthash.c; path = src/smcp/fasthash.c; sourceTree = "<group>"; };
 		A6F358961687909E00F72DF3 /* fasthash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fasthash.h; path = src/smcp/fasthash.h; sourceTree = "<group>"; };
 		A6F3593D168A552300F72DF3 /* main-client.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "main-client.c"; path = "src/plugtest/main-client.c"; sourceTree = "<group>"; };
@@ -656,6 +657,7 @@
 				C6A0FF2C0290799A04C91782 /* smcpctl.1 */,
 				A60BF11B158D425F00D39B5C /* COPYING */,
 				A60BF11C158D425F00D39B5C /* README.md */,
+				A6DC100916CEADAE00DD2180 /* NEWS.md */,
 			);
 			name = Documentation;
 			sourceTree = "<group>";
