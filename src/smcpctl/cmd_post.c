@@ -31,9 +31,10 @@
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",				  NULL, "Print Help" },
 	{ 'i', "include",	 NULL,	 "include headers in output" },
+	{ 0, "non",  NULL, "Send as non-confirmable" },
 //	{ 'c', "content-file",NULL,"Use content from the specified input source" },
-	{ 0,   "outbound-slice-size", NULL, "writeme"	 },
-	{ 0,   "content-type",		  NULL, "writeme"	 },
+//	{ 0,   "outbound-slice-size", NULL, "writeme"	 },
+	{ 0,   "content-type",		  "content-format", "Set content-format option"	 },
 	{ 0 }
 };
 
@@ -41,6 +42,7 @@ static int gRet;
 static sig_t previous_sigint_handler;
 static int outbound_slice_size;
 static bool post_show_headers;
+static coap_transaction_type_t post_tt;
 
 static void
 signal_interrupt(int sig) {
@@ -117,7 +119,7 @@ smcp_status_t
 resend_post_request(struct post_request_s *request) {
 	smcp_status_t status = 0;
 
-	status = smcp_outbound_begin(smcp_get_current_instance(),request->method, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_instance(),request->method, post_tt);
 	require_noerr(status, bail);
 
 	status = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, request->content_type);
@@ -200,11 +202,14 @@ tool_cmd_post(
 	}
 	outbound_slice_size = 100;
 	post_show_headers = false;
+	post_tt = COAP_TRANS_TYPE_CONFIRMABLE;
 
 	BEGIN_LONG_ARGUMENTS(gRet)
 	HANDLE_LONG_ARGUMENT("include") post_show_headers = true;
 	HANDLE_LONG_ARGUMENT("outbound-slice-size") outbound_slice_size = strtol(argv[++i], NULL, 0);
 	HANDLE_LONG_ARGUMENT("content-type") content_type = coap_content_type_from_cstr(argv[++i]);
+	HANDLE_LONG_ARGUMENT("content-format") content_type = coap_content_type_from_cstr(argv[++i]);
+	HANDLE_LONG_ARGUMENT("non") post_tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
 	HANDLE_LONG_ARGUMENT("help") {
 		print_arg_list_help(option_list,
 			argv[0],
