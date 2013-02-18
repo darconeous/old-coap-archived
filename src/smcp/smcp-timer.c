@@ -227,15 +227,19 @@ smcp_invalidate_timer(
 	DEBUG_PRINTF("%p: Timers in play = %d",self,(int)ll_count(self->timers));
 }
 
-#if VERBOSE_DEBUG
+#if SMCP_DEBUG_TIMERS || VERBOSE_DEBUG
 void
 smcp_dump_all_timers(smcp_t self) {
 	smcp_timer_t iter;
 
-	DEBUG_PRINTF("smcp(%p): Current Timers:",self);
+	if(self->timers) {
+		DEBUG_PRINTF("smcp(%p): Current Timers:",self);
 
-	for(iter = self->timers;iter;iter = (void*)iter->ll.next) {
-		DEBUG_PRINTF("\t* [%p] expires-in:%dms context:%p",iter,convert_timeval_to_cms(&iter->fire_date),iter->context);
+		for(iter = self->timers;iter;iter = (void*)iter->ll.next) {
+			DEBUG_PRINTF("\t* [%p] expires-in:%dms context:%p",iter,convert_timeval_to_cms(&iter->fire_date),iter->context);
+		}
+	} else {
+		DEBUG_PRINTF("smcp(%p): No timers active.",self);
 	}
 }
 #endif
@@ -280,7 +284,7 @@ smcp_handle_timers(smcp_t self) {
 		if(callback)
 			callback(self, context);
 	}
-#if VERBOSE_DEBUG
+#if SMCP_DEBUG_TIMERS
 	smcp_dump_all_timers(self);
 #endif
 }

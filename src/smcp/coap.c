@@ -615,6 +615,14 @@ http_code_to_cstr(int x) {
 const char* coap_code_to_cstr(int x) { return http_code_to_cstr(coap_to_http_code(x)); }
 
 #ifndef __SDCC
+#if SMCP_EMBEDDED && !__AVR__
+#define fprintf(x,...)	printf(__VA_ARGS__)
+#define fputs(x,s)	printf("%s",x)
+#define fputc(x,s)	printf("%c",x)
+#define fwrite(value,value_len,blah,stream)		printf("<REDACTED>")
+
+#endif
+
 void
 coap_dump_header(
 	FILE*			outstream,

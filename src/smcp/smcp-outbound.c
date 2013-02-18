@@ -113,8 +113,12 @@ smcp_outbound_begin(
 	uip_udp_conn = self->udp_conn;
 	self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 
-	if(self->outbound.packet == self->inbound.packet)
+	if(self->outbound.packet == self->inbound.packet) {
 		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + self->inbound.packet_len + 1];
+
+		// Fix the alignment for 32-bit platforms.
+		self->outbound.packet = (struct coap_header_s*)((uintptr_t)(self->outbound.packet+8)&~(uintptr_t)0x7);
+	}
 #endif
 
 	self->outbound.packet->tt = tt;
@@ -773,7 +777,7 @@ smcp_outbound_send() {
 #define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
 		CSTR_FROM_6ADDR(addr_str,&smcp_get_current_instance()->udp_conn->ripaddr);
 #endif
-		DEBUG_PRINTF(CSTR("Outbound:\tTO -> [%s]:%d"),addr_str,(int)port);
+		DEBUG_PRINTF("Outbound:\tTO -> [%s]:%d",addr_str,(int)port);
 		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
 			"Outbound:\t",

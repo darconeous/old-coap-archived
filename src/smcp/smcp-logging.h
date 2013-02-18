@@ -39,6 +39,7 @@
 #ifndef DEBUG_PRINTF
 #define DEBUG_PRINTF(...)   do { } while(0)
 #endif
+#define SMCP_DEBUG_OUT_FILE     stdout
 
 #elif defined(__AVR__)
 #define SMCP_DEBUG_OUT_FILE     stdout
