@@ -34,6 +34,7 @@ static arg_list_item_t option_list[] = {
 	{ 'f', "follow",  NULL, "follow redirects"			},
 	{ 'O', "observe",  NULL, "Observe changes"			},
 	{ 'k', "keep-alive",  NULL, "Send keep-alive packets" },
+	{ 0, "non",  NULL, "Send as non-confirmable" },
 	{ 0, "size-request", NULL, "writeme" },
 	{ 0  , "timeout",  "seconds", "Change timeout period (Default: 30 Seconds)" },
 	{ 'a', "accept", "mime-type/coap-number", "hint to the server the content-type you want" },
@@ -52,7 +53,7 @@ static uint16_t size_request;
 static cms_t get_timeout;
 static bool observe_ignore_first;
 static bool observe_once;
-
+static coap_transaction_type_t get_tt;
 static void
 signal_interrupt(int sig) {
 	gRet = ERRORCODE_INTERRUPT;
@@ -175,7 +176,7 @@ smcp_status_t
 resend_get_request(void* context) {
 	smcp_status_t status = 0;
 
-	status = smcp_outbound_begin(smcp_get_current_instance(),COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = smcp_outbound_begin(smcp_get_current_instance(),COAP_METHOD_GET, get_tt);
 	require_noerr(status,bail);
 
 	status = smcp_outbound_set_uri(url_data, 0);
@@ -275,6 +276,7 @@ tool_cmd_get(
 	request_accept_type = COAP_CONTENT_TYPE_UNKNOWN;
 	observe_once = false;
 	observe_ignore_first = false;
+	get_tt = COAP_TRANS_TYPE_CONFIRMABLE;
 
 	if(strcmp(argv[0],"observe")==0 || strcmp(argv[0],"obs")==0) {
 		get_observe = true;
@@ -289,6 +291,7 @@ tool_cmd_get(
 	HANDLE_LONG_ARGUMENT("timeout") get_timeout = 1000*strtof(argv[++i], NULL);
 	HANDLE_LONG_ARGUMENT("observe") get_observe = true;
 	HANDLE_LONG_ARGUMENT("no-observe") get_observe = false;
+	HANDLE_LONG_ARGUMENT("non") get_tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
 	HANDLE_LONG_ARGUMENT("keep-alive") get_keep_alive = true;
 	HANDLE_LONG_ARGUMENT("no-keep-alive") get_keep_alive = false;
 	HANDLE_LONG_ARGUMENT("once") observe_once = true;
@@ -360,7 +363,7 @@ tool_cmd_get(
 	}
 
 	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_process(smcp, 50);
+		smcp_process(smcp, 1000);
 
 bail:
 	smcp_transaction_end(smcp,&transaction);

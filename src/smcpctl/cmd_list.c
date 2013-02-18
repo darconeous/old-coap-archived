@@ -517,7 +517,7 @@ tool_cmd_list(
 	require(send_list_request(smcp, url, NULL, 0), bail);
 
 	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_process(smcp, 50);
+		smcp_process(smcp, 1000);
 
 bail:
 	smcp_transaction_end(smcp,&transaction);
