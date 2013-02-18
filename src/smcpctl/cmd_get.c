@@ -77,7 +77,6 @@ static struct smcp_transaction_s transaction;
 
 static smcp_status_t
 get_response_handler(int statuscode, void* context) {
-//	smcp_t const self = smcp_get_current_instance();
 	const char* content = smcp_inbound_get_content_ptr();
 	size_t content_length = smcp_inbound_get_content_len();
 
@@ -167,8 +166,6 @@ get_response_handler(int statuscode, void* context) {
 	}
 
 bail:
-//	if(!get_observe && gRet == ERRORCODE_INPROGRESS)
-//		gRet = 0;
 	return SMCP_STATUS_OK;
 }
 
@@ -186,15 +183,6 @@ resend_get_request(void* context) {
 		status = smcp_outbound_add_option_uint(COAP_OPTION_ACCEPT, request_accept_type);
 		require_noerr(status,bail);
 	}
-
-//	if(next_len != ((size_t)(-1))) {
-//		status = smcp_outbound_add_option(
-//			block_key,
-//			next_data,
-//			next_len
-//		);
-//		require_noerr(status,bail);
-//	}
 
 	status = smcp_outbound_send();
 
