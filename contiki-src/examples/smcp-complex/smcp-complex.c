@@ -78,7 +78,7 @@ create_elapsed_time_node(
 ) {
 	ret = smcp_node_init(ret,(void*)parent, name);
 
-	ret->request_handler = elapsed_time_request_handler;
+	ret->request_handler = (void*)elapsed_time_request_handler;
 
 	return ret;
 }
@@ -128,7 +128,7 @@ create_process_list_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 	node = smcp_node_init(node,(void*)parent, name);
 
-	node->request_handler = processes_request_handler;
+	node->request_handler = (void*)processes_request_handler;
 
 	return node;
 }
@@ -155,7 +155,7 @@ create_reset_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 	node = smcp_node_init(node,(void*)parent, name);
 
-	node->request_handler = reset_request_handler;
+	node->request_handler = (void*)reset_request_handler;
 
 	return node;
 }
@@ -187,7 +187,7 @@ create_beep_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 	node = smcp_node_init(node,(void*)parent, name);
 
-	node->request_handler = beep_request_handler;
+	node->request_handler = (void*)beep_request_handler;
 
 	return node;
 }
@@ -276,7 +276,7 @@ create_rpl_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 	node = smcp_node_init(node,(void*)parent, name);
 
-	node->request_handler = rpl_request_handler;
+	node->request_handler = (void*)rpl_request_handler;
 
 	return node;
 }
@@ -318,7 +318,7 @@ create_hostname_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 	node = smcp_node_init(node,(void*)parent, name);
 
-	node->request_handler = hostname_request_handler;
+	node->request_handler = (void*)hostname_request_handler;
 
 	return node;
 }
