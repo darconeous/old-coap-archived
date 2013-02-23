@@ -30,7 +30,7 @@ list and ask your questions there.
 
 First:
 
-	$ git clone git@github.com:darconeous/smcp.git
+	$ git clone git://github.com/darconeous/smcp.git
 	$ cd smcp
 
 To just build the latest tagged stable release:
