@@ -43,7 +43,7 @@ To just build the latest tagged stable release:
 For bleeding-edge:
 
 	$ git checkout master
-	$ git archive master-autoconf | tar xv # Or you should run `./bootstrap.sh`
+	$ git archive origin/master-autoconf | tar xv # Or you should run `./bootstrap.sh`
 	$ ./configure
 	$ make
 	$ sudo make install
