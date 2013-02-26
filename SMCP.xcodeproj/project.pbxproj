@@ -205,6 +205,8 @@
 		A603063A163AE4D100B0AA6C /* help.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = help.h; sourceTree = "<group>"; };
 		A603063B163AE4D100B0AA6C /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		A6030647164595E500B0AA6C /* fls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fls.h; sourceTree = "<group>"; };
+		A60397D016D68B9900E996FC /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
+		A603999D16D68B9B00E996FC /* smcp-complex.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "smcp-complex.c"; sourceTree = "<group>"; };
 		A60BF11B158D425F00D39B5C /* COPYING */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYING; sourceTree = "<group>"; };
 		A60BF11C158D425F00D39B5C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		A613E80216C065FE00C5711D /* smcp-inbound.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-inbound.c"; path = "src/smcp/smcp-inbound.c"; sourceTree = "<group>"; };
@@ -467,6 +469,15 @@
 			path = src/smcpd;
 			sourceTree = "<group>";
 		};
+		A60397CC16D68B9900E996FC /* smcp-complex */ = {
+			isa = PBXGroup;
+			children = (
+				A60397D016D68B9900E996FC /* Makefile */,
+				A603999D16D68B9B00E996FC /* smcp-complex.c */,
+			);
+			path = "smcp-complex";
+			sourceTree = "<group>";
+		};
 		A60D0DB312795ADF00C04B8C /* Utils */ = {
 			isa = PBXGroup;
 			children = (
@@ -562,6 +573,7 @@
 		A6764689156474380074028C /* examples */ = {
 			isa = PBXGroup;
 			children = (
+				A60397CC16D68B9900E996FC /* smcp-complex */,
 				A64B12D516782CF000B2D485 /* smcp-plugtest */,
 				A67646A8156479E50074028C /* smcp-simple */,
 			);

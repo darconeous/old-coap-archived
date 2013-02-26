@@ -42,6 +42,21 @@ request_handler(void* context) {
 		smcp_outbound_append_content("Hello world!", SMCP_CSTR_LEN);
 
 		return smcp_outbound_send();
+	} else if(smcp_inbound_option_strequal(COAP_OPTION_URI_PATH, ".well-known")) {
+		smcp_inbound_next_option(NULL, NULL);
+
+		if(smcp_inbound_option_strequal(COAP_OPTION_URI_PATH, "core")) {
+			smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+
+			smcp_outbound_add_option_uint(
+				COAP_OPTION_CONTENT_TYPE,
+				COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT
+			);
+
+			smcp_outbound_append_content("</hello-world>", SMCP_CSTR_LEN);
+
+			return smcp_outbound_send();
+		}
 	}
 
 	return SMCP_STATUS_NOT_FOUND;
