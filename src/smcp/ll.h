@@ -88,6 +88,15 @@ ll_last(
 	return iter;
 }
 
+//!	Returns the next item in the linked list.
+static inline void*
+ll_next(
+	void* item
+) {
+	return ((ll_item_t)item)->next;
+}
+
+
 //!	Verifies that the linked list is internally consistent.
 static inline bool
 ll_verify(void* item) {
@@ -144,13 +153,14 @@ static inline void
 ll_prepend(
 	void** list, void* item
 ) {
-	ll_insert(*list, item);
+	if(*list)
+		ll_insert(*list, item);
 	*list = item;
 	LL_ASSERT(ll_verify(*list));
 }
 
 //!	Inserts an item into a sorted linked list.
-static inline void
+static void
 ll_sorted_insert(
 	void** list, void* item, ll_compare_func_t compare_func, void* context
 ) {
@@ -170,13 +180,15 @@ ll_sorted_insert(
 				return;
 			}
 		}
-		if(location_!=*list)
-			ll_insert(location_,item);
-		else
-			ll_prepend(list,item);
+		if(location_ == *list) {
+			ll_prepend(list, item);
+		} else {
+			ll_insert(location_, item);
+		}
 	} else {
 		*list = item;
 	}
+
 	LL_ASSERT(ll_verify(*list));
 }
 
