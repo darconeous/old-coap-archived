@@ -159,6 +159,10 @@
 #define SMCP_CONF_TRANS_ENABLE_OBSERVING		!SMCP_EMBEDDED
 #endif
 
+#ifndef SMCP_TRANSACTIONS_USE_BTREE
+#define SMCP_TRANSACTIONS_USE_BTREE				!SMCP_EMBEDDED
+#endif
+
 /*****************************************************************************/
 #pragma mark - Debugging
 

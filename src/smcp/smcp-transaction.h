@@ -31,7 +31,12 @@
 #define __SMCP_TRANSACTION_H__
 
 #include "smcp-timer.h"
+
+#if SMCP_TRANSACTIONS_USE_BTREE
 #include "btree.h"
+#else
+#include "ll.h"
+#endif
 
 #if SMCP_EMBEDDED
 // On embedded systems, we know we will always only have
@@ -64,7 +69,11 @@ typedef smcp_status_t (*smcp_response_handler_func)(
 );
 
 struct smcp_transaction_s {
+#if SMCP_TRANSACTIONS_USE_BTREE
 	struct bt_item_s			bt_item;
+#else
+	struct ll_item_s			ll_item;
+#endif
 
 	smcp_inbound_resend_func	resendCallback;
 	smcp_response_handler_func	callback;

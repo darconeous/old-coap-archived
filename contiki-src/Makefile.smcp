@@ -3,7 +3,7 @@ ifndef SMCP_ROOT
 endif
 
 CONTIKI_SOURCEFILES += smcp.c smcp-auth.c smcp-inbound.c smcp-outbound.c smcp-observable.c url-helpers.c coap.c smcp-timer.c smcp-transaction.c
-CONTIKI_SOURCEFILES += fasthash.c btree.c
+CONTIKI_SOURCEFILES += fasthash.c
 CONTIKI_SOURCEFILES += smcp-task.c
 
 ifeq ($(SMCP_CONF_NODE_ROUTER),1)

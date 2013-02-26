@@ -37,6 +37,7 @@
 static struct smcp_transaction_s smcp_transaction_pool[SMCP_CONF_MAX_TRANSACTIONS];
 #endif // SMCP_AVOID_MALLOC
 
+#if SMCP_TRANSACTIONS_USE_BTREE
 static bt_compare_result_t
 smcp_transaction_compare(
 	const void* lhs_, const void* rhs_, void* context
@@ -64,25 +65,40 @@ smcp_transaction_compare_msg_id(
 		return -1;
 	return 0;
 }
+#endif
 
 smcp_transaction_t
 smcp_transaction_find_via_msg_id(smcp_t self, coap_msg_id_t msg_id) {
 	SMCP_EMBEDDED_SELF_HOOK;
+
+#if SMCP_TRANSACTIONS_USE_BTREE
 	return (smcp_transaction_t)bt_find(
 		(void*)&self->transactions,
 		(void*)(uintptr_t)msg_id,
 		(bt_compare_func_t)smcp_transaction_compare_msg_id,
 		self
 	);
+#else
+	// Ouch. Linear search.
+	smcp_transaction_t ret = self->transactions;
+	while(ret && (ret->msg_id != msg_id)) ret = ll_next((void*)ret);
+	return ret;
+#endif
+
 }
 
 smcp_transaction_t
 smcp_transaction_find_via_token(smcp_t self, coap_msg_id_t token) {
 	SMCP_EMBEDDED_SELF_HOOK;
-	smcp_transaction_t ret = bt_first(self->transactions);
 
 	// Ouch. Linear search.
-	while(ret && ret->token!=token) ret = bt_next(ret);
+#if SMCP_TRANSACTIONS_USE_BTREE
+	smcp_transaction_t ret = bt_first(self->transactions);
+	while(ret && (ret->token != token)) ret = bt_next(ret);
+#else
+	smcp_transaction_t ret = self->transactions;
+	while(ret && (ret->token != token)) ret = ll_next((void*)ret);
+#endif
 
 	return ret;
 }
@@ -98,6 +114,10 @@ smcp_internal_delete_transaction_(
 		smcp_set_current_instance(self);
 
 	check(self==smcp_get_current_instance());
+
+#if !SMCP_TRANSACTIONS_USE_BTREE
+	ll_remove((void**)&self->transactions,(void*)handler);
+#endif
 
 	// Remove the timer associated with this handler.
 	smcp_invalidate_timer(self, &handler->timer);
@@ -147,6 +167,7 @@ smcp_transaction_new_msg_id(
 	SMCP_EMBEDDED_SELF_HOOK;
 	require(handler->active,bail);
 
+#if SMCP_TRANSACTIONS_USE_BTREE
 	bt_remove(
 		(void**)&self->transactions,
 		handler,
@@ -154,11 +175,13 @@ smcp_transaction_new_msg_id(
 		(bt_delete_func_t)NULL,
 		self
 	);
+#endif
 
 	assert(!smcp_transaction_find_via_msg_id(self, msg_id));
 
 	handler->msg_id = msg_id;
 
+#if SMCP_TRANSACTIONS_USE_BTREE
 	bt_insert(
 		(void**)&self->transactions,
 		handler,
@@ -166,6 +189,7 @@ smcp_transaction_new_msg_id(
 		(bt_delete_func_t)smcp_internal_delete_transaction_,
 		self
 	);
+#endif
 
 bail:
 	return;
@@ -347,6 +371,7 @@ smcp_transaction_begin(
 
 	DEBUG_PRINTF("smcp_transaction_begin: %p",handler);
 
+#if SMCP_TRANSACTIONS_USE_BTREE
 	bt_remove(
 		(void**)&self->transactions,
 		(void*)handler,
@@ -354,6 +379,9 @@ smcp_transaction_begin(
 		NULL,
 		self
 	);
+#else
+	ll_remove((void**)&self->transactions,(void*)handler);
+#endif
 
 	if(expiration<0)
 		expiration = COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC;
@@ -400,6 +428,7 @@ smcp_transaction_begin(
 		expiration
 	);
 
+#if SMCP_TRANSACTIONS_USE_BTREE
 	bt_insert(
 		(void**)&self->transactions,
 		handler,
@@ -407,9 +436,14 @@ smcp_transaction_begin(
 		(bt_delete_func_t)smcp_internal_delete_transaction_,
 		self
 	);
-
 	DEBUG_PRINTF(CSTR("%p: Total Pending Transactions: %d"), self,
 		(int)bt_count((void**)&self->transactions));
+#else
+	ll_prepend((void**)&self->transactions,(void*)handler);
+	DEBUG_PRINTF(CSTR("%p: Total Pending Transactions: %d"), self,
+		(int)ll_count((void**)&self->transactions));
+#endif
+
 
 bail:
 	return 0;
@@ -434,6 +468,7 @@ smcp_transaction_end(
 
 	if(transaction->active) {
 		transaction->active = 0; // Maybe we should remove this line? May be hiding bad behavior.
+#if SMCP_TRANSACTIONS_USE_BTREE
 		bt_remove(
 			(void**)&self->transactions,
 			(void*)transaction,
@@ -441,6 +476,10 @@ smcp_transaction_end(
 			(bt_delete_func_t)smcp_internal_delete_transaction_,
 			self
 		);
+#else
+		ll_remove((void**)&self->transactions,(void*)transaction);
+		smcp_internal_delete_transaction_(transaction,self);
+#endif
 	}
 	return 0;
 }
@@ -458,8 +497,13 @@ smcp_handle_response() {
 		self,
 		smcp_inbound_get_msg_id()
 	);
+#if SMCP_TRANSACTIONS_USE_BTREE
 	DEBUG_PRINTF("%p: Total Pending Transactions: %d", self,
 		(int)bt_count((void**)&self->transactions));
+#else
+	DEBUG_PRINTF("%p: Total Pending Transactions: %d", self,
+		(int)ll_count((void**)&self->transactions));
+#endif
 #endif
 
 	{
