@@ -4,6 +4,7 @@
 #include <string.h>
 
 //#define VERBOSE_DEBUG 1
+#include "smcp-helpers.h"
 
 #ifdef __SDCC
 #include <malloc.h>

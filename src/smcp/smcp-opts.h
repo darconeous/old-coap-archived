@@ -228,10 +228,10 @@
 #endif
 
 #ifndef SMCP_DEPRECATED
-#if __GCC_VERSION__ || defined(__SDCC)
-#define SMCP_DEPRECATED
-#else
+#if defined(__GNUC__) || defined(__clang__)
 #define SMCP_DEPRECATED __attribute__ ((deprecated))
+#else
+#define SMCP_DEPRECATED
 #endif
 #endif
 

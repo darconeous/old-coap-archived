@@ -3,8 +3,8 @@
 
 #include <string.h>
 
-#if !defined(__SDCC) && defined(SDCC_REVISION)
-#define __SDCC	1
+#if !defined(__SDCC) && defined(SDCC)
+#define __SDCC	SDCC
 #endif
 
 #if defined(__SDCC)
