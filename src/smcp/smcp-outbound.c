@@ -153,8 +153,10 @@ smcp_outbound_begin(
 }
 
 smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
-	smcp_status_t ret = SMCP_STATUS_OK;
-	smcp_t const self = smcp_get_current_instance();
+	SMCP_NON_RECURSIVE smcp_status_t ret;
+	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+
+	ret = SMCP_STATUS_OK;
 
 	require_action_string(!self->did_respond,
 		bail,
@@ -208,8 +210,10 @@ smcp_outbound_set_code(coap_code_t code) {
 
 smcp_status_t
 smcp_outbound_set_token(const uint8_t *token,uint8_t token_length) {
-	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
+	SMCP_NON_RECURSIVE smcp_status_t ret;
+	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+
+	ret = SMCP_STATUS_OK;
 
 	require_action(token_length<=8,bail,ret=SMCP_STATUS_INVALID_ARGUMENT);
 
@@ -232,7 +236,7 @@ smcp_status_t
 smcp_outbound_set_destaddr(
 	struct sockaddr *sockaddr, socklen_t socklen
 ) {
-	smcp_t const self = smcp_get_current_instance();
+	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
 	memcpy(
 		&self->outbound.saddr,
 		sockaddr,
@@ -241,7 +245,7 @@ smcp_outbound_set_destaddr(
 	self->outbound.socklen = socklen;
 
 	if(self->current_transaction) {
-		struct sockaddr_in6 *saddr = (void*)sockaddr;
+		const struct sockaddr_in6 const *saddr = (void*)sockaddr;
 		self->current_transaction->multicast = IN6_IS_ADDR_MULTICAST(&saddr->sin6_addr);
 	}
 	return SMCP_STATUS_OK;
@@ -262,7 +266,7 @@ static smcp_status_t
 smcp_outbound_add_option_(
 	coap_option_key_t key, const char* value, size_t len
 ) {
-	smcp_t const self = smcp_get_current_instance();
+	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
 
 	if(	(	self->outbound.content_ptr
 			- (char*)self->outbound.packet
@@ -312,8 +316,10 @@ static smcp_status_t
 smcp_outbound_add_options_up_to_key_(
 	coap_option_key_t key
 ) {
-	smcp_status_t ret = SMCP_STATUS_OK;
-	smcp_t const self = smcp_get_current_instance();
+	SMCP_NON_RECURSIVE smcp_status_t ret;
+	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+
+	ret = SMCP_STATUS_OK;
 
 #if SMCP_CONF_TRANS_ENABLE_BLOCK2
 	if(	(self->current_transaction
@@ -374,7 +380,7 @@ smcp_status_t
 smcp_outbound_add_option(
 	coap_option_key_t key, const char* value, size_t len
 ) {
-	smcp_status_t ret = 0;
+	SMCP_NON_RECURSIVE smcp_status_t ret;
 
 	ret = smcp_outbound_add_options_up_to_key_(key);
 	require_noerr(ret, bail);
@@ -411,7 +417,7 @@ smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value) {
 
 smcp_status_t
 smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t toport) {
-	smcp_status_t ret = SMCP_STATUS_OK;
+	SMCP_NON_RECURSIVE smcp_status_t ret;
 
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
@@ -493,7 +499,7 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	require_noerr(ret, bail);
 
 #elif CONTIKI
-	uip_ipaddr_t toaddr;
+	SMCP_NON_RECURSIVE uip_ipaddr_t toaddr;
 	memset(&toaddr, 0, sizeof(toaddr));
 
 	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
@@ -506,9 +512,15 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 
 #if SMCP_CONF_USE_DNS
 	if(ret) {
-		uip_ipaddr_t *temp = NULL;
-#if RESOLV_SUPPORTS_LOOKUP2_API
-		switch(resolv_lookup2(addr_str,&temp)) {
+		SMCP_NON_RECURSIVE uip_ipaddr_t *temp = NULL;
+#if defined(RESOLV_CONF_SUPPORTS_MDNS)
+		// We are using the presence (but not the value) of
+		// RESOLV_CONF_SUPPORTS_MDNS to determine which version
+		// of the `resolv_lookup()` API we should use, because
+		// they happen to have been introduced at the same time.
+		// The above check will be removed once those changes
+		// are merged into mainline Contiki.
+		switch(resolv_lookup(addr_str,&temp)) {
 			case RESOLV_STATUS_CACHED:
 				memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
 				ret = SMCP_STATUS_OK;
@@ -525,7 +537,7 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 				ret = SMCP_STATUS_HOST_LOOKUP_FAILURE;
 				break;
 		}
-#else // RESOLV_SUPPORTS_LOOKUP2_API
+#else
 		// Fall back for older versions of contiki
 		// which don't have the more advanced DNS resolver API.
 		temp = resolv_lookup(addr_str);
@@ -559,17 +571,29 @@ smcp_status_t
 smcp_outbound_set_uri(
 	const char* uri, char flags
 ) {
-	smcp_status_t ret = SMCP_STATUS_OK;
-	smcp_t const self = smcp_get_current_instance();
-	char* proto_str = NULL;
-	char* addr_str = NULL;
-	char* port_str = NULL;
-	char* path_str = NULL;
-	char* query_str = NULL;
-	char* uri_copy = NULL;
-	char* username_str = NULL;
-	char* password_str = NULL;
-	uint16_t toport = SMCP_DEFAULT_PORT;
+	SMCP_NON_RECURSIVE smcp_status_t ret;
+	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+	SMCP_NON_RECURSIVE char* proto_str;
+	SMCP_NON_RECURSIVE char* addr_str;
+	SMCP_NON_RECURSIVE char* port_str;
+	SMCP_NON_RECURSIVE char* path_str;
+	SMCP_NON_RECURSIVE char* query_str;
+	SMCP_NON_RECURSIVE char* uri_copy;
+	SMCP_NON_RECURSIVE char* username_str;
+	SMCP_NON_RECURSIVE char* password_str;
+	SMCP_NON_RECURSIVE uint16_t toport;
+
+	ret = SMCP_STATUS_OK;
+
+	proto_str = NULL;
+	addr_str = NULL;
+	port_str = NULL;
+	path_str = NULL;
+	query_str = NULL;
+	uri_copy = NULL;
+	username_str = NULL;
+	password_str = NULL;
+	toport = SMCP_DEFAULT_PORT;
 
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
@@ -658,8 +682,8 @@ smcp_outbound_set_uri(
 	}
 
 	if(path_str) {
-		char* component;
-		bool has_trailing_slash = path_str[0]?('/' == path_str[strlen(path_str)-1]):false;
+		SMCP_NON_RECURSIVE char* component;
+		const bool has_trailing_slash = path_str[0]?('/' == path_str[strlen(path_str)-1]):false;
 
 		// Move past any preceding slashes.
 		while(path_str[0] == '/')
@@ -676,7 +700,7 @@ smcp_outbound_set_uri(
 	}
 
 	if(query_str) {
-		char* key;
+		SMCP_NON_RECURSIVE char* key;
 
 		while(url_form_next_value(&query_str,&key,NULL)) {
 			size_t len = strlen(key);
@@ -699,11 +723,13 @@ bail:
 
 smcp_status_t
 smcp_outbound_append_content(const char* value,size_t len) {
-	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	smcp_t const self = smcp_get_current_instance();
+	SMCP_NON_RECURSIVE smcp_status_t ret;
+	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+	SMCP_NON_RECURSIVE size_t max_len;
+	SMCP_NON_RECURSIVE char* dest;
 
-	size_t max_len = self->outbound.content_len;
-	char* dest;
+	ret = SMCP_STATUS_FAILURE;
+	max_len = self->outbound.content_len;
 
 	if(len == SMCP_CSTR_LEN)
 		len = strlen(value);

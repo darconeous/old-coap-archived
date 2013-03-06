@@ -56,15 +56,19 @@ smcp_variable_node_request_handler(
 
 	smcp_method_t method = smcp_inbound_get_code();
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
-	coap_content_type_t content_type = smcp_inbound_get_content_type();
-	char* content_ptr = (char*)smcp_inbound_get_content_ptr();
-	size_t content_len = smcp_inbound_get_content_len();
+	SMCP_NON_RECURSIVE coap_content_type_t content_type;
+	SMCP_NON_RECURSIVE char* content_ptr;
+	SMCP_NON_RECURSIVE size_t content_len;
 	SMCP_NON_RECURSIVE char buffer[SMCP_VARIABLE_MAX_VALUE_LENGTH+1];
 	SMCP_NON_RECURSIVE coap_content_type_t reply_content_type;
 	uint8_t key_index = BAD_KEY_INDEX;
 	size_t value_len;
 	bool needs_prefix = true;
 	char* prefix_name = "";
+
+	content_type = smcp_inbound_get_content_type();
+	content_ptr = (char*)smcp_inbound_get_content_ptr();
+	content_len = smcp_inbound_get_content_len();
 
 	reply_content_type = SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED;
 
@@ -193,7 +197,7 @@ smcp_variable_node_request_handler(
 				*content_ptr++ = '<';
 				if(needs_prefix) {
 					content_ptr += url_encode_cstr(content_ptr, prefix_name, (content_end_ptr-content_ptr)-1);
-					content_ptr = stpncpy(content_ptr,"/",(content_end_ptr-content_ptr)-1);
+					content_ptr = stpncpy(content_ptr,"/",MIN(1,(content_end_ptr-content_ptr)-1));
 				}
 				content_ptr += url_encode_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);
 				*content_ptr++ = '>';
@@ -225,8 +229,9 @@ smcp_variable_node_request_handler(
 				}
 
 				// Observation flag
-				if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,NULL))
-					content_ptr = stpncpy(content_ptr,";obs",(content_end_ptr-content_ptr)-1);
+				if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,NULL)) {
+					content_ptr = stpncpy(content_ptr,";obs",MIN(4,(content_end_ptr-content_ptr)-1));
+				}
 
 				*content_ptr++ = ',';
 			}

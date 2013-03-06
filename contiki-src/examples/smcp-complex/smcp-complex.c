@@ -34,6 +34,9 @@ AUTOSTART_PROCESSES(
 #include <smcp/smcp-node-router.h>
 #include <smcp/smcp-variable_node.h>
 #include "led-node.h"
+#include "sensor-node.h"
+#include "dev/leds.h"
+#include "lib/sensors.h"
 
 #if RAVEN_LCD_INTERFACE
 #include "raven-lcd.h"
@@ -346,11 +349,6 @@ PROCESS_THREAD(smcp_simple, ev, data)
 	// Set up the node router.
 	smcp_set_default_request_handler(smcp, &smcp_node_router_handler, &root_node);
 
-//	smcp_init_led_node(&root_node,"leds");
-//
-//#if !CONTIKI_TARGET_MINIMAL_NET
-//	smcp_init_sensor_node(&root_node,"sensors");
-//#endif
 
 	// Create the "reset" node.
 	create_reset_node(
@@ -397,6 +395,41 @@ PROCESS_THREAD(smcp_simple, ev, data)
 		"rpl"
 	);
 #endif // UIP_CONF_IPV6_RPL
+
+
+	{
+		static struct smcp_node_s led_node;
+		static struct smcp_variable_node_s variable_node = { .func = &led_var_func };
+		leds_init();
+		smcp_node_init(&led_node, &root_node, "leds");
+		led_node.request_handler = (void*)&smcp_variable_node_request_handler;
+		led_node.context = &variable_node;
+		led_node.has_link_content = true;
+	}
+
+#if !CONTIKI_TARGET_MINIMAL_NET
+	static struct smcp_variable_node_s sensor_variable_node = { .func = &sensor_var_func };
+	static struct smcp_node_s sensor_node;
+
+	smcp_node_init(&sensor_node, &root_node, "sensors");
+	sensor_node.request_handler = (void*)&smcp_variable_node_request_handler;
+	sensor_node.context = &sensor_variable_node;
+	sensor_node.has_link_content = true;
+	sensor_node.is_observable = true;
+
+	const struct sensors_sensor* sensor;
+	for(sensor = sensors_first();sensor;sensor = sensors_next(sensor)) {
+		sensor->configure(SENSORS_ACTIVE,1);
+	}
+
+	do {
+		PROCESS_WAIT_EVENT();
+
+		if(ev == sensors_event) {
+			smcp_observable_trigger(&sensor_variable_node.observable,SMCP_OBSERVABLE_BROADCAST_KEY,0);
+		}
+	} while(1);
+#endif
 
 	PROCESS_END();
 }

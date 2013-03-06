@@ -44,8 +44,18 @@ led_var_func(
 	if(!(mask&LEDS_ALL)) {
 		ret = SMCP_STATUS_NOT_FOUND;
 	} else if(action==SMCP_VAR_GET_KEY) {
-		value[0] = i+'0';
-		value[1] = 0;
+		if(mask == LEDS_RED) {
+			strcpy(value,"red");
+		} else if(mask == LEDS_GREEN) {
+			strcpy(value,"green");
+		} else if(mask == LEDS_BLUE) {
+			strcpy(value,"blue");
+		} else if(mask == LEDS_YELLOW) {
+			strcpy(value,"yellow");
+		} else {
+			value[0] = i+'0';
+			value[1] = 0;
+		}
 	} else if(action==SMCP_VAR_GET_VALUE) {
 		value[0] = !!(leds_get()&mask)+'0';
 		value[1] = 0;

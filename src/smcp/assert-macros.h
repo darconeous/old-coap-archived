@@ -83,12 +83,17 @@
 				__FILE__ ":%d: "fmt"\n", \
 				__LINE__, \
 				__VA_ARGS__)
+  #elif ASSERT_MACROS_USE_VANILLA_PRINTF
+   #define assert_printf(fmt, ...) \
+    printf(__FILE__ ":%d: "fmt"\n", \
+				__LINE__, \
+				__VA_ARGS__)
   #else
    #define assert_printf(fmt, ...) \
     fprintf(assert_error_stream, \
 				__FILE__ ":%d: "fmt"\n", \
 				__LINE__, \
-				__VA_ARGS__)//,abort()
+				__VA_ARGS__)
   #endif
  #endif
  #define check_string(c, s) \

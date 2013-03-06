@@ -64,8 +64,8 @@ typedef smcp_status_t (*smcp_variable_node_func)(
 );
 
 struct smcp_variable_node_s {
-	struct smcp_observable_s observable;
 	smcp_variable_node_func func;
+	struct smcp_observable_s observable;
 };
 
 extern smcp_status_t smcp_variable_node_request_handler(

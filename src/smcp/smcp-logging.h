@@ -60,6 +60,9 @@
 #if ASSERT_MACROS_USES_SYSLOG
 #include <syslog.h>
 #define DEBUG_PRINTF(...) syslog(7, __VA_ARGS__)
+#elif ASSERT_MACROS_USE_VANILLA_PRINTF
+#define DEBUG_PRINTF(...) \
+    do { printf(__VA_ARGS__); printf("\n"); } while(0)
 #else
 #define DEBUG_PRINTF(...) \
     do { fprintf(SMCP_DEBUG_OUT_FILE, __VA_ARGS__); fputc('\n', \

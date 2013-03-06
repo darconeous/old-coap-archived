@@ -95,14 +95,14 @@ PROCESS_THREAD(smcp_task, ev, data)
           smcp_inbound_finish_packet();
         } else if(uip_poll())
 					smcp_process(smcp, 0);
-
-				etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/MSEC_PER_SEC+1);
-			}
-		} else if(ev == PROCESS_EVENT_TIMER) {
-			if(etimer_expired(&et)) {
-				tcpip_poll_udp(smcp_get_udp_conn(smcp));
+          etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/MSEC_PER_SEC+1);
 			}
 		}
+    if(etimer_expired(&et)) {
+      tcpip_poll_udp(smcp_get_udp_conn(smcp));
+    } else {
+      etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/MSEC_PER_SEC+1);
+    }
 	}
 
 bail:

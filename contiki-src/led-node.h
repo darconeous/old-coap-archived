@@ -32,6 +32,7 @@
 #include "contiki.h"
 #include <smcp/smcp.h>
 #include <smcp/smcp-variable_node.h>
+#include "dev/leds.h"
 
 smcp_status_t
 led_var_func(
