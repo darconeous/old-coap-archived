@@ -9,7 +9,7 @@ script:
     - "cd .."
     - "git clone git://github.com/contiki-os/contiki.git"
     - "cd contiki"
-    - "git checkout 0a88373add7b5364dafcb18b21f4063aadfbc6fa"
+    - "git checkout e1cac43f65eb9ca19f62890f18875b3af1e63a52"
     - "cd .."
     - "cd contiki-src/examples/smcp-plugtest"
     - "make TARGET=minimal-net CONTIKI=../../../contiki || exit $?"

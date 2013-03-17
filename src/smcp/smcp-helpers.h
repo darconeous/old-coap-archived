@@ -107,7 +107,11 @@ strndup(const char* cstr,size_t maxlen) {
 #define stpncpy(...) stpncpy__(__VA_ARGS__)
 static inline char*
 stpncpy(char* dest, const char* src, size_t len) {
-	return strncpy(dest,src,len)+MIN(len,strlen(src));
+	if(strlen(src) < len)
+		len = strlen(src);
+	if(strncpy(dest,src,len))
+		dest += len;
+	return dest;
 }
 #endif
 
