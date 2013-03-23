@@ -46,9 +46,6 @@
 
 #if SMCP_CONF_NODE_ROUTER
 
-#if HAVE_ALLOCA_H
-#include <alloca.h>
-#endif
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -59,7 +56,6 @@
 #include "smcp-internal.h"
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
-#include "ll.h"
 #include "url-helpers.h"
 
 smcp_status_t
@@ -131,17 +127,6 @@ smcp_handle_list(
 
 	// Node should always be set by the time we get here.
 	require_action(node, bail, ret = SMCP_STATUS_BAD_ARGUMENT);
-
-/*
-#if VERBOSE_DEBUG
-	{
-		smcp_node_t iter = bt_first(((smcp_node_t)node)->children);
-		for(;iter;iter = bt_next(iter)) {
-			DEBUG_PRINTF("CHILD: \"%s\"",iter->name);
-		}
-	}
-#endif
-*/
 
 	if(((smcp_node_t)node)->children)
 #if SMCP_NODE_ROUTER_USE_BTREE

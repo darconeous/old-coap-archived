@@ -241,10 +241,10 @@ smcp_node_init(
 		ret->name = name;
 #if SMCP_NODE_ROUTER_USE_BTREE
 		bt_insert(
-			    (void**)&((smcp_node_t)node)->children,
+			(void**)&((smcp_node_t)node)->children,
 			ret,
-			    (bt_compare_func_t)smcp_node_compare,
-			    (bt_delete_func_t)smcp_node_delete,
+		    (bt_compare_func_t)smcp_node_compare,
+		    (bt_delete_func_t)smcp_node_delete,
 			NULL
 		);
 #else

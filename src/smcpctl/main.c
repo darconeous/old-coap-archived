@@ -568,6 +568,14 @@ bail:
 }
 #endif
 
+#ifndef PACKAGE_TARNAME
+#define PACKAGE_TARNAME "smcp"
+#endif
+
+#ifndef PACKAGE_VERSION
+#define PACKAGE_VERSION "0.0"
+#endif
+
 void
 print_version() {
 	printf(PACKAGE_TARNAME"ctl "PACKAGE_VERSION"\n");

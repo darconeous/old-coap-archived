@@ -30,7 +30,10 @@
 #include <config.h>
 #endif
 
-//#define SMCP_DEBUG_TIMERS	0
+//#define ASSERT_MACROS_USE_VANILLA_PRINTF 1
+//#define SMCP_DEBUG_TIMERS	1
+//#define VERBOSE_DEBUG 1
+//#define DEBUG 1
 
 #include "assert-macros.h"
 #include "smcp.h"

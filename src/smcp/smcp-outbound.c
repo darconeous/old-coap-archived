@@ -513,13 +513,6 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 #if SMCP_CONF_USE_DNS
 	if(ret) {
 		SMCP_NON_RECURSIVE uip_ipaddr_t *temp = NULL;
-#if defined(RESOLV_CONF_SUPPORTS_MDNS)
-		// We are using the presence (but not the value) of
-		// RESOLV_CONF_SUPPORTS_MDNS to determine which version
-		// of the `resolv_lookup()` API we should use, because
-		// they happen to have been introduced at the same time.
-		// The above check will be removed once those changes
-		// are merged into mainline Contiki.
 		switch(resolv_lookup(addr_str,&temp)) {
 			case RESOLV_STATUS_CACHED:
 				memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
@@ -537,18 +530,6 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 				ret = SMCP_STATUS_HOST_LOOKUP_FAILURE;
 				break;
 		}
-#else
-		// Fall back for older versions of contiki
-		// which don't have the more advanced DNS resolver API.
-		temp = resolv_lookup(addr_str);
-		if(temp) {
-			memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
-			ret = SMCP_STATUS_OK;
-		} else {
-			resolv_query(addr_str);
-			ret = SMCP_STATUS_WAIT_FOR_DNS;
-		}
-#endif // !RESOLV_SUPPORTS_LOOKUP2_API
 	}
 #endif // SMCP_CONF_USE_DNS
 
