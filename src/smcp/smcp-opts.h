@@ -163,6 +163,10 @@
 #define SMCP_TRANSACTIONS_USE_BTREE				!SMCP_EMBEDDED
 #endif
 
+#ifndef SMCP_NODE_ROUTER_USE_BTREE
+#define SMCP_NODE_ROUTER_USE_BTREE				!SMCP_EMBEDDED
+#endif
+
 /*****************************************************************************/
 #pragma mark - Debugging
 

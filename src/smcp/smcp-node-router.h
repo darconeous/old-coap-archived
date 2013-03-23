@@ -32,6 +32,12 @@
 
 #include "smcp.h"
 
+#if SMCP_NODE_ROUTER_USE_BTREE
+#include "btree.h"
+#else
+#include "ll.h"
+#endif
+
 #if SMCP_CONF_NODE_ROUTER
 
 __BEGIN_DECLS
@@ -51,7 +57,11 @@ typedef struct smcp_node_s* smcp_node_t;
 typedef smcp_status_t (*smcp_node_inbound_handler_func)(smcp_node_t node);
 
 struct smcp_node_s {
+#if SMCP_NODE_ROUTER_USE_BTREE
 	struct bt_item_s			bt_item;
+#else
+	struct ll_item_s			ll_item;
+#endif
 	const char*					name;
 	smcp_node_t					parent;
 	smcp_node_t					children;

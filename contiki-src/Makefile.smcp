@@ -7,7 +7,7 @@ CONTIKI_SOURCEFILES += fasthash.c
 CONTIKI_SOURCEFILES += smcp-task.c
 
 ifeq ($(SMCP_CONF_NODE_ROUTER),1)
-CONTIKI_SOURCEFILES += smcp-list.c smcp-node-router.c btree.c
+CONTIKI_SOURCEFILES += smcp-list.c smcp-node-router.c
 CFLAGS += -DSMCP_CONF_NODE_ROUTER=1
 endif
 

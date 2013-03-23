@@ -144,7 +144,11 @@ smcp_handle_list(
 */
 
 	if(((smcp_node_t)node)->children)
+#if SMCP_NODE_ROUTER_USE_BTREE
 		node = bt_first(((smcp_node_t)node)->children);
+#else
+		node = ((smcp_node_t)node)->children;
+#endif
 	else
 		node = NULL;
 
@@ -191,7 +195,11 @@ smcp_handle_list(
 		if(node->is_observable)
 			strlcat(replyContent, ";obs", content_break_threshold);
 
-		next = bt_next(node);
+#if SMCP_NODE_ROUTER_USE_BTREE
+		next = bt_next((void*)node);
+#else
+		next = ll_next((void*)node);
+#endif
 
 		node = next;
 #if SMCP_ADD_NEWLINES_TO_LIST_OUTPUT

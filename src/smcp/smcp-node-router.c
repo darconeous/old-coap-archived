@@ -182,6 +182,8 @@ smcp_node_alloc() {
 	return ret;
 }
 
+#if SMCP_NODE_ROUTER_USE_BTREE
+
 bt_compare_result_t
 smcp_node_compare(
 	smcp_node_t lhs, smcp_node_t rhs
@@ -194,10 +196,11 @@ smcp_node_compare(
 		return -1;
 	return strcmp(lhs->name, rhs->name);
 }
+#endif
 
 static bt_compare_result_t
 smcp_node_ncompare_cstr(
-	smcp_node_t lhs, const char* rhs, int*len
+	smcp_node_t lhs, const char* rhs, intptr_t len
 ) {
 	bt_compare_result_t ret;
 
@@ -208,13 +211,13 @@ smcp_node_ncompare_cstr(
 	if(!rhs)
 		return -1;
 
-	ret = strncmp(lhs->name, rhs, *len);
+	ret = strncmp(lhs->name, rhs, len);
 
 	if(ret == 0) {
 		int lhs_len = (int)strlen(lhs->name);
-		if(lhs_len > *len)
+		if(lhs_len > len)
 			ret = 1;
-		else if(lhs_len < *len)
+		else if(lhs_len < len)
 			ret = -1;
 	}
 
@@ -236,6 +239,7 @@ smcp_node_init(
 	if(node) {
 		require(name, bail);
 		ret->name = name;
+#if SMCP_NODE_ROUTER_USE_BTREE
 		bt_insert(
 			    (void**)&((smcp_node_t)node)->children,
 			ret,
@@ -243,6 +247,12 @@ smcp_node_init(
 			    (bt_delete_func_t)smcp_node_delete,
 			NULL
 		);
+#else
+		ll_prepend(
+			(void**)&((smcp_node_t)node)->children,
+			(void*)ret
+		);
+#endif
 		ret->parent = node;
 	}
 
@@ -266,17 +276,17 @@ smcp_node_delete(smcp_node_t node) {
 		smcp_node_delete(((smcp_node_t)node)->children);
 
 	if(owner) {
-#if DEBUG
-		bt_count(owner);
-#endif
+#if SMCP_NODE_ROUTER_USE_BTREE
 		bt_remove(owner,
 			node,
 			(bt_compare_func_t)smcp_node_compare,
 			(void*)node->finalize,
 			NULL
 		);
-#if DEBUG
-		bt_count(owner);
+#else
+		ll_remove(owner,(void*)node);
+		if(node->finalize)
+			node->finalize(node);
 #endif
 	}
 
@@ -321,12 +331,20 @@ smcp_node_find(
 	const char* name,	// Unescaped.
 	int name_len
 ) {
+#if SMCP_NODE_ROUTER_USE_BTREE
 	return (smcp_node_t)bt_find(
 		(void*)&((smcp_node_t)node)->children,
 		name,
 		(bt_compare_func_t)&smcp_node_ncompare_cstr,
-		&name_len
+		(void*)(intptr_t)name_len
 	);
+#else
+	// Ouch. Linear search.
+	smcp_node_t ret = node->children;
+	while(ret && smcp_node_ncompare_cstr(ret,name,name_len) != 0)
+		ret = ll_next((void*)ret);
+	return ret;
+#endif
 }
 
 int
