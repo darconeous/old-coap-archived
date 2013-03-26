@@ -4,6 +4,21 @@ Release Notes
 This file contains a reverse-chronological list of releases and their associated
 changes.
 
+## Version 0.6.2 ##
+
+Released 2013-03-26.
+
+ * Various minor fixes and cleanups.
+ * node-router: No longer depend on `btree` on embedded platforms.
+ * transactions: No longer use `btree.c` on embedded builds.
+ * Contiki support improvements and fixes.
+ * Allow `.well-known/core` lookups to work on `smcp-simple` Contiki example
+ * smcpctl: Remove some cruft from `get` command.
+ * smcpctl: Add `--non` argument for sending non-confirmable get requests.
+ * contiki: Fix outbound packet alignment for 32-bit platforms.
+ * Add `smcp-complex` contiki example to travis.
+ * Try to better detect when `libdl` is not available.
+
 ## Version 0.6.1 ##
 
 Released 2013-02-13.
