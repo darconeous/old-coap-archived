@@ -160,7 +160,7 @@ smcp_status_t
 smcp_schedule_timer(
 	smcp_t	self,
 	smcp_timer_t	timer,
-	int				cms
+	cms_t			cms
 ) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	SMCP_EMBEDDED_SELF_HOOK;

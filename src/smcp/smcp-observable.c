@@ -174,7 +174,7 @@ static smcp_status_t
 retry_sending_event(struct smcp_observer_s* observer)
 {
 	smcp_status_t status;
-	const smcp_t const self = smcp_get_current_instance();
+	smcp_t const self = smcp_get_current_instance();
 
 	status = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	require_noerr(status,bail);

@@ -75,7 +75,7 @@ extern smcp_timer_t smcp_timer_init(
 extern smcp_status_t smcp_schedule_timer(
 	smcp_t	self,
 	smcp_timer_t	timer,
-	int				cms
+	cms_t			cms
 );
 
 extern void smcp_invalidate_timer(smcp_t self, smcp_timer_t timer);
