@@ -14,7 +14,8 @@ git clone .git smcp || die
 cd smcp || die
 
 git checkout latest-release || die
-git merge origin/master origin/master-autoconf || die
+git reset --hard origin/master
+git merge origin/master-autoconf || die
 git tag -f latest-release || die
 
 git push -f --tags || die
