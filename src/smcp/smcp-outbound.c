@@ -153,8 +153,8 @@ smcp_outbound_begin(
 }
 
 smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
-	SMCP_NON_RECURSIVE smcp_status_t ret;
-	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+	smcp_status_t ret;
+	smcp_t const self = smcp_get_current_instance();
 
 	ret = SMCP_STATUS_OK;
 
@@ -210,8 +210,8 @@ smcp_outbound_set_code(coap_code_t code) {
 
 smcp_status_t
 smcp_outbound_set_token(const uint8_t *token,uint8_t token_length) {
-	SMCP_NON_RECURSIVE smcp_status_t ret;
-	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+	smcp_status_t ret;
+	smcp_t const self = smcp_get_current_instance();
 
 	ret = SMCP_STATUS_OK;
 
@@ -236,7 +236,7 @@ smcp_status_t
 smcp_outbound_set_destaddr(
 	struct sockaddr *sockaddr, socklen_t socklen
 ) {
-	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+	smcp_t const self = smcp_get_current_instance();
 	memcpy(
 		&self->outbound.saddr,
 		sockaddr,
@@ -266,7 +266,7 @@ static smcp_status_t
 smcp_outbound_add_option_(
 	coap_option_key_t key, const char* value, size_t len
 ) {
-	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+	smcp_t const self = smcp_get_current_instance();
 
 	if(	(	self->outbound.content_ptr
 			- (char*)self->outbound.packet
@@ -316,8 +316,8 @@ static smcp_status_t
 smcp_outbound_add_options_up_to_key_(
 	coap_option_key_t key
 ) {
-	SMCP_NON_RECURSIVE smcp_status_t ret;
-	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
+	smcp_status_t ret;
+	smcp_t const self = smcp_get_current_instance();
 
 	ret = SMCP_STATUS_OK;
 
@@ -380,7 +380,7 @@ smcp_status_t
 smcp_outbound_add_option(
 	coap_option_key_t key, const char* value, size_t len
 ) {
-	SMCP_NON_RECURSIVE smcp_status_t ret;
+	smcp_status_t ret;
 
 	ret = smcp_outbound_add_options_up_to_key_(key);
 	require_noerr(ret, bail);
@@ -417,7 +417,7 @@ smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value) {
 
 smcp_status_t
 smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t toport) {
-	SMCP_NON_RECURSIVE smcp_status_t ret;
+	smcp_status_t ret;
 
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6 saddr = {
@@ -552,29 +552,17 @@ smcp_status_t
 smcp_outbound_set_uri(
 	const char* uri, char flags
 ) {
-	SMCP_NON_RECURSIVE smcp_status_t ret;
-	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
-	SMCP_NON_RECURSIVE char* proto_str;
-	SMCP_NON_RECURSIVE char* addr_str;
-	SMCP_NON_RECURSIVE char* port_str;
-	SMCP_NON_RECURSIVE char* path_str;
-	SMCP_NON_RECURSIVE char* query_str;
-	SMCP_NON_RECURSIVE char* uri_copy;
-	SMCP_NON_RECURSIVE char* username_str;
-	SMCP_NON_RECURSIVE char* password_str;
+	smcp_status_t ret;
+	smcp_t const self = smcp_get_current_instance();
+	SMCP_NON_RECURSIVE struct url_components_s components;
 	SMCP_NON_RECURSIVE uint16_t toport;
+	SMCP_NON_RECURSIVE char* uri_copy;
 
 	ret = SMCP_STATUS_OK;
 
-	proto_str = NULL;
-	addr_str = NULL;
-	port_str = NULL;
-	path_str = NULL;
-	query_str = NULL;
-	uri_copy = NULL;
-	username_str = NULL;
-	password_str = NULL;
+	memset((void*)&components,0,sizeof(components));
 	toport = SMCP_DEFAULT_PORT;
+	uri_copy = NULL;
 
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
@@ -592,39 +580,33 @@ smcp_outbound_set_uri(
 		require_action_string(
 			url_parse(
 				uri_copy,
-				&proto_str,
-				&username_str,
-				&password_str,
-				&addr_str,
-				&port_str,
-				&path_str,
-				&query_str
+				&components
 			),
 			bail,
 			ret = SMCP_STATUS_URI_PARSE_FAILURE,
 			"Unable to parse URL"
 		);
 
-		if(!proto_str && !addr_str) {
+		if(!components.protocol && !components.host) {
 			// Talking to ourself.
-			proto_str = "coap";
-			addr_str = "::1";
+			components.protocol = "coap";
+			components.host = "::1";
 			toport = smcp_get_port(smcp_get_current_instance());
 			flags |= SMCP_MSG_SKIP_AUTHORITY;
-		} else if(port_str) {
-			toport = atoi(port_str);
+		} else if(components.port) {
+			toport = atoi(components.port);
 		}
 
 		DEBUG_PRINTF(
 			CSTR("URI Parse: \"%s\" -> host=\"%s\" port=\"%u\" path=\"%s\""),
 			uri,
-			addr_str,
+			components.host,
 			toport,
-			path_str
+			components.path
 		);
 	}
 
-	if(	proto_str && !strequal_const(proto_str, "coap") ) {
+	if(components.protocol && !strequal_const(components.protocol, "coap") ) {
 		require_action_string(
 			self->proxy_url,
 			bail,
@@ -640,37 +622,37 @@ smcp_outbound_set_uri(
 	}
 
 	if(!(flags&SMCP_MSG_SKIP_AUTHORITY)) {
-		if(addr_str && !string_contains_colons(addr_str)) {
-			ret = smcp_outbound_add_option(COAP_OPTION_URI_HOST, addr_str, strlen(addr_str));
+		if(components.host && !string_contains_colons(components.host)) {
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_HOST, components.host, strlen(components.host));
 			require_noerr(ret, bail);
 		}
-		if(port_str) {
+		if(components.port) {
 			ret = smcp_outbound_add_option_uint(COAP_OPTION_URI_PORT, toport);
 			require_noerr(ret, bail);
 		}
 	}
 
 	if(	!(flags&SMCP_MSG_SKIP_DESTADDR)
-		&& addr_str && addr_str[0]!=0
+		&& components.host && components.host[0]!=0
 	) {
-		ret = smcp_outbound_set_destaddr_from_host_and_port(addr_str,toport);
+		ret = smcp_outbound_set_destaddr_from_host_and_port(components.host,toport);
 		require_noerr(ret, bail);
 	}
 
-	if(username_str) {
-		ret = smcp_auth_outbound_set_credentials(username_str, password_str);
+	if(components.username) {
+		ret = smcp_auth_outbound_set_credentials(components.username, components.password);
 		require_noerr(ret, bail);
 	}
 
-	if(path_str) {
+	if(components.path) {
 		SMCP_NON_RECURSIVE char* component;
-		const bool has_trailing_slash = path_str[0]?('/' == path_str[strlen(path_str)-1]):false;
+		const bool has_trailing_slash = components.path[0]?('/' == components.path[strlen(components.path)-1]):false;
 
 		// Move past any preceding slashes.
-		while(path_str[0] == '/')
-			path_str++;
+		while(components.path[0] == '/')
+			components.path++;
 
-		while(url_path_next_component(&path_str,&component)) {
+		while(url_path_next_component(&components.path,&component)) {
 			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, component, SMCP_CSTR_LEN);
 			require_noerr(ret,bail);
 		}
@@ -680,10 +662,10 @@ smcp_outbound_set_uri(
 		}
 	}
 
-	if(query_str) {
+	if(components.query) {
 		SMCP_NON_RECURSIVE char* key;
 
-		while(url_form_next_value(&query_str,&key,NULL)) {
+		while(url_form_next_value(&components.query,&key,NULL)) {
 			size_t len = strlen(key);
 			if(len)
 				ret = smcp_outbound_add_option(COAP_OPTION_URI_QUERY, key, len);
@@ -704,10 +686,10 @@ bail:
 
 smcp_status_t
 smcp_outbound_append_content(const char* value,size_t len) {
-	SMCP_NON_RECURSIVE smcp_status_t ret;
-	SMCP_NON_RECURSIVE smcp_t const self = smcp_get_current_instance();
-	SMCP_NON_RECURSIVE size_t max_len;
-	SMCP_NON_RECURSIVE char* dest;
+	smcp_status_t ret;
+	smcp_t const self = smcp_get_current_instance();
+	size_t max_len;
+	char* dest;
 
 	ret = SMCP_STATUS_FAILURE;
 	max_len = self->outbound.content_len;

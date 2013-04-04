@@ -119,8 +119,9 @@ isurlchar(char src_char) {
 #if __AVR__
 #include <avr/pgmspace.h>
 static char int_to_hex_digit(uint8_t x) {
-	return pgm_read_byte_near(PSTR(
-			"0123456789ABCDEF") + (x & 0xF));
+	return pgm_read_byte_near(
+		PSTR("0123456789ABCDEF") + (x & 0xF)
+	);
 }
 #else
 static char int_to_hex_digit(uint8_t x) {
@@ -151,13 +152,15 @@ url_encode_cstr(
 			*dest++ = src_char;
 			ret++;
 			max_size--;
+#if URL_ENCODE_SPACES_AS_PLUSES
 		} else if(src_char == ' ') {
 			*dest++ = '+';  // Stupid legacy space encoding.
 			ret++;
 			max_size--;
+#endif
 		} else {
 			if(max_size < 3) {
-				// Too small for the next character.
+				// Dest buffer too small for the next character.
 				ret++;
 				break;
 			}
@@ -213,8 +216,8 @@ url_decode_str(
 			&& src[0]
 			&& src[1]
 		) {
-			*dest++ = (hex_digit_to_int(src[0]) << 4) + hex_digit_to_int(
-				src[1]);
+			*dest++ = (hex_digit_to_int(src[0]) << 4)
+				+ hex_digit_to_int(src[1]);
 			src += 2;
 			src_len -= 2;
 		} else if(src_char == '+') {
@@ -432,14 +435,8 @@ bail:
 
 int
 url_parse(
-	char*	uri,
-	char**	protocol,
-	char**	username,
-	char**	password,
-	char**	host,
-	char**	port,
-	char**	path,
-	char**	query
+	char* uri,
+	struct url_components_s* components
 ) {
 	int bytes_parsed = 0;
 	char tmp;
@@ -447,10 +444,9 @@ url_parse(
 	if(!url_is_absolute(uri))
 		goto skip_absolute_url_stuff;
 
-	check_string(uri, "NULL uri parameter");
+	check_string(uri, "NULL URI parameter");
 
-	if(protocol)
-		*protocol = uri;
+	components->protocol = uri;
 
 	while(*uri != ':') {
 		require_string(*uri, bail, "unexpected end of string");
@@ -504,16 +500,14 @@ url_parse(
 				*addr_end = 0;
 				got_port = true;
 			} else if(!got_port && (*addr_end == ':')) {
-				if(port)
-					*port = addr_end + 1;
+				components->port = addr_end + 1;
 				*addr_end = 0;
 				got_port = true;
 			}
 		}
-		if(host)
-			*host = addr_end + 1;
+		components->host = addr_end + 1;
 
-		if(*addr_end=='@' && (username || password)) {
+		if(*addr_end=='@') {
 			*addr_end = 0;
 			for(;
 				(addr_end >= addr_begin) && (*addr_end != '/');
@@ -521,21 +515,18 @@ url_parse(
 			) {
 				if(*addr_end==':') {
 					*addr_end = 0;
-					if(password)
-						*password = addr_end + 1;
+					components->password = addr_end + 1;
 				}
 			}
 			if(*addr_end=='/') {
-				if(username)
-					*username = addr_end + 1;
+				components->username = addr_end + 1;
 			}
 		}
 	}
 
 skip_absolute_url_stuff:
 
-	if(path)
-		*path = uri;
+	components->path = uri;
 
 	// Move to the end of the path.
 	while( ((tmp=*uri) != '#')
@@ -559,8 +550,7 @@ skip_absolute_url_stuff:
 		*uri++ = 0;
 		bytes_parsed++;
 
-		if(query)
-			*query = uri;
+		components->query = uri;
 
 		// Move to the end of the query.
 		while( ((tmp=*uri) != '#')
@@ -671,12 +661,7 @@ url_change(
 	{
 		bool has_trailing_slash = new_url_[0]?('/' == new_url_[strlen(new_url_)-1]):false;
 		char current_path[MAX_URL_SIZE];
-		char* proto_str = NULL;
-		char* path_str = NULL;
-		char* addr_str = NULL;
-		char* port_str = NULL;
-		char* username_str = NULL;
-		char* password_str = NULL;
+		struct url_components_s components = {0};
 
 #if HAVE_C99_VLA
 		char new_url[strlen(new_url_) + 1];
@@ -687,60 +672,51 @@ url_change(
 
 		strncpy(current_path, url,MAX_URL_SIZE);
 
-		url_parse(
-			current_path,
-			&proto_str,
-			&username_str,
-			&password_str,
-			&addr_str,
-			&port_str,
-			&path_str,
-			NULL
-		);
+		url_parse(current_path,&components);
 
 #if VERBOSE_DEBUG
 		fprintf(
 			stderr,
 			"url_change: proto=\"%s\", host=\"%s\", port=\"%s\", path=\"%s\"\n",
-			proto_str,
-			addr_str,
-			port_str,
-			path_str
+			components.protocol,
+			components.host,
+			components.host,
+			components.path
 		);
 #endif
 		url[0] = 0;
 
-		if(proto_str && addr_str) {
-			strcat(url, proto_str);
+		if(components.protocol && components.host) {
+			strcat(url, components.protocol);
 			strcat(url, "://");
-			if(username_str) {
-				strcat(url, username_str);
-				if(password_str) {
+			if(components.username) {
+				strcat(url, components.username);
+				if(components.password) {
 					strcat(url, ":");
-					strcat(url, password_str);
+					strcat(url, components.password);
 				}
 				strcat(url, "@");
 			}
 
 			// Path is absolute. Must drop the path from the URL.
-			if(string_contains_colons(addr_str)) {
+			if(string_contains_colons(components.host)) {
 				strcat(url, "[");
-				strcat(url, addr_str);
+				strcat(url, components.host);
 				strcat(url, "]");
 			} else {
-				strcat(url, addr_str);
+				strcat(url, components.host);
 			}
 
-			if(port_str) {
+			if(components.port) {
 				strcat(url, ":");
-				strcat(url, port_str);
+				strcat(url, components.port);
 			}
 		}
 
 		if(new_url_[0]!='?' && new_url_[0]!='#') {
 			// Remove the basename if the starting URL doesn't end with a slash.
-			size_t path_len = strlen(path_str);
-			for(;path_len && path_str[path_len-1]!='/';path_len--);
+			size_t path_len = strlen(components.path);
+			for(;path_len && components.path[path_len-1]!='/';path_len--);
 		}
 
 		{
@@ -749,7 +725,7 @@ url_change(
 			int path_items = 0;
 
 			if(new_url[0] != '/') {
-				while((*pp = strsep(&path_str, "/"))) {
+				while((*pp = strsep(&components.path, "/"))) {
 					if(strcmp(*pp, "..") == 0) {
 						if(path_items) {
 							pp--;
@@ -763,8 +739,8 @@ url_change(
 				}
 			}
 
-			path_str = new_url;
-			while((*pp = strsep(&path_str, "/"))) {
+			components.path = new_url;
+			while((*pp = strsep(&components.path, "/"))) {
 				if(strcmp(*pp, "..") == 0) {
 					if(path_items) {
 						pp--;
@@ -856,17 +832,15 @@ make_relative:
 		strncpy(temp, current_url, sizeof(temp));
 		url_change(temp, new_url);
 
-		url_parse(
-			temp,
-			NULL,
-			NULL,
-			NULL,
-			NULL,
-			NULL,
-			&new_path,
-			&new_query
-		);
-		url_parse(temp2, NULL, NULL, NULL, NULL, NULL, &curr_path, NULL);
+		{
+			struct url_components_s components = {0};
+			url_parse(temp,&components);
+			new_path = components.path;
+			new_query = components.query;
+			components.path = NULL;
+			url_parse(temp2, &components);
+			curr_path = components.path;
+		}
 
 		while(true) {
 			char* curr_item = strsep(&curr_path, "/");

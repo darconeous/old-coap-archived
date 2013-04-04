@@ -105,11 +105,11 @@ tool_cmd_cd(
 		}
 
 		char* url_check = strdup(url);
-		char* host = NULL;
+		struct url_components_s components = {0};
 
-		url_parse(url_check,NULL,NULL,NULL,&host,NULL,NULL,NULL);
+		url_parse(url_check,&components);
 		free(url_check);
-		if(!host) {
+		if(!components.host) {
 			fprintf(stderr,"%s: Bad URL.\n",argv[0]);
 			ret = ERRORCODE_BADARG;
 			goto bail;

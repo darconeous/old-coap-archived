@@ -66,15 +66,20 @@ extern size_t url_path_next_component(
 	char** component	//!< [OUT]
 );
 
+struct url_components_s {
+	char* protocol;
+	char* username;
+	char* password;
+	char* host;
+	char* port;
+	char* path;
+	char* query;
+};
+
 extern int url_parse(
-	char*	url,		//!< [IN] URL to parse (will be modified)
-	char**	protocol,
-	char**	username,
-	char**	password,
-	char**	host,
-	char**	port,
-	char**	path,
-	char**	query);
+	char* url,		//!< [IN] URL to parse (will be modified)
+	struct url_components_s* components
+);
 
 extern bool url_is_absolute(const char* url);
 
