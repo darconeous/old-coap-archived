@@ -161,6 +161,9 @@ ll_prepend(
 
 //!	Inserts an item into a sorted linked list.
 static void
+#ifndef __SDCC
+inline
+#endif
 ll_sorted_insert(
 	void** list, void* item, ll_compare_func_t compare_func, void* context
 ) {

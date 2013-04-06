@@ -30,7 +30,7 @@
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",				  NULL, "Print Help" },
-	{ 'i', "include",	 NULL,	 "include headers in output" },
+	{ 'i', "include",	 NULL,	 "Include headers in output" },
 	{ 0, "non",  NULL, "Send as non-confirmable" },
 //	{ 'c', "content-file",NULL,"Use content from the specified input source" },
 //	{ 0,   "outbound-slice-size", NULL, "writeme"	 },
@@ -156,7 +156,7 @@ send_post_request(
 	int				content_len,
 	coap_content_type_t content_type
 ) {
-	smcp_transaction_t ret;
+	smcp_transaction_t ret = SMCP_STATUS_MALLOC_FAILURE;
 	struct post_request_s *request;
 
 	request = calloc(1,sizeof(*request));
@@ -262,8 +262,9 @@ tool_cmd_post(
 	while(ERRORCODE_INPROGRESS == gRet)
 		smcp_process(smcp, -1);
 
-bail:
 	smcp_transaction_end(smcp, transaction);
+
+bail:
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

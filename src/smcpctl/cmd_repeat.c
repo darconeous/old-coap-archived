@@ -31,7 +31,7 @@ static arg_list_item_t option_list[] = {
 	{ 'i', "interval", "msec",
 	  "Milliseconds to wait between executions." },
 	{ 'c', "count",	   "i",					 "Number of iterations" },
-	{ 0,   "prefix",   "[formatted string]", "writeme"				},
+	{ 0,   "prefix",   "formatted string", "(writeme)"				},
 	{ 0 }
 };
 

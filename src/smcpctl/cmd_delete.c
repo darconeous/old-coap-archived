@@ -182,8 +182,9 @@ tool_cmd_delete(
 	while(ERRORCODE_INPROGRESS == gRet)
 		smcp_process(smcp, -1);
 
-bail:
 	smcp_transaction_end(smcp, transaction);
+
+bail:
 	signal(SIGINT, previous_sigint_handler);
 	return gRet;
 }

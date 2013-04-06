@@ -245,7 +245,7 @@ smcp_outbound_set_destaddr(
 	self->outbound.socklen = socklen;
 
 	if(self->current_transaction) {
-		const struct sockaddr_in6 const *saddr = (void*)sockaddr;
+		const struct sockaddr_in6 * const saddr = (void*)sockaddr;
 		self->current_transaction->multicast = IN6_IS_ADDR_MULTICAST(&saddr->sin6_addr);
 	}
 	return SMCP_STATUS_OK;

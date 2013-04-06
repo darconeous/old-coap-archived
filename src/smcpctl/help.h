@@ -24,15 +24,20 @@ print_arg_list_help(
 	const char*				syntax
 ) {
 	int i;
+	const int desc_margin = 25;
 
 	printf("Syntax:\n");
 	printf("   %s %s\n", command_name, syntax);
 	printf("Options:\n");
 	for(i = 0; arg_list[i].desc; ++i) {
+		int curr_desc_margin = desc_margin;
+
 		if(arg_list[i].shortarg)
 			printf("   -%c", arg_list[i].shortarg);
 		else
-			printf("      ");
+			printf("     ");
+
+		curr_desc_margin -= 5;
 
 		if(arg_list[i].longarg) {
 			if(arg_list[i].shortarg)
@@ -40,11 +45,30 @@ print_arg_list_help(
 			else
 				printf(" ");
 
-			printf("--%s%s",
-				arg_list[i].longarg,
-				"                " + strlen(arg_list[i].longarg));
+			printf( "--%s", arg_list[i].longarg);
+
+			curr_desc_margin -= strlen(arg_list[i].longarg) + 4;
 		} else {
-			printf("                   ");
+			curr_desc_margin -= 1;
+		}
+
+		if(arg_list[i].param) {
+			printf(" <%s>", arg_list[i].param);
+			curr_desc_margin -= strlen(arg_list[i].param) + 3;
+		}
+
+		if(curr_desc_margin<=0) {
+			printf("\n");
+			curr_desc_margin = desc_margin;
+
+			for(;curr_desc_margin>1;curr_desc_margin--)
+				printf(" ");
+		} else {
+			if(curr_desc_margin-->0)
+				printf(" ");
+
+			for(;curr_desc_margin>0;curr_desc_margin--)
+				printf(".");
 		}
 
 		printf(" %s\n", arg_list[i].desc);

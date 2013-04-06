@@ -33,7 +33,7 @@
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",		 NULL,	 "Print Help"				 },
-	{ 'i', "include",	 NULL,	 "include headers in output" },
+	{ 'i', "include",	 NULL,	 "Include headers in output" },
 	{ 0,   "filename-only",	NULL, "Only print out the resulting filenames." },
 	{ 't',   "timeout",	"cms", "Timeout value, in milliseconds" },
 	{ 0 }

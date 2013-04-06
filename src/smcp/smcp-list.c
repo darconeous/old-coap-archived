@@ -27,6 +27,7 @@
 */
 
 /*	TODO: This function should be re-written using the new design patterns.
+**	TODO: This function is abusing strlcat()!
 */
 
 #if HAVE_CONFIG_H

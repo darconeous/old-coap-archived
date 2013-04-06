@@ -30,16 +30,16 @@
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",	  NULL, "Print Help"				},
-	{ 'i', "include", NULL, "include headers in output" },
-	{ 'f', "follow",  NULL, "follow redirects"			},
+	{ 'i', "include", NULL, "Include headers in output" },
+//	{ 'f', "follow",  NULL, "Follow redirects"			},
 	{ 'O', "observe",  NULL, "Observe changes"			},
 	{ 'k', "keep-alive",  NULL, "Send keep-alive packets" },
 	{ 0, "non",  NULL, "Send as non-confirmable" },
-	{ 0, "size-request", NULL, "writeme" },
+	{ 0, "size-request", NULL, "(writeme)" },
+	{ 0, "ignore-first", NULL, "(writeme)" },
+	{ 0, "observe-once", NULL, "(writeme)" },
 	{ 0  , "timeout",  "seconds", "Change timeout period (Default: 30 Seconds)" },
 	{ 'a', "accept", "mime-type/coap-number", "hint to the server the content-type you want" },
-	{ 0, "ignore-first", NULL, "writeme" },
-	{ 0, "observe-once", NULL, "writeme" },
 	{ 0 }
 };
 

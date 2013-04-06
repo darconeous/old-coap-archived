@@ -49,8 +49,8 @@ static arg_list_item_t option_list[] = {
 	{ 'h', "help",	NULL, "Print Help"				},
 	{ 'v', "version", NULL, "Print Version Information" },
 	{ 'd', "debug", NULL, "Enable debugging mode"	},
-	{ 'p', "port",	NULL, "Port number"				},
-	{ 'f', NULL,	NULL, "Read commands from file" },
+	{ 'p', "port",	"port", "Port number"				},
+	{ 'f', NULL,	"filename", "Read commands from file" },
 	{ 0 }
 };
 
