@@ -64,6 +64,10 @@ extern void smcp_set_current_instance(smcp_t x);
 #endif
 
 
+#ifndef SMCP_HOOK_TIMER_NEEDS_REFRESH
+#define SMCP_HOOK_TIMER_NEEDS_REFRESH(x)	do { } while (0)
+#endif
+
 #pragma mark -
 #pragma mark Class Definitions
 

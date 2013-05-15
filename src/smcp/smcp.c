@@ -364,8 +364,8 @@ smcp_process(
 	);
 
 	if(tmp > 0) {
-		char packet[SMCP_MAX_PACKET_LENGTH];
-		size_t packet_length = sizeof(packet);
+		char packet[SMCP_MAX_PACKET_LENGTH+1];
+		size_t packet_length = SMCP_MAX_PACKET_LENGTH;
 		struct sockaddr_in6 packet_saddr;
 		socklen_t packet_saddr_len = sizeof(packet_saddr);
 

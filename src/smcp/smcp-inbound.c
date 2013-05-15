@@ -606,9 +606,11 @@ smcp_handle_request() {
 	require_noerr(ret,bail);
 
 #if SMCP_CONF_ENABLE_VHOSTS
-	extern smcp_status_t smcp_vhost_route(smcp_request_handler_func* func, void** context);
-	smcp_vhost_route(&request_handler, &context);
-	require_noerr(ret,bail);
+	{
+		extern smcp_status_t smcp_vhost_route(smcp_request_handler_func* func, void** context);
+		smcp_vhost_route(&request_handler, &context);
+		require_noerr(ret,bail);
+	}
 #endif
 
 	require_action(NULL!=request_handler,bail,ret=SMCP_STATUS_NOT_IMPLEMENTED);
