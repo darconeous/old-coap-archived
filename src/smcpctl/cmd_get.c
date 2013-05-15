@@ -25,7 +25,6 @@
 #include <smcp/url-helpers.h>
 #include <signal.h>
 #include "smcpctl.h"
-#include <sys/sysctl.h>
 #include <smcp/smcp-internal.h>
 
 static arg_list_item_t option_list[] = {

@@ -69,7 +69,6 @@ extern uint16_t uip_slen;
 #include <netdb.h>
 #include <sys/socket.h>
 #include <net/if.h>
-#include <sys/sysctl.h>
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <unistd.h>
