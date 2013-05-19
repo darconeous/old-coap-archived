@@ -44,8 +44,12 @@
 
 #if CONTIKI
 #include "contiki.h"
+#include "net/uip.h"
 #include "net/uip-udp-packet.h"
 #include "net/uiplib.h"
+#ifndef uip_is_addr_mcast
+#define uip_is_addr_mcast(a) (1==0) /* If this isn't defined, just ignore it */
+#endif
 #if UIP_CONF_IPV6
 #include "net/uip-ds6.h"
 #endif
