@@ -1,7 +1,7 @@
 
 AC_PREREQ(2.59)
 
-AC_INIT([smcp],[0.6.2])
+AC_INIT([smcp],[0.6.3])
 
 AC_CONFIG_AUX_DIR([m4])
 AC_CONFIG_MACRO_DIR([m4])

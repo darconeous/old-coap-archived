@@ -4,6 +4,15 @@ Release Notes
 This file contains a reverse-chronological list of releases and their associated
 changes.
 
+## Version 0.6.3 ##
+
+Released 2013-05-22
+
+ * Various Contiki fixes.
+ * Fix for building on Cygwin.
+ * url-helpers: Improvements to `url_parse()` for lower stack usage.
+ * Various other minor updates and fixes.
+
 ## Version 0.6.2 ##
 
 Released 2013-03-26.
