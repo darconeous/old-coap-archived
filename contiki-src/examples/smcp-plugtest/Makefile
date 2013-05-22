@@ -6,9 +6,12 @@ endif
 
 SMCP_ROOT = ../../..
 
-UIP_CONF_IPV6 = 1
-UIP_CONF_RPL = 0
+ifneq ($(UIP_CONF_IPV6),)
+CFLAGS += -DUIP_CONF_IPV6=$(UIP_CONF_IPV6)
+endif
+
 SMCP_CONF_NODE_ROUTER = 1
+
 #VERBOSE_DEBUG = 0
 
 include $(SMCP_ROOT)/contiki-src/Makefile.smcp

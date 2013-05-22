@@ -11,6 +11,9 @@ SMCP_CONF_EXTRAS = 0
 UIP_CONF_IPV6 = 1
 #VERBOSE_DEBUG = 0
 
+ifneq ($(UIP_CONF_IPV6),)
+CFLAGS += -DUIP_CONF_IPV6=$(UIP_CONF_IPV6)
+endif
 
 include $(SMCP_ROOT)/contiki-src/Makefile.smcp
 
