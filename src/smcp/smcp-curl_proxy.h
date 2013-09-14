@@ -59,6 +59,12 @@ extern smcp_curl_proxy_node_t smcp_curl_proxy_node_init(
 	const char*			name
 );
 
+extern smcp_curl_proxy_node_t smcp_curl_singleton_proxy_node_init(
+        smcp_curl_proxy_node_t	self,
+        smcp_node_t			parent,
+        const char*			name
+);
+
 extern smcp_status_t smcp_curl_proxy_node_update_fdset(
 	smcp_curl_proxy_node_t node,
     fd_set *read_fd_set,
@@ -71,6 +77,7 @@ extern smcp_status_t smcp_curl_proxy_node_update_fdset(
 extern smcp_status_t smcp_curl_proxy_node_process(smcp_curl_proxy_node_t node);
 
 extern smcp_status_t smcp_curl_proxy_request_handler(smcp_curl_proxy_node_t node);
+extern smcp_status_t smcp_curl_singleton_proxy_request_handler(smcp_curl_proxy_node_t node);
 
 /*!	@} */
 /*!	@} */

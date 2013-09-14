@@ -34,6 +34,10 @@
 #define VERBOSE_DEBUG 0
 #endif
 
+#ifndef SINGLETON_PROXY_DEFAULT_URL_BASE
+#define SINGLETON_PROXY_DEFAULT_URL_BASE "https://www.google.com"
+#endif
+
 #include "assert-macros.h"
 #include "smcp.h"
 #include "smcp-helpers.h"
@@ -288,6 +292,92 @@ bail:
 	return ret;
 }
 
+smcp_status_t
+smcp_curl_singleton_proxy_request_handler(
+        smcp_curl_proxy_node_t		node
+) {
+        smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
+        smcp_curl_request_t request = NULL;
+        //struct curl_slist *headerlist=NULL;
+        smcp_method_t method = smcp_inbound_get_code();
+
+        //require_action(method<=COAP_METHOD_DELETE,bail,ret = SMCP_STATUS_NOT_ALLOWED);
+
+        //require_action(COAP_OPTION_URI_PATH!=smcp_inbound_peek_option(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
+
+        node->interface = smcp_get_current_instance();
+
+        smcp_inbound_reset_next_option();
+
+        request = smcp_curl_request_create();
+        request->proxy_node = node;
+
+        require_action(request!=NULL,bail,ret = SMCP_STATUS_MALLOC_FAILURE);
+
+        switch(method) {
+                case COAP_METHOD_GET: curl_easy_setopt(request->curl, CURLOPT_CUSTOMREQUEST, "GET"); break;
+                case COAP_METHOD_PUT: curl_easy_setopt(request->curl, CURLOPT_PUT, 1L); break;
+                case COAP_METHOD_POST: curl_easy_setopt(request->curl, CURLOPT_POST, 1L); break;
+                case COAP_METHOD_DELETE: curl_easy_setopt(request->curl, CURLOPT_CUSTOMREQUEST, "DELETE"); break;
+                default:
+                        ret = SMCP_STATUS_NOT_ALLOWED;
+                        break;
+        }
+
+        {
+                char *url, *url_base, *url_path;
+
+                url_path = smcp_inbound_get_path(NULL, SMCP_GET_PATH_INCLUDE_QUERY);
+
+                url_base = (char *) getenv("SINGLETON_PROXY_URL_BASE");
+                if(!url_base) {
+                  url = calloc(1, strlen(SINGLETON_PROXY_DEFAULT_URL_BASE)+strlen(url_path));
+                  strcpy(url, SINGLETON_PROXY_DEFAULT_URL_BASE);
+                } else {
+                  url = calloc(1, strlen(url_base)+strlen(url_path));
+                  strcpy(url, url_base);
+                }
+
+                strcat(url, &url_path[strlen(node->node.name)]);
+
+                printf("Path: %s\n", url);
+                curl_easy_setopt(request->curl, CURLOPT_URL, url);
+        }
+
+        //require_noerr(ret,bail);
+
+        if(smcp_inbound_get_content_len()) {
+                size_t len = smcp_inbound_get_content_len();
+                request->output_content = calloc(1,len+1);
+                request->output_content_len = len;
+                memcpy(request->output_content,smcp_inbound_get_content_ptr(),len);
+                curl_easy_setopt(request->curl, CURLOPT_READFUNCTION, ReadMemoryCallback);
+                curl_easy_setopt(request->curl, CURLOPT_READDATA, (void *)request);
+        }
+
+        //curl_easy_setopt(request->curl, CURLOPT_USERAGENT, "smcp-curl-proxy/1.0"); // XXX: why the hell we seem to segfault on this?
+        //curl_easy_setopt(request->curl, CURLOPT_HTTPHEADER, headerlist),headerlist=NULL;
+        curl_easy_setopt(request->curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+        curl_easy_setopt(request->curl, CURLOPT_WRITEDATA, (void *)request);
+
+        ret = smcp_start_async_response(&request->async_response,0);
+        //require_noerr(ret,bail);
+
+        if(node->curl_multi_handle)
+                curl_multi_add_handle(node->curl_multi_handle, request->curl);
+        else
+                curl_easy_perform(request->curl);
+
+bail:
+        //if(headerlist)
+        //	curl_slist_free_all(headerlist);
+
+        if(ret && request)
+                smcp_curl_request_release(request);
+
+        return ret;
+}
+
 void
 smcp_curl_proxy_node_dealloc(smcp_curl_proxy_node_t x) {
 	free(x);
@@ -328,6 +418,34 @@ smcp_curl_proxy_node_init(
 
 bail:
 	return self;
+}
+
+smcp_curl_proxy_node_t
+smcp_curl_singleton_proxy_node_init(
+        smcp_curl_proxy_node_t	self,
+        smcp_node_t			parent,
+        const char*			name
+) {
+        require(self || (self = smcp_smcp_curl_proxy_node_alloc()), bail);
+
+        require(smcp_node_init(
+                        &self->node,
+                        (void*)parent,
+                        name
+        ), bail);
+
+        curl_global_init(CURL_GLOBAL_ALL);
+        self->curl_multi_handle = curl_multi_init();
+        ((smcp_node_t)&self->node)->request_handler = (void*)&smcp_curl_singleton_proxy_request_handler;
+
+        // Now set the proxy path
+//	char path[64];
+//	if(0==smcp_node_get_path(&self->node,path,sizeof(path))) {
+//		smcp_set_proxy_url(smcp_node_get_interface(&self->node), path);
+//	}
+
+bail:
+        return self;
 }
 
 smcp_status_t
