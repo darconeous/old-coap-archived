@@ -73,6 +73,14 @@
 
 #include <smcp/smcp-curl_proxy.h>
 
+#ifndef FOXY_DEFAULT_PREFIX
+#define FOXY_DEFAULT_PREFIX "google"
+#endif
+
+#ifndef FOXY_DEFAULT_URL_BASE
+#define FOXY_DEFAULT_URL_BASE "https://www.google.com"
+#endif
+
 #define ERRORCODE_OK            (0)
 #define ERRORCODE_HELP          (1)
 #define ERRORCODE_BADARG        (2)
@@ -174,9 +182,9 @@ smcpd_modules_process() {
         return status;
 }
 
-smcp_node_t foxy_make_node() {
-        smcp_node_t ret = NULL;
-        smcp_node_t (*init_func)(smcp_node_t self, smcp_node_t parent, const char* name, const char* argument) = NULL;
+smcp_curl_proxy_node_t foxy_make_node(const char* prefix, const char* url_base) {
+        smcp_curl_proxy_node_t ret = NULL;
+        smcp_curl_proxy_node_t (*init_func)(smcp_curl_proxy_node_t self, smcp_node_t parent, const char* name, const char* argument) = NULL;
         smcp_status_t (*process_func)(smcp_node_t self) = NULL;
         smcp_status_t (*update_fdset_func)(
                 smcp_node_t node,
@@ -191,10 +199,29 @@ smcp_node_t foxy_make_node() {
         update_fdset_func = &smcp_curl_proxy_node_update_fdset;
         process_func = &smcp_curl_proxy_node_process;
 
+        char *mount;
+
+        if(!prefix) {
+          mount = calloc(1, strlen(FOXY_DEFAULT_PREFIX));
+          strcpy(mount, FOXY_DEFAULT_PREFIX);
+        } else {
+          mount = calloc(1, strlen(prefix));
+          strcpy(mount, prefix);
+        }
+
         if(init_func) {
-                ret = (*init_func)( NULL, &root_node, "proxy", NULL );
+                ret = (*init_func)( NULL, &root_node, mount, NULL );
                 if(!ret) {
                         syslog(LOG_WARNING,"Init method failed");
+                } else {
+                  if(!url_base) {
+                    ret->proxy_url_base = calloc(1, strlen(FOXY_DEFAULT_URL_BASE));
+                    strcpy(ret->proxy_url_base, FOXY_DEFAULT_URL_BASE);
+                  } else {
+                    ret->proxy_url_base = calloc(1, strlen(url_base));
+                    strcpy(ret->proxy_url_base, url_base);
+                  }
+                  syslog(LOG_INFO, "Mounting <%s> at </%s/>", ret->proxy_url_base, mount);
                 }
         }
 
@@ -279,8 +306,8 @@ main(
         // Set up the node router.
         smcp_set_default_request_handler(smcp, &smcp_node_router_handler, &root_node);
 
-        //smcp_set_proxy_url(smcp,getenv("COAP_PROXY_URL"));
-        foxy_make_node();
+        // Create default proxy node. Can be multiple.
+        foxy_make_node((const char*)getenv("FOXY_PREFIX"), (const char*)getenv("FOXY_URL_BASE"));
 
         syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_get_port(smcp));
 

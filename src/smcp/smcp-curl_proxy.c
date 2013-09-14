@@ -34,10 +34,6 @@
 #define VERBOSE_DEBUG 0
 #endif
 
-#ifndef SINGLETON_PROXY_DEFAULT_URL_BASE
-#define SINGLETON_PROXY_DEFAULT_URL_BASE "https://www.google.com"
-#endif
-
 #include "assert-macros.h"
 #include "smcp.h"
 #include "smcp-helpers.h"
@@ -325,22 +321,16 @@ smcp_curl_singleton_proxy_request_handler(
         }
 
         {
-                char *url, *url_base, *url_path;
+                char *url, *url_path;
 
                 url_path = smcp_inbound_get_path(NULL, SMCP_GET_PATH_INCLUDE_QUERY);
 
-                url_base = (char *) getenv("SINGLETON_PROXY_URL_BASE");
-                if(!url_base) {
-                  url = calloc(1, strlen(SINGLETON_PROXY_DEFAULT_URL_BASE)+strlen(url_path));
-                  strcpy(url, SINGLETON_PROXY_DEFAULT_URL_BASE);
-                } else {
-                  url = calloc(1, strlen(url_base)+strlen(url_path));
-                  strcpy(url, url_base);
-                }
+                url = calloc(1, strlen(node->proxy_url_base)+strlen(url_path));
 
+                strcat(url, node->proxy_url_base);
                 strcat(url, &url_path[strlen(node->node.name)]);
 
-                printf("Path: %s\n", url);
+                DEBUG_PRINTF("Proxy: %s\n", url);
                 curl_easy_setopt(request->curl, CURLOPT_URL, url);
         }
 

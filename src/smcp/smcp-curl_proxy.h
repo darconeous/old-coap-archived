@@ -44,11 +44,11 @@
 **
 */
 
-
 typedef struct smcp_curl_proxy_node_s {
 	struct smcp_node_s	node;
 	CURLM *curl_multi_handle;
 	smcp_t interface;
+        const char *proxy_url_base;
 } *smcp_curl_proxy_node_t;
 
 extern smcp_curl_proxy_node_t smcp_smcp_curl_proxy_node_alloc();
