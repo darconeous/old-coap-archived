@@ -46,7 +46,6 @@ typedef void (*sig_t)(int);
 
 static int gRet;
 static sig_t previous_sigint_handler;
-static coap_msg_id_t tid;
 static bool get_show_headers, get_observe, get_keep_alive;
 static uint16_t size_request;
 static cms_t get_timeout;
@@ -64,10 +63,8 @@ bool send_get_request(
 
 static int retries = 0;
 static const char *url_data;
-static char next_data[128];
 static size_t next_len = ((size_t)(-1));
 static int redirect_count;
-static coap_msg_id_t tokenid;
 static int last_observe_value = -1;
 static int last_block = -1;
 static coap_content_type_t request_accept_type = -1;

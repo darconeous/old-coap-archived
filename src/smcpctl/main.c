@@ -192,7 +192,7 @@ print_commands() {
 		printf(
 			"   %s %s%s\n",
 			commandList[i].name,
-			"                     " + strlen(commandList[i].name),
+			&"                     " [ strlen(commandList[i].name)],
 			commandList[i].desc
 		);
 	}
