@@ -89,6 +89,7 @@ extern void convert_cms_to_timeval(
 	cms_t cms //!< [IN] Time from now, in milliseconds
 );
 
+extern cms_t period_between_timevals_in_cms(const struct timeval* tv_lhs,const struct timeval* tv_rhs);
 extern cms_t convert_timeval_to_cms(const struct timeval* tv);
 
 /*!	@} */

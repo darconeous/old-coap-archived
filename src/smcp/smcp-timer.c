@@ -91,19 +91,25 @@ convert_cms_to_timeval(
 }
 
 cms_t
+period_between_timevals_in_cms(const struct timeval* tv_lhs,const struct timeval* tv_rhs) {
+	cms_t ret = 0;
+	ret = (cms_t)(tv_lhs->tv_sec - tv_rhs->tv_sec) * MSEC_PER_SEC;
+	ret += (cms_t)(tv_lhs->tv_usec - tv_rhs->tv_usec) / USEC_PER_MSEC;
+	return ret;
+}
+
+
+cms_t
 convert_timeval_to_cms(const struct timeval* tv) {
 	cms_t ret = 0;
 	struct timeval current_time;
 
 	gettimeofday(&current_time, NULL);
 
-	if(current_time.tv_sec <= tv->tv_sec) {
-		ret = (cms_t)(tv->tv_sec - current_time.tv_sec) * MSEC_PER_SEC;
-		ret += (cms_t)(tv->tv_usec - current_time.tv_usec) / USEC_PER_MSEC;
+	ret = period_between_timevals_in_cms(tv, &current_time);
 
-		if(ret < 0)
-			ret = 0;
-	}
+	if(ret < 0)
+		ret = 0;
 
 	return ret;
 }
