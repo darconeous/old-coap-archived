@@ -291,8 +291,12 @@ plugtest_large_handler(
 		}
 	}
 
-	block_start = (block_option>>4) * (1<<((block_option&0x7)+4));
-	block_stop = block_start + (1<<((block_option&0x7)+4));
+	{
+		struct coap_block_info_s block_info;
+		coap_decode_block(&block_info, block_option);
+		block_start = block_info.block_offset;
+		block_stop = block_info.block_offset + block_info.block_size;
+	}
 
 	require_action(block_start<resource_length,bail,ret=SMCP_STATUS_INVALID_ARGUMENT);
 

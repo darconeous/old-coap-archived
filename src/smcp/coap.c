@@ -251,6 +251,14 @@ coap_option_strequal(const char* optionptr,const char* cstr) {
 	return cstr[i]==0;
 }
 
+void
+coap_decode_block(struct coap_block_info_s* block_info, uint32_t block)
+{
+	block_info->block_size = (1<<((block&0x7)+4));
+	block_info->block_offset = (block>>4) * block_info->block_size;
+	block_info->block_m = !!(block&(1<<3));
+}
+
 bool
 coap_verify_packet(const char* packet,size_t packet_size) {
 	const struct coap_header_s* const header = (const void*)packet;
@@ -755,18 +763,20 @@ coap_dump_header(
 		case COAP_OPTION_BLOCK1:
 		case COAP_OPTION_BLOCK2:
 		{
+			struct coap_block_info_s block_info;
 			uint32_t block = 0;
-			if(value_len==1)
-				block = (value[0]>>4);
-			else if(value_len==2)
-				block = (value[0]<<4)+(value[1]>>4);
-			else if(value_len==3)
-				block = (value[1]<<12)+(value[1]<<4)+(value[2]>>4);
+			uint8_t i;
+
+			for(i = 0; i < value_len; i++)
+				block = (block << 8) + value[i];
+
+			coap_decode_block(&block_info, block);
+
 			fprintf(outstream,
 				"%d/%d/%d",
-				block,
-				(value[value_len-1]&(1<<3))!=0,
-				1<<((value[value_len-1]&(0x7))+4)
+				block_info.block_offset,
+				block_info.block_m,
+				block_info.block_size
 			);
 		}
 		break;

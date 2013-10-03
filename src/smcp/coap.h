@@ -314,6 +314,14 @@ extern const char* coap_code_to_cstr(int x);
 extern bool coap_verify_packet(const char* packet,size_t packet_size);
 uint32_t coap_decode_uint32(const uint8_t* value, uint8_t value_len);
 
+struct coap_block_info_s {
+	uint32_t block_offset;
+	uint16_t block_size;
+	bool block_m;
+};
+
+extern void coap_decode_block(struct coap_block_info_s* block_info, uint32_t block);
+
 #if !CONTIKI
 #include <stdio.h>
 extern void coap_dump_header(
