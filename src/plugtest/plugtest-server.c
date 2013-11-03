@@ -109,7 +109,7 @@ plugtest_separate_async_resend_response(void* context)
 	struct smcp_async_response_s* async_response = (void*)context;
 
 #if !SMCP_AVOID_PRINTF
-	printf("Resending async response. . .\n");
+	printf("Resending async response. . . %p\n",async_response);
 #endif
 
 	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
@@ -136,11 +136,12 @@ plugtest_separate_async_ack_handler(int statuscode, void* context) {
 	struct smcp_async_response_s* async_response = (void*)context;
 
 #if !SMCP_AVOID_PRINTF
-	printf("Finished sending async response.\n");
+	printf("Finished sending async response. code=%d async_response=%p\n",statuscode,async_response);
 #endif
-
-	smcp_finish_async_response(async_response);
-	free(async_response);
+	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
+		smcp_finish_async_response(async_response);
+		free(async_response);
+	}
 
 	return SMCP_STATUS_OK;
 }
@@ -155,10 +156,6 @@ plugtest_separate_handler(
 	smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
-#if !SMCP_AVOID_PRINTF
-		printf("This request needs an async response.\n");
-#endif
-
 		if(smcp_inbound_is_dupe()) {
 			smcp_outbound_begin_response(COAP_CODE_EMPTY);
 			smcp_outbound_send();
@@ -172,14 +169,19 @@ plugtest_separate_handler(
 			goto bail;
 		}
 
+#if !SMCP_AVOID_PRINTF
+		printf("This request needs an async response. %p\n",async_response);
+#endif
+
 		transaction = smcp_transaction_init(
 			NULL,
-			SMCP_TRANSACTION_DELAY_START,
+			SMCP_TRANSACTION_DELAY_START|SMCP_TRANSACTION_ALWAYS_INVALIDATE,
 			&plugtest_separate_async_resend_response,
 			&plugtest_separate_async_ack_handler,
 			(void*)async_response
 		);
 		if(!transaction) {
+			free(async_response);
 			// TODO: Consider dropping instead...?
 			ret = SMCP_STATUS_MALLOC_FAILURE;
 			goto bail;
@@ -202,8 +204,6 @@ plugtest_separate_handler(
 	}
 
 bail:
-	if(async_response)
-		free(async_response);
 	return ret;
 }
 
