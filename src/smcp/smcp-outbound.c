@@ -177,7 +177,7 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 	if(self->is_processing_message) {
 #if SMCP_USE_BSD_SOCKETS
 		ret = smcp_outbound_set_destaddr(
-			self->inbound.saddr,
+			(void*)&self->inbound.saddr,
 			self->inbound.socklen
 		);
 #elif CONTIKI
@@ -796,15 +796,42 @@ smcp_outbound_send() {
 
 	require_string(smcp_get_current_instance()->outbound.socklen,bail,"Destaddr not set");
 
-	ssize_t sent_bytes = sendto(
-		smcp_get_current_instance()->fd,
-		smcp_get_current_instance()->outbound.packet_bytes,
-		header_len +
-		smcp_get_current_instance()->outbound.content_len,
-		0,
-		(struct sockaddr *)&smcp_get_current_instance()->outbound.saddr,
-		smcp_get_current_instance()->outbound.socklen
-	);
+	ssize_t sent_bytes;
+
+	if(self->is_processing_message)
+	{
+		struct iovec iov = {
+			self->outbound.packet_bytes,
+			SMCP_MAX_PACKET_LENGTH
+		};
+		uint8_t cmbuf[CMSG_SPACE(sizeof (struct in6_pktinfo))];
+		struct cmsghdr *scmsgp;
+		struct in6_pktinfo *pktinfo;
+		struct msghdr msg = {
+			.msg_name = &self->outbound.saddr,
+			.msg_namelen = self->outbound.socklen,
+			.msg_iov = &iov,
+			.msg_iovlen = 1,
+			.msg_control = cmbuf,
+			.msg_controllen = sizeof(cmbuf),
+		};
+		scmsgp = (struct cmsghdr *)cmbuf;
+		pktinfo = (struct in6_pktinfo *)(CMSG_DATA(scmsgp));
+		*pktinfo = self->inbound.pktinfo;
+		sent_bytes = sendmsg(self->fd, &msg, 0);
+		memset(pktinfo,0,sizeof(*pktinfo));
+	} else
+	{
+		sent_bytes = sendto(
+			self->fd,
+			self->outbound.packet_bytes,
+			header_len +
+			self->outbound.content_len,
+			0,
+			(struct sockaddr *)&self->outbound.saddr,
+			self->outbound.socklen
+		);
+	}
 
 	require_action_string(
 		(sent_bytes>=0),

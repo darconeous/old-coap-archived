@@ -179,15 +179,23 @@ smcp_init(
 		saddr.sin6_port = htons(port);
 	}
 
-#ifdef IPV6_PREFER_TEMPADDR
-#ifndef IP6PO_TEMPADDR_NOTPREFER
-#define IP6PO_TEMPADDR_NOTPREFER 0
+
+	{	// Handle sockopts.
+		int value;
+
+#ifdef IPV6_RECVPKTINFO
+		value = 1;
+		setsockopt(self->fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &value, sizeof(value));
 #endif
-	{
-		int value = IP6PO_TEMPADDR_NOTPREFER;
-		setsockopt(self->fd, IPPROTO_IPV6, IPV6_PREFER_TEMPADDR, &value, sizeof(value));
+
+//#ifdef IPV6_PREFER_TEMPADDR
+//#ifndef IP6PO_TEMPADDR_NOTPREFER
+//#define IP6PO_TEMPADDR_NOTPREFER 0
+//#endif
+//		value = IP6PO_TEMPADDR_NOTPREFER;
+//		setsockopt(self->fd, IPPROTO_IPV6, IPV6_PREFER_TEMPADDR, &value, sizeof(value));
+//#endif
 	}
-#endif
 
 #elif CONTIKI
 	self->udp_conn = udp_new(NULL, 0, NULL);
@@ -365,30 +373,53 @@ smcp_process(
 
 	if(tmp > 0) {
 		char packet[SMCP_MAX_PACKET_LENGTH+1];
-		size_t packet_length = SMCP_MAX_PACKET_LENGTH;
 		struct sockaddr_in6 packet_saddr;
-		socklen_t packet_saddr_len = sizeof(packet_saddr);
+		ssize_t packet_len = 0;
+		char cmbuf[0x100];
+		struct iovec iov = { packet, SMCP_MAX_PACKET_LENGTH };
+		struct msghdr msg = {
+			.msg_name = &packet_saddr,
+			.msg_namelen = sizeof(packet_saddr),
+			.msg_iov = &iov,
+			.msg_iovlen = 1,
+			.msg_control = cmbuf,
+			.msg_controllen = sizeof(cmbuf),
+		};
 
-		packet_length = recvfrom(
-			self->fd,
-			(void*)packet,
-			packet_length,
-			0,
-			(struct sockaddr*)&packet_saddr,
-			&packet_saddr_len
-		);
+		packet_len = recvmsg(self->fd, &msg, 0);
 
-		require_action(packet_length > 0, bail, ret = SMCP_STATUS_ERRNO);
+		require_action(packet_len > 0, bail, ret = SMCP_STATUS_ERRNO);
 
-		packet[packet_length] = 0;
+		packet[packet_len] = 0;
 
-		ret = smcp_inbound_start_packet(self, packet, packet_length);
+		ret = smcp_inbound_start_packet(self, msg.msg_iov[0].iov_base, packet_len);
 		require(ret==SMCP_STATUS_OK,bail);
 
-		ret = smcp_inbound_set_srcaddr((struct sockaddr*)&packet_saddr,packet_saddr_len);
+		// Set the source address
+		ret = smcp_inbound_set_srcaddr((struct sockaddr*)msg.msg_name,msg.msg_namelen);
 		require(ret==SMCP_STATUS_OK,bail);
 
-		// TODO: Call `smcp_inbound_set_destaddr()`, too!
+		for (
+			struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+			cmsg != NULL;
+			cmsg = CMSG_NXTHDR(&msg, cmsg)
+		) {
+			if (cmsg->cmsg_level != IPPROTO_IPV6
+				|| cmsg->cmsg_type != IPV6_PKTINFO
+			) {
+				continue;
+			}
+			struct in6_pktinfo *pi = (struct in6_pktinfo *)CMSG_DATA(cmsg);
+
+			// Set the destination address
+
+			packet_saddr.sin6_addr = pi->ipi6_addr;
+			packet_saddr.sin6_port = htons(smcp_get_port(self));
+			ret = smcp_inbound_set_destaddr((struct sockaddr*)&packet_saddr,sizeof(packet_saddr));
+			require(ret==SMCP_STATUS_OK,bail);
+
+			self->inbound.pktinfo = *pi;
+		}
 
 		ret = smcp_inbound_finish_packet();
 		require(ret==SMCP_STATUS_OK,bail);
@@ -479,10 +510,13 @@ smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 	self->inbound.content_ptr = (char*)x->request.header.token + x->request.header.token_len;
 	self->inbound.last_option_key = 0;
 	self->inbound.this_option = x->request.header.token;
-	self->outbound.packet->tt = x->request.header.tt;
 	self->inbound.is_fake = true;
+	self->inbound.saddr = x->saddr;
+	self->inbound.pktinfo = x->pktinfo;
 	self->is_processing_message = true;
 	self->did_respond = false;
+
+	self->outbound.packet->tt = x->request.header.tt;
 
 	ret = smcp_outbound_set_token(x->request.header.token, x->request.header.token_len);
 	require_noerr(ret, bail);
@@ -521,7 +555,8 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 
 #if SMCP_USE_BSD_SOCKETS
 	x->socklen = self->inbound.socklen;
-	memcpy(&x->saddr,self->inbound.saddr,sizeof(x->saddr));
+	memcpy(&x->saddr,&self->inbound.saddr,sizeof(x->saddr));
+	x->pktinfo = self->inbound.pktinfo;
 #elif CONTIKI
 	memcpy(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr));
 	x->toport = self->inbound.toport;
@@ -567,7 +602,7 @@ smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
 	smcp_t const self = smcp_get_current_instance();
 #if SMCP_USE_BSD_SOCKETS
 	return (x->socklen == self->inbound.socklen)
-		&& (0==memcmp(&x->saddr,self->inbound.saddr,sizeof(x->saddr)));
+		&& (0==memcmp(&x->saddr,&self->inbound.saddr,sizeof(x->saddr)));
 #elif CONTIKI
 	return (x->toport == self->inbound.toport)
 		&& (0==memcmp(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr)));

@@ -120,7 +120,7 @@ smcp_inbound_get_content_type() {
 
 #if SMCP_USE_BSD_SOCKETS
 struct sockaddr* smcp_inbound_get_saddr() {
-	return smcp_get_current_instance()->inbound.saddr;
+	return (struct sockaddr*)&smcp_get_current_instance()->inbound.saddr;
 }
 
 socklen_t smcp_inbound_get_socklen() {
@@ -372,7 +372,7 @@ smcp_inbound_set_srcaddr(SMCP_SOCKET_ARGS) {
 	if(!self->is_processing_message)
 		return SMCP_STATUS_FAILURE;
 #if SMCP_USE_BSD_SOCKETS
-	self->inbound.saddr = saddr;
+	self->inbound.saddr = *(struct sockaddr_in6*)saddr;
 	self->inbound.socklen = socklen;
 #elif CONTIKI
 	memcpy(&self->inbound.toaddr,toaddr,sizeof(*toaddr));
@@ -390,6 +390,8 @@ smcp_inbound_set_destaddr(SMCP_SOCKET_ARGS) {
 
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6* const saddr6 = (struct sockaddr_in6*)saddr;
+	self->inbound.pktinfo.ipi6_addr = saddr6->sin6_addr;
+	self->inbound.pktinfo.ipi6_ifindex = 0;
 
 	if(IN6_IS_ADDR_V4MAPPED(&saddr6->sin6_addr)) {
 		self->inbound.was_sent_to_multicast = ((saddr6->sin6_addr.s6_addr[12] & 0xF0)==0xE0);
@@ -419,8 +421,8 @@ smcp_inbound_finish_packet() {
 		char addr_str[50] = "???";
 		uint16_t port = 0;
 #if SMCP_USE_BSD_SOCKETS
-		inet_ntop(AF_INET6,&((struct sockaddr_in6*)self->inbound.saddr)->sin6_addr,addr_str,sizeof(addr_str)-1);
-		port = ntohs(((struct sockaddr_in6*)self->inbound.saddr)->sin6_port);
+		inet_ntop(AF_INET6,&self->inbound.saddr.sin6_addr,addr_str,sizeof(addr_str)-1);
+		port = ntohs(self->inbound.saddr.sin6_port);
 #elif CONTIKI
 		port = ntohs(self->inbound.toport);
 		CSTR_FROM_6ADDR(addr_str,&self->inbound.toaddr);
@@ -451,7 +453,7 @@ smcp_inbound_finish_packet() {
 	// Calculate the message-id hash (address+port+message_id)
 	fasthash_start(0);
 #if SMCP_USE_BSD_SOCKETS
-	fasthash_feed((void*)self->inbound.saddr,self->inbound.socklen);
+	fasthash_feed((void*)&self->inbound.saddr,self->inbound.socklen);
 #elif CONTIKI
 	fasthash_feed((void*)&self->inbound.toaddr,sizeof(self->inbound.toaddr));
 	fasthash_feed((void*)&self->inbound.toport,sizeof(self->inbound.toport));

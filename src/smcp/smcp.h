@@ -511,6 +511,7 @@ struct smcp_async_response_s {
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr_in6		saddr;
 	socklen_t				socklen;
+	struct in6_pktinfo		pktinfo;
 #elif CONTIKI
 	uip_ipaddr_t			toaddr;
 	uint16_t				toport;	// Always in network order.
