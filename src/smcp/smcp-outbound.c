@@ -30,6 +30,8 @@
 #include <config.h>
 #endif
 
+#define __APPLE_USE_RFC_3542 1
+
 #ifndef VERBOSE_DEBUG
 #define VERBOSE_DEBUG 0
 #endif
@@ -72,6 +74,7 @@ extern uint16_t uip_slen;
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <netinet/in.h>
 #endif
 
 #pragma mark -
@@ -755,10 +758,12 @@ smcp_outbound_send() {
 
 #if VERBOSE_DEBUG
 	{
+		char from_addr_str[50] = "???";
 		char addr_str[50] = "???";
 		uint16_t port = 0;
 #if SMCP_USE_BSD_SOCKETS
 		inet_ntop(AF_INET6,&smcp_get_current_instance()->outbound.saddr.sin6_addr,addr_str,sizeof(addr_str)-1);
+		inet_ntop(AF_INET6,&smcp_get_current_instance()->inbound.pktinfo.ipi6_addr,from_addr_str,sizeof(addr_str)-1);
 		port = ntohs(smcp_get_current_instance()->outbound.saddr.sin6_port);
 #elif CONTIKI
 		port = ntohs(smcp_get_current_instance()->udp_conn->rport);
@@ -766,6 +771,7 @@ smcp_outbound_send() {
 		CSTR_FROM_6ADDR(addr_str,&smcp_get_current_instance()->udp_conn->ripaddr);
 #endif
 		DEBUG_PRINTF("Outbound:\tTO -> [%s]:%d",addr_str,(int)port);
+		DEBUG_PRINTF("Outbound:\tFROM -> [%s]",from_addr_str);
 		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
 			"Outbound:\t",
@@ -802,7 +808,7 @@ smcp_outbound_send() {
 	{
 		struct iovec iov = {
 			self->outbound.packet_bytes,
-			SMCP_MAX_PACKET_LENGTH
+			header_len + self->outbound.content_len
 		};
 		uint8_t cmbuf[CMSG_SPACE(sizeof (struct in6_pktinfo))];
 		struct cmsghdr *scmsgp;
@@ -815,7 +821,10 @@ smcp_outbound_send() {
 			.msg_control = cmbuf,
 			.msg_controllen = sizeof(cmbuf),
 		};
-		scmsgp = (struct cmsghdr *)cmbuf;
+		scmsgp = CMSG_FIRSTHDR(&msg);
+		scmsgp->cmsg_level = IPPROTO_IPV6;
+		scmsgp->cmsg_type = IPV6_PKTINFO;
+		scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 		pktinfo = (struct in6_pktinfo *)(CMSG_DATA(scmsgp));
 		*pktinfo = self->inbound.pktinfo;
 		sent_bytes = sendmsg(self->fd, &msg, 0);
