@@ -163,6 +163,16 @@ smcp_init(
 		strerror(prev_errno)
 	);
 
+#ifdef IPV6_V6ONLY
+	{
+		int value = 0; /* explicitly allow ipv4 traffic too (required on bsd and some debian installations) */
+		if (setsockopt(self->fd, IPPROTO_IPV6, IPV6_V6ONLY, &value, sizeof(value)) < 0)
+		{
+			DEBUG_PRINTF(CSTR("Socket won't allow IPv4 connections"));
+		}
+	}
+#endif
+
 	// Keep attempting to bind until we find a port that works.
 	while(bind(self->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
 		// We should only continue trying if errno == EADDRINUSE.
