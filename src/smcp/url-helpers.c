@@ -850,7 +850,7 @@ url_shorten_reference(
 
 make_relative:
 	{
-		char temp[256];
+		char temp[256]; // Yuck!
 		char* new_path;
 		char* new_query = NULL;
 		char* curr_path;
@@ -890,8 +890,8 @@ make_relative:
 				    strlen(new_url)) {
 					strcpy(new_url, new_path);
 					if(new_query) {
-						strcat(new_url, "?");
-						strcat(new_url, new_query);
+						strlcat(new_url, "?", sizeof(temp));
+						strlcat(new_url, new_query, sizeof(temp));
 					}
 				}
 				goto bail;
@@ -901,14 +901,14 @@ make_relative:
 			if(!new_item || (new_item[0] == 0)) {
 				strcpy(temp2, "..");
 				while(strsep(&curr_path, "/"))
-					strcat(temp2, "/..");
+					strlcat(temp2, "/..", sizeof(temp));
 				if(strlen(temp2) +
 				        (new_query ? 1 + strlen(new_query) : 0) <
 				    strlen(new_url)) {
 					strcpy(new_url, temp2);
 					if(new_query) {
-						strcat(new_url, "?");
-						strcat(new_url, new_query);
+						strlcat(new_url, "?", sizeof(temp));
+						strlcat(new_url, new_query, sizeof(temp));
 					}
 				}
 				goto bail;
@@ -920,19 +920,19 @@ make_relative:
 			strcpy(temp, "..");
 			while(strsep(&curr_path, "/"))
 				strcat(temp, "/..");
-			strcat(temp, "/");
-			strcat(temp, new_item);
+			strlcat(temp, "/", sizeof(temp));
+			memmove(temp+strlen(temp),new_item,strlen(new_item)+1);
 			if(new_path) {
-				strcat(temp, "/");
-				strcat(temp, new_path);
+				strlcat(temp, "/", sizeof(temp));
+				memmove(temp+strlen(temp),new_path,strlen(new_path)+1);
 			}
 
 			if(strlen(temp) + (new_query ? 1 + strlen(new_query) : 0) <
 			    strlen(new_url)) {
 				strcpy(new_url, temp);
 				if(new_query) {
-					strcat(new_url, "?");
-					strcat(new_url, new_query);
+					strlcat(new_url, "?", sizeof(temp));
+					strlcat(new_url, new_query, sizeof(temp));
 				}
 			}
 
