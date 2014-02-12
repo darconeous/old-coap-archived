@@ -50,12 +50,13 @@ static struct smcp_observer_s observer_table[SMCP_MAX_OBSERVERS];
 static int8_t
 get_unused_observer_index() {
 	int8_t ret = 0;
-	for(;ret<SMCP_MAX_OBSERVERS;ret++)
-		if(observer_table[ret].async_response.request_len==0
-		&& observer_table[ret].next==0
-		&& observer_table[ret].transaction.active==0
+	for(; ret < SMCP_MAX_OBSERVERS; ret++) {
+		if(observer_table[ret].async_response.request_len == 0
+			&& observer_table[ret].next == 0
+			&& observer_table[ret].transaction.active == 0
 		)
 			break;
+	}
 	if(ret==SMCP_MAX_OBSERVERS)
 		ret = -1;
 	return ret;
@@ -264,4 +265,27 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 
 bail:
 	return ret;
+}
+
+int
+smcp_observable_observer_count(smcp_observable_t context, uint8_t key)
+{
+	int count = 0;
+	int i;
+
+	if(!context->first_observer)
+		goto bail;
+
+	for(i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
+		if(	(observer_table[i].key != SMCP_OBSERVABLE_BROADCAST_KEY)
+			&& (key != SMCP_OBSERVABLE_BROADCAST_KEY)
+			&& (observer_table[i].key != key)
+		) {
+			continue;
+		}
+		count++;
+	}
+
+bail:
+	return count;
 }

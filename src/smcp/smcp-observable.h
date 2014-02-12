@@ -95,6 +95,16 @@ extern smcp_status_t smcp_observable_trigger(
 	uint8_t flags	//!< [IN] Flags (Currently unused)
 );
 
+//!	Gets the number of observers for a given resource and key
+/*!
+**	You may use SMCP_OBSERVABLE_BROADCAST_KEY for the key to get the
+**	count of all observers associated with this context.
+*/
+extern int smcp_observable_observer_count(
+	smcp_observable_t context, //!< [IN] Pointer to observable context
+	uint8_t key	//!< [IN] Key for this resource (must be same as used in update)
+);
+
 /*!	@} */
 /*!	@} */
 
