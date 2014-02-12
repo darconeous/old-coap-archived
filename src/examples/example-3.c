@@ -56,12 +56,21 @@ int
 main(void) {
 	smcp_node_t root_node = smcp_node_init(NULL,NULL,NULL);
 
+	// Create our instance on the default CoAP port. If the port
+	// is already in use, we will pick the next available port number.
 	smcp_t instance = smcp_create(0);
+
 	if(!instance) {
 		perror("Unable to create SMCP instance");
 		abort();
 	}
 
+	// SMCP will always respond to requests with METHOD_NOT_IMPLEMENTED
+	// unless a request handler is set. Unless your program is only
+	// making CoAP requests, you'll need a line like the following
+	// in your program. The request handler may either handle the
+	// request itself or route the request to the appropriate handler.
+	// In this case, we are going to use the node router.
 	smcp_set_default_request_handler(instance, &smcp_node_router_handler, (void*)root_node);
 
 	smcp_node_t hello_node = smcp_node_init(NULL,root_node,"hello-world");
@@ -70,10 +79,17 @@ main(void) {
 
 	printf("Listening on port %d\n",smcp_get_port(instance));
 
+	// Loop forever. This is the most simple kind of main loop you
+	// can haave with SMCP. It is appropriate for simple CoAP servers
+	// and clients which do not need asynchronous I/O.
 	while(1) {
 		smcp_process(instance, CMS_DISTANT_FUTURE);
 	}
 
+	// We won't actually get to this line with the above loop, but it
+	// is always a good idea to clean up when you are done. If you
+	// provide a way to gracefully exit from your own main loop, you
+	// can tear down the SMCP instance using the following command.
 	smcp_release(instance);
 
 	return 0;

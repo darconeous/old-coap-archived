@@ -55,10 +55,14 @@ struct smcp_observable_s {
 #if !SMCP_EMBEDDED
 	smcp_t interface;
 #endif
+
+	// Consider all members below this line as private!
+
 	int8_t first_observer; //!^ always +1, zero is end of list
 	int8_t last_observer; //!^ always +1, zero is end of list
 };
 
+//! Key to trigger all observers using the given observable context.
 #define SMCP_OBSERVABLE_BROADCAST_KEY		(0xFF)
 
 typedef struct smcp_observable_s *smcp_observable_t;

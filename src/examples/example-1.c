@@ -30,7 +30,7 @@ request_handler(void* context) {
 	// in this case)
 	smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 
-	// Add an option describing the content type as plaintest.
+	// Add an option describing the content type as plaintext.
 	smcp_outbound_add_option_uint(
 		COAP_OPTION_CONTENT_TYPE,
 		COAP_CONTENT_TYPE_TEXT_PLAIN
@@ -66,9 +66,10 @@ main(void) {
 
 	// Loop forever. This is the most simple kind of main loop you
 	// can haave with SMCP. It is appropriate for simple CoAP servers
-	// and cliens which do not need asynchronous I/O.
-	while(1)
+	// and clients which do not need asynchronous I/O.
+	while(1) {
 		smcp_process(instance, CMS_DISTANT_FUTURE);
+	}
 
 	// We won't actually get to this line with the above loop, but it
 	// is always a good idea to clean up when you are done. If you

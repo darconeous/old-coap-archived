@@ -38,7 +38,7 @@ struct smcp_observer_s {
 	/**** All of this is private. Don't touch. ****/
 
 	struct smcp_observable_s *observable;
-	int8_t next;	// always +1, zero is end of list
+	int8_t next;	// always n+1, zero is end of list
 	uint8_t key;
 	uint32_t seq;
 	struct smcp_async_response_s async_response;

@@ -62,6 +62,12 @@ request_handler(void* context) {
 	// Begin describing the response.
 	smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 
+	// This is the key line to making a resource observable.
+	// It must be placed after smcp_outbound_begin_response()
+	// and before smcp_outbound_send(). When this resource changes,
+	// a simple call to smcp_observable_trigger() with the given
+	// smcp_observable object and observable key will trigger the
+	// observers to be updated. Really --- that's it...!
 	smcp_observable_update(observable, ARBITRARY_OBSERVABLE_KEY);
 
 	smcp_outbound_add_option_uint(
@@ -96,6 +102,8 @@ main(void) {
 
 	while(1) {
 		smcp_process(instance, (next_trigger-time(NULL))*MSEC_PER_SEC);
+
+		// Occasionally trigger this resource as having changed.
 		if((next_trigger-time(NULL))<=0) {
 			smcp_observable_trigger(&observable,ARBITRARY_OBSERVABLE_KEY,0);
 			next_trigger = time(NULL)+TRIGGER_FREQUENCY;
