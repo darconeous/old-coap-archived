@@ -350,6 +350,9 @@ extern size_t smcp_inbound_get_packet_length();
 //! Returns true if SMCP thinks the inbound packet is a dupe.
 extern bool smcp_inbound_is_dupe();
 
+//! Returns true if the inbound packet is fake (to trigger updates for observers)
+extern bool smcp_inbound_is_fake();
+
 //! Returns true if SMCP thinks the inbound packet originated locally.
 extern bool smcp_inbound_origin_is_local();
 

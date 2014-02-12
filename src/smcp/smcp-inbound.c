@@ -141,6 +141,11 @@ smcp_inbound_is_dupe() {
 	return smcp_get_current_instance()->inbound.is_dupe;
 }
 
+bool
+smcp_inbound_is_fake() {
+	return smcp_get_current_instance()->inbound.is_fake;
+}
+
 #pragma mark -
 #pragma mark Option Parsing
 

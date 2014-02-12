@@ -53,7 +53,8 @@ static smcp_status_t
 request_handler(void* context) {
 	smcp_observable_t observable = context;
 
-	printf("Got a request!\n");
+	if(!smcp_inbound_is_fake())
+		printf("Got a request!\n");
 
 	// Only handle GET requests for now.
 	if(smcp_inbound_get_code() != COAP_METHOD_GET)
@@ -105,6 +106,7 @@ main(void) {
 
 		// Occasionally trigger this resource as having changed.
 		if((next_trigger-time(NULL))<=0) {
+			printf("%d observers registered\n", smcp_observable_observer_count(&observable,ARBITRARY_OBSERVABLE_KEY));
 			smcp_observable_trigger(&observable,ARBITRARY_OBSERVABLE_KEY,0);
 			next_trigger = time(NULL)+TRIGGER_FREQUENCY;
 		}
