@@ -511,8 +511,13 @@ smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 	self->inbound.last_option_key = 0;
 	self->inbound.this_option = x->request.header.token;
 	self->inbound.is_fake = true;
+#if SMCP_USE_BSD_SOCKETS
 	self->inbound.saddr = x->saddr;
 	self->inbound.pktinfo = x->pktinfo;
+#elif CONTIKI
+	self->inbound.toaddr = x->toaddr;
+	self->inbound.toport = x->toport;
+#endif
 	self->is_processing_message = true;
 	self->did_respond = false;
 
