@@ -42,6 +42,7 @@
 #include "smcp-variable_node.h"
 #include "smcp-logging.h"
 #include "fasthash.h"
+#include "smcp-node-router.h"
 
 #include "url-helpers.h"
 #include <stdlib.h>

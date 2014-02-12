@@ -524,7 +524,7 @@ main(void) {
 	//
 again:
 	printf("Inserting nodes in pseudo random order.\n");
-	for(c = c * 97 + 101; c; c = c * 97 + 101) {
+	for(c = ((c * 97 + 101)&0xFF); c; c = ((c * 97 + 101)&0xFF)) {
 		self_test_node_t new_node = calloc(sizeof(struct self_test_node_s),
 			1);
 
@@ -553,10 +553,10 @@ again:
 	forward_traversal_test(root);
 	reverse_traversal_test(root);
 
-	bt_find((void**)&root, "item_1", &self_test_node_compare_cstr, &nodes_alive);
+	bt_find((void**)&root, "item_1", (bt_compare_func_t)&self_test_node_compare_cstr, &nodes_alive);
 
 	printf("Removing nodes in pseudo random order.\n");
-	for(c = 4 * 97 + 101; c!=4; c = c * 97 + 101) {
+	for(c = (uint8_t)((4 * 97 + 101)&0xFF); c!=4; c = ((c * 97 + 101)&0xFF)) {
 		char* name = NULL;
 
 		asprintf(&name, "item_%d", (c==0)?4:c);
@@ -590,7 +590,7 @@ again:
 	reverse_traversal_test(root);
 
 	printf("Inserting more nodes in pseudo random order.\n");
-	for(c = 5 * 97 + 101; c; c = c * 97 + 101) {
+	for(c = (uint8_t)((5 * 97 + 101)&0xFF); c!=5; c = ((c * 97 + 101)&0xFF)) {
 		self_test_node_t new_node = calloc(sizeof(struct self_test_node_s),
 			1);
 
@@ -703,7 +703,7 @@ again:
 			&nodes_alive
 		);
 
-	bt_find((void**)&root, "item_1", &self_test_node_compare_cstr, &nodes_alive);
+	bt_find((void**)&root, "item_1", (bt_compare_func_t)&self_test_node_compare_cstr, &nodes_alive);
 
 	printf("Adding more nodes...\n");
 	{

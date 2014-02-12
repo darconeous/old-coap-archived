@@ -1,30 +1,11 @@
-/*	@file help.h
-**	@author Robert Quattlebaum <darco@deepdarc.com>
-**
-**	Copyright (C) 2011,2012 Robert Quattlebaum
-**
-**	Permission is hereby granted, free of charge, to any person
-**	obtaining a copy of this software and associated
-**	documentation files (the "Software"), to deal in the
-**	Software without restriction, including without limitation
-**	the rights to use, copy, modify, merge, publish, distribute,
-**	sublicense, and/or sell copies of the Software, and to
-**	permit persons to whom the Software is furnished to do so,
-**	subject to the following conditions:
-**
-**	The above copyright notice and this permission notice shall
-**	be included in all copies or substantial portions of the
-**	Software.
-**
-**	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
-**	KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-**	WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-**	PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
-**	OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-**	OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-**	OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-**	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+/*
+ *  help.h
+ *  SMCP
+ *
+ *  Created by Robert Quattlebaum on 8/17/10.
+ *  Copyright 2010 deepdarc. All rights reserved.
+ *
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -43,15 +24,20 @@ print_arg_list_help(
 	const char*				syntax
 ) {
 	int i;
+	const int desc_margin = 25;
 
 	printf("Syntax:\n");
 	printf("   %s %s\n", command_name, syntax);
 	printf("Options:\n");
 	for(i = 0; arg_list[i].desc; ++i) {
+		int curr_desc_margin = desc_margin;
+
 		if(arg_list[i].shortarg)
 			printf("   -%c", arg_list[i].shortarg);
 		else
-			printf("      ");
+			printf("     ");
+
+		curr_desc_margin -= 5;
 
 		if(arg_list[i].longarg) {
 			if(arg_list[i].shortarg)
@@ -59,11 +45,30 @@ print_arg_list_help(
 			else
 				printf(" ");
 
-			printf("--%s%s",
-				arg_list[i].longarg,
-				"                " + strlen(arg_list[i].longarg));
+			printf( "--%s", arg_list[i].longarg);
+
+			curr_desc_margin -= strlen(arg_list[i].longarg) + 4;
 		} else {
-			printf("                   ");
+			curr_desc_margin -= 1;
+		}
+
+		if(arg_list[i].param) {
+			printf(" <%s>", arg_list[i].param);
+			curr_desc_margin -= strlen(arg_list[i].param) + 3;
+		}
+
+		if(curr_desc_margin<=0) {
+			printf("\n");
+			curr_desc_margin = desc_margin;
+
+			for(;curr_desc_margin>1;curr_desc_margin--)
+				printf(" ");
+		} else {
+			if(curr_desc_margin-->0)
+				printf(" ");
+
+			for(;curr_desc_margin>0;curr_desc_margin--)
+				printf(".");
 		}
 
 		printf(" %s\n", arg_list[i].desc);

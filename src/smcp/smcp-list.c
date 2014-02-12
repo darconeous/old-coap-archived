@@ -189,9 +189,9 @@ smcp_handle_list(
 
 		node = next;
 #if SMCP_ADD_NEWLINES_TO_LIST_OUTPUT
-		strlcat(replyContent, &",\n" [ (!node)], content_break_threshold);
+		strlcat(replyContent, &",\n"[!node], content_break_threshold);
 #else
-		strlcat(replyContent, "," + (!node), content_break_threshold);
+		strlcat(replyContent, &","[!node], content_break_threshold);
 #endif
 	}
 

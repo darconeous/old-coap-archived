@@ -156,7 +156,7 @@ send_post_request(
 	int				content_len,
 	coap_content_type_t content_type
 ) {
-	smcp_transaction_t ret = SMCP_STATUS_MALLOC_FAILURE;
+	smcp_transaction_t ret = NULL;
 	struct post_request_s *request;
 
 	request = calloc(1,sizeof(*request));

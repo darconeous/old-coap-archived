@@ -763,9 +763,9 @@ smcp_outbound_send() {
 
 #if VERBOSE_DEBUG
 	{
+		static const char prefix[] = "Outbound:\t";
 		char from_addr_str[50] = "???";
 		char addr_str[50] = "???";
-		static char prefix = "Outbound:\t";
 		uint16_t port = 0;
 #if SMCP_USE_BSD_SOCKETS
 		inet_ntop(AF_INET6,&smcp_get_current_instance()->outbound.saddr.sin6_addr,addr_str,sizeof(addr_str)-1);

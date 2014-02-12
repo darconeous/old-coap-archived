@@ -185,28 +185,34 @@ smcpd_modules_process() {
 
 smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* name, const char* argument) {
 	smcp_node_t ret = NULL;
-	smcp_node_t (*init_func)(smcp_node_t self, smcp_node_t parent, const char* name, const char* argument) = NULL;
-	smcp_status_t (*process_func)(smcp_node_t self) = NULL;
-	smcp_status_t (*update_fdset_func)(
+
+	typedef smcp_node_t (*init_func_t)(smcp_node_t self, smcp_node_t parent, const char* name, const char* argument);
+	typedef smcp_status_t (*process_func_t)(smcp_node_t self);
+	typedef smcp_status_t (*update_fdset_func_t)(
 		smcp_node_t node,
 		fd_set *read_fd_set,
 		fd_set *write_fd_set,
 		fd_set *error_fd_set,
 		int *max_fd,
 		cms_t *timeout
-	) = NULL;
+	);
+
+	init_func_t init_func;
+	process_func_t process_func;
+	update_fdset_func_t update_fdset_func;
+
 
 	syslog(LOG_NOTICE,"MAKE t=\"%s\" n=\"%s\" a=\"%s\"",type, name, argument);
 
 	if(!type || strcaseequal(type,"node")) {
-		init_func = &smcp_node_init;
+		init_func = (init_func_t)&smcp_node_init;
 //	} else if(strcaseequal(type,"timer")) {
 //		init_func = &smcp_timer_node_init;
 #if HAVE_LIBCURL
 	} else if(strcaseequal(type,"curl_proxy")) {
-		init_func = &smcp_curl_proxy_node_init;
-		update_fdset_func = &smcp_curl_proxy_node_update_fdset;
-		process_func = &smcp_curl_proxy_node_process;
+		init_func = (init_func_t)&smcp_curl_proxy_node_init;
+		update_fdset_func = (update_fdset_func_t)&smcp_curl_proxy_node_update_fdset;
+		process_func = (process_func_t)&smcp_curl_proxy_node_process;
 #endif
 #if HAVE_DLFCN_H
 	} else if(type) {
@@ -551,7 +557,7 @@ main(
 	while(!gRet) {
 		int fds_ready = 0, max_fd = -1;
 		fd_set read_fd_set,write_fd_set,error_fd_set;
-		long cms_timeout = 600000;
+		cms_t cms_timeout = 600000;
 		struct timeval timeout = {};
 
 		FD_ZERO(&read_fd_set);
