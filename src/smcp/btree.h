@@ -46,6 +46,7 @@
 #endif
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>      // For ssize_t
 
 __BEGIN_DECLS

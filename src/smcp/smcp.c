@@ -385,6 +385,7 @@ smcp_process(
 			.msg_control = cmbuf,
 			.msg_controllen = sizeof(cmbuf),
 		};
+		struct cmsghdr *cmsg;
 
 		packet_len = recvmsg(self->fd, &msg, 0);
 
@@ -400,7 +401,7 @@ smcp_process(
 		require(ret==SMCP_STATUS_OK,bail);
 
 		for (
-			struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg);
+			cmsg = CMSG_FIRSTHDR(&msg);
 			cmsg != NULL;
 			cmsg = CMSG_NXTHDR(&msg, cmsg)
 		) {

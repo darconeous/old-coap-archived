@@ -87,12 +87,15 @@
 #endif
 
 #if SMCP_USE_BSD_SOCKETS
+#define __USE_GNU	1
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #define SMCP_SOCKET_ARGS	struct sockaddr* saddr, socklen_t socklen
+
 #elif defined(CONTIKI)
 #define SMCP_SOCKET_ARGS	const uip_ipaddr_t *toaddr, uint16_t toport
 #include "net/uip.h"
+
 #endif
 
 #define SMCP_CSTR_LEN     ((size_t)-1)
