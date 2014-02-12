@@ -563,7 +563,7 @@ smcp_outbound_set_uri(
 	ret = SMCP_STATUS_OK;
 
 	memset((void*)&components,0,sizeof(components));
-	toport = SMCP_DEFAULT_PORT;
+	toport = COAP_DEFAULT_PORT;
 	uri_copy = NULL;
 
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
@@ -600,7 +600,7 @@ smcp_outbound_set_uri(
 		}
 
 		DEBUG_PRINTF(
-			CSTR("URI Parse: \"%s\" -> host=\"%s\" port=\"%u\" path=\"%s\""),
+			"URI Parse: \"%s\" -> host=\"%s\" port=\"%u\" path=\"%s\"",
 			uri,
 			components.host,
 			toport,
@@ -608,19 +608,24 @@ smcp_outbound_set_uri(
 		);
 	}
 
-	if(components.protocol && !strequal_const(components.protocol, "coap") ) {
-		require_action_string(
-			self->proxy_url,
-			bail,
-			ret=SMCP_STATUS_INVALID_ARGUMENT,
-			"No proxy URL configured"
-		);
-		require_action(uri!=self->proxy_url,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
+	if(components.protocol) {
+		if(strequal_const(components.protocol, "coaps")) {
+			// There is a lot more that is needed for this to work...
+			toport = COAP_DEFAULT_TLSPORT;
+		} else if(!strequal_const(components.protocol, "coap")) {
+			require_action_string(
+				self->proxy_url,
+				bail,
+				ret=SMCP_STATUS_INVALID_ARGUMENT,
+				"No proxy URL configured"
+			);
+			require_action(uri!=self->proxy_url,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
 
-		ret = smcp_outbound_add_option(COAP_OPTION_PROXY_URI, uri, strlen(uri));
-		require_noerr(ret, bail);
-		ret = smcp_outbound_set_uri(self->proxy_url,flags);
-		goto bail;
+			ret = smcp_outbound_add_option(COAP_OPTION_PROXY_URI, uri, strlen(uri));
+			require_noerr(ret, bail);
+			ret = smcp_outbound_set_uri(self->proxy_url,flags);
+			goto bail;
+		}
 	}
 
 	if(!(flags&SMCP_MSG_SKIP_AUTHORITY)) {
@@ -760,6 +765,7 @@ smcp_outbound_send() {
 	{
 		char from_addr_str[50] = "???";
 		char addr_str[50] = "???";
+		static char prefix = "Outbound:\t";
 		uint16_t port = 0;
 #if SMCP_USE_BSD_SOCKETS
 		inet_ntop(AF_INET6,&smcp_get_current_instance()->outbound.saddr.sin6_addr,addr_str,sizeof(addr_str)-1);
@@ -770,11 +776,11 @@ smcp_outbound_send() {
 #define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
 		CSTR_FROM_6ADDR(addr_str,&smcp_get_current_instance()->udp_conn->ripaddr);
 #endif
-		DEBUG_PRINTF("Outbound:\tTO -> [%s]:%d",addr_str,(int)port);
-		DEBUG_PRINTF("Outbound:\tFROM -> [%s]",from_addr_str);
+		DEBUG_PRINTF("%sTO -> [%s]:%d",prefix,addr_str,(int)port);
+		DEBUG_PRINTF("%sFROM -> [%s]",prefix,from_addr_str);
 		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
-			"Outbound:\t",
+			prefix,
 			self->outbound.packet,
 			header_len+smcp_get_current_instance()->outbound.content_len
 		);
