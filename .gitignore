@@ -7,6 +7,7 @@
 *.o
 *.lo
 .deps
+*.orig
 Makefile.in
 Makefile
 *~
@@ -41,3 +42,4 @@ src/examples/example-2
 src/examples/example-3
 src/examples/example-4
 src/smcp/btreetest
+/SMCP.xcodeproj/project.xcworkspace/xcshareddata
