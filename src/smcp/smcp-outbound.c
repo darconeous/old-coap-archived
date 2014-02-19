@@ -42,27 +42,23 @@
 
 #include "assert-macros.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
+#include "smcp.h"
 #include "smcp-internal.h"
-#include "smcp-helpers.h"
 #include "smcp-logging.h"
 #include "smcp-auth.h"
-#include "smcp.h"
+
 #include "ll.h"
 #include "url-helpers.h"
 
 #if CONTIKI
 #include "contiki.h"
-#include "net/uip-udp-packet.h"
-#include "net/uiplib.h"
 #include "net/tcpip.h"
 #include "net/resolv.h"
+#endif
+
+#if SMCP_USE_UIP
+#include "net/uip-udp-packet.h"
+#include "net/uiplib.h"
 extern uint16_t uip_slen;
 #endif
 
@@ -76,6 +72,13 @@ extern uint16_t uip_slen;
 #include <unistd.h>
 #include <netinet/in.h>
 #endif
+
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 #pragma mark -
 #pragma mark Constrained sending API
@@ -111,7 +114,7 @@ smcp_outbound_begin(
 #if SMCP_USE_BSD_SOCKETS
 	self->outbound.packet = (struct coap_header_s*)self->outbound.packet_bytes;
 	self->outbound.socklen = 0;
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	uip_udp_conn = self->udp_conn;
 	self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 
@@ -183,7 +186,7 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 			(void*)&self->inbound.saddr,
 			self->inbound.socklen
 		);
-#elif CONTIKI
+#elif SMCP_USE_UIP
 		ret = smcp_outbound_set_destaddr(
 			&self->inbound.toaddr,
 			self->inbound.toport
@@ -252,7 +255,7 @@ smcp_outbound_set_destaddr(
 	}
 	return SMCP_STATUS_OK;
 }
-#elif defined(CONTIKI)
+#elif defined(SMCP_USE_UIP)
 smcp_status_t
 smcp_outbound_set_destaddr(
 	const uip_ipaddr_t *toaddr, uint16_t toport
@@ -500,7 +503,7 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	ret = smcp_outbound_set_destaddr((struct sockaddr *)&saddr,sizeof(struct sockaddr_in6));
 	require_noerr(ret, bail);
 
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	SMCP_NON_RECURSIVE uip_ipaddr_t toaddr;
 	memset(&toaddr, 0, sizeof(toaddr));
 
@@ -540,7 +543,7 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	ret = smcp_outbound_set_destaddr(&toaddr,toport);
 
 	require_noerr(ret, bail);
-#endif // CONTIKI
+#endif // SMCP_USE_UIP
 
 bail:
 #if SMCP_USE_BSD_SOCKETS
@@ -744,155 +747,6 @@ smcp_outbound_set_content_len(size_t len) {
 	return SMCP_STATUS_OK;
 }
 
-smcp_status_t
-smcp_outbound_send() {
-	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	smcp_t const self = smcp_get_current_instance();
-	size_t header_len;
-
-	if(self->outbound.packet->code) {
-		ret = smcp_auth_outbound_finish();
-		require_noerr(ret,bail);
-	}
-
-	header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
-
-	// Remove the start-of-payload marker if we have no payload.
-	if(!smcp_get_current_instance()->outbound.content_len)
-		header_len--;
-
-#if VERBOSE_DEBUG
-	{
-		static const char prefix[] = "Outbound:\t";
-		char from_addr_str[50] = "???";
-		char addr_str[50] = "???";
-		uint16_t port = 0;
-#if SMCP_USE_BSD_SOCKETS
-		inet_ntop(AF_INET6,&smcp_get_current_instance()->outbound.saddr.sin6_addr,addr_str,sizeof(addr_str)-1);
-		inet_ntop(AF_INET6,&smcp_get_current_instance()->inbound.pktinfo.ipi6_addr,from_addr_str,sizeof(addr_str)-1);
-		port = ntohs(smcp_get_current_instance()->outbound.saddr.sin6_port);
-#elif CONTIKI
-		port = ntohs(smcp_get_current_instance()->udp_conn->rport);
-#define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
-		CSTR_FROM_6ADDR(addr_str,&smcp_get_current_instance()->udp_conn->ripaddr);
-#endif
-		DEBUG_PRINTF("%sTO -> [%s]:%d",prefix,addr_str,(int)port);
-		DEBUG_PRINTF("%sFROM -> [%s]",prefix,from_addr_str);
-		coap_dump_header(
-			SMCP_DEBUG_OUT_FILE,
-			prefix,
-			self->outbound.packet,
-			header_len+smcp_get_current_instance()->outbound.content_len
-		);
-	}
-#endif
-
-	assert(coap_verify_packet((char*)self->outbound.packet,header_len+smcp_get_current_instance()->outbound.content_len));
-
-	if(self->current_transaction)
-		self->current_transaction->sent_code = self->outbound.packet->code;
-
-#if defined(SMCP_DEBUG_OUTBOUND_DROP_PERCENT)
-	if(SMCP_DEBUG_OUTBOUND_DROP_PERCENT*SMCP_RANDOM_MAX>SMCP_FUNC_RANDOM_UINT32()) {
-		DEBUG_PRINTF("Dropping outbound packet for debugging!");
-		if(smcp_get_current_instance()->is_responding)
-			smcp_get_current_instance()->did_respond = true;
-		smcp_get_current_instance()->is_responding = false;
-
-		ret = SMCP_STATUS_OK;
-		goto bail;
-	}
-#endif
-
-#if SMCP_USE_BSD_SOCKETS
-
-	require_string(smcp_get_current_instance()->outbound.socklen,bail,"Destaddr not set");
-
-	ssize_t sent_bytes;
-
-	if(self->is_processing_message)
-	{
-		struct iovec iov = {
-			self->outbound.packet_bytes,
-			header_len + self->outbound.content_len
-		};
-		uint8_t cmbuf[CMSG_SPACE(sizeof (struct in6_pktinfo))];
-		struct cmsghdr *scmsgp;
-		struct in6_pktinfo *pktinfo;
-		struct msghdr msg = {
-			.msg_name = &self->outbound.saddr,
-			.msg_namelen = self->outbound.socklen,
-			.msg_iov = &iov,
-			.msg_iovlen = 1,
-			.msg_control = cmbuf,
-			.msg_controllen = sizeof(cmbuf),
-		};
-		scmsgp = CMSG_FIRSTHDR(&msg);
-		scmsgp->cmsg_level = IPPROTO_IPV6;
-		scmsgp->cmsg_type = IPV6_PKTINFO;
-		scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
-		pktinfo = (struct in6_pktinfo *)(CMSG_DATA(scmsgp));
-		*pktinfo = self->inbound.pktinfo;
-		sent_bytes = sendmsg(self->fd, &msg, 0);
-		memset(pktinfo,0,sizeof(*pktinfo));
-	} else
-	{
-		sent_bytes = sendto(
-			self->fd,
-			self->outbound.packet_bytes,
-			header_len +
-			self->outbound.content_len,
-			0,
-			(struct sockaddr *)&self->outbound.saddr,
-			self->outbound.socklen
-		);
-	}
-
-	require_action_string(
-		(sent_bytes>=0),
-		bail, ret = SMCP_STATUS_ERRNO, strerror(errno)
-	);
-
-	require_action_string(
-		sent_bytes,
-		bail, ret = SMCP_STATUS_FAILURE, "sendto() returned zero."
-	);
-
-#elif CONTIKI
-	uip_slen = header_len +	smcp_get_current_instance()->outbound.content_len;
-
-	if(self->outbound.packet!=(struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN]) {
-		memmove(
-			&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN],
-			(char*)self->outbound.packet,
-			uip_slen
-		);
-		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
-	}
-
-	uip_udp_conn = smcp_get_current_instance()->udp_conn;
-
-	uip_process(UIP_UDP_SEND_CONN);
-
-#if UIP_CONF_IPV6
-	tcpip_ipv6_output();
-#else
-	if(uip_len > 0)
-		tcpip_output();
-#endif
-	uip_slen = 0;
-
-	memset(&smcp_get_current_instance()->udp_conn->ripaddr, 0, sizeof(uip_ipaddr_t));
-	smcp_get_current_instance()->udp_conn->rport = 0;
-#endif
-	if(smcp_get_current_instance()->is_responding)
-		smcp_get_current_instance()->did_respond = true;
-	smcp_get_current_instance()->is_responding = false;
-
-	ret = SMCP_STATUS_OK;
-bail:
-	return ret;
-}
 
 #pragma mark -
 

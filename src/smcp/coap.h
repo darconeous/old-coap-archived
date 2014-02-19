@@ -35,13 +35,6 @@
 #include <string.h>
 #include <stdint.h>
 
-#if CONTIKI
-#include "contiki.h"
-#include "net/uip.h"
-#define htons(x)    uip_htons(x)
-#define ntohs(x)    uip_ntohs(x)
-#endif
-
 /*!	@defgroup coap CoAP Functions and Constants
 **	@{
 */

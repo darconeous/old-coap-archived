@@ -42,32 +42,30 @@
 
 #include "assert-macros.h"
 
-#if CONTIKI
-#include "contiki.h"
-#include "net/uip-udp-packet.h"
-#include "net/uiplib.h"
-#if UIP_CONF_IPV6
-#include "net/uip-ds6.h"
-#endif
-#include "net/tcpip.h"
-#include "net/resolv.h"
-extern uint16_t uip_slen;
-#endif
-
-#include <stdarg.h>
-
 #include "smcp-opts.h"
 #include "smcp.h"
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include "ll.h"
-
 #include "url-helpers.h"
 #include "smcp-logging.h"
 #include "smcp-auth.h"
+#include "ll.h"
+#include "smcp-helpers.h"
+#include "smcp-timer.h"
+#include "smcp-internal.h"
+
+#if CONTIKI
+#include "contiki.h"
+#include "net/tcpip.h"
+#include "net/resolv.h"
+#endif
+
+#if SMCP_USE_UIP
+#include "net/uip-udp-packet.h"
+#include "net/uiplib.h"
+extern uint16_t uip_slen;
+#if UIP_CONF_IPV6
+#include "net/uip-ds6.h"
+#endif
+#endif
 
 #if SMCP_USE_BSD_SOCKETS
 #include <poll.h>
@@ -79,10 +77,12 @@ extern uint16_t uip_slen;
 #include <unistd.h>
 #endif
 
-#include "smcp-helpers.h"
-
-#include "smcp-timer.h"
-#include "smcp-internal.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 #pragma mark -
 
@@ -197,7 +197,7 @@ smcp_init(
 //#endif
 	}
 
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	self->udp_conn = udp_new(NULL, 0, NULL);
 	uip_udp_bind(self->udp_conn, htons(port));
 	self->udp_conn->rport = 0;
@@ -280,7 +280,7 @@ smcp_release(smcp_t self) {
 		close(self->fd);
 	if(self->mcfd>=0)
 		close(self->mcfd);
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	if(self->udp_conn)
 		uip_udp_remove(self->udp_conn);
 #endif
@@ -301,7 +301,7 @@ smcp_get_port(smcp_t self) {
 	socklen_t socklen = sizeof(saddr);
 	getsockname(self->fd, (struct sockaddr*)&saddr, &socklen);
 	return ntohs(saddr.sin6_port);
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	SMCP_EMBEDDED_SELF_HOOK;
 	return ntohs(self->udp_conn->lport);
 #endif
@@ -313,7 +313,7 @@ smcp_get_fd(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	return self->fd;
 }
-#elif defined(CONTIKI)
+#elif defined(SMCP_USE_UIP)
 struct uip_udp_conn*
 smcp_get_udp_conn(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
@@ -515,7 +515,7 @@ smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 #if SMCP_USE_BSD_SOCKETS
 	self->inbound.saddr = x->saddr;
 	self->inbound.pktinfo = x->pktinfo;
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	self->inbound.toaddr = x->toaddr;
 	self->inbound.toport = x->toport;
 #endif
@@ -529,7 +529,7 @@ smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 
 #if SMCP_USE_BSD_SOCKETS
 	ret = smcp_outbound_set_destaddr((void*)&x->saddr,x->socklen);
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	ret = smcp_outbound_set_destaddr(&x->toaddr,x->toport);
 #endif
 
@@ -563,7 +563,7 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 	x->socklen = self->inbound.socklen;
 	memcpy(&x->saddr,&self->inbound.saddr,sizeof(x->saddr));
 	x->pktinfo = self->inbound.pktinfo;
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	memcpy(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr));
 	x->toport = self->inbound.toport;
 #endif
@@ -609,7 +609,7 @@ smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
 #if SMCP_USE_BSD_SOCKETS
 	return (x->socklen == self->inbound.socklen)
 		&& (0==memcmp(&x->saddr,&self->inbound.saddr,sizeof(x->saddr)));
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	return (x->toport == self->inbound.toport)
 		&& (0==memcmp(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr)));
 #endif

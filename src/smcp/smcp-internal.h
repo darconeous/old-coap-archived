@@ -87,7 +87,7 @@ struct smcp_s {
 #if SMCP_USE_BSD_SOCKETS
 	int						fd;
 	int						mcfd;	// For multicast
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	struct uip_udp_conn*	udp_conn;
 #endif
 
@@ -131,7 +131,7 @@ struct smcp_s {
 		struct sockaddr_in6		saddr;
 		socklen_t				socklen;
 		struct in6_pktinfo		pktinfo;
-#elif CONTIKI
+#elif SMCP_USE_UIP
 		uip_ipaddr_t			toaddr;
 		uint16_t				toport;	//!^ Always in network order.
 #endif

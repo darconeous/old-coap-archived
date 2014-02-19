@@ -51,6 +51,18 @@
 #define SMCP_USE_BSD_SOCKETS    !SMCP_EMBEDDED
 #endif
 
+#ifndef SMCP_USE_UIP
+#define SMCP_USE_UIP			!SMCP_USE_BSD_SOCKETS
+#endif
+
+#if !defined(SMCP_UIP_INCLUDE_PATH)
+#if CONTIKI
+#define SMCP_UIP_INCLUDE_PATH	"net"
+#else
+#define SMCP_UIP_INCLUDE_PATH	"uip"
+#endif
+#endif
+
 #ifndef SMCP_DEFAULT_PORT
 #define SMCP_DEFAULT_PORT           COAP_DEFAULT_PORT
 #endif
@@ -78,7 +90,7 @@
 #endif
 
 #if !defined(SMCP_MAX_PACKET_LENGTH) && !defined(SMCP_MAX_CONTENT_LENGTH)
-#if CONTIKI
+#if SMCP_USE_UIP
 #define SMCP_MAX_PACKET_LENGTH ((UIP_BUFSIZE - UIP_LLH_LEN - UIP_IPUDPH_LEN))
 #else
 #define SMCP_MAX_CONTENT_LENGTH     (1024)

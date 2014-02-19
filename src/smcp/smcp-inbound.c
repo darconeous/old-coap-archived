@@ -42,36 +42,20 @@
 
 #include "assert-macros.h"
 
-#if CONTIKI
-#include "contiki.h"
-#include "net/uip.h"
-#include "net/uip-udp-packet.h"
-#include "net/uiplib.h"
-#ifndef uip_is_addr_mcast
-#define uip_is_addr_mcast(a) (1==0) /* If this isn't defined, just ignore it */
-#endif
-#if UIP_CONF_IPV6
-#include "net/uip-ds6.h"
-#endif
-#include "net/tcpip.h"
-#include "net/resolv.h"
-extern uint16_t uip_slen;
-#endif
-
-#include <stdarg.h>
-
-#include "smcp-opts.h"
 #include "smcp.h"
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include "ll.h"
-
-#include "url-helpers.h"
+#include "smcp-internal.h"
 #include "smcp-logging.h"
 #include "smcp-auth.h"
+#include "smcp-timer.h"
+
+#include "url-helpers.h"
+#include "ll.h"
+
+#if CONTIKI
+#include "contiki.h"
+#include "net/tcpip.h"
+#include "net/resolv.h"
+#endif // CONTIKI
 
 #if SMCP_USE_BSD_SOCKETS
 #include <poll.h>
@@ -81,12 +65,27 @@ extern uint16_t uip_slen;
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <unistd.h>
-#endif
+#endif // SMCP_USE_BSD_SOCKETS
 
-#include "smcp-helpers.h"
+#if SMCP_USE_UIP
+#include "net/uip.h"
+#include "net/uip-udp-packet.h"
+#include "net/uiplib.h"
+extern uint16_t uip_slen;
+#if UIP_CONF_IPV6
+#include "net/uip-ds6.h"
+#endif // UIP_CONF_IPV6
+#ifndef uip_is_addr_mcast
+#define uip_is_addr_mcast(a) (1==0) /* If this isn't defined, just ignore it */
+#endif // !defined(uip_is_addr_mcast)
+#endif // SMCP_USE_UIP
 
-#include "smcp-timer.h"
-#include "smcp-internal.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 #define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
 
@@ -126,7 +125,7 @@ struct sockaddr* smcp_inbound_get_saddr() {
 socklen_t smcp_inbound_get_socklen() {
 	return smcp_get_current_instance()->inbound.socklen;
 }
-#elif defined(CONTIKI)
+#elif defined(SMCP_USE_UIP)
 const uip_ipaddr_t* smcp_inbound_get_ipaddr() {
 	return &smcp_get_current_instance()->inbound.toaddr;
 }
@@ -379,7 +378,7 @@ smcp_inbound_set_srcaddr(SMCP_SOCKET_ARGS) {
 #if SMCP_USE_BSD_SOCKETS
 	self->inbound.saddr = *(struct sockaddr_in6*)saddr;
 	self->inbound.socklen = socklen;
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	memcpy(&self->inbound.toaddr,toaddr,sizeof(*toaddr));
 	self->inbound.toport = toport;
 #endif
@@ -403,7 +402,7 @@ smcp_inbound_set_destaddr(SMCP_SOCKET_ARGS) {
 	} else {
 		self->inbound.was_sent_to_multicast = IN6_IS_ADDR_MULTICAST(&saddr6->sin6_addr);
 	}
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	self->inbound.was_sent_to_multicast = uip_is_addr_mcast(toaddr);
 
 	// toport isn't being used at the moment.
@@ -428,7 +427,7 @@ smcp_inbound_finish_packet() {
 #if SMCP_USE_BSD_SOCKETS
 		inet_ntop(AF_INET6,&self->inbound.saddr.sin6_addr,addr_str,sizeof(addr_str)-1);
 		port = ntohs(self->inbound.saddr.sin6_port);
-#elif CONTIKI
+#elif SMCP_USE_UIP
 		port = ntohs(self->inbound.toport);
 		CSTR_FROM_6ADDR(addr_str,&self->inbound.toaddr);
 #endif
@@ -459,7 +458,7 @@ smcp_inbound_finish_packet() {
 	fasthash_start(0);
 #if SMCP_USE_BSD_SOCKETS
 	fasthash_feed((void*)&self->inbound.saddr,self->inbound.socklen);
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	fasthash_feed((void*)&self->inbound.toaddr,sizeof(self->inbound.toaddr));
 	fasthash_feed((void*)&self->inbound.toport,sizeof(self->inbound.toport));
 #endif

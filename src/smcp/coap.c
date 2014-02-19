@@ -32,11 +32,22 @@
 
 #include "assert-macros.h"
 #include "smcp-opts.h"
+
+#if CONTIKI
+#include "contiki.h"
+#endif
+
 #include "coap.h"
 #include <stdlib.h>
 #include "ctype.h"
 
 #include "smcp-helpers.h"
+
+#if SMCP_USE_UIP
+#include "net/uip.h"
+#define htons(x)    uip_htons(x)
+#define ntohs(x)    uip_ntohs(x)
+#endif
 
 uint8_t*
 coap_decode_option(const uint8_t* buffer, coap_option_key_t* key, const uint8_t** value, size_t* lenP) {

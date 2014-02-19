@@ -83,7 +83,6 @@
 
 #ifdef CONTIKI
 #include "contiki.h"
-#include "net/uip.h"
 #endif
 
 #if SMCP_USE_BSD_SOCKETS
@@ -92,7 +91,7 @@
 #include <arpa/inet.h>
 #define SMCP_SOCKET_ARGS	struct sockaddr* saddr, socklen_t socklen
 
-#elif defined(CONTIKI)
+#elif SMCP_USE_UIP
 #define SMCP_SOCKET_ARGS	const uip_ipaddr_t *toaddr, uint16_t toport
 #include "net/uip.h"
 
@@ -275,7 +274,7 @@ extern cms_t smcp_get_timeout(smcp_t self);
 **	poll(), or other async mechanisms. */
 extern int smcp_get_fd(smcp_t self);
 
-#elif defined(CONTIKI)
+#elif SMCP_USE_UIP
 extern struct uip_udp_conn* smcp_get_udp_conn(smcp_t self);
 #endif
 
@@ -372,7 +371,7 @@ extern coap_content_type_t smcp_inbound_get_content_type();
 #if SMCP_USE_BSD_SOCKETS
 extern struct sockaddr* smcp_inbound_get_saddr();
 extern socklen_t smcp_inbound_get_socklen();
-#elif CONTIKI
+#elif SMCP_USE_UIP
 extern const uip_ipaddr_t* smcp_inbound_get_ipaddr();
 extern const uint16_t smcp_inbound_get_ipport();
 #endif
@@ -439,7 +438,7 @@ extern smcp_status_t smcp_outbound_set_destaddr(
 #if SMCP_USE_BSD_SOCKETS
 	struct sockaddr *sockaddr,
 	socklen_t socklen
-#elif defined(CONTIKI)
+#elif SMCP_USE_UIP
 	const uip_ipaddr_t *toaddr,
 	uint16_t toport
 #endif
@@ -518,7 +517,7 @@ struct smcp_async_response_s {
 	struct sockaddr_in6		saddr;
 	socklen_t				socklen;
 	struct in6_pktinfo		pktinfo;
-#elif CONTIKI
+#elif SMCP_USE_UIP
 	uip_ipaddr_t			toaddr;
 	uint16_t				toport;	// Always in network order.
 #endif
