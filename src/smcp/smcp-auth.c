@@ -40,6 +40,12 @@
 
 #include "assert-macros.h"
 
+#include "smcp.h"
+#include "smcp-internal.h"
+#include "smcp-helpers.h"
+#include "smcp-logging.h"
+#include "smcp-auth.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -47,24 +53,19 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "smcp-internal.h"
-#include "smcp-helpers.h"
-#include "smcp-logging.h"
-#include "smcp-auth.h"
-#include "smcp.h"
 #include "ll.h"
-#include "url-helpers.h"
+//#include "url-helpers.h"
 
-#if CONTIKI
-#include "contiki.h"
-#include "net/tcpip.h"
-#include "net/resolv.h"
-#endif
-
-#if SMCP_USE_UIP
-#include "net/uip-udp-packet.h"
-#include "net/uiplib.h"
-#endif
+//#if CONTIKI
+//#include "contiki.h"
+//#include "net/tcpip.h"
+//#include "net/resolv.h"
+//#endif
+//
+//#if SMCP_USE_UIP
+//#include "net/uip-udp-packet.h"
+//#include "net/uiplib.h"
+//#endif
 
 // COAP_OPTION_AUTHENTICATE
 
@@ -204,61 +205,55 @@ smcp_auth_get_cred(
 }
 
 smcp_status_t
-smcp_auth_verify_request() {
+smcp_auth_inbound_init() {
 	smcp_status_t ret = SMCP_STATUS_OK;
-	coap_option_key_t key;
-	const uint8_t* authvalue;
-	size_t authvalue_len;
 
-	// For testing purposes only!
-	if(smcp_inbound_get_code() >1 && smcp_inbound_get_code()<COAP_RESULT_100) {
-		ret = SMCP_STATUS_UNAUTHORIZED;
-	}
+	if (COAP_CODE_IS_REQUEST(smcp_inbound_get_code())) {
+		// REQUEST!
+		coap_option_key_t key;
+		const uint8_t* authvalue;
+		size_t authvalue_len;
 
-	smcp_inbound_reset_next_option();
+		// For testing purposes only!
+		if(smcp_inbound_get_code() >1 && smcp_inbound_get_code()<COAP_RESULT_100) {
+			ret = SMCP_STATUS_UNAUTHORIZED;
+		}
 
-	while((key = smcp_inbound_next_option(&authvalue,&authvalue_len))!=COAP_OPTION_INVALID) {
-		if(key==COAP_OPTION_PROXY_URI) {
-			// For testing purposes only!
+		smcp_inbound_reset_next_option();
+
+		while((key = smcp_inbound_next_option(&authvalue,&authvalue_len))!=COAP_OPTION_INVALID) {
+			if(key==COAP_OPTION_PROXY_URI) {
+				// For testing purposes only!
+				ret = SMCP_STATUS_OK;
+			}
+			if(key==COAP_OPTION_AUTHENTICATE) {
+				// For testing purposes only!
+				ret = SMCP_STATUS_OK;
+				// writeme!
+			}
+		}
+
+		if(smcp_inbound_origin_is_local()) {
 			ret = SMCP_STATUS_OK;
 		}
-		if(key==COAP_OPTION_AUTHENTICATE) {
-			// For testing purposes only!
-			ret = SMCP_STATUS_OK;
-			// writeme!
-		}
-	}
 
-	if(smcp_inbound_origin_is_local()) {
+		// For testing purposes only!
 		ret = SMCP_STATUS_OK;
-	}
 
-	ret = SMCP_STATUS_OK;
-
-	// For testing purposes only!
-	if(ret==SMCP_STATUS_UNAUTHORIZED) {
-		smcp_outbound_begin_response(COAP_RESULT_401_UNAUTHORIZED);
-		smcp_outbound_add_option(COAP_OPTION_AUTHENTICATE,NULL,0);
-		smcp_outbound_send();
+		if(ret == SMCP_STATUS_UNAUTHORIZED) {
+			smcp_outbound_begin_response(COAP_RESULT_401_UNAUTHORIZED);
+			smcp_outbound_add_option(COAP_OPTION_AUTHENTICATE,NULL,0);
+			smcp_outbound_send();
+		}
+	} else {
+		// RESPONSE!
 	}
 
 	return ret;
 }
 
 smcp_status_t
-smcp_auth_handle_response(smcp_transaction_t transaction) {
-	// TODO: Writeme!
-	return SMCP_STATUS_OK;
-}
-
-smcp_status_t
-smcp_auth_add_options() {
-	// TODO: Writeme!
-	return SMCP_STATUS_OK;
-}
-
-smcp_status_t
-smcp_auth_outbound_finish() {
+smcp_auth_outbound_finalize() {
 	// This method is for updating the response values in the authenticate
 	// header, if it needs to be updated for digest-auth-int.
 
@@ -270,18 +265,20 @@ smcp_auth_outbound_finish() {
 smcp_status_t
 smcp_auth_outbound_set_credentials(const char* username, const char* password) {
 	smcp_status_t ret = SMCP_STATUS_OK;
+	smcp_auth_user_t auth_user;
+
+	require(username, bail);
 
 	// TODO: Writeme!
-	smcp_auth_user_t auth_user = smcp_auth_get_remote_user(username);
+	auth_user = smcp_auth_get_remote_user(username);
 	//struct smcp_auth_nonce_s *auth_nonce;
 
 	if(!auth_user) {
-		require(username,bail);
 
 		// Just do something stupid for now.
 		ret = smcp_outbound_add_option(COAP_OPTION_AUTHENTICATE, NULL, 0);
 
-		require(password,bail);
+		require(password, bail);
 
 		auth_user = &global_temp_auth_user;
 
@@ -292,14 +289,35 @@ bail:
 	return ret;
 }
 
+smcp_status_t
+smcp_auth_outbound_init(void)
+{
+	return SMCP_STATUS_OK;
+}
+
+smcp_status_t
+smcp_auth_outbound_use_dtls()
+{
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+
+bool
+smcp_auth_outbound_is_using_dtls(void)
+{
+	// TODO: Writeme!
+	return false;
+}
+
 const char*
-smcp_auth_get_username() {
+smcp_auth_inbound_get_username()
+{
 	// TODO: Writeme!
 	return NULL;
 }
 
 smcp_status_t
-smcp_inbound_set_ext_auth(const char* cn, const char* mechanism) {
+smcp_inbound_set_ext_auth(const char* cn, const char* mechanism)
+{
 	// TODO: Writeme!
 	return SMCP_STATUS_OK;
 }

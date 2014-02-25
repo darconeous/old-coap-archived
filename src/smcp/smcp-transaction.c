@@ -549,7 +549,7 @@ smcp_handle_response() {
 		msg_id = handler->msg_id;
 
 		// Handle any authentication headers.
-		ret = smcp_auth_handle_response(handler);
+		ret = smcp_auth_inbound_init();
 		require_noerr(ret,bail);
 
 		smcp_inbound_reset_next_option();

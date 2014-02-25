@@ -35,6 +35,7 @@
 #include "smcp.h"
 #include "smcp-timer.h"
 #include "fasthash.h"
+#include "smcp-auth.h"
 
 #ifndef SMCP_FUNC_RANDOM_UINT32
 #if defined(__APPLE__)
@@ -135,6 +136,11 @@ struct smcp_s {
 		uip_ipaddr_t			toaddr;
 		uint16_t				toport;	//!^ Always in network order.
 #endif
+
+#if SMCP_USE_EXPERIMENTAL_DIGEST_AUTH
+		struct smcp_auth_inbound_s     auth;
+#endif
+
 	} inbound;
 
 	//! Outbound packet variables.
@@ -148,11 +154,20 @@ struct smcp_s {
 
 		coap_option_key_t		last_option_key;
 
+#if SMCP_DTLS
+		bool					use_dtls;
+#endif
+
 #if SMCP_USE_BSD_SOCKETS
 		char					packet_bytes[SMCP_MAX_PACKET_LENGTH+1];
 		struct sockaddr_in6		saddr;
 		socklen_t				socklen;
 #endif
+
+#if SMCP_USE_EXPERIMENTAL_DIGEST_AUTH
+		struct smcp_auth_outbound_s	auth;
+#endif
+
 	} outbound;
 
 	struct {

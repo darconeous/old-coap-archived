@@ -42,7 +42,6 @@
 
 #include "assert-macros.h"
 
-#include "smcp-opts.h"
 #include "smcp.h"
 #include "url-helpers.h"
 #include "smcp-logging.h"

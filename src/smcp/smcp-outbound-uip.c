@@ -40,15 +40,10 @@
 extern uint16_t uip_slen;
 
 smcp_status_t
-smcp_outbound_send() {
+smcp_outbound_send_hook() {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	smcp_t const self = smcp_get_current_instance();
 	size_t header_len;
-
-	if(self->outbound.packet->code) {
-		ret = smcp_auth_outbound_finish();
-		require_noerr(ret,bail);
-	}
 
 	header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 
@@ -73,23 +68,6 @@ smcp_outbound_send() {
 			self->outbound.packet,
 			header_len+smcp_get_current_instance()->outbound.content_len
 		);
-	}
-#endif
-
-	assert(coap_verify_packet((char*)self->outbound.packet,header_len+smcp_get_current_instance()->outbound.content_len));
-
-	if(self->current_transaction)
-		self->current_transaction->sent_code = self->outbound.packet->code;
-
-#if defined(SMCP_DEBUG_OUTBOUND_DROP_PERCENT)
-	if(SMCP_DEBUG_OUTBOUND_DROP_PERCENT*SMCP_RANDOM_MAX>SMCP_FUNC_RANDOM_UINT32()) {
-		DEBUG_PRINTF("Dropping outbound packet for debugging!");
-		if(smcp_get_current_instance()->is_responding)
-			smcp_get_current_instance()->did_respond = true;
-		smcp_get_current_instance()->is_responding = false;
-
-		ret = SMCP_STATUS_OK;
-		goto bail;
 	}
 #endif
 
@@ -119,11 +97,18 @@ smcp_outbound_send() {
 	memset(&smcp_get_current_instance()->udp_conn->ripaddr, 0, sizeof(uip_ipaddr_t));
 	smcp_get_current_instance()->udp_conn->rport = 0;
 
-	if(smcp_get_current_instance()->is_responding)
-		smcp_get_current_instance()->did_respond = true;
-	smcp_get_current_instance()->is_responding = false;
-
 	ret = SMCP_STATUS_OK;
+bail:
+	return ret;
+}
+
+smcp_status_t
+smcp_outbound_send_secure_hook() {
+	smcp_status_t ret = SMCP_STATUS_FAILURE;
+
+	// DTLS support not yet implemeted.
+	ret = SMCP_STATUS_NOT_IMPLEMENTED;
+
 bail:
 	return ret;
 }

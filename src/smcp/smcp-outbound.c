@@ -154,6 +154,8 @@ smcp_outbound_begin(
 	self->force_current_outbound_code = false;
 	self->is_responding = false;
 
+	smcp_auth_outbound_init();
+
 	return SMCP_STATUS_OK;
 }
 
@@ -358,12 +360,6 @@ smcp_outbound_add_options_up_to_key_(
 	}
 #endif
 
-	if(	self->outbound.last_option_key<COAP_OPTION_AUTHENTICATE
-		&& key>COAP_OPTION_AUTHENTICATE
-	) {
-		ret = smcp_auth_add_options();
-	}
-
 #if SMCP_USE_CASCADE_COUNT
 	if(	self->outbound.last_option_key<COAP_OPTION_CASCADE_COUNT
 		&& key>COAP_OPTION_CASCADE_COUNT
@@ -516,6 +512,7 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
 
 #if SMCP_CONF_USE_DNS
+#if CONTIKI
 	if(ret) {
 		SMCP_NON_RECURSIVE uip_ipaddr_t *temp = NULL;
 		switch(resolv_lookup(addr_str,&temp)) {
@@ -536,6 +533,9 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 				break;
 		}
 	}
+#else // CONTIKI
+#error SMCP_CONF_USE_DNS was set, but no DNS lookup mechamism is known!
+#endif
 #endif // SMCP_CONF_USE_DNS
 
 	require_noerr(ret,bail);
@@ -612,10 +612,15 @@ smcp_outbound_set_uri(
 	}
 
 	if(components.protocol) {
+#if SMCP_DTLS
 		if(strequal_const(components.protocol, "coaps")) {
 			// There is a lot more that is needed for this to work...
 			toport = COAP_DEFAULT_TLSPORT;
-		} else if(!strequal_const(components.protocol, "coap")) {
+
+			require_noerr(ret = smcp_auth_outbound_use_dtls(), bail);
+		} else
+#endif
+		if(!strequal_const(components.protocol, "coap")) {
 			require_action_string(
 				self->proxy_url,
 				bail,
@@ -823,4 +828,61 @@ smcp_outbound_quick_response(coap_code_t code, const char* body) {
 	if(body)
 		smcp_outbound_append_content(body, SMCP_CSTR_LEN);
 	return smcp_outbound_send();
+}
+
+smcp_status_t
+smcp_outbound_send() {
+	smcp_status_t ret = SMCP_STATUS_FAILURE;
+	smcp_t const self = smcp_get_current_instance();
+
+	if(self->outbound.packet->code) {
+		ret = smcp_auth_outbound_finalize();
+		require_noerr(ret,bail);
+	}
+
+#if DEBUG
+	{
+		size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
+
+		// Remove the start-of-payload marker if we have no payload.
+		if(!smcp_get_current_instance()->outbound.content_len)
+			header_len--;
+
+		assert(coap_verify_packet((char*)self->outbound.packet,header_len+smcp_get_current_instance()->outbound.content_len));
+	}
+#endif // DEBUG
+
+	if(self->current_transaction)
+		self->current_transaction->sent_code = self->outbound.packet->code;
+
+#if defined(SMCP_DEBUG_OUTBOUND_DROP_PERCENT)
+	if(SMCP_DEBUG_OUTBOUND_DROP_PERCENT*SMCP_RANDOM_MAX>SMCP_FUNC_RANDOM_UINT32()) {
+		DEBUG_PRINTF("Dropping outbound packet for debugging!");
+		if(smcp_get_current_instance()->is_responding)
+			smcp_get_current_instance()->did_respond = true;
+		smcp_get_current_instance()->is_responding = false;
+
+		ret = SMCP_STATUS_OK;
+		goto bail;
+	}
+#endif
+
+#if SMCP_DTLS
+	if(smcp_auth_outbound_is_using_dtls()) {
+		extern smcp_status_t smcp_outbound_send_secure_hook();
+		require((ret = smcp_outbound_send_secure_hook()) == 0, bail);
+	} else
+#endif
+	{
+		extern smcp_status_t smcp_outbound_send_hook();
+		require((ret = smcp_outbound_send_hook()) == 0, bail);
+	}
+
+	if(smcp_get_current_instance()->is_responding)
+		smcp_get_current_instance()->did_respond = true;
+	smcp_get_current_instance()->is_responding = false;
+
+	ret = SMCP_STATUS_OK;
+bail:
+	return ret;
 }

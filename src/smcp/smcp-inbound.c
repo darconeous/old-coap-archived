@@ -612,7 +612,7 @@ smcp_handle_request() {
 	// TODO: Add proxy-server handler.
 
 	// Authenticate the request.
-	ret = smcp_auth_verify_request();
+	ret = smcp_auth_inbound_init();
 	require_noerr(ret,bail);
 
 #if SMCP_CONF_ENABLE_VHOSTS

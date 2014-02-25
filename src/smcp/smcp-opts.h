@@ -234,6 +234,14 @@
 #define SMCP_VARIABLE_MAX_KEY_LENGTH		(23)
 #endif
 
+#ifndef SMCP_DTLS
+#define SMCP_DTLS							(1)
+#endif
+
+#ifndef SMCP_USE_EXPERIMENTAL_DIGEST_AUTH
+#define SMCP_USE_EXPERIMENTAL_DIGEST_AUTH	(1)
+#endif
+
 /*****************************************************************************/
 #pragma mark - SMCP Compiler Stuff
 

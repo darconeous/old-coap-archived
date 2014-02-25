@@ -31,7 +31,6 @@
 #define __SMCP_AUTH_H__ 1
 
 #include "smcp.h"
-#include "smcp-internal.h"
 
 __BEGIN_DECLS
 
@@ -52,31 +51,34 @@ __BEGIN_DECLS
 #define SMCP_AUTH_CRED_PASSWORD		(1)
 #define SMCP_AUTH_CRED_DIGEST_HA1	(2)
 
-extern smcp_status_t smcp_auth_verify_request();
+#define SMCP_AUTH_MECH_NONE			(1<<0)
+#define SMCP_AUTH_MECH_DIGEST		(1<<1)
+#define SMCP_AUTH_MECH_DTLS			(1<<2)
+#define SMCP_AUTH_MECH_ANY			(0xFF)
 
-extern smcp_status_t smcp_auth_add_options();
+typedef uint8_t smcp_auth_mech_t;
 
-extern smcp_status_t smcp_auth_outbound_set_credentials(const char* username, const char* password);
+#if SMCP_USE_EXPERIMENTAL_DIGEST_AUTH
+struct smcp_auth_outbound_s {
+};
 
-extern smcp_status_t smcp_auth_outbound_finish();
+struct smcp_auth_inbound_s {
+	smcp_auth_mech_t mech;
+	const char cn[64];
+};
 
-extern smcp_status_t smcp_auth_handle_response(smcp_transaction_t transaction);
+struct smcp_auth_transaction_s {
+	smcp_auth_mech_t mech;
+	const char* cn;
+};
+#endif
 
-extern const char* smcp_auth_get_username();
+//////////////////////////////////////////////////
+// Inbound Methods
 
-extern smcp_status_t smcp_auth_get_cred(
-	const char* realm,
-	const char* url,
-	int key,
-	uint8_t* value,
-	size_t value_size
-);
+extern smcp_status_t smcp_auth_inbound_init(void);
 
-/*!	@} */
-
-/*!	@addtogroup smcp-net
-**	@{
-*/
+extern const char* smcp_auth_inbound_get_username(void);
 
 //! Describes external authentication (e.g. DTLS)
 /*!	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet().
@@ -85,6 +87,34 @@ extern smcp_status_t smcp_inbound_set_ext_auth(
 	const char* cn,			//!< Common Name
 	const char* mechanism	//!< Authentication Mechanism
 );
+
+//////////////////////////////////////////////////
+// Outbound Methods
+
+extern smcp_status_t smcp_auth_outbound_init(void);
+
+extern smcp_status_t smcp_auth_outbound_finalize(void);
+
+extern smcp_status_t smcp_auth_outbound_use_dtls();
+
+extern bool smcp_auth_outbound_is_using_dtls(void);
+
+extern smcp_status_t smcp_auth_outbound_set_credentials(const char* username, const char* password);
+
+//extern smcp_status_t smcp_auth_get_cred(
+//	const char* realm,
+//	const char* host,
+//	const char* path,
+//	int key,
+//	uint8_t* value,
+//	size_t value_size
+//);
+
+/*!	@} */
+
+/*!	@addtogroup smcp-net
+**	@{
+*/
 
 /*!	@} */
 
