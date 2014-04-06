@@ -100,20 +100,20 @@
 		A690629B16B6EA6E00A98B2C /* smcp_plugtest_server.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = A6290E4F16767091008914FD /* smcp_plugtest_server.1 */; };
 		A69062A216B6EA7B00A98B2C /* example-4.c in Sources */ = {isa = PBXBuildFile; fileRef = A690627D16B6E58E00A98B2C /* example-4.c */; };
 		A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A27BA2127B934F003708DF /* cmd_delete.c */; };
-		A6C04B0018AC175700DCE0CC /* smcp-outbound-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-outbound-uip.c */; };
-		A6C04B0118AC175700DCE0CC /* smcp-outbound-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-outbound-uip.c */; };
-		A6C04B0218AC175700DCE0CC /* smcp-outbound-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-outbound-uip.c */; };
-		A6C04B0318AC175700DCE0CC /* smcp-outbound-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-outbound-uip.c */; };
-		A6C04B0418AC175700DCE0CC /* smcp-outbound-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-outbound-uip.c */; };
-		A6C04B0518AC175700DCE0CC /* smcp-outbound-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-outbound-uip.c */; };
-		A6C04B0618AC175700DCE0CC /* smcp-outbound-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-outbound-uip.c */; };
-		A6C04B0818AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-outbound-bsd.c */; };
-		A6C04B0918AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-outbound-bsd.c */; };
-		A6C04B0A18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-outbound-bsd.c */; };
-		A6C04B0B18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-outbound-bsd.c */; };
-		A6C04B0C18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-outbound-bsd.c */; };
-		A6C04B0D18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-outbound-bsd.c */; };
-		A6C04B0E18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-outbound-bsd.c */; };
+		A6C04B0018AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
+		A6C04B0118AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
+		A6C04B0218AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
+		A6C04B0318AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
+		A6C04B0418AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
+		A6C04B0518AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
+		A6C04B0618AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
+		A6C04B0818AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
+		A6C04B0918AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
+		A6C04B0A18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
+		A6C04B0B18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
+		A6C04B0C18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
+		A6C04B0D18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
+		A6C04B0E18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
 		A6CD69621283466B00254A8B /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E21278B16D00B24867 /* btree.c */; };
 		A6DB61FA16AF190B00D7248E /* smcp-observable.c in Sources */ = {isa = PBXBuildFile; fileRef = A6DB61F916AF190A00D7248E /* smcp-observable.c */; };
 		A6DB61FB16AF190F00D7248E /* smcp-observable.c in Sources */ = {isa = PBXBuildFile; fileRef = A6DB61F916AF190A00D7248E /* smcp-observable.c */; };
@@ -310,8 +310,8 @@
 		A6BE9A3E164CC86B00473330 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; name = smcpctl.1; path = docs/smcpctl.1; sourceTree = "<group>"; };
 		A6BE9A40164CC87F00473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = docs/Makefile.am; sourceTree = "<group>"; };
 		A6BE9A41164CD28A00473330 /* smcpd.conf.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = smcpd.conf.in; sourceTree = "<group>"; };
-		A6C04AFF18AC175700DCE0CC /* smcp-outbound-uip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-outbound-uip.c"; path = "src/smcp/smcp-outbound-uip.c"; sourceTree = "<group>"; };
-		A6C04B0718AC178000DCE0CC /* smcp-outbound-bsd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-outbound-bsd.c"; path = "src/smcp/smcp-outbound-bsd.c"; sourceTree = "<group>"; };
+		A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-plat-uip.c"; path = "src/smcp/smcp-plat-uip.c"; sourceTree = "<group>"; };
+		A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-plat-bsd.c"; path = "src/smcp/smcp-plat-bsd.c"; sourceTree = "<group>"; };
 		A6CD695D1283463900254A8B /* btreetest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = btreetest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6D0C8C21661CC3C00E9F440 /* cgi-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "cgi-node.c"; sourceTree = "<group>"; };
 		A6DB61F816AF131800D7248E /* smcp-observable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-observable.h"; path = "src/smcp/smcp-observable.h"; sourceTree = "<group>"; };
@@ -434,8 +434,8 @@
 				A64F2AF8166EB236001D9878 /* smcp-transaction.c */,
 				A613E80216C065FE00C5711D /* smcp-inbound.c */,
 				A6F536F2155F255000E0E324 /* smcp-outbound.c */,
-				A6C04AFF18AC175700DCE0CC /* smcp-outbound-uip.c */,
-				A6C04B0718AC178000DCE0CC /* smcp-outbound-bsd.c */,
+				A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */,
+				A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */,
 				A6DB61F816AF131800D7248E /* smcp-observable.h */,
 				A6DB61F916AF190A00D7248E /* smcp-observable.c */,
 				A686D69C16557F3100B14B54 /* smcp-auth.h */,
@@ -876,7 +876,7 @@
 				A63EA6DD1278B13800B24867 /* cmd_post.c in Sources */,
 				A63EA6DF1278B13800B24867 /* help.c in Sources */,
 				A63EA6E01278B13800B24867 /* main.c in Sources */,
-				A6C04B0018AC175700DCE0CC /* smcp-outbound-uip.c in Sources */,
+				A6C04B0018AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A63EA6F91278B16D00B24867 /* btree.c in Sources */,
 				A63EA6FA1278B16D00B24867 /* coap.c in Sources */,
 				A63EA6FB1278B16D00B24867 /* smcp-node-router.c in Sources */,
@@ -888,7 +888,7 @@
 				A6F536F3155F255000E0E324 /* smcp-outbound.c in Sources */,
 				A6F536F81561B7A600E0E324 /* smcp-list.c in Sources */,
 				A686D69E16557F3100B14B54 /* smcp-auth.c in Sources */,
-				A6C04B0818AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */,
+				A6C04B0818AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A64F2AF9166EB236001D9878 /* smcp-transaction.c in Sources */,
 				A6F358941687909100F72DF3 /* fasthash.c in Sources */,
 				A6DB61FA16AF190B00D7248E /* smcp-observable.c in Sources */,
@@ -906,12 +906,12 @@
 				A6181DE416B4637700655F4F /* smcp-transaction.c in Sources */,
 				A6181DE516B4637700655F4F /* smcp.c in Sources */,
 				A6181DE616B4637700655F4F /* smcp-list.c in Sources */,
-				A6C04B0318AC175700DCE0CC /* smcp-outbound-uip.c in Sources */,
+				A6C04B0318AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A6181DE716B4637700655F4F /* smcp-outbound.c in Sources */,
 				A6181DE816B4637700655F4F /* coap.c in Sources */,
 				A6181DE916B4637700655F4F /* smcp-auth.c in Sources */,
 				A6181DEA16B4637700655F4F /* smcp-node-router.c in Sources */,
-				A6C04B0B18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */,
+				A6C04B0B18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A6181DEB16B4637700655F4F /* smcp-timer.c in Sources */,
 				A6181DEC16B4637700655F4F /* fasthash.c in Sources */,
 				A6181DED16B4637700655F4F /* smcp-observable.c in Sources */,
@@ -932,11 +932,11 @@
 				A6290E5B167670F8008914FD /* smcp-outbound.c in Sources */,
 				A6290E5C167670F8008914FD /* coap.c in Sources */,
 				A6290E5D167670F8008914FD /* smcp-auth.c in Sources */,
-				A6C04B0918AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */,
+				A6C04B0918AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A6290E5E167670F8008914FD /* smcp-node-router.c in Sources */,
 				A6290E5F167670F8008914FD /* smcp-timer.c in Sources */,
 				A6F358951687909100F72DF3 /* fasthash.c in Sources */,
-				A6C04B0118AC175700DCE0CC /* smcp-outbound-uip.c in Sources */,
+				A6C04B0118AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A6DB61FB16AF190F00D7248E /* smcp-observable.c in Sources */,
 				A6DB621116AF9A9200D7248E /* smcp-variable_node.c in Sources */,
 				A6181DF816B4662200655F4F /* main-server.c in Sources */,
@@ -954,12 +954,12 @@
 				A690624E16B6E43B00A98B2C /* smcp-transaction.c in Sources */,
 				A690624F16B6E43B00A98B2C /* smcp.c in Sources */,
 				A690625016B6E43B00A98B2C /* smcp-list.c in Sources */,
-				A6C04B0418AC175700DCE0CC /* smcp-outbound-uip.c in Sources */,
+				A6C04B0418AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A690625116B6E43B00A98B2C /* smcp-outbound.c in Sources */,
 				A690625216B6E43B00A98B2C /* coap.c in Sources */,
 				A690625316B6E43B00A98B2C /* smcp-auth.c in Sources */,
 				A690625416B6E43B00A98B2C /* smcp-node-router.c in Sources */,
-				A6C04B0C18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */,
+				A6C04B0C18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A690625516B6E43B00A98B2C /* smcp-timer.c in Sources */,
 				A690625616B6E43B00A98B2C /* fasthash.c in Sources */,
 				A690625716B6E43B00A98B2C /* smcp-observable.c in Sources */,
@@ -977,12 +977,12 @@
 				A690626716B6E44000A98B2C /* smcp-transaction.c in Sources */,
 				A690626816B6E44000A98B2C /* smcp.c in Sources */,
 				A690626916B6E44000A98B2C /* smcp-list.c in Sources */,
-				A6C04B0518AC175700DCE0CC /* smcp-outbound-uip.c in Sources */,
+				A6C04B0518AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A690626A16B6E44000A98B2C /* smcp-outbound.c in Sources */,
 				A690626B16B6E44000A98B2C /* coap.c in Sources */,
 				A690626C16B6E44000A98B2C /* smcp-auth.c in Sources */,
 				A690626D16B6E44000A98B2C /* smcp-node-router.c in Sources */,
-				A6C04B0D18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */,
+				A6C04B0D18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A690626E16B6E44000A98B2C /* smcp-timer.c in Sources */,
 				A690626F16B6E44000A98B2C /* fasthash.c in Sources */,
 				A690627016B6E44000A98B2C /* smcp-observable.c in Sources */,
@@ -1000,12 +1000,12 @@
 				A690628D16B6EA6E00A98B2C /* smcp-transaction.c in Sources */,
 				A690628E16B6EA6E00A98B2C /* smcp.c in Sources */,
 				A690628F16B6EA6E00A98B2C /* smcp-list.c in Sources */,
-				A6C04B0618AC175700DCE0CC /* smcp-outbound-uip.c in Sources */,
+				A6C04B0618AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A690629016B6EA6E00A98B2C /* smcp-outbound.c in Sources */,
 				A690629116B6EA6E00A98B2C /* coap.c in Sources */,
 				A690629216B6EA6E00A98B2C /* smcp-auth.c in Sources */,
 				A690629316B6EA6E00A98B2C /* smcp-node-router.c in Sources */,
-				A6C04B0E18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */,
+				A6C04B0E18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A690629416B6EA6E00A98B2C /* smcp-timer.c in Sources */,
 				A690629516B6EA6E00A98B2C /* fasthash.c in Sources */,
 				A690629616B6EA6E00A98B2C /* smcp-observable.c in Sources */,
@@ -1031,12 +1031,12 @@
 				A6F3594E168A5CED00F72DF3 /* url-helpers.c in Sources */,
 				A6F3594F168A5CED00F72DF3 /* fasthash.c in Sources */,
 				A6F35950168A5CED00F72DF3 /* smcp-transaction.c in Sources */,
-				A6C04B0218AC175700DCE0CC /* smcp-outbound-uip.c in Sources */,
+				A6C04B0218AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A6F35951168A5CED00F72DF3 /* smcp.c in Sources */,
 				A6F35952168A5CED00F72DF3 /* smcp-list.c in Sources */,
 				A6F35953168A5CED00F72DF3 /* smcp-outbound.c in Sources */,
 				A6F35954168A5CED00F72DF3 /* coap.c in Sources */,
-				A6C04B0A18AC178000DCE0CC /* smcp-outbound-bsd.c in Sources */,
+				A6C04B0A18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A6F35955168A5CED00F72DF3 /* smcp-auth.c in Sources */,
 				A6F35956168A5CED00F72DF3 /* smcp-node-router.c in Sources */,
 				A6F35957168A5CED00F72DF3 /* smcp-timer.c in Sources */,

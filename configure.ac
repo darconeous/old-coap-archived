@@ -155,6 +155,9 @@ AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
 AC_CONFIG_FILES(Makefile src/smcpd/smcpd.conf doxygen.cfg src/Makefile docs/Makefile src/plugtest/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile src/examples/Makefile)
 AC_OUTPUT
 
-$HAVE_LIBREADLINE || echo "warning: libreadline was disabled or not found, interactive smcpctl command line interface will not be enabled."
-$HAVE_LIBDL || echo "warning: libdl was disabled or not found, smcpd will not be built."
+$HAVE_LIBREADLINE ||
+	echo "warning: libreadline was disabled or not found, interactive smcpctl command line interface will not be enabled."
+
+$HAVE_LIBDL ||
+	echo "warning: libdl was disabled or not found, smcpd will not be built."
 

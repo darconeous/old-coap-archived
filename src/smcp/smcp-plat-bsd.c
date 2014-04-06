@@ -1,5 +1,5 @@
 //
-//  smcp-outbound-bsd.c
+//  smcp-plat-bsd.c
 //  SMCP
 //
 //  Created by Robert Quattlebaum on 2/12/14.
