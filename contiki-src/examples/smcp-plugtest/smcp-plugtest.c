@@ -1,7 +1,7 @@
 
 #include "smcp-task.h"
 #include "watchdog.h"
-#include "net/resolv.h"
+#include "net/ip/resolv.h"
 
 #include <smcp/smcp.h>
 #include <smcp/smcp-node-router.h>

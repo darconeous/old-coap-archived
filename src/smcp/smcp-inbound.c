@@ -53,8 +53,8 @@
 
 #if CONTIKI
 #include "contiki.h"
-#include "net/tcpip.h"
-#include "net/resolv.h"
+#include "net/ip/tcpip.h"
+#include "net/ip/resolv.h"
 #endif // CONTIKI
 
 #if SMCP_USE_BSD_SOCKETS
@@ -68,12 +68,12 @@
 #endif // SMCP_USE_BSD_SOCKETS
 
 #if SMCP_USE_UIP
-#include "net/uip.h"
-#include "net/uip-udp-packet.h"
-#include "net/uiplib.h"
+#include "net/ip/uip.h"
+#include "net/ip/uip-udp-packet.h"
+#include "net/ip/uiplib.h"
 extern uint16_t uip_slen;
 #if UIP_CONF_IPV6
-#include "net/uip-ds6.h"
+#include "net/ipv6/uip-ds6.h"
 #endif // UIP_CONF_IPV6
 #ifndef uip_is_addr_mcast
 #define uip_is_addr_mcast(a) (1==0) /* If this isn't defined, just ignore it */

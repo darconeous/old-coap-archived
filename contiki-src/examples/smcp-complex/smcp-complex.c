@@ -1,7 +1,7 @@
 
 #include "smcp-task.h"
 #include "watchdog.h"
-#include "net/resolv.h"
+#include "net/ip/resolv.h"
 #if WEBSERVER
 #include "webserver-nogui.h"
 #endif
@@ -198,8 +198,8 @@ create_beep_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 //////////////////////////////////
 // RPL NODE
 
-#if UIP_CONF_IPV6_RPL
-#include "net/uip-ds6.h"
+#if 0 && UIP_CONF_IPV6_RPL
+#include "net/ipv6/uip-ds6.h"
 #include "rpl.h"
 extern uip_ds6_nbr_t uip_ds6_nbr_cache[];
 extern uip_ds6_route_t uip_ds6_routing_table[];
@@ -387,7 +387,7 @@ PROCESS_THREAD(smcp_simple, ev, data)
 	);
 #endif // RESOLV_CONF_MDNS_RESPONDER
 
-#if UIP_CONF_IPV6_RPL
+#if 0 && UIP_CONF_IPV6_RPL
 	// Create the "hostname" node.
 	create_rpl_node(
 		&rpl_node,

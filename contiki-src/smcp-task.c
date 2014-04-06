@@ -35,8 +35,8 @@
 
 #include "smcp-task.h"
 
-#include "net/uip.h"
-#include "net/uip-udp-packet.h"
+#include "net/ip/uip.h"
+#include "net/ip/uip-udp-packet.h"
 #include "sys/clock.h"
 #include "watchdog.h"
 

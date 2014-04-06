@@ -29,14 +29,14 @@
 
 #if CONTIKI
 #include "contiki.h"
-#include "net/tcpip.h"
+#include "net/ip/tcpip.h"
 #endif
 
 #include <stdio.h>
 
 #if SMCP_USE_UIP
-#include "net/uip-udp-packet.h"
-#include "net/uiplib.h"
+#include "net/ip/uip-udp-packet.h"
+#include "net/ip/uiplib.h"
 extern uint16_t uip_slen;
 
 smcp_status_t

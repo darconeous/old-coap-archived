@@ -44,7 +44,7 @@
 #include "smcp-helpers.h"
 
 #if SMCP_USE_UIP
-#include "net/uip.h"
+#include "net/ip/uip.h"
 #define htons(x)    uip_htons(x)
 #define ntohs(x)    uip_ntohs(x)
 #endif

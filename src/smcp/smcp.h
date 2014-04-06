@@ -93,7 +93,7 @@
 
 #elif SMCP_USE_UIP
 #define SMCP_SOCKET_ARGS	const uip_ipaddr_t *toaddr, uint16_t toport
-#include "net/uip.h"
+#include "net/ip/uip.h"
 
 #endif
 

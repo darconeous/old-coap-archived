@@ -1,6 +1,6 @@
 
 #include "smcp-task.h"
-#include "net/resolv.h"
+#include "net/ip/resolv.h"
 #include <smcp/smcp.h>
 
 PROCESS_NAME(smcp_simple);

@@ -30,8 +30,8 @@ endif
 CFLAGS += -DUIP_UDP_SEND_UNREACH_NOPORT=1
 
 CFLAGS += -I$(SMCP_ROOT)/src
-APPDIRS += $(SMCP_ROOT)/src
-APPDIRS += $(SMCP_ROOT)/src/smcp
+PROJECTDIRS += $(SMCP_ROOT)/src
+PROJECTDIRS += $(SMCP_ROOT)/src/smcp
 
 CFLAGS += -I$(SMCP_ROOT)/contiki-src
-APPDIRS += $(SMCP_ROOT)/contiki-src
+PROJECTDIRS += $(SMCP_ROOT)/contiki-src

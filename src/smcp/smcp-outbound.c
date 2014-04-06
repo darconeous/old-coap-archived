@@ -52,13 +52,13 @@
 
 #if CONTIKI
 #include "contiki.h"
-#include "net/tcpip.h"
-#include "net/resolv.h"
+#include "net/ip/tcpip.h"
+#include "net/ip/resolv.h"
 #endif
 
 #if SMCP_USE_UIP
-#include "net/uip-udp-packet.h"
-#include "net/uiplib.h"
+#include "net/ip/uip-udp-packet.h"
+#include "net/ip/uiplib.h"
 extern uint16_t uip_slen;
 #endif
 
