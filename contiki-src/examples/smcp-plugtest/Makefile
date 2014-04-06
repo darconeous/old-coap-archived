@@ -17,7 +17,7 @@ SMCP_CONF_NODE_ROUTER = 1
 include $(SMCP_ROOT)/contiki-src/Makefile.smcp
 
 CONTIKI_SOURCEFILES += plugtest-server.c
-APPDIRS += $(SMCP_ROOT)/src/plugtest
+PROJECTDIRS += $(SMCP_ROOT)/src/plugtest
 
 ifeq ($(TARGET),avr-raven)
 #APPS += raven-webserver

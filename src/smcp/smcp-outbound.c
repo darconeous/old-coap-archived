@@ -33,7 +33,7 @@
 #define __APPLE_USE_RFC_3542 1
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 0
+#define VERBOSE_DEBUG 1
 #endif
 
 #ifndef DEBUG
@@ -124,6 +124,13 @@ smcp_outbound_begin(
 		// Fix the alignment for 32-bit platforms.
 		self->outbound.packet = (struct coap_header_s*)((uintptr_t)(self->outbound.packet+8)&~(uintptr_t)0x7);
 	}
+
+	if(&self->outbound.packet[4]>&uip_buf[UIP_BUFSIZE]) {
+		DEBUG_PRINTF("Not enough space to preserve inbound message!");
+		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+		return SMCP_STATUS_MESSAGE_TOO_BIG;
+	}
+
 #endif
 
 	self->outbound.packet->tt = tt;

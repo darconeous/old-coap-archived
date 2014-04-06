@@ -13,7 +13,7 @@
 #define __APPLE_USE_RFC_3542 1
 
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 0
+#define VERBOSE_DEBUG 1
 #endif
 
 #ifndef DEBUG
@@ -73,7 +73,15 @@ smcp_outbound_send_hook() {
 
 	uip_slen = header_len +	smcp_get_current_instance()->outbound.content_len;
 
-	if(self->outbound.packet!=(struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN]) {
+	require_action(uip_slen>UIP_BUFSIZE, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
+
+	if (self->outbound.packet!=(struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN]) {
+		printf("to: %p\nfrom: %p\nlen: %d\n",
+			&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN],
+			(char*)self->outbound.packet,
+			uip_slen
+		);
+		printf("UIP_BUFSIZE = %d\n",UIP_BUFSIZE);
 		memmove(
 			&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN],
 			(char*)self->outbound.packet,

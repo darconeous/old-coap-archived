@@ -12,7 +12,7 @@ script:
     - "git checkout 1d69099"
     - "cd .."
     - "cd contiki-src/examples/smcp-plugtest"
-    - "make TARGET=minimal-net UIP_CONF_IPV6=1 CONTIKI=../../../contiki || exit $?"
+    - "make TARGET=minimal-net CONTIKI=../../../contiki || exit $?"
     - "cd ../smcp-simple"
     - "make TARGET=minimal-net CONTIKI=../../../contiki || exit $?"
     - "cd ../smcp-complex"
