@@ -101,7 +101,7 @@ processes_request_handler(
 		struct process* iter;
 		int size=0;
 		char* content;
-		size_t content_len=0;
+		coap_size_t content_len=0;
 
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		if(ret) goto bail;
@@ -216,7 +216,7 @@ rpl_request_handler(
 	if(method==COAP_METHOD_GET) {
 		int size=0,i,j;
 		char* content;
-		size_t content_len=0;
+		coap_size_t content_len=0;
 
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		if(ret) goto bail;
@@ -292,7 +292,7 @@ create_rpl_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 //////////////////////////////////
 // HOSTNAME NODE
-#if RESOLV_CONF_MDNS_RESPONDER
+#if RESOLV_CONF_SUPPORTS_MDNS
 smcp_status_t
 hostname_request_handler(
 	smcp_node_t		node
@@ -326,7 +326,7 @@ create_hostname_node(smcp_node_t node,smcp_node_t parent,const char* name) {
 
 	return node;
 }
-#endif // #if RESOLV_CONF_MDNS_RESPONDER
+#endif // #if RESOLV_CONF_SUPPORTS_MDNS
 
 //////////////////////////////////
 // MAIN THREAD
@@ -379,7 +379,7 @@ PROCESS_THREAD(smcp_simple, ev, data)
 		"beep"
 	);
 
-#if RESOLV_CONF_MDNS_RESPONDER
+#if RESOLV_CONF_SUPPORTS_MDNS
 	// Create the "hostname" node.
 	create_hostname_node(
 		&hostname_node,

@@ -50,8 +50,8 @@
 #endif
 
 uint8_t*
-coap_decode_option(const uint8_t* buffer, coap_option_key_t* key, const uint8_t** value, size_t* lenP) {
-	uint16_t len;
+coap_decode_option(const uint8_t* buffer, coap_option_key_t* key, const uint8_t** value, coap_size_t* lenP) {
+	coap_size_t len;
 
 again:
 
@@ -122,7 +122,7 @@ coap_encode_option(
 	coap_option_key_t prev_key,
 	coap_option_key_t key,
 	const uint8_t* value,
-	size_t len
+	coap_size_t len
 ) {
 	uint8_t value_offset = 1;
 	uint16_t option_delta = key - prev_key;
@@ -168,14 +168,14 @@ coap_encode_option(
 	return buffer;
 }
 
-size_t coap_insert_option(
+coap_size_t coap_insert_option(
 	uint8_t* start_of_options,
 	uint8_t* end_of_options,
 	coap_option_key_t key,
 	const uint8_t* value,
-	size_t len
+	coap_size_t len
 ) {
-	size_t size_diff = 0;
+	coap_size_t size_diff = 0;
 	uint8_t* iter = start_of_options;
 	uint8_t* insertion_point = start_of_options;
 	coap_option_key_t prev_key = 0;
@@ -198,7 +198,7 @@ size_t coap_insert_option(
 
 	if(iter && ((iter_key > key) || (iter < end_of_options))) {
 		const uint8_t* next_value=NULL;
-		size_t next_len=0;
+		coap_size_t next_len=0;
 
 		size_diff += len + 1;
 		if(len>=13)
@@ -250,8 +250,8 @@ bool
 coap_option_strequal(const char* optionptr,const char* cstr) {
 	// TODO: This looks easily optimizable.
 	const char* value;
-	size_t value_len;
-	size_t i;
+	coap_size_t value_len;
+	coap_size_t i;
 	if(!coap_decode_option((const uint8_t*)optionptr, NULL, (const uint8_t**)&value, &value_len))
 		return false;
 
@@ -271,7 +271,7 @@ coap_decode_block(struct coap_block_info_s* block_info, uint32_t block)
 }
 
 bool
-coap_verify_packet(const char* packet,uint16_t packet_size) {
+coap_verify_packet(const char* packet,coap_size_t packet_size) {
 	const struct coap_header_s* const header = (const void*)packet;
 	coap_option_key_t key = 0;
 	const uint8_t* option_ptr = header->token + header->token_len;
@@ -301,7 +301,7 @@ coap_verify_packet(const char* packet,uint16_t packet_size) {
 	}
 
 	if(header->code==COAP_CODE_EMPTY && packet_size!=4) {
-		DEBUG_PRINTF("PACKET CORRUPTED: Extra Data With Empty Packet (packet_size = %lu)\n",packet_size);
+		DEBUG_PRINTF("PACKET CORRUPTED: Extra Data With Empty Packet (packet_size = %u)\n",packet_size);
 		return false;
 	}
 
@@ -647,11 +647,11 @@ coap_dump_header(
 	FILE*			outstream,
 	const char*		prefix,
 	const struct coap_header_s* header,
-	size_t packet_size
+	coap_size_t packet_size
 ) {
 	coap_option_key_t key = 0;
 	const uint8_t* value;
-	size_t value_len;
+	coap_size_t value_len;
 	const uint8_t* option_ptr = header->token + header->token_len;
 	const char* tt_str = NULL;
 
@@ -724,7 +724,7 @@ coap_dump_header(
 	}
 
 	if(header->token_len) {
-		size_t i;
+		coap_size_t i;
 		fputs(prefix, outstream);
 		fprintf(outstream, "Token: ");
 		for(i = 0; i < header->token_len; i++) {
@@ -808,7 +808,7 @@ coap_dump_header(
 
 		default:
 		{
-			size_t i;
+			coap_size_t i;
 			if(value_len > COAP_MAX_OPTION_VALUE_SIZE) {
 				fprintf(outstream, "***VALUE LENGTH OVERFLOW***");
 			} else

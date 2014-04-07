@@ -100,7 +100,7 @@ extern void smcp_node_delete(smcp_node_t node);
 extern smcp_status_t smcp_node_get_path(
 	smcp_node_t node,
 	char* path,			//!< [OUT] Pointer to where the path will be written.
-	size_t max_path_len
+	coap_size_t max_path_len
 );
 
 extern smcp_node_t smcp_node_find(

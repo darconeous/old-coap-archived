@@ -47,7 +47,7 @@ typedef struct {
 
 	coap_code_t inbound_code;
 	smcp_status_t error;
-	size_t inbound_content_len;
+	coap_size_t inbound_content_len;
 	int inbound_packets;
 	int inbound_dupe_packets;
 	int outbound_attempts;
@@ -125,7 +125,7 @@ resend_test_request(void* context) {
 		coap_decode_block(&block1_info, test_data->block1_option);
 
 		if(block1_info.block_m) {
-			size_t max_len = 0;
+			coap_size_t max_len = 0;
 			uint32_t i;
 			uint32_t block_stop;
 			char* content = NULL;
@@ -180,7 +180,7 @@ response_test_handler(int statuscode, void* context) {
 				test_data->error = statuscode;
 		} else {
 			const uint8_t* value;
-			size_t value_len;
+			coap_size_t value_len;
 			coap_option_key_t key;
 			while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 				if(key == COAP_OPTION_BLOCK1) {

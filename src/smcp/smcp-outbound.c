@@ -96,6 +96,8 @@ void
 smcp_outbound_reset()
 {
 	memset(&smcp_get_current_instance()->outbound, 0, sizeof(smcp_get_current_instance()->outbound));
+	smcp_get_current_instance()->is_responding = false;
+	smcp_get_current_instance()->did_respond = false;
 }
 
 smcp_status_t
@@ -118,6 +120,7 @@ smcp_outbound_begin(
 		return SMCP_STATUS_CASCADE_LOOP;
 #endif
 
+	self->outbound.max_packet_len = SMCP_MAX_PACKET_LENGTH;
 #if SMCP_USE_BSD_SOCKETS
 	self->outbound.packet = (struct coap_header_s*)self->outbound.packet_bytes;
 	self->outbound.socklen = 0;
@@ -126,17 +129,19 @@ smcp_outbound_begin(
 	self->outbound.packet = (struct coap_header_s*)uip_sappdata;
 
 	if(self->outbound.packet == self->inbound.packet) {
-		// TODO: Serious buffer overrun risk here unless we add some more
-		// code to handle the restricted packet length.
+		// We want to preserve at least the headers from the inbound packet,
+		// so we will put the outbound packet immediately after the last
+		// header option of the inbound packet.
 		self->outbound.packet = (struct coap_header_s*)self->inbound.content_ptr;
 
 		// Fix the alignment for 32-bit platforms.
 		self->outbound.packet = (struct coap_header_s*)((uintptr_t)((uint8_t*)self->outbound.packet+7)&~(uintptr_t)0x7);
 
-		if((uint8_t*)self->outbound.packet-(uint8_t*)self->inbound.packet+4>SMCP_MAX_PACKET_LENGTH) {
-			DEBUG_PRINTF("Not enough space to preserve inbound message! (available: %d, max: %d)",UIP_BUFSIZE-((uint8_t*)self->outbound.packet-(uint8_t*)self->inbound.packet+4),UIP_APPDATA_SIZE);
+		int space_remaining = UIP_BUFSIZE-((uint8_t*)self->outbound.packet-(uint8_t*)uip_buf);
+		if (space_remaining-4<0) {
 			self->outbound.packet = (struct coap_header_s*)uip_sappdata;
-			self->inbound.packet = NULL;
+		} else {
+			self->outbound.max_packet_len = space_remaining;
 		}
 	}
 #endif
@@ -149,6 +154,7 @@ smcp_outbound_begin(
 
 	// Set the token.
 	if(	self->is_processing_message
+		&& self->inbound.packet
 		&& self->inbound.packet->token_len
 		&& code
 	) {
@@ -295,15 +301,14 @@ smcp_outbound_set_destaddr(
 
 static smcp_status_t
 smcp_outbound_add_option_(
-	coap_option_key_t key, const char* value, size_t len
+	coap_option_key_t key, const char* value, coap_size_t len
 ) {
 	smcp_t const self = smcp_get_current_instance();
 
-	if(	(	self->outbound.content_ptr
-			- (char*)self->outbound.packet
-			+ len + 10
-		) > SMCP_MAX_PACKET_LENGTH
-	) {
+	if(len == SMCP_CSTR_LEN)
+		len = strlen(value);
+
+	if(	smcp_outbound_get_space_remaining() < len + 8 ) {
 		// We ran out of room!
 		return SMCP_STATUS_MESSAGE_TOO_BIG;
 	}
@@ -311,9 +316,6 @@ smcp_outbound_add_option_(
 	if(key<self->outbound.last_option_key) {
 		assert_printf("warning: Out of order header: %s",coap_option_key_to_cstr(key, self->is_responding));
 	}
-
-	if(len == SMCP_CSTR_LEN)
-		len = strlen(value);
 
 	if(self->outbound.content_ptr!=(char*)self->outbound.packet->token+self->outbound.packet->token_len)
 		self->outbound.content_ptr--;	// remove end-of-options marker
@@ -403,7 +405,7 @@ smcp_outbound_add_options_up_to_key_(
 
 smcp_status_t
 smcp_outbound_add_option(
-	coap_option_key_t key, const char* value, size_t len
+	coap_option_key_t key, const char* value, coap_size_t len
 ) {
 	smcp_status_t ret;
 
@@ -705,7 +707,7 @@ smcp_outbound_set_uri(
 		SMCP_NON_RECURSIVE char* key;
 
 		while(url_form_next_value(&components.query,&key,NULL)) {
-			size_t len = strlen(key);
+			coap_size_t len = strlen(key);
 			if(len)
 				ret = smcp_outbound_add_option(COAP_OPTION_URI_QUERY, key, len);
 			require_noerr(ret,bail);
@@ -723,32 +725,37 @@ bail:
 	return ret;
 }
 
-smcp_status_t
-smcp_outbound_append_content(const char* value,size_t len) {
-	smcp_status_t ret;
+coap_size_t
+smcp_outbound_get_space_remaining(void)
+{
 	smcp_t const self = smcp_get_current_instance();
-	size_t max_len;
-	char* dest;
+	coap_size_t len = (self->outbound.content_ptr-(char*)self->outbound.packet)
+		+ self->outbound.content_len;
+	if (self->outbound.max_packet_len > len)
+		return self->outbound.max_packet_len - len;
+	return 0;
+}
 
-	ret = SMCP_STATUS_FAILURE;
-	max_len = self->outbound.content_len;
+smcp_status_t
+smcp_outbound_append_content(const char* value,coap_size_t len) {
+	smcp_status_t ret = SMCP_STATUS_FAILURE;
+	smcp_t const self = smcp_get_current_instance();
+	coap_size_t max_len = smcp_outbound_get_space_remaining();
+	char* dest;
 
 	if(len == SMCP_CSTR_LEN)
 		len = strlen(value);
 
-	max_len += len;
+	require_action(max_len>len, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
 	dest = smcp_outbound_get_content_ptr(&max_len);
-
 	require(dest,bail);
 
 	dest += self->outbound.content_len;
 
-	require(max_len-self->outbound.content_len>=len,bail);
-
 	memcpy(dest, value, len);
 
-	smcp_outbound_set_content_len(len+self->outbound.content_len);
+	self->outbound.content_len += len;
 
 	ret = SMCP_STATUS_OK;
 
@@ -757,7 +764,7 @@ bail:
 }
 
 char*
-smcp_outbound_get_content_ptr(size_t* max_len) {
+smcp_outbound_get_content_ptr(coap_size_t* max_len) {
 	smcp_t const self = smcp_get_current_instance();
 
 	// Finish up any remaining automatically-added headers.
@@ -765,13 +772,13 @@ smcp_outbound_get_content_ptr(size_t* max_len) {
 		smcp_outbound_add_options_up_to_key_(COAP_OPTION_INVALID);
 
 	if(max_len)
-		*max_len = SMCP_MAX_PACKET_LENGTH-(self->outbound.content_ptr-(char*)self->outbound.packet);
+		*max_len = smcp_outbound_get_space_remaining()+self->outbound.content_len;
 
 	return self->outbound.content_ptr;
 }
 
 smcp_status_t
-smcp_outbound_set_content_len(size_t len) {
+smcp_outbound_set_content_len(coap_size_t len) {
 	smcp_get_current_instance()->outbound.content_len = len;
 	return SMCP_STATUS_OK;
 }
@@ -783,16 +790,15 @@ smcp_outbound_set_content_len(size_t len) {
 smcp_status_t
 smcp_outbound_set_content_formatted(const char* fmt, ...) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	size_t len = 0;
 	va_list args;
-	char* content = smcp_outbound_get_content_ptr(&len);
+	char* content = smcp_outbound_get_content_ptr(NULL);
+	int len = smcp_outbound_get_space_remaining();
+
+	require(content!=NULL, bail);
 
 	content += smcp_get_current_instance()->outbound.content_len;
-	len -= smcp_get_current_instance()->outbound.content_len;
 
 	va_start(args,fmt);
-
-	require(content!=NULL,bail);
 
 	len = vsnprintf(content,len,fmt,args);
 
@@ -866,13 +872,13 @@ smcp_outbound_send() {
 
 #if DEBUG
 	{
-		size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
+		coap_size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 
 		// Remove the start-of-payload marker if we have no payload.
 		if(!smcp_get_current_instance()->outbound.content_len)
 			header_len--;
-		DEBUG_PRINTF("Outbound packet size: %d",header_len+smcp_get_current_instance()->outbound.content_len);
-		assert(header_len+smcp_get_current_instance()->outbound.content_len<SMCP_MAX_PACKET_LENGTH);
+		DEBUG_PRINTF("Outbound packet size: %d, %d remaining",header_len+smcp_get_current_instance()->outbound.content_len, smcp_outbound_get_space_remaining());
+		assert(header_len+smcp_get_current_instance()->outbound.content_len<=self->outbound.max_packet_len);
 
 		assert(coap_verify_packet((char*)self->outbound.packet,header_len+smcp_get_current_instance()->outbound.content_len));
 	}

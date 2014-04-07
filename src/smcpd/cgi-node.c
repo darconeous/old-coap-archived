@@ -288,8 +288,8 @@ smcp_status_t
 cgi_node_async_resend_response(void* context) {
 	smcp_status_t ret = 0;
 	cgi_node_request_t request = context;
-	size_t block_len = (1<<((request->block2&0x7)+4));
-	size_t max_len;
+	coap_size_t block_len = (1<<((request->block2&0x7)+4));
+	coap_size_t max_len;
 
 //	printf("Resending async response. . .\n");
 
@@ -541,7 +541,7 @@ cgi_node_request_handler(
 
 	{
 		const uint8_t* value;
-		size_t value_len;
+		coap_size_t value_len;
 		coap_option_key_t key;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			if(key == COAP_OPTION_BLOCK2) {
@@ -680,11 +680,11 @@ cgi_node_request_handler(
 
 		request->block2 = block2_option;
 
-		size_t block_len = (1<<((request->block2&0x7)+4));
+		coap_size_t block_len = (1<<((request->block2&0x7)+4));
 
 		if(request->stdout_buffer_len>=block_len || request->fd_cmd_stdout<=-1) {
 			// We have data!
-			size_t max_len;
+			coap_size_t max_len;
 
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);

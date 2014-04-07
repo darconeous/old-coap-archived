@@ -53,7 +53,7 @@ signal_interrupt(int sig) {
 struct post_request_s {
 	char* url;
 	char* content;
-	size_t content_len;
+	coap_size_t content_len;
 	coap_content_type_t content_type;
 	coap_code_t method;
 };
@@ -65,11 +65,11 @@ post_response_handler(
 	struct post_request_s *request
 ) {
 	char* content = (char*)smcp_inbound_get_content_ptr();
-	size_t content_length = smcp_inbound_get_content_len();
+	coap_size_t content_length = smcp_inbound_get_content_len();
 
 	if(statuscode>=0) {
 		if(content_length>(smcp_inbound_get_packet_length()-4)) {
-			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet_length());
+			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%u, packet_length=%u)\n",content_length,smcp_inbound_get_packet_length());
 			gRet = ERRORCODE_UNKNOWN;
 			goto bail;
 		}

@@ -479,7 +479,7 @@ smcp_vhost_route(smcp_request_handler_func* func, void** context) {
 
 	if(self->vhost_count) {
 		const uint8_t* value;
-		size_t value_len = 0;
+		coap_size_t value_len = 0;
 
 		smcp_inbound_reset_next_option();
 

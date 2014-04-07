@@ -44,7 +44,7 @@ smcp_status_t
 smcp_outbound_send_hook() {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	smcp_t const self = smcp_get_current_instance();
-	size_t header_len;
+	coap_size_t header_len;
 
 	header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 

@@ -102,7 +102,7 @@
 #endif
 
 #if !defined(SMCP_MAX_PACKET_LENGTH) && defined(SMCP_MAX_CONTENT_LENGTH)
-#define SMCP_MAX_PACKET_LENGTH      ((size_t)SMCP_MAX_CONTENT_LENGTH+8)
+#define SMCP_MAX_PACKET_LENGTH      ((coap_size_t)SMCP_MAX_CONTENT_LENGTH+8)
 #endif
 
 #ifndef SMCP_USE_CASCADE_COUNT

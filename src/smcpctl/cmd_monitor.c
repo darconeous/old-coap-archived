@@ -44,7 +44,7 @@ monitor_action_func(
 	smcp_node_t node
 ) {
 	char* content = (char*)smcp_inbound_get_content_ptr();
-	size_t content_length = smcp_inbound_get_content_len();
+	coap_size_t content_length = smcp_inbound_get_content_len();
 	fprintf(stdout,
 		" *** Received Action! content_length=%d",
 		    (int)content_length);

@@ -48,7 +48,7 @@ pair_response_handler(
 ) {
 //	smcp_t const self = smcp_get_current_instance();
 	char* content = (char*)smcp_inbound_get_content_ptr();
-	size_t content_length = smcp_inbound_get_content_len();
+	coap_size_t content_length = smcp_inbound_get_content_len();
 	if((statuscode >= COAP_RESULT_100) && show_headers) {
 		fprintf(stdout, "\n");
 		coap_dump_header(
@@ -90,7 +90,7 @@ smcp_status_t
 resend_pair_request(char* url[2]) {
 	smcp_status_t status;
 #if SMCP_ENABLE_PAIRING
-	size_t len = 8;
+	coap_size_t len = 8;
 	bool did_mutate = false;
 	while(url[0][len] && url[0][len]!='/') {
 		len++;

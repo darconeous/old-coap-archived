@@ -107,13 +107,13 @@ struct smcp_s {
 	//! Inbound packet variables.
 	struct {
 		const struct coap_header_s*	packet;
-		size_t					packet_len;
+		coap_size_t					packet_len;
 
 		coap_option_key_t		last_option_key;
 		const uint8_t*			this_option;
 
 		const char*				content_ptr;
-		size_t					content_len;
+		coap_size_t					content_len;
 		coap_content_type_t		content_type;
 
 		uint8_t					was_sent_to_multicast:1,
@@ -146,9 +146,10 @@ struct smcp_s {
 	//! Outbound packet variables.
 	struct {
 		struct coap_header_s*	packet;
+		coap_size_t				max_packet_len;
 
 		char*					content_ptr;
-		size_t					content_len;
+		coap_size_t					content_len;
 
 		coap_msg_id_t	next_tid;
 

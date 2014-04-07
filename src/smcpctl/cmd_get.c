@@ -59,11 +59,11 @@ signal_interrupt(int sig) {
 }
 
 bool send_get_request(
-	smcp_t smcp, const char* url, const char* next, size_t nextlen);
+	smcp_t smcp, const char* url, const char* next, coap_size_t nextlen);
 
 static int retries = 0;
 static const char *url_data;
-static size_t next_len = ((size_t)(-1));
+static coap_size_t next_len = ((coap_size_t)(-1));
 static int redirect_count;
 static int last_observe_value = -1;
 static int last_block = -1;
@@ -74,17 +74,17 @@ static struct smcp_transaction_s transaction;
 static smcp_status_t
 get_response_handler(int statuscode, void* context) {
 	const char* content = smcp_inbound_get_content_ptr();
-	size_t content_length = smcp_inbound_get_content_len();
+	coap_size_t content_length = smcp_inbound_get_content_len();
 
 	if(statuscode>=0) {
 		if(content_length>(smcp_inbound_get_packet_length()-4)) {
-			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet_length());
+			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%u, packet_length=%u)\n",content_length,smcp_inbound_get_packet_length());
 			gRet = ERRORCODE_UNKNOWN;
 			goto bail;
 		}
 
 		if((statuscode >= 0) && get_show_headers) {
-			if(next_len != ((size_t)(-1)))
+			if(next_len != ((coap_size_t)(-1)))
 				fprintf(stdout, "\n\n");
 			coap_dump_header(
 				stdout,
@@ -127,7 +127,7 @@ get_response_handler(int statuscode, void* context) {
 	if((statuscode>0) && content && content_length) {
 		coap_option_key_t key;
 		const uint8_t* value;
-		size_t value_len;
+		coap_size_t value_len;
 		bool last_block = true;
 		int32_t observe_value = -1;
 
@@ -197,7 +197,7 @@ bail:
 
 bool
 send_get_request(
-	smcp_t smcp, const char* url, const char* next, size_t nextlen
+	smcp_t smcp, const char* url, const char* next, coap_size_t nextlen
 ) {
 	bool ret = false;
 	smcp_status_t status = 0;
@@ -248,7 +248,7 @@ tool_cmd_get(
 
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
 	get_show_headers = false;
-	next_len = ((size_t)(-1));
+	next_len = ((coap_size_t)(-1));
 	get_show_headers = false;
 	redirect_count = 0;
 	size_request = 0;

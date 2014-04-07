@@ -198,7 +198,7 @@ smcp_auth_get_cred(
 	const char* url,
 	int key,
 	uint8_t* value,
-	size_t value_size
+	coap_size_t value_size
 ) {
 	// TODO: Writeme!
 	return SMCP_STATUS_NOT_IMPLEMENTED;
@@ -212,7 +212,7 @@ smcp_auth_inbound_init() {
 		// REQUEST!
 		coap_option_key_t key;
 		const uint8_t* authvalue;
-		size_t authvalue_len;
+		coap_size_t authvalue_len;
 
 		// For testing purposes only!
 		if(smcp_inbound_get_code() >1 && smcp_inbound_get_code()<COAP_RESULT_100) {

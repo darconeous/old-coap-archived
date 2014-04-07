@@ -65,7 +65,7 @@ smcp_handle_list(
 ) {
 	smcp_status_t ret = 0;
 	char* replyContent;
-	size_t content_break_threshold = 256;
+	coap_size_t content_break_threshold = 256;
 	const char* prefix = node->name;
 
 	// The path "/.well-known/core" is a special case. If we get here,
@@ -94,7 +94,7 @@ smcp_handle_list(
 	{
 		coap_option_key_t key;
 		const uint8_t* value;
-		size_t value_len;
+		coap_size_t value_len;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			require_action(key!=COAP_OPTION_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key == COAP_OPTION_URI_QUERY) {

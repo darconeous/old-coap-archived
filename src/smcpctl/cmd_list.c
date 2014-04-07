@@ -51,12 +51,12 @@ signal_interrupt(int sig) {
 }
 
 bool send_list_request(
-	smcp_t smcp, const char* url, const char* next, size_t nextlen);
+	smcp_t smcp, const char* url, const char* next, coap_size_t nextlen);
 
 static int retries = 0;
 static const char* url_data;
 static char next_data[256];
-static size_t next_len = ((size_t)(-1));
+static coap_size_t next_len = ((coap_size_t)(-1));
 static bool list_show_headers = false;
 static int redirect_count = 0;
 static char original_url[SMCP_MAX_URI_LENGTH+1];
@@ -66,11 +66,11 @@ static bool list_filename_only;
 static char redirect_url[SMCP_MAX_URI_LENGTH + 1];
 
 static char* list_data;
-static size_t list_data_size;
+static coap_size_t list_data_size;
 static struct smcp_transaction_s transaction;
 
 void
-parse_link_format(char* content, size_t content_length, void* context) {
+parse_link_format(char* content, coap_size_t content_length, void* context) {
 	char *iter = content;
 	char *end = content + content_length;
 	int col_width = 16;
@@ -246,7 +246,7 @@ list_response_handler(
 ) {
 //	smcp_t const self = smcp_get_current_instance();
 	char* content = (char*)smcp_inbound_get_content_ptr();
-	size_t content_length = smcp_inbound_get_content_len();
+	coap_size_t content_length = smcp_inbound_get_content_len();
 
 	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
 		if(list_data && list_data_size)
@@ -257,13 +257,13 @@ list_response_handler(
 
 	if(statuscode>=0) {
 		if(content_length>(smcp_inbound_get_packet_length()-4)) {
-			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%lu, packet_length=%lu)\n",content_length,smcp_inbound_get_packet_length());
+			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%u, packet_length=%u)\n",content_length,smcp_inbound_get_packet_length());
 			gRet = ERRORCODE_UNKNOWN;
 			goto bail;
 		}
 
 		if(list_show_headers) {
-			if(next_len != ((size_t)(-1)))
+			if(next_len != ((coap_size_t)(-1)))
 				fprintf(stdout, "\n");
 			coap_dump_header(
 				stdout,
@@ -352,7 +352,7 @@ resend_list_request(void* context) {
 	status = smcp_outbound_add_option_uint(COAP_OPTION_ACCEPT,COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 	require_noerr(status,bail);
 
-//	if(next_len != ((size_t)(-1))) {
+//	if(next_len != ((coap_size_t)(-1))) {
 //		status = smcp_outbound_add_option(
 //			COAP_OPTION_BLOCK2,
 //			next_data,
@@ -387,7 +387,7 @@ bail:
 
 bool
 send_list_request(
-	smcp_t smcp, const char* url, const char* next, size_t nextlen
+	smcp_t smcp, const char* url, const char* next, coap_size_t nextlen
 ) {
 	bool ret = false;
 	smcp_status_t status = 0;
@@ -403,7 +403,7 @@ send_list_request(
 		memcpy(next_data, next, nextlen);
 		next_len = nextlen;
 	} else {
-		next_len = ((size_t)(-1));
+		next_len = ((coap_size_t)(-1));
 	}
 
 	smcp_transaction_end(smcp,&transaction);
@@ -445,7 +445,7 @@ tool_cmd_list(
 
 	gRet = ERRORCODE_INPROGRESS;
 	previous_sigint_handler = signal(SIGINT, &signal_interrupt);
-	next_len = ((size_t)(-1));
+	next_len = ((coap_size_t)(-1));
 	url[0] = 0;
 	list_show_headers = false;
 	redirect_count = 10;

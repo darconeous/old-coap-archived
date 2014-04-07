@@ -59,11 +59,11 @@ smcp_variable_node_request_handler(
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
 	SMCP_NON_RECURSIVE coap_content_type_t content_type;
 	SMCP_NON_RECURSIVE char* content_ptr;
-	SMCP_NON_RECURSIVE size_t content_len;
+	SMCP_NON_RECURSIVE coap_size_t content_len;
 	SMCP_NON_RECURSIVE char buffer[SMCP_VARIABLE_MAX_VALUE_LENGTH+1];
 	SMCP_NON_RECURSIVE coap_content_type_t reply_content_type;
 	uint8_t key_index = BAD_KEY_INDEX;
-	size_t value_len;
+	coap_size_t value_len;
 	bool needs_prefix = true;
 	char* prefix_name = "";
 
@@ -241,7 +241,7 @@ smcp_variable_node_request_handler(
 
 			ret = smcp_outbound_send();
 		} else {
-			size_t replyContentLength = 0;
+			coap_size_t replyContentLength = 0;
 			char *replyContent;
 
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);

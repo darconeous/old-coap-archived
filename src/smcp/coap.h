@@ -82,6 +82,8 @@
 typedef char coap_transaction_type_t;
 typedef uint16_t coap_msg_id_t;
 typedef uint16_t coap_code_t;
+typedef uint16_t coap_size_t;
+typedef int16_t coap_ssize_t;
 
 #define COAP_TO_HTTP_CODE(x)     ((x) / 32 * 100 + (x) % 32)
 extern uint16_t coap_to_http_code(uint8_t x);
@@ -267,7 +269,7 @@ extern uint8_t* coap_decode_option(
 	const uint8_t* buffer,
 	coap_option_key_t* key,
 	const uint8_t** value,
-	size_t* lenP
+	coap_size_t* lenP
 );
 
 extern uint8_t* coap_encode_option(
@@ -275,18 +277,18 @@ extern uint8_t* coap_encode_option(
 	coap_option_key_t prev_key,
 	coap_option_key_t key,
 	const uint8_t* value,
-	size_t len
+	coap_size_t len
 );
 
 //!	Correctly inserts an option maintining order.
 /*!	@return The number of bytes inserted into the options.
  */
-extern size_t coap_insert_option(
+extern coap_size_t coap_insert_option(
 	uint8_t* start_of_options,
 	uint8_t* end_of_options,
 	coap_option_key_t key,
 	const uint8_t* value,
-	size_t len
+	coap_size_t len
 );
 
 extern bool coap_option_value_is_string(coap_option_key_t key);
@@ -304,7 +306,7 @@ extern coap_option_key_t coap_option_key_from_cstr(const char* key);
 extern const char* http_code_to_cstr(int x);
 extern const char* coap_code_to_cstr(int x);
 
-extern bool coap_verify_packet(const char* packet,uint16_t packet_size);
+extern bool coap_verify_packet(const char* packet,coap_size_t packet_size);
 uint32_t coap_decode_uint32(const uint8_t* value, uint8_t value_len);
 
 struct coap_block_info_s {
@@ -321,7 +323,7 @@ extern void coap_dump_header(
 	FILE*			outstream,
 	const char*		prefix,
 	const struct coap_header_s* header,
-	size_t packet_size
+	coap_size_t packet_size
 );
 #endif
 

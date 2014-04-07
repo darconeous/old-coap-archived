@@ -93,7 +93,7 @@ smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** contex
 		coap_option_key_t prev_key = 0;
 		coap_option_key_t key;
 		const uint8_t* value;
-		size_t value_len;
+		coap_size_t value_len;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			if(key>COAP_OPTION_URI_PATH) {
 				self->inbound.this_option = prev_option_ptr;
@@ -296,7 +296,7 @@ bail:
 
 smcp_status_t
 smcp_node_get_path(
-	smcp_node_t node, char* path, size_t max_path_len
+	smcp_node_t node, char* path, coap_size_t max_path_len
 ) {
 	smcp_status_t ret = 0;
 

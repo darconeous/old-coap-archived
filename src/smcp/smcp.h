@@ -97,7 +97,7 @@
 
 #endif
 
-#define SMCP_CSTR_LEN     ((size_t)-1)
+#define SMCP_CSTR_LEN     ((coap_size_t)-1)
 
 /*!	@defgroup smcp SMCP
 **	@{
@@ -293,7 +293,7 @@ extern struct uip_udp_conn* smcp_get_udp_conn(smcp_t self);
 extern smcp_status_t smcp_inbound_start_packet(
 	smcp_t	self,
 	char*	packet,
-	size_t	packet_length
+	coap_size_t	packet_length
 );
 
 //! Sets the address from where this packet originated.
@@ -341,7 +341,7 @@ extern smcp_status_t smcp_inbound_finish_packet();
 extern const struct coap_header_s* smcp_inbound_get_packet();
 
 //!	Returns the length of the inbound packet.
-extern size_t smcp_inbound_get_packet_length();
+extern coap_size_t smcp_inbound_get_packet_length();
 
 //! Convenience macro for getting the code of the inbound packet.
 #define smcp_inbound_get_code()		(smcp_inbound_get_packet()->code)
@@ -363,7 +363,7 @@ extern bool smcp_inbound_origin_is_local();
 extern const char* smcp_inbound_get_content_ptr();
 
 //!	Returns the length of the inbound packet's content.
-extern size_t smcp_inbound_get_content_len();
+extern coap_size_t smcp_inbound_get_content_len();
 
 //!	Convenience function for getting the content type of the inbound packet.
 extern coap_content_type_t smcp_inbound_get_content_type();
@@ -377,10 +377,10 @@ extern const uint16_t smcp_inbound_get_ipport();
 #endif
 
 //! Retrieve the value and type of the next option in the header and move to the next header.
-extern coap_option_key_t smcp_inbound_next_option(const uint8_t** ptr, size_t* len);
+extern coap_option_key_t smcp_inbound_next_option(const uint8_t** ptr, coap_size_t* len);
 
 //! Retrieve the value and type of the next option in the header, WITHOUT moving to the next header.
-extern coap_option_key_t smcp_inbound_peek_option(const uint8_t** ptr, size_t* len);
+extern coap_option_key_t smcp_inbound_peek_option(const uint8_t** ptr, coap_size_t* len);
 
 //!	Reset the option pointer to the start of the options.
 extern void smcp_inbound_reset_next_option();
@@ -427,7 +427,7 @@ extern smcp_status_t smcp_outbound_set_code(coap_code_t code);
 
 /*! Note that options MUST be added in order!
 **	OK, that's a lie, but it's much faster if done this way! */
-extern smcp_status_t smcp_outbound_add_option(coap_option_key_t key,const char* value,size_t len);
+extern smcp_status_t smcp_outbound_add_option(coap_option_key_t key,const char* value,coap_size_t len);
 
 //!	Adds an option with a CoAP-encoded unsigned integer value.
 extern smcp_status_t smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value);
@@ -458,13 +458,15 @@ extern smcp_status_t smcp_outbound_set_uri(const char* uri,char flags);
 /*!	After the following function is called you cannot add any more options
 **	without loosing the content. */
 extern char* smcp_outbound_get_content_ptr(
-	size_t* max_len //^< [OUT] maximum content length
+	coap_size_t* max_len //^< [OUT] maximum content length
 );
 
-//!	Sets the actual length of the content. Called after smcp_outbound_get_content_ptr().
-extern smcp_status_t smcp_outbound_set_content_len(size_t len);
+extern coap_size_t smcp_outbound_get_space_remaining(void);
 
-extern smcp_status_t smcp_outbound_append_content(const char* value,size_t len);
+//!	Sets the actual length of the content. Called after smcp_outbound_get_content_ptr().
+extern smcp_status_t smcp_outbound_set_content_len(coap_size_t len);
+
+extern smcp_status_t smcp_outbound_append_content(const char* value,coap_size_t len);
 
 #if !SMCP_AVOID_PRINTF
 extern smcp_status_t smcp_outbound_set_content_formatted(const char* fmt, ...);
@@ -528,7 +530,7 @@ struct smcp_async_response_s {
 		struct coap_header_s header;
 		uint8_t bytes[80];
 	} request;
-	size_t request_len;
+	coap_size_t request_len;
 };
 
 typedef struct smcp_async_response_s* smcp_async_response_t;

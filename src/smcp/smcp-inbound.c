@@ -97,7 +97,7 @@ smcp_inbound_get_packet() {
 	return smcp_get_current_instance()->inbound.packet;
 }
 
-size_t smcp_inbound_get_packet_length() {
+coap_size_t smcp_inbound_get_packet_length() {
 	return smcp_get_current_instance()->inbound.packet_len;
 }
 
@@ -106,7 +106,7 @@ smcp_inbound_get_content_ptr() {
 	return smcp_get_current_instance()->inbound.content_ptr;
 }
 
-size_t
+coap_size_t
 smcp_inbound_get_content_len() {
 	return smcp_get_current_instance()->inbound.content_len;
 }
@@ -156,7 +156,7 @@ smcp_inbound_reset_next_option() {
 }
 
 coap_option_key_t
-smcp_inbound_next_option(const uint8_t** value, size_t* len) {
+smcp_inbound_next_option(const uint8_t** value, coap_size_t* len) {
 	smcp_t const self = smcp_get_current_instance();
 	if(self->inbound.this_option < ((uint8_t*)self->inbound.packet+self->inbound.packet_len)
 		&& self->inbound.this_option[0]!=0xFF
@@ -174,7 +174,7 @@ smcp_inbound_next_option(const uint8_t** value, size_t* len) {
 }
 
 coap_option_key_t
-smcp_inbound_peek_option(const uint8_t** value, size_t* len) {
+smcp_inbound_peek_option(const uint8_t** value, coap_size_t* len) {
 	smcp_t const self = smcp_get_current_instance();
 	coap_option_key_t ret = self->inbound.last_option_key;
 	if(self->inbound.last_option_key!=COAP_OPTION_INVALID
@@ -199,8 +199,8 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 	smcp_t const self = smcp_get_current_instance();
 	coap_option_key_t curr_key = self->inbound.last_option_key;
 	const char* value;
-	size_t value_len;
-	size_t i;
+	coap_size_t value_len;
+	coap_size_t i;
 
 	if(!self->inbound.this_option)
 		return false;
@@ -255,7 +255,7 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 	const uint8_t*			this_option = self->inbound.this_option;
 
 	char* filename;
-	size_t filename_len;
+	coap_size_t filename_len;
 	coap_option_key_t key;
 	char* iter;
 
@@ -333,7 +333,7 @@ smcp_status_t
 smcp_inbound_start_packet(
 	smcp_t	self,
 	char*			buffer,
-	size_t			packet_length
+	coap_size_t			packet_length
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
@@ -477,7 +477,7 @@ smcp_inbound_finish_packet() {
 
 	{	// Initial scan thru all of the options.
 		const uint8_t* value;
-		size_t value_len;
+		coap_size_t value_len;
 		coap_option_key_t key;
 
 		// Reset option scanner for initial option scan.

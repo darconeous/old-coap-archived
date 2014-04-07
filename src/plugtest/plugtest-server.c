@@ -48,7 +48,7 @@ plugtest_test_handler(smcp_node_t node)
 {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	char* content = NULL;
-	size_t max_len = 0;
+	coap_size_t max_len = 0;
 	smcp_method_t method = smcp_inbound_get_code();
 
 	if(method==COAP_METHOD_GET) {
@@ -78,7 +78,7 @@ plugtest_test_handler(smcp_node_t node)
 
 	{
 		const uint8_t* value;
-		size_t value_len;
+		coap_size_t value_len;
 		coap_option_key_t key;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			strlcat(content,coap_option_key_to_cstr(key,1),max_len);
@@ -223,7 +223,7 @@ plugtest_obs_handler(
 
 	if(method==COAP_METHOD_GET) {
 		char* content = NULL;
-		size_t max_len = 0;
+		coap_size_t max_len = 0;
 
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		require_noerr(ret, bail);
@@ -263,7 +263,7 @@ plugtest_large_handler(
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	char* content = NULL;
-	size_t max_len = 0;
+	coap_size_t max_len = 0;
 	smcp_method_t method = smcp_inbound_get_code();
 	uint32_t block_option = 0x03;
 	uint32_t block_start = 0;
@@ -278,7 +278,7 @@ plugtest_large_handler(
 
 	{
 		const uint8_t* value;
-		size_t value_len;
+		coap_size_t value_len;
 		coap_option_key_t key;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			if(key == COAP_OPTION_BLOCK2) {

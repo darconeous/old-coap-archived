@@ -215,7 +215,7 @@ smcp_curl_proxy_request_handler(
 	{
 		coap_option_key_t key;
 		const uint8_t* value;
-		size_t value_len;
+		coap_size_t value_len;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			if(key==COAP_OPTION_PROXY_URI) {
 				char uri[value_len+1];
@@ -254,7 +254,7 @@ smcp_curl_proxy_request_handler(
 	require_noerr(ret,bail);
 
 	if(smcp_inbound_get_content_len()) {
-		size_t len = smcp_inbound_get_content_len();
+		coap_size_t len = smcp_inbound_get_content_len();
 		request->output_content = calloc(1,len+1);
 		request->output_content_len = len;
 		memcpy(request->output_content,smcp_inbound_get_content_ptr(),len);
