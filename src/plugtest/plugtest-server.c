@@ -229,30 +229,32 @@ plugtest_obs_handler(
 		size_t max_len = 0;
 
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
-		if(ret) goto bail;
+		require_noerr(ret, bail);
 
-		smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
+		ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
+		require_noerr(ret, bail);
 
 		if(!smcp_timer_is_scheduled(smcp_get_current_instance(), &self->obs_timer))
 			plugtest_obs_timer_callback(smcp_get_current_instance(),self);
 
-		smcp_observable_update(&self->observable,PLUGTEST_OBS_KEY);
+		ret = smcp_observable_update(&self->observable,PLUGTEST_OBS_KEY);
+		check_noerr(ret);
 
 		ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,10);
-		if(ret) goto bail;
+		require_noerr(ret, bail);
 
 		content = smcp_outbound_get_content_ptr(&max_len);
-		if(!content) {
-			ret = SMCP_STATUS_FAILURE;
-			goto bail;
-		}
+		require_action(content!=NULL, bail, ret = SMCP_STATUS_FAILURE);
+
+		require_action(max_len>11, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
 		ret = smcp_outbound_set_content_len(
 			strlen(uint32_to_dec_cstr(content, (uint32_t)time(NULL)))
 		);
-		if(ret) goto bail;
+		require_noerr(ret, bail);
 
 		ret = smcp_outbound_send();
+		require_noerr(ret, bail);
 	}
 bail:
 	return ret;
@@ -291,12 +293,32 @@ plugtest_large_handler(
 		}
 	}
 
-	{
+	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+	require_noerr(ret,bail);
+
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
+	require_noerr(ret,bail);
+
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,60*60);
+	require_noerr(ret,bail);
+
+	// We do this here just to get max_len
+	smcp_outbound_get_content_ptr(&max_len);
+
+	// Here we are making sure our data will fit,
+	// and adjusting our block-option size accordingly.
+	do {
 		struct coap_block_info_s block_info;
 		coap_decode_block(&block_info, block_option);
 		block_start = block_info.block_offset;
 		block_stop = block_info.block_offset + block_info.block_size;
-	}
+
+		if(max_len<(block_stop-block_start) && block_option!=0 && !block_info.block_offset) {
+			block_option--;
+			block_stop = 0;
+			continue;
+		}
+	} while(0==block_stop);
 
 	require_action(block_start<resource_length,bail,ret=SMCP_STATUS_INVALID_ARGUMENT);
 
@@ -305,23 +327,13 @@ plugtest_large_handler(
 	else
 		block_option |= (1<<3);
 
-	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
-	if(ret) goto bail;
-
-	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
-	require_noerr(ret,bail);
-
 	ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,block_option);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,60*60);
-	require_noerr(ret,bail);
-
 	content = smcp_outbound_get_content_ptr(&max_len);
-	if(!content) {
-		ret = SMCP_STATUS_FAILURE;
-		goto bail;
-	}
+
+	require_action(NULL!=content, bail, ret = SMCP_STATUS_FAILURE);
+	require_action(max_len>(block_stop-block_start), bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
 	{
 		uint32_t i;

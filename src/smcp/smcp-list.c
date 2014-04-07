@@ -138,10 +138,15 @@ smcp_handle_list(
 	else
 		node = NULL;
 
-	smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
-	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+	require_noerr(ret, bail);
+
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+	require_noerr(ret, bail);
 
 	replyContent = smcp_outbound_get_content_ptr(&content_break_threshold);
+	require(NULL != replyContent, bail);
+
 	replyContent[0] = 0;
 
 	while(node) {

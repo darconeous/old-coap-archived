@@ -116,20 +116,22 @@ smcp_outbound_begin(
 	self->outbound.socklen = 0;
 #elif SMCP_USE_UIP
 	uip_udp_conn = self->udp_conn;
-	self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+	self->outbound.packet = (struct coap_header_s*)uip_appdata;
 
+#if (SMCP_MAX_PACKET_LENGTH > 200)
 	if(self->outbound.packet == self->inbound.packet) {
-		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN + self->inbound.packet_len + 1];
+		self->outbound.packet = (struct coap_header_s*)&uip_appdata[self->inbound.packet_len + 1];
 
 		// Fix the alignment for 32-bit platforms.
 		self->outbound.packet = (struct coap_header_s*)((uintptr_t)(self->outbound.packet+8)&~(uintptr_t)0x7);
-	}
 
-	if(&self->outbound.packet[4]>&uip_buf[UIP_BUFSIZE]) {
-		DEBUG_PRINTF("Not enough space to preserve inbound message!");
-		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
-		return SMCP_STATUS_MESSAGE_TOO_BIG;
+		if((uint8_t*)self->outbound.packet-(uint8_t*)uip_appdata+4>SMCP_MAX_PACKET_LENGTH) {
+			DEBUG_PRINTF("Not enough space to preserve inbound message! (available: %d, max: %d)",UIP_BUFSIZE-((uint8_t*)self->outbound.packet-(uint8_t*)uip_buf+4),UIP_APPDATA_SIZE);
+			self->outbound.packet = (struct coap_header_s*)uip_appdata;
+			return SMCP_STATUS_MESSAGE_TOO_BIG;
+		}
 	}
+#endif // (SMCP_MAX_PACKET_LENGTH > 200)
 
 #endif
 
@@ -178,16 +180,21 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 		"Attempted to send more than one response!"
 	);
 
-	// If we have already started responding, don't bother.
-	require(!self->is_responding,bail);
+//	// If we have already started responding, don't bother.
+//	require(!self->is_responding,bail);
 
 	if(self->is_processing_message)
 		self->outbound.next_tid = smcp_inbound_get_msg_id();
-	smcp_outbound_begin(self,code,(self->inbound.packet->tt==COAP_TRANS_TYPE_NONCONFIRMABLE)?COAP_TRANS_TYPE_NONCONFIRMABLE:COAP_TRANS_TYPE_ACK);
+	ret = smcp_outbound_begin(
+		self,
+		code,
+		(self->inbound.packet->tt==COAP_TRANS_TYPE_NONCONFIRMABLE)?COAP_TRANS_TYPE_NONCONFIRMABLE:COAP_TRANS_TYPE_ACK
+	);
+	require_noerr(ret, bail);
 	self->is_responding = true;
 
 	if(self->is_processing_message)
-		smcp_outbound_set_msg_id(smcp_inbound_get_msg_id());
+		require_noerr(ret=smcp_outbound_set_msg_id(smcp_inbound_get_msg_id()),bail);
 
 	if(self->is_processing_message) {
 #if SMCP_USE_BSD_SOCKETS
@@ -204,6 +211,9 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 		require_noerr(ret, bail);
 	}
 bail:
+	if (ret!=SMCP_STATUS_OK) {
+		self->is_responding = false;
+	}
 	return ret;
 }
 
@@ -797,7 +807,7 @@ smcp_outbound_set_var_content_int(int v) {
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
 	int32_to_dec_cstr(nstr,v);
-	smcp_outbound_append_content(nstr, SMCP_CSTR_LEN);
+	return smcp_outbound_append_content(nstr, SMCP_CSTR_LEN);
 #else
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	return smcp_outbound_set_content_formatted_const("v=%d",v);
@@ -810,7 +820,7 @@ smcp_outbound_set_var_content_unsigned_int(unsigned int v) {
 	char nstr[11];
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
-	smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
+	return smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
 #else
 	return smcp_outbound_set_content_formatted_const("v=%u",v);
 #endif
@@ -822,7 +832,7 @@ smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v) {
 	char nstr[11];
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
-	smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
+	return smcp_outbound_append_content(uint32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
 #else
 	return smcp_outbound_set_content_formatted_const("v=%ul",v);
 #endif
@@ -854,6 +864,8 @@ smcp_outbound_send() {
 		// Remove the start-of-payload marker if we have no payload.
 		if(!smcp_get_current_instance()->outbound.content_len)
 			header_len--;
+		DEBUG_PRINTF("Outbound packet size: %d",header_len+smcp_get_current_instance()->outbound.content_len);
+		assert(header_len+smcp_get_current_instance()->outbound.content_len<SMCP_MAX_PACKET_LENGTH);
 
 		assert(coap_verify_packet((char*)self->outbound.packet,header_len+smcp_get_current_instance()->outbound.content_len));
 	}

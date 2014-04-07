@@ -73,15 +73,9 @@ smcp_outbound_send_hook() {
 
 	uip_slen = header_len +	smcp_get_current_instance()->outbound.content_len;
 
-	require_action(uip_slen>UIP_BUFSIZE, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
+	require_action(uip_slen<SMCP_MAX_PACKET_LENGTH, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
 	if (self->outbound.packet!=(struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN]) {
-		printf("to: %p\nfrom: %p\nlen: %d\n",
-			&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN],
-			(char*)self->outbound.packet,
-			uip_slen
-		);
-		printf("UIP_BUFSIZE = %d\n",UIP_BUFSIZE);
 		memmove(
 			&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN],
 			(char*)self->outbound.packet,
@@ -90,20 +84,22 @@ smcp_outbound_send_hook() {
 		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
 	}
 
-	uip_udp_conn = smcp_get_current_instance()->udp_conn;
-
-	uip_process(UIP_UDP_SEND_CONN);
+	if(!self->is_responding)
+	{
+		// If we aren't responding, then we will need to kick UIP.
+		uip_udp_conn = smcp_get_current_instance()->udp_conn;
+		uip_process(UIP_UDP_SEND_CONN);
 
 #if UIP_CONF_IPV6
-	tcpip_ipv6_output();
+		tcpip_ipv6_output();
 #else
-	if(uip_len > 0)
 		tcpip_output();
 #endif
-	uip_slen = 0;
+		uip_slen = 0;
 
-	memset(&smcp_get_current_instance()->udp_conn->ripaddr, 0, sizeof(uip_ipaddr_t));
-	smcp_get_current_instance()->udp_conn->rport = 0;
+		memset(&smcp_get_current_instance()->udp_conn->ripaddr, 0, sizeof(uip_ipaddr_t));
+		smcp_get_current_instance()->udp_conn->rport = 0;
+	}
 
 	ret = SMCP_STATUS_OK;
 bail:

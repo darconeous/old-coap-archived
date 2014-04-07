@@ -304,7 +304,7 @@ extern coap_option_key_t coap_option_key_from_cstr(const char* key);
 extern const char* http_code_to_cstr(int x);
 extern const char* coap_code_to_cstr(int x);
 
-extern bool coap_verify_packet(const char* packet,size_t packet_size);
+extern bool coap_verify_packet(const char* packet,uint16_t packet_size);
 uint32_t coap_decode_uint32(const uint8_t* value, uint8_t value_len);
 
 struct coap_block_info_s {

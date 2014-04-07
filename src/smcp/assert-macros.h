@@ -69,6 +69,11 @@
 			 a; goto l; \
 		 } \
 	} while(0)
+ #define require_noerr_action_string(c, l, a, s) \
+    do { if((c)!=0) { \
+			 a; goto l; \
+		 } \
+	} while(0)
 #else
  #if __AVR__
   #define assert_printf(fmt, ...) \
@@ -105,6 +110,14 @@
 			s); a; goto l; \
 		 } \
 	} while(0)
+ #define require_noerr_action_string(c, l, a, s) \
+	do { \
+		int err = (int)(c); \
+		if(err!=0) { \
+		assert_printf("Requirement Failed, error %d (%s)", \
+			err, s); a; goto l; \
+		 } \
+	} while(0)
 #endif
 
  #define check(c)   check_string(c, # c)
@@ -112,7 +125,7 @@
  #define require_quiet(c, l)   do { if(!(c)) goto l; } while(0)
  #define require(c, l)   require_action_string(c, l, {}, # c)
 
- #define require_noerr(c, l)   require((c) == 0, l)
+ #define require_noerr(c, l)   require_noerr_action_string(c, l, {}, # c)
  #define require_action(c, l, a)   require_action_string(c, l, a, # c)
  #define require_string(c, l, s) \
     require_action_string(c, l, \

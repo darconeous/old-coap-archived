@@ -62,12 +62,13 @@ elapsed_time_request_handler(
 
 	if(method==COAP_METHOD_GET) {
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
-		if(ret) goto bail;
+		require_noerr(ret, bail);
 
 		ret = smcp_outbound_set_var_content_unsigned_long_int(clock_seconds());
-		if(ret) goto bail;
+		require_noerr(ret, bail);
 
 		ret = smcp_outbound_send();
+		require_noerr(ret, bail);
 	}
 bail:
 	return ret;

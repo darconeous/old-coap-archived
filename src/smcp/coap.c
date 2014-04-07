@@ -271,32 +271,32 @@ coap_decode_block(struct coap_block_info_s* block_info, uint32_t block)
 }
 
 bool
-coap_verify_packet(const char* packet,size_t packet_size) {
+coap_verify_packet(const char* packet,uint16_t packet_size) {
 	const struct coap_header_s* const header = (const void*)packet;
 	coap_option_key_t key = 0;
 	const uint8_t* option_ptr = header->token + header->token_len;
 
 	if(packet_size<4) {
 		// Packet too small
-		DEBUG_PRINTF("PACKET CORRUPTED: Too Small\n");
+		DEBUG_PRINTF("PACKET CORRUPTED: Too Small");
 		return false;
 	}
 
 	if(header->version!=COAP_VERSION) {
 		// Bad version.
-		DEBUG_PRINTF("PACKET CORRUPTED: Bad Version\n");
+		DEBUG_PRINTF("PACKET CORRUPTED: Bad Version");
 		return false;
 	}
 
 	if(packet_size>COAP_MAX_MESSAGE_SIZE) {
 		// Packet too large
-		DEBUG_PRINTF("PACKET CORRUPTED: Too Large\n");
+		DEBUG_PRINTF("PACKET CORRUPTED: Too Large: %d (%d max)", packet_size, COAP_MAX_MESSAGE_SIZE);
 		return false;
 	}
 
 	if(header->token_len>8) {
 		// Token too large
-		DEBUG_PRINTF("PACKET CORRUPTED: Bad Token\n");
+		DEBUG_PRINTF("PACKET CORRUPTED: Bad Token");
 		return false;
 	}
 
