@@ -556,6 +556,7 @@ smcp_inbound_finish_packet() {
 
 	// Check to make sure we have responded by now. If not, we need to.
 	if(!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {
+		smcp_outbound_reset();
 		if(COAP_CODE_IS_REQUEST(packet->code)) {
 			int result_code = smcp_convert_status_to_result_code(ret);
 			if(self->inbound.is_dupe)
@@ -583,6 +584,7 @@ smcp_inbound_finish_packet() {
 bail:
 	self->is_processing_message = false;
 	self->force_current_outbound_code = false;
+	self->inbound.packet = NULL;
 	self->inbound.content_ptr = NULL;
 	self->inbound.content_len = 0;
 	smcp_set_current_instance(NULL);

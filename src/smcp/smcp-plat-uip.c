@@ -38,6 +38,7 @@
 #include "net/ip/uip-udp-packet.h"
 #include "net/ip/uiplib.h"
 extern uint16_t uip_slen;
+extern void *uip_sappdata;
 
 smcp_status_t
 smcp_outbound_send_hook() {
@@ -75,20 +76,29 @@ smcp_outbound_send_hook() {
 
 	require_action(uip_slen<SMCP_MAX_PACKET_LENGTH, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
-	if (self->outbound.packet!=(struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN]) {
+	if (self->outbound.packet!=(struct coap_header_s*)uip_sappdata) {
 		memmove(
-			&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN],
+			uip_sappdata,
 			(char*)self->outbound.packet,
 			uip_slen
 		);
-		self->outbound.packet = (struct coap_header_s*)&uip_buf[UIP_LLH_LEN + UIP_IPUDPH_LEN];
+		self->outbound.packet = (struct coap_header_s*)uip_sappdata;
 	}
+
+	//uip_sappdata = self->outbound.packet;
 
 	if(!self->is_responding)
 	{
 		// If we aren't responding, then we will need to kick UIP.
 		uip_udp_conn = smcp_get_current_instance()->udp_conn;
 		uip_process(UIP_UDP_SEND_CONN);
+
+#if UIP_CONF_IPV6_MULTICAST
+		/* Let the multicast engine process the datagram before we send it */
+		if(uip_is_addr_mcast_routable(&uip_udp_conn->ripaddr)) {
+			UIP_MCAST6.out();
+		}
+#endif /* UIP_IPV6_MULTICAST */
 
 #if UIP_CONF_IPV6
 		tcpip_ipv6_output();

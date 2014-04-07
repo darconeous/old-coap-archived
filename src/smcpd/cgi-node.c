@@ -293,10 +293,7 @@ cgi_node_async_resend_response(void* context) {
 
 //	printf("Resending async response. . .\n");
 
-	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
-	require_noerr(ret,bail);
-
-	ret = smcp_outbound_set_async_response(&request->async_response);
+	ret = smcp_outbound_begin_async_response(COAP_RESULT_205_CONTENT,&request->async_response);
 	require_noerr(ret,bail);
 
 //	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);

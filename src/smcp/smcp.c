@@ -512,7 +512,7 @@ smcp_vhost_route(smcp_request_handler_func* func, void** context) {
 #pragma mark Asynchronous Response Support
 
 smcp_status_t
-smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
+smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x) {
 	smcp_status_t ret = 0;
 	smcp_t const self = smcp_get_current_instance();
 	self->inbound.packet = &x->request.header;
@@ -530,6 +530,8 @@ smcp_outbound_set_async_response(struct smcp_async_response_s* x) {
 #endif
 	self->is_processing_message = true;
 	self->did_respond = false;
+
+	smcp_outbound_begin_response(code);
 
 	self->outbound.packet->tt = x->request.header.tt;
 

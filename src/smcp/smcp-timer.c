@@ -217,7 +217,9 @@ smcp_invalidate_timer(
 	SMCP_EMBEDDED_SELF_HOOK;
 #if SMCP_DEBUG_TIMERS
 	size_t previousTimerCount = ll_count(self->timers);
-	assert(previousTimerCount>=1);
+	// Sanity check. If we don't have at least one timer
+	// then we know something is off.
+	check(previousTimerCount>=1);
 #endif
 
 	DEBUG_PRINTF("Timer:%p: Invalidating...",timer);
@@ -226,7 +228,7 @@ smcp_invalidate_timer(
 	ll_remove((void**)&self->timers, (void*)timer);
 
 #if SMCP_DEBUG_TIMERS
-	assert((ll_count(self->timers)) == previousTimerCount-1);
+	check((ll_count(self->timers)) == previousTimerCount-1);
 #endif
 	timer->ll.next = NULL;
 	timer->ll.prev = NULL;

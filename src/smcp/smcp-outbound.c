@@ -60,6 +60,7 @@
 #include "net/ip/uip-udp-packet.h"
 #include "net/ip/uiplib.h"
 extern uint16_t uip_slen;
+extern void *uip_sappdata;
 #endif
 
 #if SMCP_USE_BSD_SOCKETS
@@ -91,6 +92,12 @@ smcp_outbound_drop() {
 	self->did_respond = true;
 }
 
+void
+smcp_outbound_reset()
+{
+	memset(&smcp_get_current_instance()->outbound, 0, sizeof(smcp_get_current_instance()->outbound));
+}
+
 smcp_status_t
 smcp_outbound_begin(
 	smcp_t self, coap_code_t code, coap_transaction_type_t tt
@@ -116,24 +123,24 @@ smcp_outbound_begin(
 	self->outbound.socklen = 0;
 #elif SMCP_USE_UIP
 	uip_udp_conn = self->udp_conn;
-	self->outbound.packet = (struct coap_header_s*)uip_appdata;
+	self->outbound.packet = (struct coap_header_s*)uip_sappdata;
 
-#if (SMCP_MAX_PACKET_LENGTH > 200)
 	if(self->outbound.packet == self->inbound.packet) {
-		self->outbound.packet = (struct coap_header_s*)&uip_appdata[self->inbound.packet_len + 1];
+		// TODO: Serious buffer overrun risk here unless we add some more
+		// code to handle the restricted packet length.
+		self->outbound.packet = (struct coap_header_s*)self->inbound.content_ptr;
 
 		// Fix the alignment for 32-bit platforms.
-		self->outbound.packet = (struct coap_header_s*)((uintptr_t)(self->outbound.packet+8)&~(uintptr_t)0x7);
+		self->outbound.packet = (struct coap_header_s*)((uintptr_t)((uint8_t*)self->outbound.packet+7)&~(uintptr_t)0x7);
 
-		if((uint8_t*)self->outbound.packet-(uint8_t*)uip_appdata+4>SMCP_MAX_PACKET_LENGTH) {
-			DEBUG_PRINTF("Not enough space to preserve inbound message! (available: %d, max: %d)",UIP_BUFSIZE-((uint8_t*)self->outbound.packet-(uint8_t*)uip_buf+4),UIP_APPDATA_SIZE);
-			self->outbound.packet = (struct coap_header_s*)uip_appdata;
-			return SMCP_STATUS_MESSAGE_TOO_BIG;
+		if((uint8_t*)self->outbound.packet-(uint8_t*)self->inbound.packet+4>SMCP_MAX_PACKET_LENGTH) {
+			DEBUG_PRINTF("Not enough space to preserve inbound message! (available: %d, max: %d)",UIP_BUFSIZE-((uint8_t*)self->outbound.packet-(uint8_t*)self->inbound.packet+4),UIP_APPDATA_SIZE);
+			self->outbound.packet = (struct coap_header_s*)uip_sappdata;
+			self->inbound.packet = NULL;
 		}
 	}
-#endif // (SMCP_MAX_PACKET_LENGTH > 200)
-
 #endif
+	assert(NULL!=self->outbound.packet);
 
 	self->outbound.packet->tt = tt;
 	self->outbound.packet->msg_id = self->outbound.next_tid;
@@ -180,8 +187,8 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 		"Attempted to send more than one response!"
 	);
 
-//	// If we have already started responding, don't bother.
-//	require(!self->is_responding,bail);
+	// If we have already started responding, don't bother.
+	require(!self->is_responding,bail);
 
 	if(self->is_processing_message)
 		self->outbound.next_tid = smcp_inbound_get_msg_id();

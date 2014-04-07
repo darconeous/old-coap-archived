@@ -177,10 +177,7 @@ retry_sending_event(struct smcp_observer_s* observer)
 	smcp_status_t status;
 	smcp_t const self = smcp_get_current_instance();
 
-	status = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
-	require_noerr(status,bail);
-
-	status = smcp_outbound_set_async_response(&observer->async_response);
+	status = smcp_outbound_begin_async_response(COAP_RESULT_205_CONTENT,&observer->async_response);
 	require_noerr(status,bail);
 
 	status = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE,observer->seq);

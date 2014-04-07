@@ -89,12 +89,9 @@ resend_async_response(void* context) {
 		curl_easy_getinfo(request->curl, CURLINFO_RESPONSE_CODE,&code);
 		code = http_to_coap_code(code);
 
-		ret = smcp_outbound_begin_response(code);
+		ret = smcp_outbound_begin_async_response(code,async_response);
 		require_noerr(ret,bail);
 	}
-
-	ret = smcp_outbound_set_async_response(async_response);
-	require_noerr(ret,bail);
 
 	{
 		const char* content_type_string;

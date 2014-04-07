@@ -482,6 +482,8 @@ extern smcp_status_t smcp_outbound_send();
 //!	Convenience function to simply drop a packet.
 extern void smcp_outbound_drop();
 
+extern void smcp_outbound_reset();
+
 //!	Sets the msg_id on the outbound packet.
 /*!	@note In most cases msg_ids are handled automatically. You
 **	      do not normally need to call this.
@@ -537,7 +539,7 @@ extern smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,i
 
 extern smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
 
-extern smcp_status_t smcp_outbound_set_async_response(struct smcp_async_response_s* x);
+extern smcp_status_t smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x);
 
 /*!	@} */
 
