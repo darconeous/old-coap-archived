@@ -97,6 +97,25 @@ processes_request_handler(
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	const smcp_method_t method = smcp_inbound_get_code();
 
+//	uint32_t block_option = 0x03;
+//	uint32_t block_start = 0;
+//	uint32_t block_stop = 0;
+//	coap_size_t max_len = 0;
+//
+//	{
+//		const uint8_t* value;
+//		coap_size_t value_len;
+//		coap_option_key_t key;
+//		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+//			if(key == COAP_OPTION_BLOCK2) {
+//				uint8_t i;
+//				block_option = 0;
+//				for(i = 0; i < value_len; i++)
+//					block_option = (block_option << 8) + value[i];
+//			}
+//		}
+//	}
+
 	if(method==COAP_METHOD_GET) {
 		struct process* iter;
 		int size=0;
@@ -108,15 +127,37 @@ processes_request_handler(
 
 		smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_CSV);
 
+//		max_len = smcp_outbound_get_space_remaining()-2;
+//
+//		// Here we are making sure our data will fit,
+//		// and adjusting our block-option size accordingly.
+//		do {
+//			struct coap_block_info_s block_info;
+//			coap_decode_block(&block_info, block_option);
+//			block_start = block_info.block_offset;
+//			block_stop = block_info.block_offset + block_info.block_size;
+//
+//			if(max_len<(block_stop-block_start) && block_option!=0 && !block_info.block_offset) {
+//				block_option--;
+//				block_stop = 0;
+//				continue;
+//			}
+//		} while(0==block_stop);
+//
+//		ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,block_option);
+//		require_noerr(ret,bail);
+
 		content = smcp_outbound_get_content_ptr(&content_len);
 		if(!content) goto bail;
 
 		iter = process_list;
 
-		while(iter) {
-			size+=snprintf(content+size,content_len-size,"%p, %u, %s\n",iter,iter->state,PROCESS_NAME_STRING(iter));
+		while(iter && (content_len-size)>0) {
+			size += snprintf(content+size,content_len-size,"%p, %u, %s\n",iter,iter->state,PROCESS_NAME_STRING(iter));
 			iter = iter->next;
 		}
+
+		require_action(content_len>=size,bail,ret=SMCP_STATUS_MESSAGE_TOO_BIG);
 
 		ret = smcp_outbound_set_content_len(size);
 		if(ret) goto bail;

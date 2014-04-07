@@ -299,8 +299,7 @@ plugtest_large_handler(
 	ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,60*60);
 	require_noerr(ret,bail);
 
-	// We do this here just to get max_len
-	smcp_outbound_get_content_ptr(&max_len);
+	max_len = smcp_outbound_get_space_remaining()-2;
 
 	// Here we are making sure our data will fit,
 	// and adjusting our block-option size accordingly.

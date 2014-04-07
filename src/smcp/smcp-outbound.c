@@ -819,8 +819,7 @@ smcp_outbound_set_var_content_int(int v) {
 	char nstr[12];
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
-	int32_to_dec_cstr(nstr,v);
-	return smcp_outbound_append_content(nstr, SMCP_CSTR_LEN);
+	return smcp_outbound_append_content(int32_to_dec_cstr(nstr,v), SMCP_CSTR_LEN);
 #else
 	smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 	return smcp_outbound_set_content_formatted_const("v=%d",v);

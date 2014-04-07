@@ -501,10 +501,6 @@ extern smcp_status_t smcp_outbound_set_token(const uint8_t *token,uint8_t token_
 //!	Useful for indicating errors.
 extern smcp_status_t smcp_outbound_quick_response(coap_code_t code, const char* body);
 
-//extern smcp_status_t smcp_outbound_set_var_content_int(int v) SMCP_DEPRECATED;
-//extern smcp_status_t smcp_outbound_set_var_content_unsigned_int(unsigned int v) SMCP_DEPRECATED;
-//extern smcp_status_t smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v) SMCP_DEPRECATED;
-
 /*!	@} */
 
 #pragma mark -

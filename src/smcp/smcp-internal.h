@@ -199,6 +199,10 @@ extern smcp_status_t smcp_handle_request();
 
 extern smcp_status_t smcp_handle_response();
 
+extern smcp_status_t smcp_outbound_set_var_content_int(int v);
+extern smcp_status_t smcp_outbound_set_var_content_unsigned_int(unsigned int v);
+extern smcp_status_t smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v);
+
 
 __END_DECLS
 

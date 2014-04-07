@@ -716,9 +716,6 @@ int smcp_convert_status_to_result_code(smcp_status_t status) {
 	case SMCP_STATUS_BAD_OPTION:
 		ret = COAP_RESULT_402_BAD_OPTION;
 		break;
-	case SMCP_STATUS_MALLOC_FAILURE:
-		ret = COAP_RESULT_503_SERVICE_UNAVAILABLE;
-		break;
 	}
 
 	return ret;

@@ -570,6 +570,11 @@ smcp_inbound_finish_packet() {
 					result_code = COAP_RESULT_202_DELETED;
 			}
 			smcp_outbound_begin_response(result_code);
+
+			// For an ISE, let's give a little more information.
+			if(result_code==COAP_RESULT_500_INTERNAL_SERVER_ERROR) {
+				smcp_outbound_set_var_content_int(ret);
+			}
 		} else {
 			smcp_outbound_begin_response(0);
 			if(ret && !self->inbound.is_dupe)
