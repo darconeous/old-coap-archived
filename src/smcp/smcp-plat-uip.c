@@ -10,10 +10,8 @@
 #include <config.h>
 #endif
 
-#define __APPLE_USE_RFC_3542 1
-
 #ifndef VERBOSE_DEBUG
-#define VERBOSE_DEBUG 1
+#define VERBOSE_DEBUG 0
 #endif
 
 #ifndef DEBUG
