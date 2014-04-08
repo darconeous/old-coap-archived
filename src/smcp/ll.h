@@ -234,9 +234,9 @@ ll_push(
 	LL_ASSERT(ll_verify(*list));
 }
 
-static inline size_t
+static inline int
 ll_count(void* item) {
-	size_t ret = 0;
+	int ret = 0;
 	ll_item_t item_ = item;
 
 	for(; item_; item_ = item_->next)

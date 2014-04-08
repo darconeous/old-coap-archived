@@ -235,9 +235,9 @@ bt_prev(void* item) {
 }
 
 #ifndef __SDCC
-size_t
+int
 bt_count(void*const* bt) {
-	size_t ret = 0;
+	int ret = 0;
 
 	if(*bt) {
 		bt_item_t iter = bt_first(*bt);

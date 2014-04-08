@@ -784,10 +784,10 @@ coap_dump_header(
 			coap_decode_block(&block_info, block);
 
 			fprintf(outstream,
-				"%d/%d/%d",
-				block_info.block_offset,
-				block_info.block_m,
-				block_info.block_size
+				"%ld/%ld/%ld",
+				(long)block_info.block_offset,
+				(long)block_info.block_m,
+				(long)block_info.block_size
 			);
 		}
 		break;

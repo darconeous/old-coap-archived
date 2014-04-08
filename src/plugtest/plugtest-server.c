@@ -84,7 +84,7 @@ plugtest_test_handler(smcp_node_t node)
 			strlcat(content,coap_option_key_to_cstr(key,1),max_len);
 			strlcat(content,": ",max_len);
 			if(coap_option_value_is_string(key)) {
-				size_t argh = strlen(content)+value_len;
+				int argh = strlen(content)+value_len;
 				strlcat(content,(char*)value,MIN(max_len,argh+1));
 				content[argh] = 0;
 			} else {

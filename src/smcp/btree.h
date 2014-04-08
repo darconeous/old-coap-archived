@@ -114,7 +114,7 @@ extern void* bt_next(void* item);
 extern void* bt_prev(void* item);
 
 //!	Traverses the given tree to determine the number of nodes it contains.
-extern size_t bt_count(void*const* bt);
+extern int bt_count(void*const* bt);
 
 extern int bt_get_balance(void* node);
 
