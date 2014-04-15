@@ -519,7 +519,7 @@ bail:
 
 char **
 smcp_attempted_completion (
-	char *text,
+	const char *text,
 	int start,
 	int end
 ) {

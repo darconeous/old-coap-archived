@@ -93,7 +93,7 @@ dump_test_results(const test_data_s *test_data) {
 		coap_decode_block(&block_info, test_data->block2_option);
 		printf("\tblock2: %d/%d/%d\n", block_info.block_offset,block_info.block_m,block_info.block_size);
 	}
-	printf("\tinbound_content_len: %ld\n", test_data->inbound_content_len);
+	printf("\tinbound_content_len: %d\n", (int)test_data->inbound_content_len);
 	if(test_data->inbound_packets!=1)
 		printf("\tinbound_packets: %d\n", test_data->inbound_packets);
 	if(test_data->inbound_dupe_packets!=0)
