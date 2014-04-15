@@ -107,6 +107,26 @@ if test x"$smcp_check_for_libreadline" = xyes; then :
 	AC_CHECK_HEADER([readline/readline.h],AC_CHECK_LIB([readline], [readline]))
 	if test "x$ac_cv_lib_readline_readline" = xyes; then :
 		HAVE_LIBREADLINE=true
+		AC_CACHE_CHECK([libedit rl_completion_entry_function bug], rl_cv_libedit_completion_entry_bug,
+		tmp_CFLAGS="${CFLAGS}"
+		CFLAGS+=" -Werror"
+		AC_TRY_COMPILE(
+			[
+			#include <stdio.h>
+			#include <readline/readline.h>
+			],
+			[
+			const char *res = (*rl_completion_entry_function)(0,0);
+			],
+			[rl_cv_libedit_completion_entry_bug=no],
+			[
+			rl_cv_libedit_completion_entry_bug=yes
+					AC_DEFINE_UNQUOTED([HAS_LIBEDIT_COMPLETION_ENTRY_BUG], [1],
+									   [rl_completion_entry_function has the wrong return type])
+			],
+			)
+		)
+		CFLAGS="${tmp_CFLAGS}"
 	fi
 fi
 AM_CONDITIONAL([HAVE_LIBREADLINE],$HAVE_LIBREADLINE)

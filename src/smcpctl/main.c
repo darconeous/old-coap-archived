@@ -555,7 +555,12 @@ initialize_readline() {
 	rl_completer_word_break_characters = " \t\n\"\\'`@$><|&{("; // Removed '=' ';'
 	/* Tell the completer that we want a crack first. */
 	rl_attempted_completion_function = smcp_attempted_completion;
+#if HAS_LIBEDIT_COMPLETION_ENTRY_BUG
+	// Apple's LIBEDIT has some problems
+	rl_completion_entry_function = (void*)smcp_directory_generator;
+#else
 	rl_completion_entry_function = smcp_directory_generator;
+#endif
 
 	using_history();
 	read_history(getenv("SMCP_HISTORY_FILE"));
