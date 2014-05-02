@@ -19,7 +19,7 @@ libsmcp_a_SOURCES += smcp-variable_node.c smcp-variable_node.h
 
 libsmcp_a_SOURCES += assert-macros.h btree.h coap.h ll.h smcp-curl_proxy.h smcp-helpers.h smcp-internal.h smcp-logging.h smcp-opts.h smcp-observable.h smcp-timer.h smcp.h url-helpers.h smcp-auth.h smcp-transaction.h fasthash.h smcp-plat-bsd.h
 
-EXTRA_DIST = smcp-plat-bsd-internal.h smcp-plat-uip-internal.h smcp-plat-uip-internal.c
+EXTRA_DIST = smcp-plat-bsd-internal.h smcp-plat-uip-internal.h smcp-plat-uip.c smcp-plat-uip.h
 
 libsmcp_a_LIBADD = $(LIBOBJS) $(ALLOCA)
 

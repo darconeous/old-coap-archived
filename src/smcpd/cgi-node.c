@@ -150,7 +150,7 @@ cgi_node_get_associated_request(cgi_node_t node) {
 //			printf("cgi_node_get_associated_request: %d: token mismatch\n",i);
 			continue;
 		}
-		if(0!=memcmp(&request->async_response.saddr,smcp_inbound_get_srcaddr(),sizeof(request->async_response.saddr))) {
+		if(0!=memcmp(&request->async_response.remote_saddr,smcp_inbound_get_srcaddr(),sizeof(request->async_response.remote_saddr))) {
 //			printf("cgi_node_get_associated_request: %d: saddr mismatch\n",i);
 			continue;
 		}

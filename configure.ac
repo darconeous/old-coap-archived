@@ -78,6 +78,20 @@ AC_CONFIG_HEADERS([src/config.h])
 
 AM_MAINTAINER_MODE
 
+AC_ARG_ENABLE(debug, AC_HELP_STRING([--enable-debug],
+            [enable compiling with debugging information]), [
+    if (test "${enableval}" = "yes" &&
+                test "${ac_cv_prog_cc_g}" = "yes"); then
+        CFLAGS="$CFLAGS -g -DDEBUG=1"
+        CXXFLAGS="$CXXFLAGS -g -DDEBUG=1"
+    fi
+    if (test "${enableval}" = "verbose" &&
+                test "${ac_cv_prog_cc_g}" = "yes"); then
+        CFLAGS="$CFLAGS -g -DDEBUG=1 -DVERBOSE_DEBUG=1"
+        CXXFLAGS="$CXXFLAGS -g -DDEBUG=1 -DVERBOSE_DEBUG=1"
+    fi
+])
+
 # Checks for programs.
 AC_PROG_CC
 

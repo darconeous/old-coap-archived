@@ -59,7 +59,7 @@
 #include <netinet/in.h>
 
 #ifndef SOCKADDR_HAS_LENGTH_FIELD
-#if defined(__APPLE__) || defined(__linux__)
+#if defined(__KAME__)
 #define SOCKADDR_HAS_LENGTH_FIELD 1
 #endif
 #endif
@@ -169,7 +169,7 @@ smcp_init(
 			&imreq,
 			sizeof(imreq));
 
-		require(0 ==
+		require_quiet(0 ==
 			setsockopt(self->mcfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &imreq,
 				sizeof(imreq)), skip_mcast);
 
@@ -479,10 +479,16 @@ smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
 	}
 #endif
 
-	require_action(error!=EAI_AGAIN,bail,ret=SMCP_STATUS_WAIT_FOR_DNS);
+	if (EAI_AGAIN == error) {
+		ret = SMCP_STATUS_WAIT_FOR_DNS;
+		goto bail;
+	}
 
 #ifdef TM_EWOULDBLOCK
-	require_action(error!=TM_EWOULDBLOCK,bail,ret=SMCP_STATUS_WAIT_FOR_DNS);
+	if (TM_EWOULDBLOCK == error) {
+		ret = SMCP_STATUS_WAIT_FOR_DNS;
+		goto bail;
+	}
 #endif
 
 	require_action_string(
@@ -520,6 +526,9 @@ smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
 			self->outbound.packet->tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
 		}
 	}
+
+	ret = SMCP_STATUS_OK;
+
 bail:
 	if(results)
 		freeaddrinfo(results);
