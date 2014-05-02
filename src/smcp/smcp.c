@@ -30,8 +30,6 @@
 #include <config.h>
 #endif
 
-#define __APPLE_USE_RFC_3542 1
-
 #ifndef VERBOSE_DEBUG
 #define VERBOSE_DEBUG 0
 #endif
@@ -43,38 +41,11 @@
 #include "assert-macros.h"
 
 #include "smcp.h"
-#include "url-helpers.h"
+#include "smcp-internal.h"
 #include "smcp-logging.h"
 #include "smcp-auth.h"
-#include "ll.h"
 #include "smcp-helpers.h"
 #include "smcp-timer.h"
-#include "smcp-internal.h"
-
-#if CONTIKI
-#include "contiki.h"
-#include "net/ip/tcpip.h"
-#include "net/ip/resolv.h"
-#endif
-
-#if SMCP_USE_UIP
-#include "net/ip/uip-udp-packet.h"
-#include "net/ip/uiplib.h"
-extern uint16_t uip_slen;
-#if UIP_CONF_IPV6
-#include "net/ipv6/uip-ds6.h"
-#endif
-#endif
-
-#if SMCP_USE_BSD_SOCKETS
-#include <poll.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <sys/errno.h>
-#include <sys/types.h>
-#include <unistd.h>
-#endif
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -118,156 +89,10 @@ bail:
 }
 #endif
 
-smcp_t
-smcp_init(
-	smcp_t self, uint16_t port
-) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
-	require(self != NULL, bail);
-
-	if(port == 0)
-		port = COAP_DEFAULT_PORT;
-
-#if SMCP_USE_BSD_SOCKETS
-	struct sockaddr_in6 saddr = {
-#if SOCKADDR_HAS_LENGTH_FIELD
-		.sin6_len		= sizeof(struct sockaddr_in6),
-#endif
-		.sin6_family	= AF_INET6,
-		.sin6_port		= htons(port),
-	};
-#endif
-
-	// Clear the entire structure.
-	memset(self, 0, sizeof(*self));
-
-	// Set up the UDP port for listening.
-#if SMCP_USE_BSD_SOCKETS
-	uint16_t attempts = 0x7FFF;
-
-	self->mcfd = -1;
-	self->fd = -1;
-	errno = 0;
-
-	self->fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-	int prev_errno = errno;
-
-	require_action_string(
-		self->fd >= 0,
-		bail, (
-			smcp_release(self),
-			self = NULL
-		),
-		strerror(prev_errno)
-	);
-
-#ifdef IPV6_V6ONLY
-	{
-		int value = 0; /* explicitly allow ipv4 traffic too (required on bsd and some debian installations) */
-		if (setsockopt(self->fd, IPPROTO_IPV6, IPV6_V6ONLY, &value, sizeof(value)) < 0)
-		{
-			DEBUG_PRINTF(CSTR("Socket won't allow IPv4 connections"));
-		}
-	}
-#endif
-
-	// Keep attempting to bind until we find a port that works.
-	while(bind(self->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
-		// We should only continue trying if errno == EADDRINUSE.
-		require_action_string(errno == EADDRINUSE, bail,
-			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_release(
-				    self); self = NULL; }, "Failed to bind socket");
-		port++;
-
-		// Make sure we aren't in an infinite loop.
-		require_action_string(--attempts, bail,
-			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_release(
-				    self); self = NULL; }, "Failed to bind socket (ran out of ports)");
-
-		saddr.sin6_port = htons(port);
-	}
-
-
-	{	// Handle sockopts.
-		int value;
-
-#ifdef IPV6_RECVPKTINFO
-		value = 1;
-		setsockopt(self->fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &value, sizeof(value));
-#endif
-
-//#ifdef IPV6_PREFER_TEMPADDR
-//#ifndef IP6PO_TEMPADDR_NOTPREFER
-//#define IP6PO_TEMPADDR_NOTPREFER 0
-//#endif
-//		value = IP6PO_TEMPADDR_NOTPREFER;
-//		setsockopt(self->fd, IPPROTO_IPV6, IPV6_PREFER_TEMPADDR, &value, sizeof(value));
-//#endif
-	}
-
-#elif SMCP_USE_UIP
-	self->udp_conn = udp_new(NULL, 0, NULL);
-	uip_udp_bind(self->udp_conn, htons(port));
-	self->udp_conn->rport = 0;
-
-#if UIP_CONF_IPV6
-	{
-		uip_ipaddr_t all_coap_nodes_addr;
-		if(uiplib_ipaddrconv(
-			COAP_MULTICAST_IP6_ALLDEVICES,
-			&all_coap_nodes_addr
-		)) {
-			uip_ds6_maddr_add(&all_coap_nodes_addr);
-		}
-	}
-#endif
-#endif
-
-	// Go ahead and start listening on our multicast address as well.
-#if SMCP_USE_BSD_SOCKETS
-	{   // Join the multicast group for COAP_MULTICAST_IP6_ALLDEVICES
-		struct ipv6_mreq imreq;
-		int btrue = 1;
-		struct hostent *tmp = gethostbyname2(COAP_MULTICAST_IP6_ALLDEVICES,
-			AF_INET6);
-		memset(&imreq, 0, sizeof(imreq));
-		self->mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
-
-		require(!h_errno && tmp, skip_mcast);
-		require(tmp->h_length > 1, skip_mcast);
-
-		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, tmp->h_addr_list[0], 16);
-
-		require(0 ==
-			setsockopt(self->mcfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-				&btrue,
-				sizeof(btrue)), skip_mcast);
-
-		// Do a precautionary leave group, to clear any stake kernel data.
-		setsockopt(self->mcfd,
-			IPPROTO_IPV6,
-			IPV6_LEAVE_GROUP,
-			&imreq,
-			sizeof(imreq));
-
-		require(0 ==
-			setsockopt(self->mcfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &imreq,
-				sizeof(imreq)), skip_mcast);
-
-	skip_mcast:
-		(void)0;
-	}
-#endif
-
-	self->is_processing_message = false;
-
-bail:
-	return self;
-}
-
 void
 smcp_release(smcp_t self) {
+	void smcp_release_plat(smcp_t self);
+
 	SMCP_EMBEDDED_SELF_HOOK;
 	require(self, bail);
 
@@ -284,15 +109,7 @@ smcp_release(smcp_t self) {
 		smcp_invalidate_timer(self, timer);
 	}
 
-#if SMCP_USE_BSD_SOCKETS
-	if(self->fd>=0)
-		close(self->fd);
-	if(self->mcfd>=0)
-		close(self->mcfd);
-#elif SMCP_USE_UIP
-	if(self->udp_conn)
-		uip_udp_remove(self->udp_conn);
-#endif
+	smcp_release_plat(self);
 
 #if !SMCP_EMBEDDED
 	free(self);
@@ -301,34 +118,6 @@ smcp_release(smcp_t self) {
 bail:
 	return;
 }
-
-uint16_t
-smcp_get_port(smcp_t self) {
-#if SMCP_USE_BSD_SOCKETS
-	SMCP_EMBEDDED_SELF_HOOK;
-	struct sockaddr_in6 saddr;
-	socklen_t socklen = sizeof(saddr);
-	getsockname(self->fd, (struct sockaddr*)&saddr, &socklen);
-	return ntohs(saddr.sin6_port);
-#elif SMCP_USE_UIP
-	SMCP_EMBEDDED_SELF_HOOK;
-	return ntohs(self->udp_conn->lport);
-#endif
-}
-
-#if SMCP_USE_BSD_SOCKETS
-int
-smcp_get_fd(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-	return self->fd;
-}
-#elif defined(SMCP_USE_UIP)
-struct uip_udp_conn*
-smcp_get_udp_conn(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-	return self->udp_conn;
-}
-#endif
 
 void
 smcp_set_proxy_url(smcp_t self,const char* url) {
@@ -349,102 +138,6 @@ smcp_set_default_request_handler(smcp_t self,smcp_request_handler_func request_h
 	assert(self);
 	self->request_handler = request_handler;
 	self->request_handler_context = context;
-}
-
-#pragma mark -
-
-smcp_status_t
-smcp_process(
-	smcp_t self, cms_t cms
-) {
-	SMCP_EMBEDDED_SELF_HOOK;
-	smcp_status_t ret = 0;
-
-#if SMCP_USE_BSD_SOCKETS
-	int tmp;
-	struct pollfd pollee = { self->fd, POLLIN | POLLHUP, 0 };
-
-	if(cms >= 0)
-		cms = MIN(cms, smcp_get_timeout(self));
-	else
-		cms = smcp_get_timeout(self);
-
-	errno = 0;
-
-	tmp = poll(&pollee, 1, cms);
-
-	// Ensure that poll did not fail with an error.
-	require_action_string(errno == 0,
-		bail,
-		ret = SMCP_STATUS_ERRNO,
-		strerror(errno)
-	);
-
-	if(tmp > 0) {
-		char packet[SMCP_MAX_PACKET_LENGTH+1];
-		struct sockaddr_in6 packet_saddr;
-		ssize_t packet_len = 0;
-		char cmbuf[0x100];
-		struct iovec iov = { packet, SMCP_MAX_PACKET_LENGTH };
-		struct msghdr msg = {
-			.msg_name = &packet_saddr,
-			.msg_namelen = sizeof(packet_saddr),
-			.msg_iov = &iov,
-			.msg_iovlen = 1,
-			.msg_control = cmbuf,
-			.msg_controllen = sizeof(cmbuf),
-		};
-		struct cmsghdr *cmsg;
-
-		packet_len = recvmsg(self->fd, &msg, 0);
-
-		require_action(packet_len > 0, bail, ret = SMCP_STATUS_ERRNO);
-
-		packet[packet_len] = 0;
-
-		ret = smcp_inbound_start_packet(self, msg.msg_iov[0].iov_base, packet_len);
-		require(ret==SMCP_STATUS_OK,bail);
-
-		// Set the source address
-		ret = smcp_inbound_set_srcaddr((struct sockaddr*)msg.msg_name,msg.msg_namelen);
-		require(ret==SMCP_STATUS_OK,bail);
-
-		for (
-			cmsg = CMSG_FIRSTHDR(&msg);
-			cmsg != NULL;
-			cmsg = CMSG_NXTHDR(&msg, cmsg)
-		) {
-			if (cmsg->cmsg_level != IPPROTO_IPV6
-				|| cmsg->cmsg_type != IPV6_PKTINFO
-			) {
-				continue;
-			}
-			struct in6_pktinfo *pi = (struct in6_pktinfo *)CMSG_DATA(cmsg);
-
-			// Set the destination address
-
-			packet_saddr.sin6_addr = pi->ipi6_addr;
-			packet_saddr.sin6_port = htons(smcp_get_port(self));
-			ret = smcp_inbound_set_destaddr((struct sockaddr*)&packet_saddr,sizeof(packet_saddr));
-			require(ret==SMCP_STATUS_OK,bail);
-
-			self->inbound.pktinfo = *pi;
-		}
-
-		ret = smcp_inbound_finish_packet();
-		require(ret==SMCP_STATUS_OK,bail);
-	}
-#else
-	(void)cms;
-#endif
-
-	smcp_set_current_instance(self);
-	smcp_handle_timers(self);
-
-bail:
-	smcp_set_current_instance(NULL);
-	self->is_responding = false;
-	return ret;
 }
 
 #pragma mark -
@@ -521,28 +214,23 @@ smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_
 	self->inbound.last_option_key = 0;
 	self->inbound.this_option = x->request.header.token;
 	self->inbound.is_fake = true;
+	self->inbound.saddr = x->remote_saddr;
 #if SMCP_USE_BSD_SOCKETS
-	self->inbound.saddr = x->saddr;
 	self->inbound.pktinfo = x->pktinfo;
-#elif SMCP_USE_UIP
-	self->inbound.toaddr = x->toaddr;
-	self->inbound.toport = x->toport;
 #endif
 	self->is_processing_message = true;
 	self->did_respond = false;
 
 	smcp_outbound_begin_response(code);
 
+	self->outbound.packet->msg_id = self->current_transaction->msg_id;
+
 	self->outbound.packet->tt = x->request.header.tt;
 
 	ret = smcp_outbound_set_token(x->request.header.token, x->request.header.token_len);
 	require_noerr(ret, bail);
 
-#if SMCP_USE_BSD_SOCKETS
-	ret = smcp_outbound_set_destaddr((void*)&x->saddr,x->socklen);
-#elif SMCP_USE_UIP
-	ret = smcp_outbound_set_destaddr(&x->toaddr,x->toport);
-#endif
+	ret = smcp_outbound_set_destaddr(&x->remote_saddr);
 
 	require_noerr(ret, bail);
 
@@ -570,13 +258,9 @@ smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
 
 	assert(coap_verify_packet((const char*)x->request.bytes, x->request_len));
 
+	memcpy(&x->remote_saddr,&self->inbound.saddr,sizeof(x->remote_saddr));
 #if SMCP_USE_BSD_SOCKETS
-	x->socklen = self->inbound.socklen;
-	memcpy(&x->saddr,&self->inbound.saddr,sizeof(x->saddr));
 	x->pktinfo = self->inbound.pktinfo;
-#elif SMCP_USE_UIP
-	memcpy(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr));
-	x->toport = self->inbound.toport;
 #endif
 
 	if(	!(flags & SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK)
@@ -617,13 +301,7 @@ bool
 smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
 {
 	smcp_t const self = smcp_get_current_instance();
-#if SMCP_USE_BSD_SOCKETS
-	return (x->socklen == self->inbound.socklen)
-		&& (0==memcmp(&x->saddr,&self->inbound.saddr,sizeof(x->saddr)));
-#elif SMCP_USE_UIP
-	return (x->toport == self->inbound.toport)
-		&& (0==memcmp(&x->toaddr,&self->inbound.toaddr,sizeof(x->toaddr)));
-#endif
+	return 0 == memcmp(&x->remote_saddr,&self->inbound.saddr,sizeof(x->remote_saddr));
 }
 
 #pragma mark -

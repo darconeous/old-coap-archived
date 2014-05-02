@@ -66,7 +66,6 @@ static const char *url_data;
 static coap_size_t next_len = ((coap_size_t)(-1));
 static int redirect_count;
 static int last_observe_value = -1;
-static int last_block = -1;
 static coap_content_type_t request_accept_type = -1;
 
 static struct smcp_transaction_s transaction;
@@ -256,7 +255,6 @@ tool_cmd_get(
 	get_keep_alive = false;
 	get_timeout = 30*1000; // Default timeout is 30 seconds.
 	last_observe_value = -1;
-	last_block = -1;
 	request_accept_type = COAP_CONTENT_TYPE_UNKNOWN;
 	observe_once = false;
 	observe_ignore_first = false;
@@ -346,8 +344,10 @@ tool_cmd_get(
 		require(send_get_request(smcp, url, NULL, 0), bail);
 	}
 
-	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_process(smcp, 1000);
+	while(ERRORCODE_INPROGRESS == gRet) {
+		smcp_wait(smcp,1000);
+		smcp_process(smcp);
+	}
 
 bail:
 	smcp_transaction_end(smcp,&transaction);

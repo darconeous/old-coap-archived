@@ -295,11 +295,15 @@
 		A679FFB7164BD4F700736F58 /* system-node.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "system-node.c"; sourceTree = "<group>"; };
 		A686D69C16557F3100B14B54 /* smcp-auth.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-auth.h"; path = "src/smcp/smcp-auth.h"; sourceTree = "<group>"; };
 		A686D69D16557F3100B14B54 /* smcp-auth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-auth.c"; path = "src/smcp/smcp-auth.c"; sourceTree = "<group>"; };
+		A68E13DD1912E48C008F5A0A /* smcp-plat-bsd-internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-plat-bsd-internal.h"; path = "src/smcp/smcp-plat-bsd-internal.h"; sourceTree = "<group>"; };
+		A68E13DE1912E575008F5A0A /* smcp-plat-uip-internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-plat-uip-internal.h"; path = "src/smcp/smcp-plat-uip-internal.h"; sourceTree = "<group>"; };
 		A690626016B6E43B00A98B2C /* example-2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "example-2"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A690627916B6E44000A98B2C /* example-3 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "example-3"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A690627D16B6E58E00A98B2C /* example-4.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "example-4.c"; sourceTree = "<group>"; };
 		A690627E16B6E5FA00A98B2C /* doxygen.cfg.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = doxygen.cfg.in; sourceTree = "<group>"; };
 		A690629F16B6EA6E00A98B2C /* example-4 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "example-4"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A69D2C9D190B0CBA003CE26C /* smcp-plat-uip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-plat-uip.h"; path = "src/smcp/smcp-plat-uip.h"; sourceTree = "<group>"; };
+		A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-plat-bsd.h"; path = "src/smcp/smcp-plat-bsd.h"; sourceTree = "<group>"; };
 		A6A27BA1127B934F003708DF /* cmd_delete.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_delete.h; path = src/smcpctl/cmd_delete.h; sourceTree = "<group>"; };
 		A6A27BA2127B934F003708DF /* cmd_delete.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_delete.c; path = src/smcpctl/cmd_delete.c; sourceTree = "<group>"; };
 		A6BE9A39164CC63C00473330 /* configure.ac */ = {isa = PBXFileReference; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
@@ -430,12 +434,16 @@
 				A63EA6F41278B16D00B24867 /* smcp.c */,
 				A63EA6E81278B16D00B24867 /* smcp-internal.h */,
 				A6770026156AA2BF00592868 /* smcp-opts.h */,
+				A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */,
+				A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */,
+				A68E13DD1912E48C008F5A0A /* smcp-plat-bsd-internal.h */,
+				A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */,
+				A69D2C9D190B0CBA003CE26C /* smcp-plat-uip.h */,
+				A68E13DE1912E575008F5A0A /* smcp-plat-uip-internal.h */,
 				A64F2AFB166EB265001D9878 /* smcp-transaction.h */,
 				A64F2AF8166EB236001D9878 /* smcp-transaction.c */,
 				A613E80216C065FE00C5711D /* smcp-inbound.c */,
 				A6F536F2155F255000E0E324 /* smcp-outbound.c */,
-				A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */,
-				A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */,
 				A6DB61F816AF131800D7248E /* smcp-observable.h */,
 				A6DB61F916AF190A00D7248E /* smcp-observable.c */,
 				A686D69C16557F3100B14B54 /* smcp-auth.h */,

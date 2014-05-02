@@ -170,13 +170,6 @@ int32_to_dec_cstr(char s[],int32_t n) {
 	return uint32_to_dec_cstr(s, (uint32_t)n);
 }
 
-#if SMCP_USE_UIP && !defined(htonl)
-#define htonl(x)		uip_htonl(x)
-#define ntohl(x)		uip_ntohl(x)
-#define htons(x)		uip_htons(x)
-#define ntohs(x)		uip_ntohs(x)
-#endif
-
 #if __AVR__
 #include <avr/pgmspace.h>
 #include <alloca.h>

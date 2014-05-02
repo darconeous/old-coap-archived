@@ -139,19 +139,19 @@ cgi_node_get_associated_request(cgi_node_t node) {
 			continue;
 		}
 		if(request->async_response.request.header.token_len != smcp_inbound_get_packet()->token_len) {
-//			printf("cgi_node_get_associated_request: %d: token_len mitmatch\n",i);
+//			printf("cgi_node_get_associated_request: %d: token_len mismatch\n",i);
 			continue;
 		}
 		if(request->async_response.request.header.code != smcp_inbound_get_packet()->code) {
-//			printf("cgi_node_get_associated_request: %d: code mitmatch\n",i);
+//			printf("cgi_node_get_associated_request: %d: code mismatch\n",i);
 			continue;
 		}
 		if(0!=memcmp(request->async_response.request.header.token,smcp_inbound_get_packet()->token,smcp_inbound_get_packet()->token_len)) {
-//			printf("cgi_node_get_associated_request: %d: token mitmatch\n",i);
+//			printf("cgi_node_get_associated_request: %d: token mismatch\n",i);
 			continue;
 		}
-		if(0!=memcmp(&request->async_response.saddr,smcp_inbound_get_saddr(),smcp_inbound_get_socklen())) {
-//			printf("cgi_node_get_associated_request: %d: saddr mitmatch\n",i);
+		if(0!=memcmp(&request->async_response.saddr,smcp_inbound_get_srcaddr(),sizeof(request->async_response.saddr))) {
+//			printf("cgi_node_get_associated_request: %d: saddr mismatch\n",i);
 			continue;
 		}
 

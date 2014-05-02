@@ -98,7 +98,6 @@ period_between_timevals_in_cms(const struct timeval* tv_lhs,const struct timeval
 	return ret;
 }
 
-
 cms_t
 convert_timeval_to_cms(const struct timeval* tv) {
 	cms_t ret = 0;
@@ -113,7 +112,6 @@ convert_timeval_to_cms(const struct timeval* tv) {
 
 	return ret;
 }
-
 
 static ll_compare_result_t
 smcp_timer_compare_func(
@@ -136,7 +134,6 @@ smcp_timer_compare_func(
 
 	return 0;
 }
-
 
 smcp_timer_t
 smcp_timer_init(

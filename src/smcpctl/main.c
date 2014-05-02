@@ -24,6 +24,9 @@
 #if HAVE_LIBREADLINE
 #include <readline/readline.h>
 #include <readline/history.h>
+#ifndef HAS_LIBEDIT_COMPLETION_ENTRY_BUG
+#define HAS_LIBEDIT_COMPLETION_ENTRY_BUG  defined(__APPLE__)
+#endif
 #endif
 #include <poll.h>
 
@@ -42,7 +45,7 @@
 
 bool show_headers = 0;
 static int gRet = 0;
-static smcp_t smcp;
+static smcp_t gSMCPInstance;
 static bool istty = true;
 
 static arg_list_item_t option_list[] = {
@@ -309,7 +312,7 @@ void process_input_line(char *l) {
 		}
 	}
 	if(argc2 > 0) {
-		gRet = exec_command(smcp, argc2, argv2);
+		gRet = exec_command(gSMCPInstance, argc2, argv2);
 		if(gRet == ERRORCODE_QUIT)
 			goto bail;
 		else if(gRet && (gRet != ERRORCODE_HELP))
@@ -653,16 +656,16 @@ main(
 	show_headers = debug_mode;
 	istty = isatty(fileno(stdin));
 
-	smcp = smcp_create(port);
+	gSMCPInstance = smcp_create(port);
 
-	if(!smcp) {
+	if(!gSMCPInstance) {
 		fprintf(stderr,"%s: FATAL-ERROR: Unable to initialize smcp instance! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
 		return ERRORCODE_INIT_FAILURE;
 	}
 
 	setenv("SMCP_CURRENT_PATH", "coap://localhost/", 0);
 
-	smcp_set_proxy_url(smcp,getenv("COAP_PROXY_URL"));
+	smcp_set_proxy_url(gSMCPInstance, getenv("COAP_PROXY_URL"));
 
 	if(i < argc) {
 		if(((i + 1) == argc) && (0 == strcmp(argv[i], "help")))
@@ -673,7 +676,7 @@ main(
 		if((0 !=
 		        strncmp(argv[i], "smcp:",
 					5)) && (0 != strncmp(argv[i], "coap:", 5))) {
-			gRet = exec_command(smcp, argc - i, argv + i);
+			gRet = exec_command(gSMCPInstance, argc - i, argv + i);
 #if HAVE_LIBREADLINE
 			if(gRet || (0 != strcmp(argv[i], "cd")))
 #endif
@@ -684,7 +687,7 @@ main(
 	}
 
 	if(istty) {
-		fprintf(stderr,"Listening on port %d.\n",smcp_get_port(smcp));
+		fprintf(stderr,"Listening on port %d.\n",smcp_get_port(gSMCPInstance));
 #if !HAVE_LIBREADLINE
 		print_arg_list_help(option_list,
 			argv[0],
@@ -706,13 +709,13 @@ main(
 		if(istty) {
 			struct pollfd polltable[2] = {
 				{ fileno(stdin), POLLIN | POLLHUP, 0 },
-				{ smcp_get_fd(smcp), POLLIN | POLLHUP, 0 },
+				{ smcp_get_fd(gSMCPInstance), POLLIN | POLLHUP, 0 },
 			};
 
 			if(poll(
 					polltable,
 					2,
-					smcp_get_timeout(smcp)
+					smcp_get_timeout(gSMCPInstance)
 				) < 0
 			) {
 				if(errno == EINTR) {
@@ -733,7 +736,7 @@ main(
 			process_input_line(linebuffer);
 		}
 
-		smcp_process(smcp, 0);
+		smcp_process(gSMCPInstance);
 	}
 
 bail:
@@ -743,7 +746,7 @@ bail:
 	if(gRet == ERRORCODE_QUIT)
 		gRet = 0;
 
-	if(smcp)
-		smcp_release(smcp);
+	if(gSMCPInstance)
+		smcp_release(gSMCPInstance);
 	return gRet;
 }

@@ -242,6 +242,7 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 		observer_table[i].seq++;
 
 		if(observer_table[i].transaction.active) {
+			smcp_transaction_new_msg_id(interface, &observer_table[i].transaction, smcp_get_next_msg_id(interface));
 			smcp_transaction_tickle(interface, &observer_table[i].transaction);
 		} else {
 			smcp_transaction_init(

@@ -125,8 +125,10 @@ tool_cmd_monitor(
 //	require(send_list_request(smcp, url, NULL, 0), bail);
 	gRet = ERRORCODE_OK;
 
-	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_process(smcp, 50);
+	while(ERRORCODE_INPROGRESS == gRet) {
+		smcp_wait(smcp,50);
+		smcp_process(smcp);
+	}
 
 bail:
 	smcp_invalidate_transaction_old(smcp, tid);

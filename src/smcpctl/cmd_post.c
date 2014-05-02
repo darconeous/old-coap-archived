@@ -259,8 +259,10 @@ tool_cmd_post(
 
 	transaction = send_post_request(smcp, url, method,content, strlen(content),content_type);
 
-	while(ERRORCODE_INPROGRESS == gRet)
-		smcp_process(smcp, -1);
+	while(ERRORCODE_INPROGRESS == gRet) {
+		smcp_wait(smcp,1000);
+		smcp_process(smcp);
+	}
 
 	smcp_transaction_end(smcp, transaction);
 

@@ -239,8 +239,10 @@ test_simple(smcp_t smcp, test_data_s *test_data, const char* url, const char* re
 		30*MSEC_PER_SEC
 	);
 
-	while(!test_data->finished)
-		smcp_process(smcp,30*MSEC_PER_SEC);
+	while(!test_data->finished) {
+		smcp_wait(smcp,30*MSEC_PER_SEC);
+		smcp_process(smcp);
+	}
 
 	gettimeofday(&test_data->stop_time, NULL);
 

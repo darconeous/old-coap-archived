@@ -424,8 +424,8 @@ tool_cmd_test(
 			smcp_variable_node_did_change(&device_node,0,NULL);
 		}
 #endif
-		smcp_process(smcp, 10);
-		smcp_process(smcp2, 10);
+		smcp_process(smcp);
+		smcp_process(smcp2);
 #if HAVE_LIBCURL
 		smcp_curl_proxy_node_process(&proxy_node);
 #endif

@@ -87,17 +87,10 @@ PROCESS_THREAD(smcp_task, ev, data)
 		PROCESS_WAIT_EVENT();
 
 		if(ev == tcpip_event) {
-			if(uip_udpconnection() && (uip_udp_conn == smcp_get_udp_conn(smcp))) {
-				if(uip_newdata()) {
-          smcp_inbound_start_packet(smcp, uip_appdata, uip_datalen());
-          smcp_inbound_set_srcaddr(&UIP_IP_BUF->srcipaddr,UIP_UDP_BUF->srcport);
-          smcp_inbound_set_destaddr(&UIP_IP_BUF->destipaddr,UIP_UDP_BUF->destport);
-          smcp_inbound_finish_packet();
-        } else if(uip_poll())
-					smcp_process(smcp, 0);
-          etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/MSEC_PER_SEC+1);
-			}
+      smcp_process(smcp);
+      etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/MSEC_PER_SEC+1);
 		}
+
     if(etimer_expired(&et)) {
       tcpip_poll_udp(smcp_get_udp_conn(smcp));
     } else {

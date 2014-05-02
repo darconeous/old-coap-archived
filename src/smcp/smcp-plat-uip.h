@@ -1,7 +1,7 @@
-/*	@file fasthash.h
+/*	@file smcp-plat-uip.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Copyright (C) 2012 Robert Quattlebaum
+**	Copyright (C) 2014 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -26,30 +26,26 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef SMCP_fasthash_h
-#define SMCP_fasthash_h
+#ifndef SMCP_smcp_plat_uip_h
+#define SMCP_smcp_plat_uip_h
 
-#include <stdint.h>
+#if !SMCP_USE_UIP
+#error SMCP_USE_UIP not defined
+#endif
 
-// Warning: This is not reentrant!
-// Justification for non-reentrancy was to avoid extra stack usage on
-// constrainted platforms.
+#include "net/ip/uip.h"
 
-typedef uint32_t fasthash_hash_t;
+#if UIP_CONF_IPV6
+typedef uip_ip6addr_t smcp_addr_t;
+#else
+typedef uip_ipaddr_t smcp_addr_t;
+#endif
 
-struct fasthash_state_s {
-	fasthash_hash_t hash;
-	uint32_t bytes;
-	fasthash_hash_t next;
-};
+typedef struct {
+	smcp_addr_t smcp_addr;
+	uint16_t smcp_port;
+} smcp_sockaddr_t;
 
-extern void fasthash_start(fasthash_hash_t salt);
-extern void fasthash_feed_byte(uint8_t data);
-extern void fasthash_feed(const uint8_t* data, uint8_t len);
-extern fasthash_hash_t fasthash_finish();
-extern uint32_t fasthash_finish_uint32();
-extern uint16_t fasthash_finish_uint16();
-extern uint8_t fasthash_finish_uint8();
-
+extern struct uip_udp_conn* smcp_get_udp_conn(smcp_t self);
 
 #endif

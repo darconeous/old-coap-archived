@@ -52,6 +52,8 @@
 #define smcp_transaction_tickle(self,...)		smcp_transaction_tickle(__VA_ARGS__)
 #endif
 
+#define SMCP_TRANSACTION_MAX_ATTEMPTS	15
+
 __BEGIN_DECLS
 /*!	@addtogroup smcp
 **	@{
@@ -89,8 +91,7 @@ struct smcp_transaction_s {
 
 	coap_msg_id_t				token;
 	coap_msg_id_t				msg_id;
-
-	uint32_t					transaction_hash;
+	smcp_sockaddr_t				saddr;
 
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 	uint32_t					last_observe;
@@ -108,8 +109,7 @@ struct smcp_transaction_s {
 								should_dealloc:1,
 								active:1,
 								needs_to_close_observe:1,
-								multicast:1,
-								has_fired:1;
+								multicast:1;
 };
 
 typedef struct smcp_transaction_s* smcp_transaction_t;

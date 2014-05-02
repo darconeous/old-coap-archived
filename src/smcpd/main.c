@@ -585,7 +585,7 @@ main(
 			break;
 		}
 
-		smcp_process(smcp, 0);
+		smcp_process(smcp);
 
 		if(smcpd_modules_process()!=SMCP_STATUS_OK) {
 			syslog(LOG_ERR,"Module process error.");

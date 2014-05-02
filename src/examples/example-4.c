@@ -102,7 +102,8 @@ main(void) {
 	printf("Listening on port %d\n",smcp_get_port(instance));
 
 	while(1) {
-		smcp_process(instance, (next_trigger-time(NULL))*MSEC_PER_SEC);
+		smcp_wait(instance, (next_trigger-time(NULL))*MSEC_PER_SEC);
+		smcp_process(instance);
 
 		// Occasionally trigger this resource as having changed.
 		if((next_trigger-time(NULL))<=0) {

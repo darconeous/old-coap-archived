@@ -1,7 +1,7 @@
-/*	@file fasthash.h
+/*	@file smcp-plat-bsd.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Copyright (C) 2012 Robert Quattlebaum
+**	Copyright (C) 2014 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -26,30 +26,42 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef SMCP_fasthash_h
-#define SMCP_fasthash_h
+#ifndef SMCP_smcp_plat_bsd_h
+#define SMCP_smcp_plat_bsd_h
 
-#include <stdint.h>
+#if !SMCP_USE_BSD_SOCKETS
+#error SMCP_USE_BSD_SOCKETS not defined
+#endif
 
-// Warning: This is not reentrant!
-// Justification for non-reentrancy was to avoid extra stack usage on
-// constrainted platforms.
+#define __USE_GNU	1
+#define __APPLE_USE_RFC_3542 1
 
-typedef uint32_t fasthash_hash_t;
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/errno.h>
+#include <sys/types.h>
 
-struct fasthash_state_s {
-	fasthash_hash_t hash;
-	uint32_t bytes;
-	fasthash_hash_t next;
-};
+#ifndef SMCP_BSD_SOCKETS_NET_FAMILY
+#define SMCP_BSD_SOCKETS_NET_FAMILY		AF_INET6
+#endif
 
-extern void fasthash_start(fasthash_hash_t salt);
-extern void fasthash_feed_byte(uint8_t data);
-extern void fasthash_feed(const uint8_t* data, uint8_t len);
-extern fasthash_hash_t fasthash_finish();
-extern uint32_t fasthash_finish_uint32();
-extern uint16_t fasthash_finish_uint16();
-extern uint8_t fasthash_finish_uint8();
+#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
+typedef struct in6_addr smcp_addr_t;
+typedef struct sockaddr_in6 smcp_sockaddr_t;
+#define smcp_addr		sin6_addr
+#define smcp_port		sin6_port
+#elif SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET
+typedef struct in_addr smcp_addr_t;
+typedef struct sockaddr_in smcp_sockaddr_t;
+#define smcp_addr		sin_addr
+#define smcp_port		sin_port
+#else  // SMCP_BSD_SOCKETS_NET_FAMILY
+#error Unsupported value for SMCP_BSD_SOCKETS_NET_FAMILY
+#endif // SMCP_BSD_SOCKETS_NET_FAMILY
 
+//!	Gets the file descriptor for the UDP socket.
+/*!	Useful for implementing asynchronous operation using select(),
+**	poll(), or other async mechanisms. */
+extern int smcp_get_fd(smcp_t self);
 
 #endif

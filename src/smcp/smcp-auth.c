@@ -54,20 +54,6 @@
 #include <ctype.h>
 
 #include "ll.h"
-//#include "url-helpers.h"
-
-//#if CONTIKI
-//#include "contiki.h"
-//#include "net/ip/tcpip.h"
-//#include "net/ip/resolv.h"
-//#endif
-//
-//#if SMCP_USE_UIP
-//#include "net/ip/uip-udp-packet.h"
-//#include "net/ip/uiplib.h"
-//#endif
-
-// COAP_OPTION_AUTHENTICATE
 
 #define SMCP_AUTH_SCHEME_CUSTOM			(0x00)
 #define SMCP_AUTH_SCHEME_BASIC			(0x01)

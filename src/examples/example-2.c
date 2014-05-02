@@ -77,7 +77,8 @@ main(void) {
 	// can haave with SMCP. It is appropriate for simple CoAP servers
 	// and clients which do not need asynchronous I/O.
 	while(1) {
-		smcp_process(instance, CMS_DISTANT_FUTURE);
+		smcp_wait(instance, CMS_DISTANT_FUTURE);
+		smcp_process(instance);
 	}
 
 	// We won't actually get to this line with the above loop, but it

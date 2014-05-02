@@ -89,8 +89,10 @@ main(int argc, char * argv[]) {
 
 	fprintf(stderr,"\nPlugtest server listening on port %d.\n", smcp_get_port(smcp));
 
-	while(1)
-		smcp_process(smcp,30*MSEC_PER_SEC);
+	while(1) {
+		smcp_wait(smcp,30*MSEC_PER_SEC);
+		smcp_process(smcp);
+	}
 
 	return 0;
 }

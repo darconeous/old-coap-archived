@@ -301,10 +301,6 @@ list_response_handler(
 		goto bail;
 	}
 
-	// TODO: This implementation currently only works when the content only includes entire records.
-	// Chunked encoding could cause single records to be distributed across multiple transactions.
-	// This case must eventually be handled.
-
 	// TODO: When redirected, we should adjust the URI's to be relative to the original url!
 
 	if(content && content_length) {
@@ -516,8 +512,10 @@ tool_cmd_list(
 
 	require(send_list_request(smcp, url, NULL, 0), bail);
 
-	while(gRet == ERRORCODE_INPROGRESS)
-		smcp_process(smcp, 1000);
+	while(ERRORCODE_INPROGRESS == gRet) {
+		smcp_wait(smcp,1000);
+		smcp_process(smcp);
+	}
 
 bail:
 	smcp_transaction_end(smcp,&transaction);

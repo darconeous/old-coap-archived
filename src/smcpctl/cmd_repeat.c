@@ -119,8 +119,9 @@ tool_cmd_repeat(
 		convert_cms_to_timeval(&continue_time, interval);
 
 		do {
-			smcp_process(smcp,
+			smcp_wait(smcp,
 				count ? convert_timeval_to_cms(&continue_time) : 0);
+			smcp_process(smcp);
 		} while(count && (ret == 0) &&
 		        (convert_timeval_to_cms(&continue_time) > 0));
 	}

@@ -377,7 +377,7 @@ smcp_node_find_next_with_path(
 
 		// Warning: This could be dangerous!
 		// We should evaluate the liklihood of blowing
-		// the stack here. TODO: Investigate potential oveflow!
+		// the stack here. SEC-TODO: Investigate potential oveflow!
 		{
 #if HAVE_C99_VLA
 			char unescaped_name[namelen+1];

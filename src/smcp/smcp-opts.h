@@ -40,7 +40,7 @@
 #endif
 
 #ifndef SMCP_EMBEDDED
-#if CONTIKI
+#if CONTIKI || SMCP_USE_UIP
 #define SMCP_EMBEDDED			(1)
 #else
 #define SMCP_EMBEDDED			(0)

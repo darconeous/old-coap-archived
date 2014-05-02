@@ -47,6 +47,10 @@
 #define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT+1)	//!< Guess
 #define COAP_DEFAULT_PROXY_TLS_PORT	(COAP_DEFAULT_PORT+101)	//!< Guess
 
+#define COAP_MULTICAST_STR_ALLDEVICES	"coap-alldevices"
+
+#define COAP_MULTICAST_IP_ALLDEVICES	"224.0.0.88"
+
 //! IPv6 multicast address for CoAP all-devices.
 /*!	Note that the official multicast address has not yet been chosen.
 **	This is just a temporary address until the official address

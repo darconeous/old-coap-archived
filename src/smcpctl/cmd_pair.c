@@ -233,8 +233,10 @@ tool_cmd_pair(
 
 	gRet = ERRORCODE_INPROGRESS;
 
-	while(ERRORCODE_INPROGRESS == gRet)
-		smcp_process(smcp, -1);
+	while(ERRORCODE_INPROGRESS == gRet) {
+		smcp_wait(smcp,1000);
+		smcp_process(smcp);
+	}
 
 bail:
 	smcp_invalidate_transaction_old(smcp, tid);

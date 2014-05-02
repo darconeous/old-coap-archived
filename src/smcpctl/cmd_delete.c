@@ -179,8 +179,10 @@ tool_cmd_delete(
 
 	gRet = ERRORCODE_INPROGRESS;
 
-	while(ERRORCODE_INPROGRESS == gRet)
-		smcp_process(smcp, -1);
+	while(ERRORCODE_INPROGRESS == gRet) {
+		smcp_wait(smcp,1000);
+		smcp_process(smcp);
+	}
 
 	smcp_transaction_end(smcp, transaction);
 

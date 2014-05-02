@@ -72,6 +72,12 @@ extern void smcp_set_current_instance(smcp_t x);
 #pragma mark -
 #pragma mark Class Definitions
 
+#if SMCP_USE_BSD_SOCKETS
+#include "smcp-plat-bsd-internal.h"
+#elif SMCP_USE_UIP
+#include "smcp-plat-uip-internal.h"
+#endif
+
 #if SMCP_CONF_ENABLE_VHOSTS
 struct smcp_vhost_s {
 	char name[64];
@@ -113,7 +119,7 @@ struct smcp_s {
 		const uint8_t*			this_option;
 
 		const char*				content_ptr;
-		coap_size_t					content_len;
+		coap_size_t				content_len;
 		coap_content_type_t		content_type;
 
 		uint8_t					was_sent_to_multicast:1,
@@ -128,13 +134,14 @@ struct smcp_s {
 		uint32_t				block2_value;
 
 
+		smcp_sockaddr_t			saddr;
+
 #if SMCP_USE_BSD_SOCKETS
-		struct sockaddr_in6		saddr;
-		socklen_t				socklen;
+#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
 		struct in6_pktinfo		pktinfo;
-#elif SMCP_USE_UIP
-		uip_ipaddr_t			toaddr;
-		uint16_t				toport;	//!^ Always in network order.
+#elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
+		struct in_pktinfo		pktinfo;
+#endif
 #endif
 
 #if SMCP_USE_EXPERIMENTAL_DIGEST_AUTH
@@ -159,10 +166,9 @@ struct smcp_s {
 		bool					use_dtls;
 #endif
 
+		smcp_sockaddr_t			saddr;
 #if SMCP_USE_BSD_SOCKETS
 		char					packet_bytes[SMCP_MAX_PACKET_LENGTH+1];
-		struct sockaddr_in6		saddr;
-		socklen_t				socklen;
 #endif
 
 #if SMCP_USE_EXPERIMENTAL_DIGEST_AUTH

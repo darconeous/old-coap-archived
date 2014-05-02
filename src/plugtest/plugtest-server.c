@@ -108,7 +108,7 @@ plugtest_separate_async_resend_response(void* context)
 	smcp_status_t ret = 0;
 	struct smcp_async_response_s* async_response = (void*)context;
 
-#if !SMCP_AVOID_PRINTF
+#if !SMCP_AVOID_PRINTF || VERBOSE_DEBUG
 	printf("Resending async response. . . %p\n",async_response);
 #endif
 
@@ -132,7 +132,7 @@ smcp_status_t
 plugtest_separate_async_ack_handler(int statuscode, void* context) {
 	struct smcp_async_response_s* async_response = (void*)context;
 
-#if !SMCP_AVOID_PRINTF
+#if !SMCP_AVOID_PRINTF || VERBOSE_DEBUG
 	printf("Finished sending async response. code=%d async_response=%p\n",statuscode,async_response);
 #endif
 	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
@@ -166,7 +166,7 @@ plugtest_separate_handler(
 			goto bail;
 		}
 
-#if !SMCP_AVOID_PRINTF
+#if !SMCP_AVOID_PRINTF || VERBOSE_DEBUG
 		printf("This request needs an async response. %p\n",async_response);
 #endif
 

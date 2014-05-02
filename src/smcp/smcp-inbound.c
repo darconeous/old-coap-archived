@@ -67,18 +67,6 @@
 #include <unistd.h>
 #endif // SMCP_USE_BSD_SOCKETS
 
-#if SMCP_USE_UIP
-#include "net/ip/uip.h"
-#include "net/ip/uip-udp-packet.h"
-#include "net/ip/uiplib.h"
-extern uint16_t uip_slen;
-#if UIP_CONF_IPV6
-#include "net/ipv6/uip-ds6.h"
-#endif // UIP_CONF_IPV6
-#ifndef uip_is_addr_mcast
-#define uip_is_addr_mcast(a) (1==0) /* If this isn't defined, just ignore it */
-#endif // !defined(uip_is_addr_mcast)
-#endif // SMCP_USE_UIP
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -87,7 +75,6 @@ extern uint16_t uip_slen;
 #include <string.h>
 #include <ctype.h>
 
-#define CSTR_FROM_6ADDR(dest,addr) sprintf(dest,"%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
 
 #pragma mark -
 #pragma mark Simple inbound getters
@@ -115,25 +102,6 @@ coap_content_type_t
 smcp_inbound_get_content_type() {
 	return smcp_get_current_instance()->inbound.content_type;
 }
-
-
-#if SMCP_USE_BSD_SOCKETS
-struct sockaddr* smcp_inbound_get_saddr() {
-	return (struct sockaddr*)&smcp_get_current_instance()->inbound.saddr;
-}
-
-socklen_t smcp_inbound_get_socklen() {
-	return smcp_get_current_instance()->inbound.socklen;
-}
-#elif defined(SMCP_USE_UIP)
-const uip_ipaddr_t* smcp_inbound_get_ipaddr() {
-	return &smcp_get_current_instance()->inbound.toaddr;
-}
-
-const uint16_t smcp_inbound_get_ipport() {
-	return smcp_get_current_instance()->inbound.toport;
-}
-#endif
 
 bool
 smcp_inbound_is_dupe() {
@@ -222,29 +190,17 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 
 bool
 smcp_inbound_origin_is_local() {
-#if SMCP_USE_BSD_SOCKETS
-	struct sockaddr_in6* const saddr = (struct sockaddr_in6*)smcp_inbound_get_saddr();
+	const smcp_sockaddr_t* const saddr = smcp_inbound_get_srcaddr();
 
 	if(!saddr)
 		return false;
 
 	// TODO: Are these checks adequate?
 
-	if(saddr->sin6_port!=htonl(smcp_get_port(smcp_get_current_instance())))
+	if(saddr->smcp_port!=htonl(smcp_get_port(smcp_get_current_instance())))
 		return false;
 
-	if(IN6_IS_ADDR_V4MAPPED(&saddr->sin6_addr)
-		&& saddr->sin6_addr.s6_addr[12] == 127
-		&& saddr->sin6_addr.s6_addr[13] == 0
-		&& saddr->sin6_addr.s6_addr[14] == 0
-	) {
-		return true;
-	}
-
-	return IN6_IS_ADDR_LOOPBACK(&saddr->sin6_addr);
-#else
-	return false;
-#endif
+	return SMCP_IS_ADDR_LOOPBACK(&saddr->smcp_addr);
 }
 
 char*
@@ -371,45 +327,38 @@ bail:
 }
 
 smcp_status_t
-smcp_inbound_set_srcaddr(SMCP_SOCKET_ARGS) {
+smcp_inbound_set_srcaddr(const smcp_sockaddr_t* sockaddr) {
 	smcp_t const self = smcp_get_current_instance();
 	if(!self->is_processing_message)
 		return SMCP_STATUS_FAILURE;
-#if SMCP_USE_BSD_SOCKETS
-	self->inbound.saddr = *(struct sockaddr_in6*)saddr;
-	self->inbound.socklen = socklen;
-#elif SMCP_USE_UIP
-	memcpy(&self->inbound.toaddr,toaddr,sizeof(*toaddr));
-	self->inbound.toport = toport;
-#endif
+	memcpy(&self->inbound.saddr, sockaddr, sizeof(self->inbound.saddr));
 
 	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
-smcp_inbound_set_destaddr(SMCP_SOCKET_ARGS) {
+smcp_inbound_set_destaddr(const smcp_sockaddr_t* sockaddr) {
 	smcp_t const self = smcp_get_current_instance();
 	if(!self->is_processing_message)
 		return SMCP_STATUS_FAILURE;
 
+	self->inbound.was_sent_to_multicast = SMCP_IS_ADDR_MULTICAST(&sockaddr->smcp_addr);
+
 #if SMCP_USE_BSD_SOCKETS
-	struct sockaddr_in6* const saddr6 = (struct sockaddr_in6*)saddr;
-	self->inbound.pktinfo.ipi6_addr = saddr6->sin6_addr;
+#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
+	self->inbound.pktinfo.ipi6_addr = sockaddr->smcp_addr;
 	self->inbound.pktinfo.ipi6_ifindex = 0;
-
-	if(IN6_IS_ADDR_V4MAPPED(&saddr6->sin6_addr)) {
-		self->inbound.was_sent_to_multicast = ((saddr6->sin6_addr.s6_addr[12] & 0xF0)==0xE0);
-	} else {
-		self->inbound.was_sent_to_multicast = IN6_IS_ADDR_MULTICAST(&saddr6->sin6_addr);
-	}
-#elif SMCP_USE_UIP
-	self->inbound.was_sent_to_multicast = uip_is_addr_mcast(toaddr);
-
-	// toport isn't being used at the moment.
-	(void)toport;
+#elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
+	self->inbound.pktinfo.ipi_addr = sockaddr->smcp_addr;
+	self->inbound.pktinfo.ipi_ifindex = 0;
+#endif
 #endif
 
 	return SMCP_STATUS_OK;
+}
+
+const smcp_sockaddr_t* smcp_inbound_get_srcaddr() {
+	return (const smcp_sockaddr_t*)&smcp_get_current_instance()->inbound.saddr;
 }
 
 smcp_status_t
@@ -423,15 +372,9 @@ smcp_inbound_finish_packet() {
 #if VERBOSE_DEBUG
 	{
 		char addr_str[50] = "???";
-		uint16_t port = 0;
-#if SMCP_USE_BSD_SOCKETS
-		inet_ntop(AF_INET6,&self->inbound.saddr.sin6_addr,addr_str,sizeof(addr_str)-1);
-		port = ntohs(self->inbound.saddr.sin6_port);
-#elif SMCP_USE_UIP
-		port = ntohs(self->inbound.toport);
-		CSTR_FROM_6ADDR(addr_str,&self->inbound.toaddr);
-#endif
-		DEBUG_PRINTF(CSTR("smcp(%p): Inbound packet from [%s]:%d"), self,addr_str,(int)port);
+		uint16_t port = ntohs(self->inbound.saddr.smcp_port);
+		SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&self->inbound.saddr.smcp_addr);
+		DEBUG_PRINTF("smcp(%p): Inbound packet from [%s]:%d", self,addr_str,(int)port);
 		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
 			"Inbound:\t",
@@ -456,15 +399,11 @@ smcp_inbound_finish_packet() {
 
 	// Calculate the message-id hash (address+port+message_id)
 	fasthash_start(0);
-#if SMCP_USE_BSD_SOCKETS
-	fasthash_feed((void*)&self->inbound.saddr,self->inbound.socklen);
-#elif SMCP_USE_UIP
-	fasthash_feed((void*)&self->inbound.toaddr,sizeof(self->inbound.toaddr));
-	fasthash_feed((void*)&self->inbound.toport,sizeof(self->inbound.toport));
-#endif
+	fasthash_feed((void*)&self->inbound.saddr,sizeof(self->inbound.saddr));
 	fasthash_feed((const uint8_t*)&packet->msg_id,sizeof(packet->msg_id));
 	self->inbound.transaction_hash = fasthash_finish_uint32();
 
+	// SEC-TODO: This is not a good way to determine if a packet is a duplicate!
 	{	// Check to see if this packet is a duplicate.
 		unsigned int i = SMCP_CONF_DUPE_BUFFER_SIZE;
 		while(i--) {

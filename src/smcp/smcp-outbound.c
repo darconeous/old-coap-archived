@@ -50,29 +50,11 @@
 #include "ll.h"
 #include "url-helpers.h"
 
-#if CONTIKI
-#include "contiki.h"
-#include "net/ip/tcpip.h"
-#include "net/ip/resolv.h"
-#endif
-
 #if SMCP_USE_UIP
-#include "net/ip/uip-udp-packet.h"
 #include "net/ip/uiplib.h"
-extern uint16_t uip_slen;
 extern void *uip_sappdata;
 #endif
 
-#if SMCP_USE_BSD_SOCKETS
-#include <poll.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <sys/errno.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#endif
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -123,7 +105,7 @@ smcp_outbound_begin(
 	self->outbound.max_packet_len = SMCP_MAX_PACKET_LENGTH;
 #if SMCP_USE_BSD_SOCKETS
 	self->outbound.packet = (struct coap_header_s*)self->outbound.packet_bytes;
-	self->outbound.socklen = 0;
+	memset(&self->outbound.saddr,0,sizeof(self->outbound.saddr));
 #elif SMCP_USE_UIP
 	uip_udp_conn = self->udp_conn;
 	self->outbound.packet = (struct coap_header_s*)uip_sappdata;
@@ -194,7 +176,7 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 	);
 
 	// If we have already started responding, don't bother.
-	require(!self->is_responding,bail);
+	require_quiet(!self->is_responding, bail);
 
 	if(self->is_processing_message)
 		self->outbound.next_tid = smcp_inbound_get_msg_id();
@@ -206,21 +188,10 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 	require_noerr(ret, bail);
 	self->is_responding = true;
 
-	if(self->is_processing_message)
+	if(self->is_processing_message) {
 		require_noerr(ret=smcp_outbound_set_msg_id(smcp_inbound_get_msg_id()),bail);
 
-	if(self->is_processing_message) {
-#if SMCP_USE_BSD_SOCKETS
-		ret = smcp_outbound_set_destaddr(
-			(void*)&self->inbound.saddr,
-			self->inbound.socklen
-		);
-#elif SMCP_USE_UIP
-		ret = smcp_outbound_set_destaddr(
-			&self->inbound.toaddr,
-			self->inbound.toport
-		);
-#endif
+		ret = smcp_outbound_set_destaddr(&self->inbound.saddr);
 		require_noerr(ret, bail);
 	}
 bail:
@@ -267,37 +238,6 @@ smcp_outbound_set_token(const uint8_t *token,uint8_t token_length) {
 bail:
 	return ret;
 }
-
-#if SMCP_USE_BSD_SOCKETS
-smcp_status_t
-smcp_outbound_set_destaddr(
-	struct sockaddr *sockaddr, socklen_t socklen
-) {
-	smcp_t const self = smcp_get_current_instance();
-	memcpy(
-		&self->outbound.saddr,
-		sockaddr,
-		socklen
-	);
-	self->outbound.socklen = socklen;
-
-	if(self->current_transaction) {
-		const struct sockaddr_in6 * const saddr = (void*)sockaddr;
-		self->current_transaction->multicast = IN6_IS_ADDR_MULTICAST(&saddr->sin6_addr);
-	}
-	return SMCP_STATUS_OK;
-}
-#elif defined(SMCP_USE_UIP)
-smcp_status_t
-smcp_outbound_set_destaddr(
-	const uip_ipaddr_t *toaddr, uint16_t toport
-) {
-	uip_ipaddr_copy(&smcp_get_current_instance()->udp_conn->ripaddr, toaddr);
-	smcp_get_current_instance()->udp_conn->rport = toport;
-
-	return SMCP_STATUS_OK;
-}
-#endif
 
 static smcp_status_t
 smcp_outbound_add_option_(
@@ -361,7 +301,7 @@ smcp_outbound_add_options_up_to_key_(
 		&& key>COAP_OPTION_BLOCK2
 	) {
 		uint32_t block2 = htonl(self->current_transaction->next_block2);
-		uint8_t size = 3; // TODO: calculate this properly
+		uint8_t size = 3; // SEC-TODO: calculate this properly
 		ret = smcp_outbound_add_option_(
 			COAP_OPTION_BLOCK2,
 			(char*)&block2+sizeof(block2)-size,
@@ -441,141 +381,54 @@ smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value) {
 	return smcp_outbound_add_option(key, NULL, 0);
 }
 
+smcp_status_t
+smcp_outbound_set_destaddr(const smcp_sockaddr_t* sockaddr) {
+	smcp_t const self = smcp_get_current_instance();
+	memcpy(
+		&self->outbound.saddr,
+		sockaddr,
+		sizeof(self->outbound.saddr)
+	);
+
+	if(self->current_transaction) {
+		memcpy(
+			&self->current_transaction->saddr,
+			sockaddr,
+			sizeof(self->current_transaction->saddr)
+		);
+		self->current_transaction->multicast = SMCP_IS_ADDR_MULTICAST(&sockaddr->smcp_addr);
+	}
+	return SMCP_STATUS_OK;
+}
 
 smcp_status_t
 smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t toport) {
 	smcp_status_t ret;
+	SMCP_NON_RECURSIVE smcp_sockaddr_t saddr;
 
-#if SMCP_USE_BSD_SOCKETS
-	struct sockaddr_in6 saddr = {
-		.sin6_family	= AF_INET6,
-#if SOCKADDR_HAS_LENGTH_FIELD
-		.sin6_len		= sizeof(struct sockaddr_in6),
-#endif
-	};
-
-	struct addrinfo hint = {
-		.ai_flags		= AI_ADDRCONFIG,
-		.ai_family		= AF_UNSPEC,
-	};
-
-	struct addrinfo *results = NULL;
-	struct addrinfo *iter = NULL;
+	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
 
 	// Check to see if this host is a group we know about.
-	if(strcasecmp(addr_str, "coap-alldevices")==0)
-		addr_str = COAP_MULTICAST_IP6_ALLDEVICES;
+	if(strcasecmp(addr_str, COAP_MULTICAST_STR_ALLDEVICES)==0)
+		addr_str = SMCP_COAP_MULTICAST_ALLDEVICES_ADDR;
 
-	int error = getaddrinfo(addr_str, NULL, &hint, &results);
-
-	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
-	toport = htons(toport);
-
-	if(error && (inet_addr(addr_str) != INADDR_NONE)) {
-		char addr_v4mapped_str[8 + strlen(addr_str)];
-		hint.ai_family = AF_INET6;
-		hint.ai_flags = AI_ALL | AI_V4MAPPED,
-		strcpy(addr_v4mapped_str,"::ffff:");
-		strcat(addr_v4mapped_str,addr_str);
-		error = getaddrinfo(addr_v4mapped_str,
-			NULL,
-			&hint,
-			&results
-		);
-	}
-
-	require_action(error!=EAI_AGAIN,bail,ret=SMCP_STATUS_WAIT_FOR_DNS);
-
-#ifdef TM_EWOULDBLOCK
-	require_action(error!=TM_EWOULDBLOCK,bail,ret=SMCP_STATUS_WAIT_FOR_DNS);
-#endif
-
-	require_action_string(
-		!error,
-		bail,
-		ret = SMCP_STATUS_HOST_LOOKUP_FAILURE,
-		gai_strerror(error)
-	);
-
-	for(iter = results;iter && (iter->ai_family!=AF_INET6 && iter->ai_family!=AF_INET);iter=iter->ai_next);
-
-	require_action(
-		iter,
-		bail,
-		ret = SMCP_STATUS_HOST_LOOKUP_FAILURE
-	);
-
-	if(iter->ai_family == AF_INET) {
-		struct sockaddr_in *v4addr = (void*)iter->ai_addr;
-		saddr.sin6_addr.s6_addr[10] = 0xFF;
-		saddr.sin6_addr.s6_addr[11] = 0xFF;
-		memcpy(&saddr.sin6_addr.s6_addr[12], &v4addr->sin_addr.s_addr, 4);
-	} else {
-		if(saddr.sin6_addr.s6_addr[0]==0xFF) {
-			smcp_t const self = smcp_get_current_instance();
-			check(self->outbound.packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
-			if(self->outbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
-				self->outbound.packet->tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
-			}
-		}
-		memcpy(&saddr, iter->ai_addr, iter->ai_addrlen);
-	}
-	saddr.sin6_port = toport;
-
-	ret = smcp_outbound_set_destaddr((struct sockaddr *)&saddr,sizeof(struct sockaddr_in6));
-	require_noerr(ret, bail);
-
-#elif SMCP_USE_UIP
-	SMCP_NON_RECURSIVE uip_ipaddr_t toaddr;
-	memset(&toaddr, 0, sizeof(toaddr));
-
-	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
-	toport = htons(toport);
-
-	ret = uiplib_ipaddrconv(
-		addr_str,
-		&toaddr
-	) ? SMCP_STATUS_OK : SMCP_STATUS_HOST_LOOKUP_FAILURE;
-
-#if SMCP_CONF_USE_DNS
-#if CONTIKI
-	if(ret) {
-		SMCP_NON_RECURSIVE uip_ipaddr_t *temp = NULL;
-		switch(resolv_lookup(addr_str,&temp)) {
-			case RESOLV_STATUS_CACHED:
-				memcpy(&toaddr, temp, sizeof(uip_ipaddr_t));
-				ret = SMCP_STATUS_OK;
-				break;
-			case RESOLV_STATUS_UNCACHED:
-			case RESOLV_STATUS_EXPIRED:
-				resolv_query(addr_str);
-			case RESOLV_STATUS_RESOLVING:
-				ret = SMCP_STATUS_WAIT_FOR_DNS;
-				break;
-			default:
-			case RESOLV_STATUS_ERROR:
-			case RESOLV_STATUS_NOT_FOUND:
-				ret = SMCP_STATUS_HOST_LOOKUP_FAILURE;
-				break;
-		}
-	}
-#else // CONTIKI
-#error SMCP_CONF_USE_DNS was set, but no DNS lookup mechamism is known!
-#endif
-#endif // SMCP_CONF_USE_DNS
-
+	ret = smcp_internal_lookup_hostname(addr_str, &saddr);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_set_destaddr(&toaddr,toport);
+	saddr.smcp_port = htons(toport);
 
+	ret = smcp_outbound_set_destaddr(&saddr);
 	require_noerr(ret, bail);
-#endif // SMCP_USE_UIP
+
+	if(SMCP_IS_ADDR_MULTICAST(&saddr.smcp_addr)) {
+		smcp_t const self = smcp_get_current_instance();
+		check(self->outbound.packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
+		if(self->outbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
+			self->outbound.packet->tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
+		}
+	}
 
 bail:
-#if SMCP_USE_BSD_SOCKETS
-	if(results)
-		freeaddrinfo(results);
-#endif
 	return ret;
 }
 
