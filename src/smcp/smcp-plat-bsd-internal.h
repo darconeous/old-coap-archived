@@ -49,10 +49,12 @@
 #if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
 #define ___smcp_len		sin6_len
 #define ___smcp_family	sin6_family
-#define SMCP_IS_ADDR_MULTICAST IN6_IS_ADDR_MULTICAST
-#define SMCP_IS_ADDR_UNSPECIFIED IN6_IS_ADDR_UNSPECIFIED
-#define SMCP_IS_ADDR_LOOPBACK IN6_IS_ADDR_LOOPBACK
+#define SMCP_IS_ADDR_MULTICAST(addrptr)	  (IN6_IS_ADDR_MULTICAST(addrptr) || (IN6_IS_ADDR_V4MAPPED(addrptr) && ((addrptr)->s6_addr[12] & 0xF0)==0xE0))
+#define SMCP_IS_ADDR_LOOPBACK(addrptr)	  (IN6_IS_ADDR_LOOPBACK(addrptr) || (IN6_IS_ADDR_V4MAPPED(addrptr) && (addrptr)->s6_addr[12] == 127))
+#define SMCP_IS_ADDR_UNSPECIFIED(addrptr) IN6_IS_ADDR_UNSPECIFIED(addrptr)
+
 #define SMCP_COAP_MULTICAST_ALLDEVICES_ADDR	COAP_MULTICAST_IP6_ALLDEVICES
+
 #ifdef IPV6_RECVPKTINFO
 #define SMCP_RECVPKTINFO IPV6_RECVPKTINFO
 #endif
@@ -82,19 +84,5 @@
 #endif // SMCP_BSD_SOCKETS_NET_FAMILY
 
 extern smcp_status_t smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* sockaddr);
-
-//	if(IN6_IS_ADDR_V4MAPPED(&saddr6->sin6_addr)) {
-//		self->inbound.was_sent_to_multicast = ((sockaddr->sin6_addr.s6_addr[12] & 0xF0)==0xE0);
-//	} else {
-//	}
-
-//	if(IN6_IS_ADDR_V4MAPPED(&saddr->sin6_addr)
-//		&& saddr->sin6_addr.s6_addr[12] == 127
-//		&& saddr->sin6_addr.s6_addr[13] == 0
-//		&& saddr->sin6_addr.s6_addr[14] == 0
-//	) {
-//		return true;
-//	}
-
 
 #endif
