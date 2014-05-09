@@ -309,18 +309,20 @@ smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
 
 coap_msg_id_t
 smcp_get_next_msg_id(smcp_t self) {
-	static coap_msg_id_t next_msg_id;
+	SMCP_EMBEDDED_SELF_HOOK;
 
-	if(!next_msg_id)
-		next_msg_id = SMCP_FUNC_RANDOM_UINT32();
+	if(!self->last_msg_id)
+		self->last_msg_id = SMCP_FUNC_RANDOM_UINT32();
 
 #if DEBUG
-	next_msg_id++;
+	// Sequential in debug mode.
+	self->last_msg_id++;
 #else
-	next_msg_id = next_msg_id*23873 + 41;
+	// Somewhat shuffled in non-debug mode.
+	self->last_msg_id = self->last_msg_id*23873 + 41;
 #endif
 
-	return next_msg_id;
+	return self->last_msg_id;
 }
 
 #if !SMCP_EMBEDDED || DEBUG

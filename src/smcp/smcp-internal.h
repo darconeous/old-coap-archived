@@ -110,6 +110,8 @@ struct smcp_s {
 							has_cascade_count:1,
 							force_current_outbound_code:1;
 
+	coap_msg_id_t			last_msg_id;
+
 	//! Inbound packet variables.
 	struct {
 		const struct coap_header_s*	packet;
