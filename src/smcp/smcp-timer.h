@@ -46,6 +46,18 @@
 #define smcp_timer_is_scheduled(self,...)		smcp_timer_is_scheduled(__VA_ARGS__)
 #endif
 
+#ifndef MSEC_PER_SEC
+#define MSEC_PER_SEC    (1000)
+#endif
+
+#ifndef USEC_PER_MSEC
+#define USEC_PER_MSEC   (1000)
+#endif
+
+#ifndef USEC_PER_SEC
+#define USEC_PER_SEC    (1000000)
+#endif
+
 __BEGIN_DECLS
 /*!	@addtogroup smcp
 **	@{
