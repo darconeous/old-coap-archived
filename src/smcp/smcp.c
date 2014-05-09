@@ -132,7 +132,7 @@ smcp_set_proxy_url(smcp_t self,const char* url) {
 }
 
 void
-smcp_set_default_request_handler(smcp_t self,smcp_request_handler_func request_handler, void* context)
+smcp_set_default_request_handler(smcp_t self, smcp_request_handler_func request_handler, void* context)
 {
 	SMCP_EMBEDDED_SELF_HOOK;
 	assert(self);
@@ -145,7 +145,7 @@ smcp_set_default_request_handler(smcp_t self,smcp_request_handler_func request_h
 
 #if SMCP_CONF_ENABLE_VHOSTS
 smcp_status_t
-smcp_vhost_add(smcp_t self,const char* name,smcp_request_handler_func func, void* context) {
+smcp_vhost_add(smcp_t self,const char* name, smcp_request_handler_func func, void* context) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	struct smcp_vhost_s *vhost;
 	SMCP_EMBEDDED_SELF_HOOK;
@@ -240,7 +240,7 @@ bail:
 }
 
 smcp_status_t
-smcp_start_async_response(struct smcp_async_response_s* x,int flags) {
+smcp_start_async_response(struct smcp_async_response_s* x, int flags) {
 	smcp_status_t ret = 0;
 	smcp_t const self = smcp_get_current_instance();
 
