@@ -44,11 +44,11 @@
 **
 */
 
-
 typedef struct smcp_curl_proxy_node_s {
 	struct smcp_node_s	node;
 	CURLM *curl_multi_handle;
 	smcp_t interface;
+        const char *proxy_url_base;
 } *smcp_curl_proxy_node_t;
 
 extern smcp_curl_proxy_node_t smcp_smcp_curl_proxy_node_alloc();
@@ -57,6 +57,12 @@ extern smcp_curl_proxy_node_t smcp_curl_proxy_node_init(
 	smcp_curl_proxy_node_t	self,
 	smcp_node_t			parent,
 	const char*			name
+);
+
+extern smcp_curl_proxy_node_t smcp_curl_singleton_proxy_node_init(
+        smcp_curl_proxy_node_t	self,
+        smcp_node_t			parent,
+        const char*			name
 );
 
 extern smcp_status_t smcp_curl_proxy_node_update_fdset(
@@ -71,6 +77,7 @@ extern smcp_status_t smcp_curl_proxy_node_update_fdset(
 extern smcp_status_t smcp_curl_proxy_node_process(smcp_curl_proxy_node_t node);
 
 extern smcp_status_t smcp_curl_proxy_request_handler(smcp_curl_proxy_node_t node);
+extern smcp_status_t smcp_curl_singleton_proxy_request_handler(smcp_curl_proxy_node_t node);
 
 /*!	@} */
 /*!	@} */
