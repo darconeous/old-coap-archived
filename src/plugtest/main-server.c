@@ -40,9 +40,13 @@
 
 int
 main(int argc, char * argv[]) {
-	smcp_t smcp = smcp_create(0);
+	smcp_t smcp;
 	struct plugtest_server_s plugtest_server = {};
 	struct smcp_node_s root_node = {};
+
+	SMCP_LIBRARY_VERSION_CHECK();
+
+	smcp = smcp_create(0);
 
 	// Set up the root node.
 	smcp_node_init(&root_node,NULL,NULL);

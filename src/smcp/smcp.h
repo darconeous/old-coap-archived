@@ -182,6 +182,16 @@ typedef smcp_callback_func smcp_inbound_resend_func;
 #include "smcp-plat-uip.h"
 #endif
 
+#if SMCP_EMBEDDED
+#define SMCP_LIBRARY_VERSION_CHECK()	do { } while(0)
+#else
+#ifndef ___SMCP_CONFIG_ID
+#define ___SMCP_CONFIG_ID 0
+#endif
+extern void ___smcp_check_version(uint32_t x);
+#define SMCP_LIBRARY_VERSION_CHECK()	___smcp_check_version(___SMCP_CONFIG_ID)
+#endif
+
 #pragma mark -
 #pragma mark SMCP Instance Methods
 

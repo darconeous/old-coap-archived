@@ -525,6 +525,8 @@ main(
 	}
 	END_ARGUMENTS
 
+	SMCP_LIBRARY_VERSION_CHECK();
+
 	syslog(LOG_NOTICE,"Starting smcpd . . .");
 
 #if HAVE_LIBCURL

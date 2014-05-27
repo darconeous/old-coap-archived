@@ -61,14 +61,27 @@ struct smcp_s smcp_global_instance;
 #else
 static smcp_t smcp_current_instance;
 void
-smcp_set_current_instance(smcp_t x) {
+smcp_set_current_instance(smcp_t x)
+{
 	smcp_current_instance = (x);
 }
 smcp_t
-smcp_get_current_instance() {
+smcp_get_current_instance()
+{
 	return smcp_current_instance;
 }
 #endif
+
+#if !SMCP_EMBEDDED
+void
+___smcp_check_version(uint32_t x)
+{
+	if (x != ___SMCP_CONFIG_ID) {
+		assert_printf("SMCP Library Incompatability, you must recompile! lib:%u prog:%u", ___SMCP_CONFIG_ID, x);
+		abort();
+	}
+}
+#endif // !SMCP_EMBEDDED
 
 #pragma mark -
 #pragma mark SMCP Implementation

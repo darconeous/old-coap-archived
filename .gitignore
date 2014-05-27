@@ -43,3 +43,10 @@ src/examples/example-3
 src/examples/example-4
 src/smcp/btreetest
 /SMCP.xcodeproj/project.xcworkspace/xcshareddata
+src/plugtest/.libs/smcp-plugtest-client
+src/plugtest/.libs/smcp-plugtest-server
+*.log
+*.trs
+*.dylib
+*.lai
+.libs

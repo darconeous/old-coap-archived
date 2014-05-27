@@ -55,9 +55,13 @@ request_handler(void* context) {
 
 int
 main(void) {
+	smcp_t instance;
+
+	SMCP_LIBRARY_VERSION_CHECK();
+
 	// Create our instance on the default CoAP port. If the port
 	// is already in use, we will pick the next available port number.
-	smcp_t instance = smcp_create(0);
+	instance = smcp_create(0);
 
 	if(!instance) {
 		perror("Unable to create SMCP instance");

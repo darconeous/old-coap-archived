@@ -67,6 +67,8 @@ PROCESS_THREAD(smcp_task, ev, data)
 
 	PROCESS_BEGIN();
 
+	SMCP_LIBRARY_VERSION_CHECK();
+
 	PRINTF("Starting SMCP\n");
 
 	if(!smcp_init(smcp, SMCP_DEFAULT_PORT)) {

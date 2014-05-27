@@ -83,11 +83,21 @@ request_handler(void* context) {
 
 int
 main(void) {
-	smcp_node_t root_node = smcp_node_init(NULL,NULL,NULL);
-	time_t next_trigger = time(NULL)+TRIGGER_FREQUENCY;
+	smcp_t instance;
+	smcp_node_t root_node;
 	struct smcp_observable_s observable = { NULL };
+	time_t next_trigger;
 
-	smcp_t instance = smcp_create(0);
+	SMCP_LIBRARY_VERSION_CHECK();
+
+	// Create our instance on the default CoAP port. If the port
+	// is already in use, we will pick the next available port number.
+	instance = smcp_create(0);
+
+	root_node = smcp_node_init(NULL,NULL,NULL);
+
+	next_trigger = time(NULL)+TRIGGER_FREQUENCY;
+
 	if(!instance) {
 		perror("Unable to create SMCP instance");
 		abort();

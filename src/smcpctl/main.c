@@ -653,6 +653,8 @@ main(
 	}
 	END_ARGUMENTS
 
+	SMCP_LIBRARY_VERSION_CHECK();
+
 	show_headers = debug_mode;
 	istty = isatty(fileno(stdin));
 

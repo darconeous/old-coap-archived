@@ -504,11 +504,15 @@ test_TD_COAP_BLOCK_03(smcp_t smcp, const char* url, test_data_s *test_data)
 
 int
 main(int argc, char * argv[]) {
-	smcp_t smcp = smcp_create(61616);
+	smcp_t smcp;
 	const char* url = "coap://localhost/";
 	int errorcount = 0;
 	int round = 0;
 	test_data_s test_data;
+
+	SMCP_LIBRARY_VERSION_CHECK();
+
+	smcp = smcp_create(61616);
 
 //	url = "coap://contiki.local./";
 //	url = "coap://coap.me/";
