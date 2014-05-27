@@ -93,6 +93,10 @@ struct smcp_transaction_s {
 	coap_msg_id_t				msg_id;
 	smcp_sockaddr_t				saddr;
 
+#if SMCP_DTLS
+	void*						dtls_session;
+#endif
+
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 	uint32_t					last_observe;
 #endif
@@ -136,11 +140,13 @@ extern smcp_status_t smcp_transaction_begin(
 	cms_t expiration
 );
 
+//!< Explicitly terminate this transaction.
 extern smcp_status_t smcp_transaction_end(
 	smcp_t self,
 	smcp_transaction_t transaction
 );
 
+//!< Force a transaction to retry/retransmit
 extern smcp_status_t smcp_transaction_tickle(
 	smcp_t self,
 	smcp_transaction_t transaction
