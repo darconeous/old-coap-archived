@@ -524,10 +524,10 @@ smcp_handle_response() {
 
 		handler = smcp_transaction_find_via_msg_id(self,msg_id);
 
-		if (NULL == handler
-			&& (self->inbound.packet->tt < COAP_TRANS_TYPE_ACK)
-		) {
-			handler = smcp_transaction_find_via_token(self,token);
+		if (NULL == handler) {
+			if (self->inbound.packet->tt < COAP_TRANS_TYPE_ACK) {
+				handler = smcp_transaction_find_via_token(self,token);
+			}
 		} else if (smcp_inbound_get_packet()->code != COAP_CODE_EMPTY
 			&& token != handler->token
 		) {
