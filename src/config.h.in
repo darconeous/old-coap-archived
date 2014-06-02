@@ -1,5 +1,8 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* rl_completion_entry_function has the wrong return type */
+#undef HAS_LIBEDIT_COMPLETION_ENTRY_BUG
+
 /* Define to 1 if you have the `alloca' function. */
 #undef HAVE_ALLOCA
 
