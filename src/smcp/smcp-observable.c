@@ -65,10 +65,8 @@ get_unused_observer_index() {
 static void
 free_observer(struct smcp_observer_s *observer) {
 	smcp_observable_t const context = observer->observable;
-	int8_t i = observer - observer_table;
-#if SMCP_EMBEDDED
-	smcp_t const interface = smcp_get_current_instance();
-#else
+	int8_t i = (int8_t)(observer - observer_table);
+#if !SMCP_EMBEDDED
 	if(!observer->observable)
 		goto bail;
 	smcp_t const interface = observer->observable->interface;
@@ -219,9 +217,7 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	int8_t i;
-#if SMCP_EMBEDDED
-	smcp_t const interface = smcp_get_current_instance();
-#else
+#if !SMCP_EMBEDDED
 	smcp_t const interface = context->interface;
 
 	if(!interface)

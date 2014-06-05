@@ -136,11 +136,15 @@ void
 smcp_set_proxy_url(smcp_t self,const char* url) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	assert(self);
+#if SMCP_AVOID_MALLOC && SMCP_EMBEDDED
+	self->proxy_url = url;
+#else
 	free((void*)self->proxy_url);
 	if(url)
 		self->proxy_url = strdup(url);
 	else
 		self->proxy_url = NULL;
+#endif
 	DEBUG_PRINTF("CoAP Proxy URL set to %s",self->proxy_url);
 }
 
@@ -165,8 +169,8 @@ smcp_vhost_add(smcp_t self,const char* name, smcp_request_handler_func func, voi
 
 	DEBUG_PRINTF("Adding VHost \"%s\": handler:%p context:%p",name,func,context);
 
-	require_action(name && (name[0]!=0),bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
-	require_action(self->vhost_count<SMCP_MAX_VHOSTS,bail,ret = SMCP_STATUS_FAILURE);
+	require_action(name && (name[0]!=0), bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+	require_action(self->vhost_count < SMCP_MAX_VHOSTS, bail, ret = SMCP_STATUS_FAILURE);
 
 	vhost = &self->vhost[self->vhost_count++];
 
@@ -325,7 +329,7 @@ smcp_get_next_msg_id(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
 
 	if(!self->last_msg_id)
-		self->last_msg_id = SMCP_FUNC_RANDOM_UINT32();
+		self->last_msg_id = (uint16_t)SMCP_FUNC_RANDOM_UINT32();
 
 #if DEBUG
 	// Sequential in debug mode.
@@ -387,8 +391,8 @@ const char* smcp_status_to_cstr(int x) {
 }
 #endif
 
-int smcp_convert_status_to_result_code(smcp_status_t status) {
-	int ret = COAP_RESULT_500_INTERNAL_SERVER_ERROR;
+coap_code_t smcp_convert_status_to_result_code(smcp_status_t status) {
+	coap_code_t ret = COAP_RESULT_500_INTERNAL_SERVER_ERROR;
 
 	switch(status) {
 	case SMCP_STATUS_OK:

@@ -173,6 +173,7 @@ smcp_outbound_send_hook(void) {
 	//uip_sappdata = self->outbound.packet;
 
 #if 0
+	// TODO: For some reason this isn't working anymore. Investigate.
 	if(self->is_responding) {
 		// We are responding, let uIP handle preparing the packet.
 	} else

@@ -76,14 +76,14 @@ struct smcp_auth_transaction_s {
 //////////////////////////////////////////////////
 // Inbound Methods
 
-extern smcp_status_t smcp_auth_inbound_init(void);
+SMCP_API_EXTERN smcp_status_t smcp_auth_inbound_init(void);
 
-extern const char* smcp_auth_inbound_get_username(void);
+SMCP_API_EXTERN const char* smcp_auth_inbound_get_username(void);
 
 //! Describes external authentication (e.g. DTLS)
 /*!	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet().
 **	@sa smcp-auth */
-extern smcp_status_t smcp_inbound_set_ext_auth(
+SMCP_API_EXTERN smcp_status_t smcp_inbound_set_ext_auth(
 	const char* cn,			//!< Common Name
 	const char* mechanism	//!< Authentication Mechanism
 );
@@ -91,17 +91,17 @@ extern smcp_status_t smcp_inbound_set_ext_auth(
 //////////////////////////////////////////////////
 // Outbound Methods
 
-extern smcp_status_t smcp_auth_outbound_init(void);
+SMCP_API_EXTERN smcp_status_t smcp_auth_outbound_init(void);
 
-extern smcp_status_t smcp_auth_outbound_finalize(void);
+SMCP_API_EXTERN smcp_status_t smcp_auth_outbound_finalize(void);
 
-extern smcp_status_t smcp_auth_outbound_use_dtls();
+SMCP_API_EXTERN smcp_status_t smcp_auth_outbound_use_dtls();
 
-extern bool smcp_auth_outbound_is_using_dtls(void);
+SMCP_API_EXTERN bool smcp_auth_outbound_is_using_dtls(void);
 
-extern smcp_status_t smcp_auth_outbound_set_credentials(const char* username, const char* password);
+SMCP_API_EXTERN smcp_status_t smcp_auth_outbound_set_credentials(const char* username, const char* password);
 
-//extern smcp_status_t smcp_auth_get_cred(
+//SMCP_API_EXTERN smcp_status_t smcp_auth_get_cred(
 //	const char* realm,
 //	const char* host,
 //	const char* path,

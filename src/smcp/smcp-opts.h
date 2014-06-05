@@ -55,23 +55,11 @@
 #define SMCP_USE_UIP			!SMCP_USE_BSD_SOCKETS
 #endif
 
-#if !defined(SMCP_UIP_INCLUDE_PATH)
-#if CONTIKI
-#define SMCP_UIP_INCLUDE_PATH	"net"
-#else
-#define SMCP_UIP_INCLUDE_PATH	"uip"
-#endif
-#endif
-
 #ifndef SMCP_DEFAULT_PORT
 #define SMCP_DEFAULT_PORT           COAP_DEFAULT_PORT
 #endif
 
 #define SMCP_DEFAULT_PORT_CSTR      #SMCP_DEFAULT_PORT
-
-#ifndef IPv4_COMPATIBLE_IPv6_PREFIX
-#define IPv4_COMPATIBLE_IPv6_PREFIX "::FFFF:"
-#endif
 
 #ifndef SMCP_MAX_PATH_LENGTH
 #define SMCP_MAX_PATH_LENGTH        (127)
@@ -97,37 +85,31 @@
 #endif
 #endif
 
+//!	@define SMCP_MAX_CONTENT_LENGTH
+/*!	The maximum number of *content* bytes allowed in an outgoing packet. */
 #if defined(SMCP_MAX_PACKET_LENGTH) && !defined(SMCP_MAX_CONTENT_LENGTH)
 #define SMCP_MAX_CONTENT_LENGTH     (SMCP_MAX_PACKET_LENGTH-8)
 #endif
 
+//!	@define SMCP_MAX_PACKET_LENGTH
+/*!	The maximum *total* number of bytes allowed in an outgoing packet. */
 #if !defined(SMCP_MAX_PACKET_LENGTH) && defined(SMCP_MAX_CONTENT_LENGTH)
 #define SMCP_MAX_PACKET_LENGTH      ((coap_size_t)SMCP_MAX_CONTENT_LENGTH+8)
 #endif
 
-#ifndef SMCP_USE_CASCADE_COUNT
-#define SMCP_USE_CASCADE_COUNT      (0)
-#endif
-
-#ifndef SMCP_MAX_CASCADE_COUNT
-#define SMCP_MAX_CASCADE_COUNT      (128)
-#endif
-
-#ifndef SMCP_ADD_NEWLINES_TO_LIST_OUTPUT
-#if DEBUG
-#define SMCP_ADD_NEWLINES_TO_LIST_OUTPUT	(1)
-#else
-#define SMCP_ADD_NEWLINES_TO_LIST_OUTPUT	(0)
-#endif
-#endif
-
+//!	@define SMCP_AVOID_PRINTF
+/*!	If set, use of printf() (or any of its variants) is avoided.
+*/
 #ifndef SMCP_AVOID_PRINTF
 #define SMCP_AVOID_PRINTF	SMCP_EMBEDDED
 #endif
 
 //!	@define SMCP_AVOID_MALLOC
 /*!	If set, static global pools are used instead of malloc/free,
-**	where possible. Not fully implemented yet.
+**	where possible. Also applies to functions that use malloc/free,
+**	like strdup().
+**
+**	@note Not fully implemented yet.
 */
 #ifndef SMCP_AVOID_MALLOC
 #define SMCP_AVOID_MALLOC	SMCP_EMBEDDED
@@ -173,10 +155,6 @@
 
 #ifndef SMCP_TRANSACTIONS_USE_BTREE
 #define SMCP_TRANSACTIONS_USE_BTREE				!SMCP_EMBEDDED
-#endif
-
-#ifndef SMCP_NODE_ROUTER_USE_BTREE
-#define SMCP_NODE_ROUTER_USE_BTREE				!SMCP_EMBEDDED
 #endif
 
 /*****************************************************************************/
@@ -226,6 +204,23 @@
 #define SMCP_CONF_NODE_ROUTER		!SMCP_EMBEDDED
 #endif
 
+#ifndef SMCP_NODE_ROUTER_USE_BTREE
+#define SMCP_NODE_ROUTER_USE_BTREE				!SMCP_EMBEDDED
+#endif
+
+//!	@define SMCP_ADD_NEWLINES_TO_LIST_OUTPUT
+/*!	If set, newlines are added to list output when using the node router.
+**
+**	@sa SMCP_CONF_NODE_ROUTER
+*/
+#ifndef SMCP_ADD_NEWLINES_TO_LIST_OUTPUT
+#if DEBUG
+#define SMCP_ADD_NEWLINES_TO_LIST_OUTPUT	(1)
+#else
+#define SMCP_ADD_NEWLINES_TO_LIST_OUTPUT	(0)
+#endif
+#endif
+
 #ifndef SMCP_VARIABLE_MAX_VALUE_LENGTH
 #define SMCP_VARIABLE_MAX_VALUE_LENGTH		(127)
 #endif
@@ -243,12 +238,38 @@
 #endif
 
 /*****************************************************************************/
+#pragma mark - Experimental Options
+
+//!	@define SMCP_USE_CASCADE_COUNT
+/*!	If set, add experiental support an event cascade counter.
+**	This is used to prevent storms of events if a device is misconfigured.
+*/
+#ifndef SMCP_USE_CASCADE_COUNT
+#define SMCP_USE_CASCADE_COUNT      (0)
+#endif
+
+//!	@define SMCP_MAX_CASCADE_COUNT
+/*!	The initial value of the cascade count option.
+*/
+#ifndef SMCP_MAX_CASCADE_COUNT
+#define SMCP_MAX_CASCADE_COUNT      (128)
+#endif
+
+/*****************************************************************************/
 #pragma mark - SMCP Compiler Stuff
 
 #if SMCP_EMBEDDED
 #define SMCP_NON_RECURSIVE	static
 #else
 #define SMCP_NON_RECURSIVE
+#endif
+
+#ifndef SMCP_API_EXTERN
+#define SMCP_API_EXTERN		extern
+#endif
+
+#ifndef SMCP_INTERNAL_EXTERN
+#define SMCP_INTERNAL_EXTERN		extern
 #endif
 
 #ifndef SMCP_DEPRECATED

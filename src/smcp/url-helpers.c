@@ -250,7 +250,7 @@ url_decode_str(
 			&& src[0]
 			&& src[1]
 		) {
-			*dest++ = (hex_digit_to_int(src[0]) << 4)
+			*dest++ = (char)(hex_digit_to_int(src[0]) << 4)
 				+ hex_digit_to_int(src[1]);
 			src += 2;
 			src_len -= 2;
@@ -299,7 +299,7 @@ url_decode_cstr(
 			&& src[1]
 			&& !(src[0] == '0' && src[1] == '0')
 		) {
-			*dest++ = (hex_digit_to_int(src[0]) << 4)
+			*dest++ = (char)(hex_digit_to_int(src[0]) << 4)
 				+ hex_digit_to_int(src[1]);
 			src += 2;
 		} else if(src_char == '+') {

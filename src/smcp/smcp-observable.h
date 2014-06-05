@@ -79,7 +79,7 @@ typedef struct smcp_observable_s *smcp_observable_t;
 **	You may choose any value for `key`, as long as it matches what you pass
 **	to smcp_observable_trigger() to trigger updates.
 */
-extern smcp_status_t smcp_observable_update(
+SMCP_API_EXTERN smcp_status_t smcp_observable_update(
 	smcp_observable_t context, //!< [IN] Pointer to observable context
 	uint8_t key		//!< [IN] Key for this resource (must be same as used in trigger)
 );
@@ -89,7 +89,7 @@ extern smcp_status_t smcp_observable_update(
 **	You may use SMCP_OBSERVABLE_BROADCAST_KEY for the key to trigger
 **	all resources associated with this observable context to update.
 */
-extern smcp_status_t smcp_observable_trigger(
+SMCP_API_EXTERN smcp_status_t smcp_observable_trigger(
 	smcp_observable_t context, //!< [IN] Pointer to observable context
 	uint8_t key,	//!< [IN] Key for this resource (must be same as used in update)
 	uint8_t flags	//!< [IN] Flags (Currently unused, set to zero)
@@ -100,7 +100,7 @@ extern smcp_status_t smcp_observable_trigger(
 **	You may use SMCP_OBSERVABLE_BROADCAST_KEY for the key to get the
 **	count of all observers associated with this context.
 */
-extern int smcp_observable_observer_count(
+SMCP_API_EXTERN int smcp_observable_observer_count(
 	smcp_observable_t context, //!< [IN] Pointer to observable context
 	uint8_t key	//!< [IN] Key for this resource (must be same as used in update)
 );

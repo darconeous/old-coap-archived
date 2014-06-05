@@ -65,7 +65,30 @@ __BEGIN_DECLS
 
 /*!	@defgroup smcp_timer Timer API
 **	@{
+**	@brief Timer functions.
+**
+**	SMCP has two ways to represent a point in time:
+**
+**	 * Relative time (`cms_t`), measured in milliseconds from "now". The future
+**	   is positive and the past is negative.
+**	 * Absolute time (`struct timeval`), measured from some platform-specific
+**     reference epoc.
+**
+**	The relative notation is convenient for specifying timeouts and such,
+**	but the individual timers store their firing time in absolute time.
+**	You can convert between relative time and absolute time using
+**	`convert_cms_to_timeval()` and back again using `convert_timeval_to_cms()`.
+**
 */
+
+//!< Converts relative time from 'now' into an absolute time.
+SMCP_API_EXTERN void convert_cms_to_timeval(
+	struct timeval* tv, //!< [OUT] Pointer to timeval struct.
+	cms_t cms //!< [IN] Time from now, in milliseconds
+);
+
+SMCP_API_EXTERN cms_t period_between_timevals_in_cms(const struct timeval* tv_lhs,const struct timeval* tv_rhs);
+SMCP_API_EXTERN cms_t convert_timeval_to_cms(const struct timeval* tv);
 
 typedef void (*smcp_timer_callback_t)(smcp_t, void*);
 
@@ -77,32 +100,23 @@ typedef struct smcp_timer_s {
 	smcp_timer_callback_t	cancel;
 } *smcp_timer_t;
 
-extern smcp_timer_t smcp_timer_init(
+SMCP_API_EXTERN smcp_timer_t smcp_timer_init(
 	smcp_timer_t			self,
 	smcp_timer_callback_t	callback,
 	smcp_timer_callback_t	cancel,
 	void*					context
 );
 
-extern smcp_status_t smcp_schedule_timer(
+SMCP_API_EXTERN smcp_status_t smcp_schedule_timer(
 	smcp_t	self,
 	smcp_timer_t	timer,
 	cms_t			cms
 );
 
-extern void smcp_invalidate_timer(smcp_t self, smcp_timer_t timer);
-extern cms_t smcp_get_timeout(smcp_t self);
-extern void smcp_handle_timers(smcp_t self);
-extern bool smcp_timer_is_scheduled(smcp_t self, smcp_timer_t timer);
-
-//!< Converts `cms` into an absolute time.
-extern void convert_cms_to_timeval(
-	struct timeval* tv, //!< [OUT] Pointer to timeval struct.
-	cms_t cms //!< [IN] Time from now, in milliseconds
-);
-
-extern cms_t period_between_timevals_in_cms(const struct timeval* tv_lhs,const struct timeval* tv_rhs);
-extern cms_t convert_timeval_to_cms(const struct timeval* tv);
+SMCP_API_EXTERN void smcp_invalidate_timer(smcp_t self, smcp_timer_t timer);
+SMCP_API_EXTERN cms_t smcp_get_timeout(smcp_t self);
+SMCP_API_EXTERN void smcp_handle_timers(smcp_t self);
+SMCP_API_EXTERN bool smcp_timer_is_scheduled(smcp_t self, smcp_timer_t timer);
 
 /*!	@} */
 /*!	@} */

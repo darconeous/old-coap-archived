@@ -68,7 +68,7 @@ struct smcp_variable_node_s {
 	struct smcp_observable_s observable;
 };
 
-extern smcp_status_t smcp_variable_node_request_handler(
+SMCP_API_EXTERN smcp_status_t smcp_variable_node_request_handler(
 	smcp_variable_node_t		node
 );
 

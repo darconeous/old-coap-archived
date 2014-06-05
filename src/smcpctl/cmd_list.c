@@ -84,7 +84,7 @@ parse_link_format(char* content, coap_size_t content_length, void* context) {
 			char* desc = 0;
 			char* v = 0;
 			char* sh_url = 0;
-			int type = COAP_CONTENT_TYPE_UNKNOWN;
+			coap_content_type_t type = COAP_CONTENT_TYPE_UNKNOWN;
 			int uri_len = 0;
 
 			iter++;
@@ -165,7 +165,7 @@ parse_link_format(char* content, coap_size_t content_length, void* context) {
 					else if(0 == strcmp(key, "v"))
 						v = value;
 					else if(0 == strcmp(key, "ct"))
-						type = strtol(value, NULL, 0);
+						type = (coap_content_type_t)strtol(value, NULL, 0);
 					else if(0 == strcmp(key, "sh"))
 						sh_url = value;
 					//printf("%s = %s\n",key,value);

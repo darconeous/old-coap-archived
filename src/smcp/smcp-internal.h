@@ -61,7 +61,7 @@ __BEGIN_DECLS
 // Embedded platforms only support one instance.
 #define smcp_set_current_instance(x)
 #else
-extern void smcp_set_current_instance(smcp_t x);
+SMCP_INTERNAL_EXTERN void smcp_set_current_instance(smcp_t x);
 #endif
 
 
@@ -203,13 +203,13 @@ struct smcp_s {
 };
 
 
-extern smcp_status_t smcp_handle_request();
+SMCP_INTERNAL_EXTERN smcp_status_t smcp_handle_request();
 
-extern smcp_status_t smcp_handle_response();
+SMCP_INTERNAL_EXTERN smcp_status_t smcp_handle_response();
 
-extern smcp_status_t smcp_outbound_set_var_content_int(int v);
-extern smcp_status_t smcp_outbound_set_var_content_unsigned_int(unsigned int v);
-extern smcp_status_t smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v);
+SMCP_INTERNAL_EXTERN smcp_status_t smcp_outbound_set_var_content_int(int v);
+SMCP_INTERNAL_EXTERN smcp_status_t smcp_outbound_set_var_content_unsigned_int(unsigned int v);
+SMCP_INTERNAL_EXTERN smcp_status_t smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v);
 
 
 __END_DECLS

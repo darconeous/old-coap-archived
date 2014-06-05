@@ -143,7 +143,7 @@ smcp_internal_delete_transaction_(
 
 static cms_t
 calc_retransmit_timeout(int retries) {
-	cms_t ret = COAP_ACK_TIMEOUT * MSEC_PER_SEC;
+	cms_t ret = (cms_t)(COAP_ACK_TIMEOUT * MSEC_PER_SEC);
 
 	ret <<= retries;
 
@@ -164,7 +164,7 @@ smcp_transaction_new_msg_id(
 	smcp_transaction_t handler,
 	coap_msg_id_t msg_id
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
+	//SMCP_EMBEDDED_SELF_HOOK;
 	require(handler->active,bail);
 
 #if SMCP_TRANSACTIONS_USE_BTREE
@@ -348,7 +348,7 @@ smcp_transaction_init(
 	handler->resendCallback = resendCallback;
 	handler->callback = callback;
 	handler->context = context;
-	handler->flags = flags;
+	handler->flags = (uint8_t)flags;
 
 bail:
 	return handler;
@@ -359,7 +359,7 @@ smcp_transaction_tickle(
 	smcp_t self,
 	smcp_transaction_t handler
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
+	//SMCP_EMBEDDED_SELF_HOOK;
 
 	smcp_invalidate_timer(self, &handler->timer);
 
@@ -392,8 +392,9 @@ smcp_transaction_begin(
 	ll_remove((void**)&self->transactions,(void*)handler);
 #endif
 
-	if(expiration<0)
-		expiration = COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC;
+	if (expiration<0) {
+		expiration = (cms_t)(COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC);
+	}
 
 	handler->token = smcp_get_next_msg_id(self);
 	handler->msg_id = handler->token;
@@ -600,7 +601,9 @@ smcp_handle_response() {
 				handler->context
 			);
 
-			// TODO: Explain why this is necessary
+			// If self->current_transaction is NULL at this point,
+			// then that means that the transaction has been
+			// finalized and we shouldn't continue.
 			if(!self->current_transaction) {
 				handler = NULL;
 				goto bail;

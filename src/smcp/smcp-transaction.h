@@ -126,7 +126,8 @@ enum {
 	SMCP_TRANSACTION_DELAY_START = (1 << 8),
 };
 
-extern smcp_transaction_t smcp_transaction_init(
+//!	Initialize the given transaction object.
+SMCP_API_EXTERN smcp_transaction_t smcp_transaction_init(
 	smcp_transaction_t transaction,
 	int	flags,
 	smcp_inbound_resend_func requestResend,
@@ -134,25 +135,31 @@ extern smcp_transaction_t smcp_transaction_init(
 	void* context
 );
 
-extern smcp_status_t smcp_transaction_begin(
+SMCP_API_EXTERN smcp_status_t smcp_transaction_begin(
 	smcp_t self,
 	smcp_transaction_t transaction,
 	cms_t expiration
 );
 
-//!< Explicitly terminate this transaction.
-extern smcp_status_t smcp_transaction_end(
+//!	Explicitly terminate this transaction.
+SMCP_API_EXTERN smcp_status_t smcp_transaction_end(
 	smcp_t self,
 	smcp_transaction_t transaction
 );
 
-//!< Force a transaction to retry/retransmit
-extern smcp_status_t smcp_transaction_tickle(
+//!	Force a transaction to retry/retransmit
+SMCP_API_EXTERN smcp_status_t smcp_transaction_tickle(
 	smcp_t self,
 	smcp_transaction_t transaction
 );
 
-extern void smcp_transaction_new_msg_id(
+//!	Change the message id on the given transaction.
+/*!	Does not change the token. This is used when you
+**	want to use the same transaction object to handle
+**	a series of message requests and responses.
+**	For example, this is used for observation and block
+**	transfers. */
+SMCP_API_EXTERN void smcp_transaction_new_msg_id(
 	smcp_t			self,
 	smcp_transaction_t handler,
 	coap_msg_id_t msg_id

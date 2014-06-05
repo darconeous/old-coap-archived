@@ -33,7 +33,7 @@
 **
 **	 * Supports draft-ietf-core-coap-13.
 **	 * Fully asynchronous I/O.
-**	 * Supports both BSD sockets and [UIP](http://en.wikipedia.org/wiki/UIP_(micro_IP%29).
+**	 * Supports both BSD sockets and [uIP](http://en.wikipedia.org/wiki/UIP_(micro_IP%29).
 **	 * Supports sending and receiving asynchronous CoAP responses.
 **	 * Supports observing resources and offering observable resources.
 **	 * Supports retransmission of confirmable transactions.
@@ -65,21 +65,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
-#if defined(__cplusplus)
-#define __BEGIN_DECLS   extern "C" {
-#define __END_DECLS		}
-#else
-#define __BEGIN_DECLS
-#define __END_DECLS
-#endif
-#endif
+#include "coap.h"
 
 #include "smcp-opts.h"
 #include "smcp-helpers.h"
-
-#include "coap.h"
-#include "btree.h"
 
 #ifdef CONTIKI
 #include "contiki.h"
@@ -188,7 +177,7 @@ typedef smcp_callback_func smcp_inbound_resend_func;
 #ifndef ___SMCP_CONFIG_ID
 #define ___SMCP_CONFIG_ID 0
 #endif
-extern void ___smcp_check_version(uint32_t x);
+SMCP_API_EXTERN void ___smcp_check_version(uint32_t x);
 #define SMCP_LIBRARY_VERSION_CHECK()	___smcp_check_version(___SMCP_CONFIG_ID)
 #endif
 
@@ -201,41 +190,48 @@ extern void ___smcp_check_version(uint32_t x);
 */
 
 //! Initializes an SMCP instance
-extern smcp_t smcp_init(smcp_t self, uint16_t port);
+SMCP_API_EXTERN smcp_t smcp_init(smcp_t self, uint16_t port);
 
 //! Releases an SMCP instance, closing all ports and ending all transactions.
-extern void smcp_release(smcp_t self);
+SMCP_API_EXTERN void smcp_release(smcp_t self);
 
 //! Returns the current listening port of the instance in host order.
-extern uint16_t smcp_get_port(smcp_t self);
+SMCP_API_EXTERN uint16_t smcp_get_port(smcp_t self);
 
-#if SMCP_EMBEDDED
-extern struct smcp_s smcp_global_instance;
+#if SMCP_EMBEDDED && !defined(DOXYGEN_SHOULD_SKIP_THIS)
+SMCP_API_EXTERN struct smcp_s smcp_global_instance;
 #define smcp_get_current_instance() (&smcp_global_instance)
+#define smcp_create(port)		smcp_init(smcp_get_current_instance(), (port))
 #else
 //! Used from inside of callbacks to obtain a reference to the current instance.
-extern smcp_t smcp_get_current_instance(void);
+SMCP_API_EXTERN smcp_t smcp_get_current_instance(void);
 
 //! Allocates and initializes an SMCP instance.
-extern smcp_t smcp_create(uint16_t port);
+SMCP_API_EXTERN smcp_t smcp_create(uint16_t port);
 #endif
 
 //!	Sets the URL to use as a CoAP proxy.
 /*!	The proxy is used whenever the scheme is
 **	unrecognised or the host does not appear
-**	to be directly reachable. */
-extern void smcp_set_proxy_url(smcp_t self,const char* url);
+**	to be directly reachable.
+**
+**	If SMCP_AVOID_MALLOC and SMCP_EMBEDDED are set then
+**	the string IS NOT COPIED and used as is. If you
+**	are building on an embedded platform, don't pass
+**	in strings that are in temporary memory or that
+**	live on the stack. */
+SMCP_API_EXTERN void smcp_set_proxy_url(smcp_t self, const char* url);
 
 //!	Sets the default request handler.
 /*!	Whenever the instance receives a request that isn't
-**	directed at a recognised VHost or is intended for
+**	directed at a recognised vhost or is intended for
 **	a proxy, this callback will be called.
 **
 **	If the inbound message is confirmable and you don't
 **	end up sending a response from the callback, a
 **	response packet is generated based on the return
 **	value of the callback. */
-extern void smcp_set_default_request_handler(
+SMCP_API_EXTERN void smcp_set_default_request_handler(
 	smcp_t self,
 	smcp_request_handler_func request_handler,
 	void* context
@@ -246,7 +242,7 @@ extern void smcp_set_default_request_handler(
 **	instead of the default one.
 **
 **	This can also be used to implement groups. */
-extern smcp_status_t smcp_vhost_add(
+SMCP_API_EXTERN smcp_status_t smcp_vhost_add(
 	smcp_t self,
 	const char* name, //!^ Hostname of the virtual host
 	smcp_request_handler_func request_handler,
@@ -267,14 +263,14 @@ extern smcp_status_t smcp_vhost_add(
 //!	Processes one event or inbound packet (if available).
 /*!	This function must be called periodically for SMCP to handle events and packets.
 */
-extern smcp_status_t smcp_process(smcp_t self);
+SMCP_API_EXTERN smcp_status_t smcp_process(smcp_t self);
 
 //!	Block until smcp_process() should be called.
 /*! Some platforms do not implement this function. */
-extern smcp_status_t smcp_wait(smcp_t self, cms_t cms);
+SMCP_API_EXTERN smcp_status_t smcp_wait(smcp_t self, cms_t cms);
 
 //!	Maximum amount of time that can pass before smcp_process() must be called again.
-extern cms_t smcp_get_timeout(smcp_t self);
+SMCP_API_EXTERN cms_t smcp_get_timeout(smcp_t self);
 
 /*!	@} */
 
@@ -288,7 +284,7 @@ extern cms_t smcp_get_timeout(smcp_t self);
 
 //! Start describing the inbound packet.
 /*!	If you are using BSD sockets you don't need to use this function. */
-extern smcp_status_t smcp_inbound_start_packet(
+SMCP_API_EXTERN smcp_status_t smcp_inbound_start_packet(
 	smcp_t	self,
 	char*	packet,
 	coap_size_t	packet_length
@@ -297,14 +293,16 @@ extern smcp_status_t smcp_inbound_start_packet(
 //! Sets the address from where this packet originated.
 /*!	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet(). */
 /*!	If you are using BSD sockets, you don't need to use this function. */
-extern smcp_status_t smcp_inbound_set_srcaddr(const smcp_sockaddr_t* addr);
+SMCP_API_EXTERN smcp_status_t smcp_inbound_set_srcaddr(const smcp_sockaddr_t* addr);
 
 //! Sets the address to where this packet was sent to.
 /*!	This method is optional in describing the inbound packet,
-**	but it is necessary to correctly implement multicast behavior. */
-/*!	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet(). */
-/*!	If you are using BSD sockets, you don't need to use this function. */
-extern smcp_status_t smcp_inbound_set_destaddr(const smcp_sockaddr_t* addr);
+**	but it is necessary to correctly implement multicast behavior.
+**
+**	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet().
+**
+**	If you are using BSD sockets, you don't need to use this function. */
+SMCP_API_EXTERN smcp_status_t smcp_inbound_set_destaddr(const smcp_sockaddr_t* addr);
 
 //! Call this function if the inbound packet has been truncated.
 /*!	Calling this will instruct the instance to not process
@@ -315,12 +313,12 @@ extern smcp_status_t smcp_inbound_set_destaddr(const smcp_sockaddr_t* addr);
 **	@note Not currently implemented. */
 /*!	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet(). */
 /*!	If you are using BSD sockets, you don't need to use this function. */
-extern void smcp_inbound_packet_was_truncated(void);
+SMCP_API_EXTERN void smcp_inbound_packet_was_truncated(void);
 
 //! Indicate that we are finished describing the inbound packet.
 /*!	Must be called after smcp_inbound_start_packet(). */
 /*!	If you are using BSD sockets, you don't need to use this function. */
-extern smcp_status_t smcp_inbound_finish_packet(void);
+SMCP_API_EXTERN smcp_status_t smcp_inbound_finish_packet(void);
 
 /*!	@} */
 
@@ -329,17 +327,18 @@ extern smcp_status_t smcp_inbound_finish_packet(void);
 
 /*!	@defgroup smcp-inbound Inbound Message Parsing API
 **	@{
-**	@brief These functions allow callbacks to examine the current inbound packet.
+**	@brief These functions allow callbacks to examine the
+**	       current inbound packet.
 **
 **	Calling these functions from outside
-**	of an SMCP callback is an error.
+**	of an SMCP callback is a runtime error.
 */
 
 //!	Returns a pointer to the start of the current inbound CoAP packet.
-extern const struct coap_header_s* smcp_inbound_get_packet(void);
+SMCP_API_EXTERN const struct coap_header_s* smcp_inbound_get_packet(void);
 
 //!	Returns the length of the inbound packet.
-extern coap_size_t smcp_inbound_get_packet_length(void);
+SMCP_API_EXTERN coap_size_t smcp_inbound_get_packet_length(void);
 
 //! Convenience macro for getting the code of the inbound packet.
 #define smcp_inbound_get_code()		(smcp_inbound_get_packet()->code)
@@ -348,37 +347,38 @@ extern coap_size_t smcp_inbound_get_packet_length(void);
 #define smcp_inbound_get_msg_id()	(smcp_inbound_get_packet()->msg_id)
 
 //! Returns true if SMCP thinks the inbound packet is a dupe.
-extern bool smcp_inbound_is_dupe(void);
+SMCP_API_EXTERN bool smcp_inbound_is_dupe(void);
 
 //! Returns true if the inbound packet is fake (to trigger updates for observers)
-extern bool smcp_inbound_is_fake(void);
+SMCP_API_EXTERN bool smcp_inbound_is_fake(void);
 
-//! Returns true if SMCP thinks the inbound packet originated locally.
-extern bool smcp_inbound_origin_is_local(void);
+//! Returns true if SMCP thinks the inbound packet originated from the local machine.
+SMCP_API_EXTERN bool smcp_inbound_origin_is_local(void);
 
 //!	Returns a pointer to the start of the inbound packet's content.
 /*! Guaranteed to be NUL-terminated */
-extern const char* smcp_inbound_get_content_ptr(void);
+SMCP_API_EXTERN const char* smcp_inbound_get_content_ptr(void);
 
 //!	Returns the length of the inbound packet's content.
-extern coap_size_t smcp_inbound_get_content_len(void);
+SMCP_API_EXTERN coap_size_t smcp_inbound_get_content_len(void);
 
 //!	Convenience function for getting the content type of the inbound packet.
-extern coap_content_type_t smcp_inbound_get_content_type(void);
+SMCP_API_EXTERN coap_content_type_t smcp_inbound_get_content_type(void);
 
-extern const smcp_sockaddr_t* smcp_inbound_get_srcaddr(void);
+//!	Gets a pointer to the srcaddr of the source of the inbound packet.
+SMCP_API_EXTERN const smcp_sockaddr_t* smcp_inbound_get_srcaddr(void);
 
 //! Retrieve the value and type of the next option in the header and move to the next header.
-extern coap_option_key_t smcp_inbound_next_option(const uint8_t** ptr, coap_size_t* len);
+SMCP_API_EXTERN coap_option_key_t smcp_inbound_next_option(const uint8_t** ptr, coap_size_t* len);
 
 //! Retrieve the value and type of the next option in the header, WITHOUT moving to the next header.
-extern coap_option_key_t smcp_inbound_peek_option(const uint8_t** ptr, coap_size_t* len);
+SMCP_API_EXTERN coap_option_key_t smcp_inbound_peek_option(const uint8_t** ptr, coap_size_t* len);
 
 //!	Reset the option pointer to the start of the options.
-extern void smcp_inbound_reset_next_option(void);
+SMCP_API_EXTERN void smcp_inbound_reset_next_option(void);
 
 //!	Compares the key and value of the current option to specific c-string values.
-extern bool smcp_inbound_option_strequal(coap_option_key_t key,const char* str);
+SMCP_API_EXTERN bool smcp_inbound_option_strequal(coap_option_key_t key, const char* str);
 
 #define smcp_inbound_option_strequal_const(key,const_str)	\
 	smcp_inbound_option_strequal(key,const_str)
@@ -388,7 +388,7 @@ extern bool smcp_inbound_option_strequal(coap_option_key_t key,const char* str);
 #define SMCP_GET_PATH_INCLUDE_QUERY		(1<<2)
 
 //!	Get a string representation of the destination path in the inbound packet.
-extern char* smcp_inbound_get_path(char* where,uint8_t flags);
+SMCP_API_EXTERN char* smcp_inbound_get_path(char* where, uint8_t flags);
 
 /*!	@} */
 
@@ -403,7 +403,8 @@ extern char* smcp_inbound_get_path(char* where,uint8_t flags);
 **	Calling these functions from outside of an SMCP callback is an error.
 */
 
-extern smcp_status_t smcp_outbound_begin(
+//!	Sets up the outbound packet as a request.
+SMCP_API_EXTERN smcp_status_t smcp_outbound_begin(
 	smcp_t self,
 	coap_code_t code,
 	coap_transaction_type_t tt
@@ -412,21 +413,32 @@ extern smcp_status_t smcp_outbound_begin(
 //! Sets up the outbound packet as a response to the current inbound packet.
 /*!	This function automatically makes sure that the destination address,
 **	msg_id, and token are properly set up. */
-extern smcp_status_t smcp_outbound_begin_response(coap_code_t code);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_begin_response(coap_code_t code);
 
 //!	Changes the code on the current outbound packet.
-extern smcp_status_t smcp_outbound_set_code(coap_code_t code);
-
-/*! Note that options MUST be added in order!
-**	OK, that's a lie, but it's much faster if done this way! */
-extern smcp_status_t smcp_outbound_add_option(coap_option_key_t key,const char* value,coap_size_t len);
-
-//!	Adds an option with a CoAP-encoded unsigned integer value.
-extern smcp_status_t smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_set_code(coap_code_t code);
 
 //!	Sets the destination address and port.
 /*!	Not necessary if you called smcp_outbound_begin_response(). */
-extern smcp_status_t smcp_outbound_set_destaddr(const smcp_sockaddr_t* sockaddr);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_set_destaddr(const smcp_sockaddr_t* sockaddr);
+
+//!	Adds the given option to the outbound packet.
+/*!
+**	Tip: If `value` is a c-string, simply pass SMCP_CSTR_LEN
+**	     as the value for `len` to avoid needing to explicitly
+**	     call `strlen()`.
+**
+**	@note It is *much* faster to add options in numerical
+**	      order than randomly. Whenever possible, add
+**	      options in increasing order. */
+SMCP_API_EXTERN smcp_status_t smcp_outbound_add_option(
+	coap_option_key_t key,
+	const char* value,
+	coap_size_t len
+);
+
+//!	Adds an option with a CoAP-encoded unsigned integer value.
+SMCP_API_EXTERN smcp_status_t smcp_outbound_add_option_uint(coap_option_key_t key, uint32_t value);
 
 // These next four flags are for smcp_outbound_set_uri().
 #define SMCP_MSG_SKIP_DESTADDR		(1<<0)
@@ -437,23 +449,35 @@ extern smcp_status_t smcp_outbound_set_destaddr(const smcp_sockaddr_t* sockaddr)
 //!	Sets the destination URI for the outbound packet.
 /*!	If the URL is not directly reachable and a proxy URL has been
 **	defined, this function will automatically use the proxy. */
-extern smcp_status_t smcp_outbound_set_uri(const char* uri,char flags);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_set_uri(const char* uri, char flags);
 
-/*!	After the following function is called you cannot add any more options
-**	without loosing the content. */
-extern char* smcp_outbound_get_content_ptr(
+//!	Retrieves the pointer to the content section of the outbound packet.
+/*!	If you need to add content to your outbound message, call this function
+**	and write your content to the location indicated by the returned pointer.
+**	Do not write more than the number of bytes indicated in `max_len`.
+**
+**	After writing your data (or before, it doesn't really matter), use
+**	smcp_outbound_set_content_len() to indicate the length of the content.
+**
+**	@warning After the following function is called you cannot add any
+**	         more options without losing the content. Add all of your options
+**	         first! */
+SMCP_API_EXTERN char* smcp_outbound_get_content_ptr(
 	coap_size_t* max_len //^< [OUT] maximum content length
 );
 
-extern coap_size_t smcp_outbound_get_space_remaining(void);
+SMCP_API_EXTERN coap_size_t smcp_outbound_get_space_remaining(void);
 
 //!	Sets the actual length of the content. Called after smcp_outbound_get_content_ptr().
-extern smcp_status_t smcp_outbound_set_content_len(coap_size_t len);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_set_content_len(coap_size_t len);
 
-extern smcp_status_t smcp_outbound_append_content(const char* value,coap_size_t len);
+//!	Append the given data to the end of the packet.
+/*!	This function automatically updates the content length. */
+SMCP_API_EXTERN smcp_status_t smcp_outbound_append_content(const char* value, coap_size_t len);
 
 #if !SMCP_AVOID_PRINTF
-extern smcp_status_t smcp_outbound_set_content_formatted(const char* fmt, ...);
+//!	Write to the content of the outbound message `printf` style.
+SMCP_API_EXTERN smcp_status_t smcp_outbound_set_content_formatted(const char* fmt, ...);
 
 #define smcp_outbound_set_content_formatted_const(fmt,...)	\
 	smcp_outbound_set_content_formatted(fmt,__VA_ARGS__)
@@ -463,27 +487,27 @@ extern smcp_status_t smcp_outbound_set_content_formatted(const char* fmt, ...);
 /*!	After calling this function, you are done for this callback. You may not
 **	call any other smcp_outbound_* functions. You may only send one outbound
 **	packet per callback. */
-extern smcp_status_t smcp_outbound_send(void);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_send(void);
 
 //!	Convenience function to simply drop a packet.
-extern void smcp_outbound_drop(void);
+SMCP_API_EXTERN void smcp_outbound_drop(void);
 
-extern void smcp_outbound_reset(void);
+SMCP_API_EXTERN void smcp_outbound_reset(void);
 
 //!	Sets the msg_id on the outbound packet.
 /*!	@note In most cases msg_ids are handled automatically. You
 **	      do not normally need to call this.
 */
-extern smcp_status_t smcp_outbound_set_msg_id(coap_msg_id_t tid);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_set_msg_id(coap_msg_id_t tid);
 
 //!	Sets the token on the outbound packet.
 /*!	@note In most cases tokens are handled automatically. You
 **	      do not normally need to call this.
 */
-extern smcp_status_t smcp_outbound_set_token(const uint8_t *token,uint8_t token_length);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_set_token(const uint8_t *token, uint8_t token_length);
 
 //!	Useful for indicating errors.
-extern smcp_status_t smcp_outbound_quick_response(coap_code_t code, const char* body);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_quick_response(coap_code_t code, const char* body);
 
 /*!	@} */
 
@@ -515,24 +539,24 @@ struct smcp_async_response_s {
 
 typedef struct smcp_async_response_s* smcp_async_response_t;
 
-extern bool smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x);
+SMCP_API_EXTERN bool smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x);
 
-extern smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,int flags);
+SMCP_API_EXTERN smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,int flags);
 
-extern smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
+SMCP_API_EXTERN smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
 
-extern smcp_status_t smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x);
+SMCP_API_EXTERN smcp_status_t smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x);
 
 /*!	@} */
 
 #pragma mark -
 #pragma mark Helper Functions
 
-extern coap_msg_id_t smcp_get_next_msg_id(smcp_t self);
+SMCP_API_EXTERN coap_msg_id_t smcp_get_next_msg_id(smcp_t self);
 
-extern int smcp_convert_status_to_result_code(smcp_status_t status);
+SMCP_API_EXTERN coap_code_t smcp_convert_status_to_result_code(smcp_status_t status);
 
-extern const char* smcp_status_to_cstr(smcp_status_t x);
+SMCP_API_EXTERN const char* smcp_status_to_cstr(smcp_status_t x);
 
 __END_DECLS
 

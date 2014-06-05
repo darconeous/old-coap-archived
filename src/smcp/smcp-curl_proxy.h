@@ -51,15 +51,15 @@ typedef struct smcp_curl_proxy_node_s {
 	smcp_t interface;
 } *smcp_curl_proxy_node_t;
 
-extern smcp_curl_proxy_node_t smcp_smcp_curl_proxy_node_alloc();
+SMCP_API_EXTERN smcp_curl_proxy_node_t smcp_smcp_curl_proxy_node_alloc();
 
-extern smcp_curl_proxy_node_t smcp_curl_proxy_node_init(
+SMCP_API_EXTERN smcp_curl_proxy_node_t smcp_curl_proxy_node_init(
 	smcp_curl_proxy_node_t	self,
 	smcp_node_t			parent,
 	const char*			name
 );
 
-extern smcp_status_t smcp_curl_proxy_node_update_fdset(
+SMCP_API_EXTERN smcp_status_t smcp_curl_proxy_node_update_fdset(
 	smcp_curl_proxy_node_t node,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
@@ -68,9 +68,9 @@ extern smcp_status_t smcp_curl_proxy_node_update_fdset(
 	cms_t *timeout
 );
 
-extern smcp_status_t smcp_curl_proxy_node_process(smcp_curl_proxy_node_t node);
+SMCP_API_EXTERN smcp_status_t smcp_curl_proxy_node_process(smcp_curl_proxy_node_t node);
 
-extern smcp_status_t smcp_curl_proxy_request_handler(smcp_curl_proxy_node_t node);
+SMCP_API_EXTERN smcp_status_t smcp_curl_proxy_request_handler(smcp_curl_proxy_node_t node);
 
 /*!	@} */
 /*!	@} */

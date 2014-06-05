@@ -153,7 +153,7 @@ send_post_request(
 	const char*		url,
 	coap_code_t		method,
 	const char*		content,
-	int				content_len,
+	coap_size_t		content_len,
 	coap_content_type_t content_type
 ) {
 	smcp_transaction_t ret = NULL;
@@ -257,7 +257,7 @@ tool_cmd_post(
 
 	gRet = ERRORCODE_INPROGRESS;
 
-	transaction = send_post_request(smcp, url, method,content, strlen(content),content_type);
+	transaction = send_post_request(smcp, url, method,content, (coap_size_t)strlen(content),content_type);
 
 	while(ERRORCODE_INPROGRESS == gRet) {
 		smcp_wait(smcp,1000);

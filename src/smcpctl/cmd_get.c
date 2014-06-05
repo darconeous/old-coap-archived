@@ -72,7 +72,7 @@ static struct smcp_transaction_s transaction;
 
 static smcp_status_t
 get_response_handler(int statuscode, void* context) {
-	const char* content = smcp_inbound_get_content_ptr();
+	const char* content = (const char*)smcp_inbound_get_content_ptr();
 	coap_size_t content_length = smcp_inbound_get_content_len();
 
 	if(statuscode>=0) {
@@ -270,7 +270,7 @@ tool_cmd_get(
 	HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
 	HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
 	HANDLE_LONG_ARGUMENT("slice-size") size_request = htons(strtol(argv[++i], NULL, 0));
-	HANDLE_LONG_ARGUMENT("timeout") get_timeout = 1000*strtof(argv[++i], NULL);
+	HANDLE_LONG_ARGUMENT("timeout") get_timeout = (cms_t)(1000*strtof(argv[++i], NULL));
 	HANDLE_LONG_ARGUMENT("observe") get_observe = true;
 	HANDLE_LONG_ARGUMENT("no-observe") get_observe = false;
 	HANDLE_LONG_ARGUMENT("non") get_tt = COAP_TRANS_TYPE_NONCONFIRMABLE;

@@ -62,6 +62,6 @@ typedef struct sockaddr_in smcp_sockaddr_t;
 //!	Gets the file descriptor for the UDP socket.
 /*!	Useful for implementing asynchronous operation using select(),
 **	poll(), or other async mechanisms. */
-extern int smcp_get_fd(smcp_t self);
+SMCP_API_EXTERN int smcp_get_fd(smcp_t self);
 
 #endif

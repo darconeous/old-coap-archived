@@ -597,12 +597,12 @@ main(
 	int argc, char * argv[]
 ) {
 	int i, debug_mode = 0;
-	int port = 61616;
+	uint16_t port = 61616;
 
 	srandom(time(NULL));
 
 	BEGIN_LONG_ARGUMENTS(gRet)
-	HANDLE_LONG_ARGUMENT("port") port = strtol(argv[++i], NULL, 0);
+	HANDLE_LONG_ARGUMENT("port") port = (uint16_t)strtol(argv[++i], NULL, 0);
 	HANDLE_LONG_ARGUMENT("debug") debug_mode++;
 
 	HANDLE_LONG_ARGUMENT("version") {
@@ -620,7 +620,7 @@ main(
 		goto bail;
 	}
 	BEGIN_SHORT_ARGUMENTS(gRet)
-	HANDLE_SHORT_ARGUMENT('p') port = strtol(argv[++i], NULL, 0);
+	HANDLE_SHORT_ARGUMENT('p') port = (uint16_t)strtol(argv[++i], NULL, 0);
 	HANDLE_SHORT_ARGUMENT('d') debug_mode++;
 #if HAVE_LIBREADLINE
 	HANDLE_SHORT_ARGUMENT('f') {

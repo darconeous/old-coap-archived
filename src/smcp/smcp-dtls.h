@@ -36,7 +36,7 @@ typedef void* smcp_dtls_session_t;
 
 //smcp_dtls_session_t smcp_dtls_new_session(void);
 
-extern smcp_status_t smcp_inbound_set_dtls_session(smcp_t self, smcp_dtls_session_t session);
-extern smcp_status_t smcp_dtls_session_send(smcp_dtls_session_t session, const uint8_t* data, coap_size_t data_len);
+SMCP_API_EXTERN smcp_status_t smcp_inbound_set_dtls_session(smcp_t self, smcp_dtls_session_t session);
+SMCP_API_EXTERN smcp_status_t smcp_dtls_session_send(smcp_dtls_session_t session, const uint8_t* data, coap_size_t data_len);
 
 #endif

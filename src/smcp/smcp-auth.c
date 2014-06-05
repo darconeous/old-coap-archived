@@ -163,11 +163,11 @@ smcp_auth_user_set(smcp_auth_user_t auth_user,const char* username,const char* p
 	strncpy(auth_user->username,username,sizeof(auth_user->username)-1);
 
 	fasthash_start(0);
-	fasthash_feed((const uint8_t*)auth_user->username, strlen(auth_user->username));
+	fasthash_feed((const uint8_t*)auth_user->username, (uint8_t)strlen(auth_user->username));
 	fasthash_feed_byte(':');
-	fasthash_feed((const uint8_t*)realm, strlen(realm));
+	fasthash_feed((const uint8_t*)realm, (uint8_t)strlen(realm));
 	fasthash_feed_byte(':');
-	fasthash_feed((const uint8_t*)password, strlen(password));
+	fasthash_feed((const uint8_t*)password, (uint8_t)strlen(password));
 	auth_user->ha1 = fasthash_finish();
 
 	// Get the compiler to shut up while this code is in development.

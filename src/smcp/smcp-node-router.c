@@ -375,11 +375,12 @@ smcp_node_find_next_with_path(
 				break;
 		}
 
-		// Warning: This could be dangerous!
-		// We should evaluate the liklihood of blowing
-		// the stack here. SEC-TODO: Investigate potential oveflow!
 		{
 #if HAVE_C99_VLA
+			// Warning: This could be dangerous!
+			// We should evaluate the liklihood of blowing
+			// the stack here.
+			// SEC-TODO: Investigate potential for stack oveflow!
 			char unescaped_name[namelen+1];
 #else
 			char *unescaped_name = malloc(namelen+1);

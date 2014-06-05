@@ -79,9 +79,9 @@ again:
 		case 15:
 			// End of option marker...?
 			// TODO: Fail harder if len doesn't equal 15 as well!
-			if(key)*key = COAP_OPTION_INVALID;
-			if(value)*value = NULL;
-			if(lenP)*lenP = 0;
+			if (key) *key = COAP_OPTION_INVALID;
+			if (value) *value = NULL;
+			if (lenP) *lenP = 0;
 			return NULL;
 			break;
 	}
@@ -96,7 +96,7 @@ again:
 			break;
 
 		case 14:
-			len = 269+buffer[1]+(buffer[0]<<8);
+			len = 269+buffer[1]+(coap_size_t)(buffer[0]<<8);
 			buffer += 2;
 			break;
 
@@ -135,10 +135,10 @@ coap_encode_option(
 		value_offset += 2;
 	} else if(option_delta>=13) {
 		buffer[0] = (13<<4);
-		buffer[1] = option_delta - 13;
+		buffer[1] = (uint8_t)option_delta - 13;
 		value_offset += 1;
 	} else {
-		*buffer = (option_delta<<4);
+		*buffer = (uint8_t)(option_delta<<4);
 	}
 
 	check(len <= (COAP_MAX_OPTION_VALUE_SIZE));
@@ -153,7 +153,7 @@ coap_encode_option(
 		value_offset+=2;
 	} else if(len>=13) {
 		buffer[0] |= 13;
-		buffer[value_offset] = len - 13;
+		buffer[value_offset] = (uint8_t)len - 13;
 		value_offset += 1;
 	} else {
 		buffer[0] |= (len & 15);
@@ -235,7 +235,7 @@ coap_size_t coap_insert_option(
 		coap_encode_option(iter, key, iter_key, next_value, next_len);
 	} else {
 		// Trivial case: Just append.
-		size_diff = coap_encode_option(end_of_options, prev_key, key, value, len) - end_of_options;
+		size_diff = (coap_size_t)(coap_encode_option(end_of_options, prev_key, key, value, len) - end_of_options);
 	}
 
 bail:
@@ -516,7 +516,7 @@ coap_content_type_from_cstr(const char* x) {
 		x += sizeof("image/x-coap-") - 1;
 
 	if(isdigit(x[0]))
-		return atoi(x);
+		return (coap_content_type_t)atoi(x);
 
 	// Standard-defined.
 	if(strhasprefix_const(x, "text/plain"))

@@ -200,7 +200,7 @@ smcp_handle_list(
 #endif
 	}
 
-	ret = smcp_outbound_set_content_len(strlen(replyContent));
+	ret = smcp_outbound_set_content_len((coap_size_t)strlen(replyContent));
 	require_noerr(ret,bail);
 
 	ret = smcp_outbound_send();

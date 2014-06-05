@@ -192,19 +192,20 @@ bool
 smcp_inbound_origin_is_local() {
 	const smcp_sockaddr_t* const saddr = smcp_inbound_get_srcaddr();
 
-	if(!saddr)
+	if (NULL == saddr) {
 		return false;
+	}
 
-	// TODO: Are these checks adequate?
-
-	if(saddr->smcp_port!=htonl(smcp_get_port(smcp_get_current_instance())))
+	if (htonl(smcp_get_port(smcp_get_current_instance())) != saddr->smcp_port) {
 		return false;
+	}
 
 	return SMCP_IS_ADDR_LOOPBACK(&saddr->smcp_addr);
 }
 
 char*
-smcp_inbound_get_path(char* where,uint8_t flags) {
+smcp_inbound_get_path(char* where, uint8_t flags)
+{
 	smcp_t const self = smcp_get_current_instance();
 
 	coap_option_key_t		last_option_key = self->inbound.last_option_key;
@@ -425,7 +426,7 @@ smcp_inbound_finish_packet() {
 		while((key = smcp_inbound_next_option(&value,&value_len)) != COAP_OPTION_INVALID) {
 			switch(key) {
 			case COAP_OPTION_CONTENT_TYPE:
-				self->inbound.content_type = coap_decode_uint32(value,(uint8_t)value_len);
+				self->inbound.content_type = (coap_content_type_t)coap_decode_uint32(value,(uint8_t)value_len);
 				break;
 
 			case COAP_OPTION_OBSERVE:
@@ -462,7 +463,7 @@ smcp_inbound_finish_packet() {
 	// Now that we are at the end of the options, we know
 	// where the content starts.
 	self->inbound.content_ptr = (char*)self->inbound.this_option;
-	self->inbound.content_len = self->inbound.packet_len-((uint8_t*)self->inbound.content_ptr-(uint8_t*)packet);
+	self->inbound.content_len = (self->inbound.packet_len-(coap_size_t)((uint8_t*)self->inbound.content_ptr-(uint8_t*)packet));
 
 	// Move past start-of-content marker.
 	if(self->inbound.content_len) {
@@ -497,7 +498,7 @@ smcp_inbound_finish_packet() {
 	if(!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {
 		smcp_outbound_reset();
 		if(COAP_CODE_IS_REQUEST(packet->code)) {
-			int result_code = smcp_convert_status_to_result_code(ret);
+			coap_code_t result_code = smcp_convert_status_to_result_code(ret);
 			if(self->inbound.is_dupe)
 				ret = 0;
 			if(ret == SMCP_STATUS_OK) {

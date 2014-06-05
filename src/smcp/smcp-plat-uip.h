@@ -46,6 +46,6 @@ typedef struct {
 	uint16_t smcp_port;
 } smcp_sockaddr_t;
 
-extern struct uip_udp_conn* smcp_get_udp_conn(smcp_t self);
+SMCP_API_EXTERN struct uip_udp_conn* smcp_get_udp_conn(smcp_t self);
 
 #endif

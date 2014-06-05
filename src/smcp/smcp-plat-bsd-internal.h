@@ -83,6 +83,6 @@
 #error Unsupported value for SMCP_BSD_SOCKETS_NET_FAMILY
 #endif // SMCP_BSD_SOCKETS_NET_FAMILY
 
-extern smcp_status_t smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* sockaddr);
+SMCP_INTERNAL_EXTERN smcp_status_t smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* sockaddr);
 
 #endif

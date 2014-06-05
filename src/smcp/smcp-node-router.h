@@ -75,62 +75,62 @@ struct smcp_node_s {
 	void*						context;
 };
 
-extern bt_compare_result_t smcp_node_compare(smcp_node_t lhs, smcp_node_t rhs);
+SMCP_API_EXTERN bt_compare_result_t smcp_node_compare(smcp_node_t lhs, smcp_node_t rhs);
 
 #if SMCP_EMBEDDED
 #define smcp_node_get_root(x)		((smcp_node_t)smcp_get_current_instance())
 #else
-extern smcp_node_t smcp_node_get_root(smcp_node_t node);
+SMCP_API_EXTERN smcp_node_t smcp_node_get_root(smcp_node_t node);
 #endif
 
-extern smcp_status_t smcp_node_router_handler(void* context);
-extern smcp_status_t smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** context);
+SMCP_API_EXTERN smcp_status_t smcp_node_router_handler(void* context);
+SMCP_API_EXTERN smcp_status_t smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** context);
 
-extern smcp_node_t smcp_node_alloc();
+SMCP_API_EXTERN smcp_node_t smcp_node_alloc();
 
-extern smcp_node_t smcp_node_init(
+SMCP_API_EXTERN smcp_node_t smcp_node_init(
 	smcp_node_t self,
 	smcp_node_t parent,
 	const char* name		//!< [IN] Unescaped.
 );
 
-extern void smcp_node_delete(smcp_node_t node);
+SMCP_API_EXTERN void smcp_node_delete(smcp_node_t node);
 
 
-extern smcp_status_t smcp_node_get_path(
+SMCP_API_EXTERN smcp_status_t smcp_node_get_path(
 	smcp_node_t node,
 	char* path,			//!< [OUT] Pointer to where the path will be written.
 	coap_size_t max_path_len
 );
 
-extern smcp_node_t smcp_node_find(
+SMCP_API_EXTERN smcp_node_t smcp_node_find(
 	smcp_node_t node,
 	const char* name,		//!< [IN] Unescaped.
 	int name_len
 );
 
-extern smcp_node_t smcp_node_find_with_path(
+SMCP_API_EXTERN smcp_node_t smcp_node_find_with_path(
 	smcp_node_t node,
 	const char* path		//!< [IN] Fully escaped path.
 );
 
-extern int smcp_node_find_closest_with_path(
+SMCP_API_EXTERN int smcp_node_find_closest_with_path(
 	smcp_node_t node,
 	const char* path,		//!< [IN] Fully escaped path.
 	smcp_node_t* closest
 );
 
-extern int smcp_node_find_next_with_path(
+SMCP_API_EXTERN int smcp_node_find_next_with_path(
 	smcp_node_t node,
 	const char* path,		//!< [IN] Fully escaped path.
 	smcp_node_t* next
 );
 
-extern smcp_status_t smcp_default_request_handler(
+SMCP_API_EXTERN smcp_status_t smcp_default_request_handler(
 	smcp_node_t		node
 );
 
-extern smcp_status_t smcp_handle_list(smcp_node_t node);
+SMCP_API_EXTERN smcp_status_t smcp_handle_list(smcp_node_t node);
 
 /*!	@} */
 /*!	@} */

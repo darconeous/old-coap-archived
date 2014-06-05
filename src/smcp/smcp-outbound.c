@@ -63,6 +63,22 @@ extern void *uip_sappdata;
 #include <string.h>
 #include <ctype.h>
 
+static uint8_t
+smcp_calc_uint32_option_size(uint32_t big_endian_value)
+{
+	if (((uint8_t*)(&big_endian_value))[0] != 0) {
+		return 4;
+	} else if (((uint8_t*)(&big_endian_value))[1] != 0) {
+		return 3;
+	} else if (((uint8_t*)(&big_endian_value))[2] != 0) {
+		return 2;
+	} else if (((uint8_t*)(&big_endian_value))[3] != 0) {
+		return 1;
+	}
+
+	return 0;
+}
+
 #pragma mark -
 #pragma mark Constrained sending API
 
@@ -246,7 +262,7 @@ smcp_outbound_add_option_(
 	smcp_t const self = smcp_get_current_instance();
 
 	if(len == SMCP_CSTR_LEN)
-		len = strlen(value);
+		len = (coap_size_t)strlen(value);
 
 	if(	smcp_outbound_get_space_remaining() < len + 8 ) {
 		// We ran out of room!
@@ -292,6 +308,7 @@ smcp_outbound_add_options_up_to_key_(
 	smcp_status_t ret;
 	smcp_t const self = smcp_get_current_instance();
 
+	(void)self;
 	ret = SMCP_STATUS_OK;
 
 #if SMCP_CONF_TRANS_ENABLE_BLOCK2
@@ -301,10 +318,10 @@ smcp_outbound_add_options_up_to_key_(
 		&& key>COAP_OPTION_BLOCK2
 	) {
 		uint32_t block2 = htonl(self->current_transaction->next_block2);
-		uint8_t size = 3; // SEC-TODO: calculate this properly
+		uint8_t size = smcp_calc_uint32_option_size(block2);
 		ret = smcp_outbound_add_option_(
 			COAP_OPTION_BLOCK2,
-			(char*)&block2+sizeof(block2)-size,
+			(char*)&block2+4-size,
 			size
 		);
 	}
@@ -370,15 +387,12 @@ bail:
 
 smcp_status_t
 smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value) {
-	if(value>>24)
-		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+0, 4);
-	else if(value>>16)
-		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+1, 3);
-	else if(value>>8)
-		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+2, 2);
-	else if(value)
-		return value = htonl(value),smcp_outbound_add_option(key, ((char*)&value)+3, 1);
-	return smcp_outbound_add_option(key, NULL, 0);
+	uint8_t size;
+
+	value = htonl(value);
+	size = smcp_calc_uint32_option_size(value);
+
+	return smcp_outbound_add_option(key, ((char*)&value)+(4-size), size);
 }
 
 smcp_status_t
@@ -409,8 +423,9 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
 
 	// Check to see if this host is a group we know about.
-	if(strcasecmp(addr_str, COAP_MULTICAST_STR_ALLDEVICES)==0)
+	if (strcasecmp(addr_str, COAP_MULTICAST_STR_ALLDEVICES) == 0) {
 		addr_str = SMCP_COAP_MULTICAST_ALLDEVICES_ADDR;
+	}
 
 	ret = smcp_internal_lookup_hostname(addr_str, &saddr);
 	require_noerr(ret,bail);
@@ -420,7 +435,7 @@ smcp_outbound_set_destaddr_from_host_and_port(const char* addr_str,uint16_t topo
 	ret = smcp_outbound_set_destaddr(&saddr);
 	require_noerr(ret, bail);
 
-	if(SMCP_IS_ADDR_MULTICAST(&saddr.smcp_addr)) {
+	if (SMCP_IS_ADDR_MULTICAST(&saddr.smcp_addr)) {
 		smcp_t const self = smcp_get_current_instance();
 		check(self->outbound.packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
 		if(self->outbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
@@ -436,15 +451,13 @@ smcp_status_t
 smcp_outbound_set_uri(
 	const char* uri, char flags
 ) {
-	smcp_status_t ret;
+	smcp_status_t ret = SMCP_STATUS_OK;
 	smcp_t const self = smcp_get_current_instance();
 	SMCP_NON_RECURSIVE struct url_components_s components;
 	SMCP_NON_RECURSIVE uint16_t toport;
 	SMCP_NON_RECURSIVE char* uri_copy;
 
-	ret = SMCP_STATUS_OK;
-
-	memset((void*)&components,0,sizeof(components));
+	memset((void*)&components, 0, sizeof(components));
 	toport = COAP_DEFAULT_PORT;
 	uri_copy = NULL;
 
@@ -454,11 +467,28 @@ smcp_outbound_set_uri(
 #if HAVE_ALLOCA
 		uri_copy = alloca(strlen(uri) + 1);
 		strcpy(uri_copy, uri);
+#elif SMCP_AVOID_MALLOC
+		// Well, we can't use the stack and we can't
+		// use malloc. Let's use what room we have left
+		// in the packet buffer, since this is temporary anyway...
+		// It helps a bunch that we know the user hasn't written
+		// any content yet (because that would be an API violation)
+		if (smcp_outbound_get_space_remaining() > strlen(uri) + 8) {
+			uri_copy = self->outbound.content_ptr + self->outbound.content_len;
+
+			// The options section may be expanding as we parse this, so
+			// we should move ahead by a few bytes. We are helped out
+			// by the fact that we will be writing the options in the
+			// same order they appear in the URL.
+			uri_copy += 8;
+
+			strcpy(uri_copy, uri);
+		}
 #else
 		uri_copy = strdup(uri);
 #endif
 
-		require_action(uri_copy!=NULL,bail,ret = SMCP_STATUS_MALLOC_FAILURE);
+		require_action(uri_copy != NULL, bail, ret = SMCP_STATUS_MALLOC_FAILURE);
 
 		// Parse the URI.
 		require_action_string(
@@ -478,7 +508,7 @@ smcp_outbound_set_uri(
 			toport = smcp_get_port(smcp_get_current_instance());
 			flags |= SMCP_MSG_SKIP_AUTHORITY;
 		} else if(components.port) {
-			toport = atoi(components.port);
+			toport = (uint16_t)atoi(components.port);
 		}
 
 		DEBUG_PRINTF(
@@ -508,7 +538,7 @@ smcp_outbound_set_uri(
 			);
 			require_action(uri!=self->proxy_url,bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
 
-			ret = smcp_outbound_add_option(COAP_OPTION_PROXY_URI, uri, strlen(uri));
+			ret = smcp_outbound_add_option(COAP_OPTION_PROXY_URI, uri, SMCP_CSTR_LEN);
 			require_noerr(ret, bail);
 			ret = smcp_outbound_set_uri(self->proxy_url,flags);
 			goto bail;
@@ -517,7 +547,7 @@ smcp_outbound_set_uri(
 
 	if(!(flags&SMCP_MSG_SKIP_AUTHORITY)) {
 		if(components.host && !string_contains_colons(components.host)) {
-			ret = smcp_outbound_add_option(COAP_OPTION_URI_HOST, components.host, strlen(components.host));
+			ret = smcp_outbound_add_option(COAP_OPTION_URI_HOST, components.host, SMCP_CSTR_LEN);
 			require_noerr(ret, bail);
 		}
 		if(components.port) {
@@ -560,9 +590,11 @@ smcp_outbound_set_uri(
 		SMCP_NON_RECURSIVE char* key;
 
 		while(url_form_next_value(&components.query,&key,NULL)) {
-			coap_size_t len = strlen(key);
-			if(len)
+			coap_size_t len = (coap_size_t)strlen(key);
+
+			if (len) {
 				ret = smcp_outbound_add_option(COAP_OPTION_URI_QUERY, key, len);
+			}
 			require_noerr(ret,bail);
 		}
 	}
@@ -571,7 +603,7 @@ bail:
 	if(ret)
 		DEBUG_PRINTF("URI Parse failed for URI: \"%s\"",uri);
 
-#if !HAVE_ALLOCA
+#if !HAVE_ALLOCA && !SMCP_AVOID_MALLOC
 	free(uri_copy);
 #endif
 
@@ -582,7 +614,7 @@ coap_size_t
 smcp_outbound_get_space_remaining(void)
 {
 	smcp_t const self = smcp_get_current_instance();
-	coap_size_t len = (self->outbound.content_ptr-(char*)self->outbound.packet)
+	coap_size_t len = (coap_size_t)(self->outbound.content_ptr-(char*)self->outbound.packet)
 		+ self->outbound.content_len;
 	if (self->outbound.max_packet_len > len)
 		return self->outbound.max_packet_len - len;
@@ -590,14 +622,16 @@ smcp_outbound_get_space_remaining(void)
 }
 
 smcp_status_t
-smcp_outbound_append_content(const char* value,coap_size_t len) {
+smcp_outbound_append_content(const char* value, coap_size_t len)
+{
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	smcp_t const self = smcp_get_current_instance();
 	coap_size_t max_len = smcp_outbound_get_space_remaining();
 	char* dest;
 
-	if(len == SMCP_CSTR_LEN)
-		len = strlen(value);
+	if (SMCP_CSTR_LEN == len) {
+		len = (coap_size_t)strlen(value);
+	}
 
 	require_action(max_len>len, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
@@ -724,7 +758,7 @@ smcp_outbound_send() {
 
 #if DEBUG
 	{
-		coap_size_t header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
+		coap_size_t header_len = (coap_size_t)(smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 
 		// Remove the start-of-payload marker if we have no payload.
 		if(!smcp_get_current_instance()->outbound.content_len)

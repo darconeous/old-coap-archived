@@ -36,6 +36,9 @@
 
 #include "assert-macros.h"
 #include "smcp.h"
+
+#if SMCP_CONF_NODE_ROUTER
+
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
 #include "smcp-internal.h"
@@ -368,3 +371,4 @@ smcp_curl_proxy_node_process(smcp_curl_proxy_node_t self) {
 	return SMCP_STATUS_OK;
 }
 
+#endif // SMCP_CONF_NODE_ROUTER

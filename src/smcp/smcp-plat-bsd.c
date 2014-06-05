@@ -68,7 +68,9 @@ smcp_t
 smcp_init(
 	smcp_t self, uint16_t port
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
+#if SMCP_EMBEDDED
+	smcp_t self = smcp_get_current_instance();
+#endif
 
 	require(self != NULL, bail);
 
@@ -216,7 +218,7 @@ smcp_outbound_send_hook() {
 	smcp_t const self = smcp_get_current_instance();
 	coap_size_t header_len;
 
-	header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
+	header_len = (coap_size_t)(smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 
 	// Remove the start-of-payload marker if we have no payload.
 	if(!smcp_get_current_instance()->outbound.content_len)
@@ -332,7 +334,6 @@ smcp_wait(
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
-	int tmp;
 	struct pollfd pollee = { self->fd, POLLIN | POLLHUP, 0 };
 
 	if(cms >= 0)
@@ -342,7 +343,7 @@ smcp_wait(
 
 	errno = 0;
 
-	tmp = poll(&pollee, 1, cms);
+	poll(&pollee, 1, cms);
 
 	// Ensure that poll did not fail with an error.
 	require_action_string(errno == 0,
@@ -398,7 +399,7 @@ smcp_process(
 
 		packet[packet_len] = 0;
 
-		ret = smcp_inbound_start_packet(self, msg.msg_iov[0].iov_base, packet_len);
+		ret = smcp_inbound_start_packet(self, msg.msg_iov[0].iov_base, (coap_size_t)packet_len);
 		require(ret==SMCP_STATUS_OK,bail);
 
 		// Set the source address
