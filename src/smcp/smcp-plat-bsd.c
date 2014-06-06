@@ -68,8 +68,6 @@ smcp_t
 smcp_init(
 	smcp_t self, uint16_t port
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
 	require(self != NULL, bail);
 
 	if(port == 0)
@@ -186,8 +184,6 @@ bail:
 
 void
 smcp_release_plat(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
 	if(self->fd>=0)
 		close(self->fd);
 	if(self->mcfd>=0)
@@ -196,13 +192,11 @@ smcp_release_plat(smcp_t self) {
 
 int
 smcp_get_fd(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	return self->fd;
 }
 
 uint16_t
 smcp_get_port(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_sockaddr_t saddr;
 	socklen_t socklen = sizeof(saddr);
 	getsockname(self->fd, (struct sockaddr*)&saddr, &socklen);
@@ -211,18 +205,17 @@ smcp_get_port(smcp_t self) {
 
 
 smcp_status_t
-smcp_outbound_send_hook() {
+smcp_outbound_send_hook(smcp_t self) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	smcp_t const self = smcp_get_current_instance();
 	coap_size_t header_len;
 
-	header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
+	header_len = (smcp_outbound_get_content_ptr(self, NULL)-(char*)self->outbound.packet);
 
 	// Remove the start-of-payload marker if we have no payload.
-	if(!smcp_get_current_instance()->outbound.content_len)
+	if(!self->outbound.content_len)
 		header_len--;
 
-	require_string(smcp_get_current_instance()->outbound.saddr.___smcp_family!=0,bail,"Destaddr not set");
+	require_string(self->outbound.saddr.___smcp_family!=0,bail,"Destaddr not set");
 
 #if VERBOSE_DEBUG
 	{
@@ -244,7 +237,7 @@ smcp_outbound_send_hook() {
 			SMCP_DEBUG_OUT_FILE,
 			prefix,
 			self->outbound.packet,
-			header_len+smcp_get_current_instance()->outbound.content_len
+			header_len+self->outbound.content_len
 		);
 	}
 #endif
@@ -330,7 +323,6 @@ smcp_status_t
 smcp_wait(
 	smcp_t self, cms_t cms
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
 	int tmp;
 	struct pollfd pollee = { self->fd, POLLIN | POLLHUP, 0 };
@@ -359,7 +351,6 @@ smcp_status_t
 smcp_process(
 	smcp_t self
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
 
 	int tmp;
@@ -402,7 +393,7 @@ smcp_process(
 		require(ret==SMCP_STATUS_OK,bail);
 
 		// Set the source address
-		ret = smcp_inbound_set_srcaddr((smcp_sockaddr_t*)msg.msg_name);
+		ret = smcp_inbound_set_srcaddr(self, (smcp_sockaddr_t*)msg.msg_name);
 		require(ret==SMCP_STATUS_OK,bail);
 
 		for (
@@ -424,27 +415,25 @@ smcp_process(
 			packet_saddr.smcp_addr = pi->ipi_addr;
 #endif
 			packet_saddr.smcp_port = htons(smcp_get_port(self));
-			ret = smcp_inbound_set_destaddr(&packet_saddr);
+			ret = smcp_inbound_set_destaddr(self, &packet_saddr);
 			require(ret==SMCP_STATUS_OK,bail);
 
 			self->inbound.pktinfo = *pi;
 		}
 
-		ret = smcp_inbound_finish_packet();
+		ret = smcp_inbound_finish_packet(self);
 		require(ret==SMCP_STATUS_OK,bail);
 	}
 
-	smcp_set_current_instance(self);
 	smcp_handle_timers(self);
 
 bail:
-	smcp_set_current_instance(NULL);
 	self->is_responding = false;
 	return ret;
 }
 
 smcp_status_t
-smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
+smcp_internal_lookup_hostname(smcp_t self, const char* hostname, smcp_sockaddr_t* saddr)
 {
 	smcp_status_t ret;
 	struct addrinfo hint = {
@@ -520,7 +509,6 @@ smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
 	}
 
 	if(SMCP_IS_ADDR_MULTICAST(&saddr->smcp_addr)) {
-		smcp_t const self = smcp_get_current_instance();
 		check(self->outbound.packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
 		if(self->outbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
 			self->outbound.packet->tt = COAP_TRANS_TYPE_NONCONFIRMABLE;

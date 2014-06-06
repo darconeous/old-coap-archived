@@ -57,19 +57,7 @@
 #pragma mark -
 
 #if SMCP_EMBEDDED
-struct smcp_s smcp_global_instance;
-#else
-static smcp_t smcp_current_instance;
-void
-smcp_set_current_instance(smcp_t x)
-{
-	smcp_current_instance = (x);
-}
-smcp_t
-smcp_get_current_instance()
-{
-	return smcp_current_instance;
-}
+struct smcp_s smcp_instance; // TODO: add extern access
 #endif
 
 #if !SMCP_EMBEDDED
@@ -105,8 +93,6 @@ bail:
 void
 smcp_release(smcp_t self) {
 	void smcp_release_plat(smcp_t self);
-
-	SMCP_EMBEDDED_SELF_HOOK;
 	require(self, bail);
 
 	// Delete all pending transactions
@@ -134,7 +120,6 @@ bail:
 
 void
 smcp_set_proxy_url(smcp_t self,const char* url) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	assert(self);
 	free((void*)self->proxy_url);
 	if(url)
@@ -147,7 +132,6 @@ smcp_set_proxy_url(smcp_t self,const char* url) {
 void
 smcp_set_default_request_handler(smcp_t self, smcp_request_handler_func request_handler, void* context)
 {
-	SMCP_EMBEDDED_SELF_HOOK;
 	assert(self);
 	self->request_handler = request_handler;
 	self->request_handler_context = context;
@@ -161,9 +145,7 @@ smcp_status_t
 smcp_vhost_add(smcp_t self,const char* name, smcp_request_handler_func func, void* context) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	struct smcp_vhost_s *vhost;
-	SMCP_EMBEDDED_SELF_HOOK;
-
-	DEBUG_PRINTF("Adding VHost \"%s\": handler:%p context:%p",name,func,context);
+ 	DEBUG_PRINTF("Adding VHost \"%s\": handler:%p context:%p",name,func,context);
 
 	require_action(name && (name[0]!=0),bail,ret = SMCP_STATUS_INVALID_ARGUMENT);
 	require_action(self->vhost_count<SMCP_MAX_VHOSTS,bail,ret = SMCP_STATUS_FAILURE);
@@ -179,17 +161,16 @@ bail:
 }
 
 smcp_status_t
-smcp_vhost_route(smcp_request_handler_func* func, void** context) {
-	smcp_t const self = smcp_get_current_instance();
+smcp_vhost_route(smcp_t self, smcp_request_handler_func* func, void** context) {
 	coap_option_key_t key;
 
 	if(self->vhost_count) {
 		const uint8_t* value;
 		coap_size_t value_len = 0;
 
-		smcp_inbound_reset_next_option();
+		smcp_inbound_reset_next_option(self);
 
-		while((key = smcp_inbound_next_option(&value,&value_len))!=COAP_OPTION_INVALID) {
+		while((key = smcp_inbound_next_option(self, &value, &value_len)) != COAP_OPTION_INVALID) {
 			if(key >= COAP_OPTION_URI_HOST)
 				break;
 		}
@@ -218,9 +199,9 @@ smcp_vhost_route(smcp_request_handler_func* func, void** context) {
 #pragma mark Asynchronous Response Support
 
 smcp_status_t
-smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x) {
+smcp_outbound_begin_async_response(smcp_t self, coap_code_t code, struct smcp_async_response_s* x) {
 	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
+
 	self->inbound.packet = &x->request.header;
 	self->inbound.packet_len = x->request_len;
 	self->inbound.content_ptr = (char*)x->request.header.token + x->request.header.token_len;
@@ -234,16 +215,16 @@ smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_
 	self->is_processing_message = true;
 	self->did_respond = false;
 
-	smcp_outbound_begin_response(code);
+	smcp_outbound_begin_response(self, code);
 
 	self->outbound.packet->msg_id = self->current_transaction->msg_id;
 
 	self->outbound.packet->tt = x->request.header.tt;
 
-	ret = smcp_outbound_set_token(x->request.header.token, x->request.header.token_len);
+	ret = smcp_outbound_set_token(self, x->request.header.token, x->request.header.token_len);
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_set_destaddr(&x->remote_saddr);
+	ret = smcp_outbound_set_destaddr(self, &x->remote_saddr);
 
 	require_noerr(ret, bail);
 
@@ -253,21 +234,20 @@ bail:
 }
 
 smcp_status_t
-smcp_start_async_response(struct smcp_async_response_s* x, int flags) {
+smcp_start_async_response(smcp_t self, struct smcp_async_response_s* x, int flags) {
 	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
 
 	require_action_string(x!=NULL,bail,ret=SMCP_STATUS_INVALID_ARGUMENT,"NULL async_response arg");
 
 	require_action_string(
-		smcp_inbound_get_packet_length()-smcp_inbound_get_content_len()<=sizeof(x->request),
+		smcp_inbound_get_packet_length(self)-smcp_inbound_get_content_len(self)<=sizeof(x->request),
 		bail,
-		(smcp_outbound_quick_response(COAP_RESULT_413_REQUEST_ENTITY_TOO_LARGE,NULL),ret=SMCP_STATUS_FAILURE),
+		(smcp_outbound_quick_response(self, COAP_RESULT_413_REQUEST_ENTITY_TOO_LARGE,NULL),ret=SMCP_STATUS_FAILURE),
 		"Request too big for async response"
 	);
 
-	x->request_len = smcp_inbound_get_packet_length()-smcp_inbound_get_content_len();
-	memcpy(x->request.bytes,smcp_inbound_get_packet(),x->request_len);
+	x->request_len = smcp_inbound_get_packet_length(self)-smcp_inbound_get_content_len(self);
+	memcpy(x->request.bytes,smcp_inbound_get_packet(self),x->request_len);
 
 	assert(coap_verify_packet((const char*)x->request.bytes, x->request_len));
 
@@ -286,10 +266,10 @@ smcp_start_async_response(struct smcp_async_response_s* x, int flags) {
 		// come in the future.
 		require_action(!self->inbound.is_fake,bail,ret = SMCP_STATUS_NOT_IMPLEMENTED);
 
-		ret = smcp_outbound_begin_response(COAP_CODE_EMPTY);
+		ret = smcp_outbound_begin_response(self, COAP_CODE_EMPTY);
 		require_noerr(ret, bail);
 
-		ret = smcp_outbound_send();
+		ret = smcp_outbound_send(self);
 		require_noerr(ret, bail);
 	}
 
@@ -311,9 +291,8 @@ smcp_finish_async_response(struct smcp_async_response_s* x) {
 }
 
 bool
-smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
+smcp_inbound_is_related_to_async_response(smcp_t self, struct smcp_async_response_s* x)
 {
-	smcp_t const self = smcp_get_current_instance();
 	return 0 == memcmp(&x->remote_saddr,&self->inbound.saddr,sizeof(x->remote_saddr));
 }
 
@@ -322,9 +301,7 @@ smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
 
 coap_msg_id_t
 smcp_get_next_msg_id(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
-	if(!self->last_msg_id)
+ 	if(!self->last_msg_id)
 		self->last_msg_id = SMCP_FUNC_RANDOM_UINT32();
 
 #if DEBUG

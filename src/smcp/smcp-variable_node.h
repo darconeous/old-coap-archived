@@ -69,6 +69,7 @@ struct smcp_variable_node_s {
 };
 
 extern smcp_status_t smcp_variable_node_request_handler(
+	smcp_t self,
 	smcp_variable_node_t		node
 );
 

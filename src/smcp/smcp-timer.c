@@ -137,25 +137,24 @@ smcp_timer_compare_func(
 
 smcp_timer_t
 smcp_timer_init(
-	smcp_timer_t			self,
+	smcp_timer_t			timer,
 	smcp_timer_callback_t	callback,
 	smcp_timer_callback_t	cancel,
 	void*					context
 ) {
-	if(self) {
-		memset(self, 0, sizeof(*self));
-		self->context = context;
-		self->callback = callback;
-		self->cancel = cancel;
+	if(timer) {
+		memset(timer, 0, sizeof(*timer));
+		timer->context = context;
+		timer->callback = callback;
+		timer->cancel = cancel;
 	}
-	return self;
+	return timer;
 }
 
 bool
 smcp_timer_is_scheduled(
 	smcp_t self, smcp_timer_t timer
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	return timer->ll.next || timer->ll.prev || (self->timers == timer);
 }
 
@@ -166,7 +165,6 @@ smcp_schedule_timer(
 	cms_t			cms
 ) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	SMCP_EMBEDDED_SELF_HOOK;
 
 	assert(self!=NULL);
 	assert(timer!=NULL);
@@ -211,7 +209,6 @@ smcp_invalidate_timer(
 	smcp_t	self,
 	smcp_timer_t	timer
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
 #if SMCP_DEBUG_TIMERS
 	size_t previousTimerCount = ll_count(self->timers);
 	// Sanity check. If we don't have at least one timer
@@ -255,7 +252,6 @@ smcp_dump_all_timers(smcp_t self) {
 cms_t
 smcp_get_timeout(smcp_t self) {
 	cms_t ret = SMCP_MAX_TIMEOUT;
-	SMCP_EMBEDDED_SELF_HOOK;
 
 	if(self->timers)
 		ret = MIN(ret, convert_timeval_to_cms(&self->timers->fire_date));
@@ -273,7 +269,6 @@ smcp_get_timeout(smcp_t self) {
 
 void
 smcp_handle_timers(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	if(	self->timers
 		&& (convert_timeval_to_cms(&self->timers->fire_date) <= 0)
 	) {

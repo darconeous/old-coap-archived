@@ -61,6 +61,7 @@
 
 smcp_status_t
 smcp_handle_list(
+	smcp_t self,
 	smcp_node_t		node
 ) {
 	smcp_status_t ret = 0;
@@ -72,10 +73,10 @@ smcp_handle_list(
 	// we know that it isn't being handled explicitly, so we just
 	// show the root listing as a reasonable default.
 	if(!node->parent) {
-		if(smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH,".well-known")) {
-			smcp_inbound_next_option(NULL, NULL);
-			if(smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH,"core")) {
-				smcp_inbound_next_option(NULL, NULL);
+		if(smcp_inbound_option_strequal_const(self, COAP_OPTION_URI_PATH,".well-known")) {
+			smcp_inbound_next_option(self, NULL, NULL);
+			if(smcp_inbound_option_strequal_const(self, COAP_OPTION_URI_PATH,"core")) {
+				smcp_inbound_next_option(self, NULL, NULL);
 				prefix = "";
 			} else {
 				ret = SMCP_STATUS_NOT_ALLOWED;
@@ -84,9 +85,9 @@ smcp_handle_list(
 		}
 	}
 
-	if(smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH,"")) {
+	if(smcp_inbound_option_strequal_const(self, COAP_OPTION_URI_PATH,"")) {
 		// Handle trailing '/'.
-		smcp_inbound_next_option(NULL, NULL);
+		smcp_inbound_next_option(self, NULL, NULL);
 		if(prefix[0]) prefix = NULL;
 	}
 
@@ -95,7 +96,7 @@ smcp_handle_list(
 		coap_option_key_t key;
 		const uint8_t* value;
 		coap_size_t value_len;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+		while((key=smcp_inbound_next_option(self, &value, &value_len))!=COAP_OPTION_INVALID) {
 			require_action(key!=COAP_OPTION_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key == COAP_OPTION_URI_QUERY) {
 				// Skip URI query components for now.
@@ -138,13 +139,13 @@ smcp_handle_list(
 	else
 		node = NULL;
 
-	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+	ret = smcp_outbound_begin_response(self, COAP_RESULT_205_CONTENT);
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+	ret = smcp_outbound_add_option_uint(self, COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 	require_noerr(ret, bail);
 
-	replyContent = smcp_outbound_get_content_ptr(&content_break_threshold);
+	replyContent = smcp_outbound_get_content_ptr(self, &content_break_threshold);
 	require(NULL != replyContent, bail);
 
 	replyContent[0] = 0;
@@ -200,10 +201,10 @@ smcp_handle_list(
 #endif
 	}
 
-	ret = smcp_outbound_set_content_len(strlen(replyContent));
+	ret = smcp_outbound_set_content_len(self, strlen(replyContent));
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_send();
+	ret = smcp_outbound_send(self);
 
 bail:
 	return ret;

@@ -57,14 +57,6 @@
 
 __BEGIN_DECLS
 
-#if SMCP_EMBEDDED
-// Embedded platforms only support one instance.
-#define smcp_set_current_instance(x)
-#else
-extern void smcp_set_current_instance(smcp_t x);
-#endif
-
-
 #ifndef SMCP_HOOK_TIMER_NEEDS_REFRESH
 #define SMCP_HOOK_TIMER_NEEDS_REFRESH(x)	do { } while (0)
 #endif
@@ -202,15 +194,11 @@ struct smcp_s {
 	const char* proxy_url;
 };
 
-
 extern smcp_status_t smcp_handle_request();
-
 extern smcp_status_t smcp_handle_response();
-
-extern smcp_status_t smcp_outbound_set_var_content_int(int v);
-extern smcp_status_t smcp_outbound_set_var_content_unsigned_int(unsigned int v);
-extern smcp_status_t smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v);
-
+extern smcp_status_t smcp_outbound_set_var_content_int(smcp_t self, int v);
+extern smcp_status_t smcp_outbound_set_var_content_unsigned_int(smcp_t self, unsigned int v);
+extern smcp_status_t smcp_outbound_set_var_content_unsigned_long_int(smcp_t self, unsigned long int v);
 
 __END_DECLS
 

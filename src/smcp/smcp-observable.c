@@ -66,13 +66,7 @@ static void
 free_observer(struct smcp_observer_s *observer) {
 	smcp_observable_t const context = observer->observable;
 	int8_t i = observer - observer_table;
-#if SMCP_EMBEDDED
-	smcp_t const interface = smcp_get_current_instance();
-#else
-	if(!observer->observable)
-		goto bail;
-	smcp_t const interface = observer->observable->interface;
-#endif
+	smcp_t const interface = context->interface;
 
 	smcp_transaction_end(interface, &observer->transaction);
 
@@ -99,9 +93,9 @@ bail:
 }
 
 smcp_status_t
-smcp_observable_update(smcp_observable_t context, uint8_t key) {
+smcp_observable_update(smcp_t self, smcp_observable_t context, uint8_t key) {
 	smcp_status_t ret = SMCP_STATUS_OK;
-	smcp_t const interface = smcp_get_current_instance();
+	smcp_t interface = self;
 	int8_t i;
 
 #if !SMCP_EMBEDDED
@@ -115,7 +109,7 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 	for(i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
 		if(observer_table[i].key != key)
 			continue;
-		if(smcp_inbound_is_related_to_async_response(&observer_table[i].async_response))
+		if(smcp_inbound_is_related_to_async_response(self, &observer_table[i].async_response))
 			break;
 	}
 
@@ -135,9 +129,9 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 			observer_table[i].observable = context;
 		}
 
-		smcp_start_async_response(&observer_table[i].async_response,SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK);
+		smcp_start_async_response(self, &observer_table[i].async_response,SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK);
 
-		ret = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE,observer_table[i].seq);
+		ret = smcp_outbound_add_option_uint(self, COAP_OPTION_OBSERVE,observer_table[i].seq);
 	} else if(i != -1) {
 		free_observer(&observer_table[i]);
 	}
@@ -172,15 +166,14 @@ event_response_handler(int statuscode, struct smcp_observer_s* observer)
 }
 
 static smcp_status_t
-retry_sending_event(struct smcp_observer_s* observer)
+retry_sending_event(smcp_t self, struct smcp_observer_s* observer)
 {
 	smcp_status_t status;
-	smcp_t const self = smcp_get_current_instance();
 
-	status = smcp_outbound_begin_async_response(COAP_RESULT_205_CONTENT,&observer->async_response);
+	status = smcp_outbound_begin_async_response(self, COAP_RESULT_205_CONTENT,&observer->async_response);
 	require_noerr(status,bail);
 
-	status = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE,observer->seq);
+	status = smcp_outbound_add_option_uint(self, COAP_OPTION_OBSERVE,observer->seq);
 	require_noerr(status,bail);
 
 	self->outbound.packet->tt = SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)?COAP_TRANS_TYPE_CONFIRMABLE:COAP_TRANS_TYPE_NONCONFIRMABLE;
@@ -204,8 +197,8 @@ retry_sending_event(struct smcp_observer_s* observer)
 	require(!status||status==SMCP_STATUS_NOT_FOUND||status==SMCP_STATUS_NOT_ALLOWED,bail);
 
 	if(status) {
-		smcp_outbound_set_content_len(0);
-		smcp_outbound_send();
+		smcp_outbound_set_content_len(self, 0);
+		smcp_outbound_send(self);
 	}
 
 bail:
@@ -219,14 +212,10 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	int8_t i;
-#if SMCP_EMBEDDED
-	smcp_t const interface = smcp_get_current_instance();
-#else
 	smcp_t const interface = context->interface;
 
 	if(!interface)
 		goto bail;
-#endif
 
 	if(!context->first_observer)
 		goto bail;
