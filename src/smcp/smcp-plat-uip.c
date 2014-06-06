@@ -72,8 +72,6 @@ smcp_t
 smcp_init(
 	smcp_t self, uint16_t port
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
 	require(self != NULL, bail);
 
 	if(port == 0)
@@ -105,8 +103,6 @@ bail:
 
 void
 smcp_release_plat(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
 	if(self->udp_conn)
 		uip_udp_remove(self->udp_conn);
 }
@@ -114,28 +110,25 @@ smcp_release_plat(smcp_t self) {
 
 struct uip_udp_conn*
 smcp_get_udp_conn(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	return self->udp_conn;
 }
 
 uint16_t
 smcp_get_port(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	return ntohs(self->udp_conn->lport);
 }
 
 smcp_status_t
-smcp_outbound_send_hook(void) {
+smcp_outbound_send_hook(smcp_t self) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	smcp_t const self = smcp_get_current_instance();
 	coap_size_t header_len;
 
-	assert(uip_udp_conn == smcp_get_current_instance()->udp_conn);
+	assert(uip_udp_conn == self->udp_conn);
 
 	header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 
 	// Remove the start-of-payload marker if we have no payload.
-	if(!smcp_get_current_instance()->outbound.content_len)
+	if(!self->outbound.content_len)
 		header_len--;
 
 #if VERBOSE_DEBUG
@@ -152,12 +145,12 @@ smcp_outbound_send_hook(void) {
 			SMCP_DEBUG_OUT_FILE,
 			prefix,
 			self->outbound.packet,
-			header_len+smcp_get_current_instance()->outbound.content_len
+			header_len + self->outbound.content_len
 		);
 	}
 #endif
 
-	uip_slen = header_len +	smcp_get_current_instance()->outbound.content_len;
+	uip_slen = header_len +	self->outbound.content_len;
 
 	require_action(uip_slen<SMCP_MAX_PACKET_LENGTH, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
@@ -181,7 +174,7 @@ smcp_outbound_send_hook(void) {
 
 		// Change the remote IP address temporarily.
 		uip_ipaddr_copy(&uip_udp_conn->ripaddr, &self->outbound.saddr.smcp_addr);
-		smcp_get_current_instance()->udp_conn->rport = self->outbound.saddr.smcp_port;
+		self->udp_conn->rport = self->outbound.saddr.smcp_port;
 
 		uip_process(UIP_UDP_SEND_CONN);
 
@@ -204,8 +197,8 @@ smcp_outbound_send_hook(void) {
 		uip_slen = 0;
 
 		// Make our remote address unspecified again.
-		memset(&smcp_get_current_instance()->udp_conn->ripaddr, 0, sizeof(uip_ipaddr_t));
-		smcp_get_current_instance()->udp_conn->rport = 0;
+		memset(&self->udp_conn->ripaddr, 0, sizeof(uip_ipaddr_t));
+		self->udp_conn->rport = 0;
 	}
 
 	ret = SMCP_STATUS_OK;
@@ -230,7 +223,6 @@ smcp_status_t
 smcp_wait(
 	smcp_t self, cms_t cms
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
 
 	// This doesn't really make sense with UIP.
@@ -241,8 +233,6 @@ bail:
 
 smcp_status_t
 smcp_process(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
 	if (!uip_udpconnection()) {
 		goto bail;
 	}
@@ -274,12 +264,10 @@ smcp_process(smcp_t self) {
 		}
 		smcp_inbound_finish_packet();
 	} else if(uip_poll()) {
-		smcp_set_current_instance(self);
 		smcp_handle_timers(self);
 	}
 
 bail:
-	smcp_set_current_instance(NULL);
 	self->is_responding = false;
 
 	return 0;

@@ -38,20 +38,6 @@
 #include "ll.h"
 #endif
 
-#if SMCP_EMBEDDED
-// On embedded systems, we know we will always only have
-// a single smcp instance, so we can save a considerable
-// amount of stack spaces by simply removing the first argument
-// from many functions. In order to make things as maintainable
-// as possible, these macros do all of the work for us.
-#define smcp_transaction_find_via_msg_id(self,...)		smcp_transaction_find_via_msg_id(__VA_ARGS__)
-#define smcp_transaction_find_via_token(self,...)		smcp_transaction_find_via_token(__VA_ARGS__)
-#define smcp_transaction_begin(self,...)		smcp_transaction_begin(__VA_ARGS__)
-#define smcp_transaction_end(self,...)		smcp_transaction_end(__VA_ARGS__)
-#define smcp_transaction_new_msg_id(self,...)		smcp_transaction_new_msg_id(__VA_ARGS__)
-#define smcp_transaction_tickle(self,...)		smcp_transaction_tickle(__VA_ARGS__)
-#endif
-
 #define SMCP_TRANSACTION_MAX_ATTEMPTS	15
 
 __BEGIN_DECLS
@@ -66,6 +52,7 @@ __BEGIN_DECLS
 /*! Returning pretty much anything here except SMCP_STATUS_OK will
 **	cause the handler to invalidate. */
 typedef smcp_status_t (*smcp_response_handler_func)(
+	smcp_t self,
 	int statuscode,
 	void* context
 );

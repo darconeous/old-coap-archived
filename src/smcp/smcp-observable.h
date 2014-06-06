@@ -80,6 +80,7 @@ typedef struct smcp_observable_s *smcp_observable_t;
 **	to smcp_observable_trigger() to trigger updates.
 */
 extern smcp_status_t smcp_observable_update(
+	smcp_t self,
 	smcp_observable_t context, //!< [IN] Pointer to observable context
 	uint8_t key		//!< [IN] Key for this resource (must be same as used in trigger)
 );

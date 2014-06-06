@@ -80,52 +80,50 @@
 #pragma mark Simple inbound getters
 
 const struct coap_header_s*
-smcp_inbound_get_packet() {
-	return smcp_get_current_instance()->inbound.packet;
+smcp_inbound_get_packet(smcp_t self) {
+	return self->inbound.packet;
 }
 
-coap_size_t smcp_inbound_get_packet_length() {
-	return smcp_get_current_instance()->inbound.packet_len;
+coap_size_t smcp_inbound_get_packet_length(smcp_t self) {
+	return self->inbound.packet_len;
 }
 
 const char*
-smcp_inbound_get_content_ptr() {
-	return smcp_get_current_instance()->inbound.content_ptr;
+smcp_inbound_get_content_ptr(smcp_t self) {
+	return self->inbound.content_ptr;
 }
 
 coap_size_t
-smcp_inbound_get_content_len() {
-	return smcp_get_current_instance()->inbound.content_len;
+smcp_inbound_get_content_len(smcp_t self) {
+	return self->inbound.content_len;
 }
 
 coap_content_type_t
-smcp_inbound_get_content_type() {
-	return smcp_get_current_instance()->inbound.content_type;
+smcp_inbound_get_content_type(smcp_t self) {
+	return self->inbound.content_type;
 }
 
 bool
-smcp_inbound_is_dupe() {
-	return smcp_get_current_instance()->inbound.is_dupe;
+smcp_inbound_is_dupe(smcp_t self) {
+	return self->inbound.is_dupe;
 }
 
 bool
-smcp_inbound_is_fake() {
-	return smcp_get_current_instance()->inbound.is_fake;
+smcp_inbound_is_fake(smcp_t self) {
+	return self->inbound.is_fake;
 }
 
 #pragma mark -
 #pragma mark Option Parsing
 
 void
-smcp_inbound_reset_next_option() {
-	smcp_t const self = smcp_get_current_instance();
+smcp_inbound_reset_next_option(smcp_t self) {
 	self->inbound.last_option_key = 0;
 	self->inbound.this_option = self->inbound.packet->token + self->inbound.packet->token_len;
 }
 
 coap_option_key_t
-smcp_inbound_next_option(const uint8_t** value, coap_size_t* len) {
-	smcp_t const self = smcp_get_current_instance();
+smcp_inbound_next_option(smcp_t self, const uint8_t** value, coap_size_t* len) {
 	if(self->inbound.this_option < ((uint8_t*)self->inbound.packet+self->inbound.packet_len)
 		&& self->inbound.this_option[0]!=0xFF
 	) {
@@ -142,8 +140,7 @@ smcp_inbound_next_option(const uint8_t** value, coap_size_t* len) {
 }
 
 coap_option_key_t
-smcp_inbound_peek_option(const uint8_t** value, coap_size_t* len) {
-	smcp_t const self = smcp_get_current_instance();
+smcp_inbound_peek_option(smcp_t self, const uint8_t** value, coap_size_t* len) {
 	coap_option_key_t ret = self->inbound.last_option_key;
 	if(self->inbound.last_option_key!=COAP_OPTION_INVALID
 		&& self->inbound.this_option<((uint8_t*)self->inbound.packet+self->inbound.packet_len)
@@ -163,8 +160,7 @@ smcp_inbound_peek_option(const uint8_t** value, coap_size_t* len) {
 }
 
 bool
-smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
-	smcp_t const self = smcp_get_current_instance();
+smcp_inbound_option_strequal(smcp_t self, coap_option_key_t key,const char* cstr) {
 	coap_option_key_t curr_key = self->inbound.last_option_key;
 	const char* value;
 	coap_size_t value_len;
@@ -189,24 +185,22 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 #pragma mark Nontrivial inbound getters
 
 bool
-smcp_inbound_origin_is_local() {
-	const smcp_sockaddr_t* const saddr = smcp_inbound_get_srcaddr();
+smcp_inbound_origin_is_local(smcp_t self) {
+	const smcp_sockaddr_t* const saddr = smcp_inbound_get_srcaddr(self);
 
 	if(!saddr)
 		return false;
 
 	// TODO: Are these checks adequate?
 
-	if(saddr->smcp_port!=htonl(smcp_get_port(smcp_get_current_instance())))
+	if(saddr->smcp_port!=htonl(smcp_get_port(self)))
 		return false;
 
 	return SMCP_IS_ADDR_LOOPBACK(&saddr->smcp_addr);
 }
 
 char*
-smcp_inbound_get_path(char* where,uint8_t flags) {
-	smcp_t const self = smcp_get_current_instance();
-
+smcp_inbound_get_path(smcp_t self, char* where, uint8_t flags) {
 	coap_option_key_t		last_option_key = self->inbound.last_option_key;
 	const uint8_t*			this_option = self->inbound.this_option;
 
@@ -224,15 +218,15 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 	iter = where;
 
 	if(!(flags&SMCP_GET_PATH_REMAINING))
-		smcp_inbound_reset_next_option();
+		smcp_inbound_reset_next_option(self);
 
-	while((key = smcp_inbound_peek_option(NULL,NULL))!=COAP_OPTION_URI_PATH
-		&& key!=COAP_OPTION_INVALID
+	while((key = smcp_inbound_peek_option(self, NULL, NULL))!=COAP_OPTION_URI_PATH
+		&& key != COAP_OPTION_INVALID
 	) {
-		smcp_inbound_next_option(NULL,NULL);
+		smcp_inbound_next_option(self, NULL, NULL);
 	}
 
-	while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_PATH) {
+	while(smcp_inbound_next_option(self, (const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_PATH) {
 		char old_end = filename[filename_len];
 		if(iter!=where || (flags&SMCP_GET_PATH_LEADING_SLASH))
 			*iter++='/';
@@ -242,15 +236,15 @@ smcp_inbound_get_path(char* where,uint8_t flags) {
 	}
 
 	if(flags&SMCP_GET_PATH_INCLUDE_QUERY) {
-		smcp_inbound_reset_next_option();
-		while((key = smcp_inbound_peek_option((const uint8_t**)&filename, &filename_len))!=COAP_OPTION_URI_QUERY
+		smcp_inbound_reset_next_option(self);
+		while((key = smcp_inbound_peek_option(self, (const uint8_t**)&filename, &filename_len))!=COAP_OPTION_URI_QUERY
 			&& key!=COAP_OPTION_INVALID
 		) {
-			smcp_inbound_next_option(NULL,NULL);
+			smcp_inbound_next_option(self,NULL,NULL);
 		}
 		if(key==COAP_OPTION_URI_QUERY) {
 			*iter++='?';
-			while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_QUERY) {
+			while(smcp_inbound_next_option(self, (const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_QUERY) {
 				char old_end = filename[filename_len];
 				char* equal_sign;
 
@@ -291,7 +285,6 @@ smcp_inbound_start_packet(
 	char*			buffer,
 	coap_size_t			packet_length
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
 	struct coap_header_s* const packet = (void*)buffer; // Should not use stack space.
 
@@ -303,8 +296,6 @@ smcp_inbound_start_packet(
 		goto bail;
 	}
 #endif
-
-	smcp_set_current_instance(self);
 
 	// Reset all inbound packet state.
 	memset(&self->inbound,0,sizeof(self->inbound));
@@ -327,8 +318,7 @@ bail:
 }
 
 smcp_status_t
-smcp_inbound_set_srcaddr(const smcp_sockaddr_t* sockaddr) {
-	smcp_t const self = smcp_get_current_instance();
+smcp_inbound_set_srcaddr(smcp_t self, const smcp_sockaddr_t* sockaddr) {
 	if(!self->is_processing_message)
 		return SMCP_STATUS_FAILURE;
 	memcpy(&self->inbound.saddr, sockaddr, sizeof(self->inbound.saddr));
@@ -337,8 +327,7 @@ smcp_inbound_set_srcaddr(const smcp_sockaddr_t* sockaddr) {
 }
 
 smcp_status_t
-smcp_inbound_set_destaddr(const smcp_sockaddr_t* sockaddr) {
-	smcp_t const self = smcp_get_current_instance();
+smcp_inbound_set_destaddr(smcp_t self, const smcp_sockaddr_t* sockaddr) {
 	if(!self->is_processing_message)
 		return SMCP_STATUS_FAILURE;
 
@@ -357,13 +346,12 @@ smcp_inbound_set_destaddr(const smcp_sockaddr_t* sockaddr) {
 	return SMCP_STATUS_OK;
 }
 
-const smcp_sockaddr_t* smcp_inbound_get_srcaddr() {
-	return (const smcp_sockaddr_t*)&smcp_get_current_instance()->inbound.saddr;
+const smcp_sockaddr_t* smcp_inbound_get_srcaddr(smcp_t self) {
+	return (const smcp_sockaddr_t*)&self->inbound.saddr;
 }
 
 smcp_status_t
-smcp_inbound_finish_packet() {
-	smcp_t const self = smcp_get_current_instance();
+smcp_inbound_finish_packet(smcp_t self) {
 	smcp_status_t ret = SMCP_STATUS_OK;
 	struct coap_header_s* const packet = (void*)self->inbound.packet;
 
@@ -420,9 +408,9 @@ smcp_inbound_finish_packet() {
 		coap_option_key_t key;
 
 		// Reset option scanner for initial option scan.
-		smcp_inbound_reset_next_option();
+		smcp_inbound_reset_next_option(self);
 
-		while((key = smcp_inbound_next_option(&value,&value_len)) != COAP_OPTION_INVALID) {
+		while((key = smcp_inbound_next_option(self,&value,&value_len)) != COAP_OPTION_INVALID) {
 			switch(key) {
 			case COAP_OPTION_CONTENT_TYPE:
 				self->inbound.content_type = coap_decode_uint32(value,(uint8_t)value_len);
@@ -471,7 +459,7 @@ smcp_inbound_finish_packet() {
 	}
 
 	// Be nice and reset the option scanner for the handler.
-	smcp_inbound_reset_next_option();
+	smcp_inbound_reset_next_option(self);
 
 	if(COAP_CODE_IS_REQUEST(packet->code)) {
 		// See code below.
@@ -495,7 +483,7 @@ smcp_inbound_finish_packet() {
 
 	// Check to make sure we have responded by now. If not, we need to.
 	if(!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {
-		smcp_outbound_reset();
+		smcp_outbound_reset(self);
 		if(COAP_CODE_IS_REQUEST(packet->code)) {
 			int result_code = smcp_convert_status_to_result_code(ret);
 			if(self->inbound.is_dupe)
@@ -508,21 +496,21 @@ smcp_inbound_finish_packet() {
 				else if(packet->code==COAP_METHOD_DELETE)
 					result_code = COAP_RESULT_202_DELETED;
 			}
-			smcp_outbound_begin_response(result_code);
+			smcp_outbound_begin_response(self, result_code);
 
 			// For an ISE, let's give a little more information.
 			if(result_code==COAP_RESULT_500_INTERNAL_SERVER_ERROR) {
-				smcp_outbound_set_var_content_int(ret);
+				smcp_outbound_set_var_content_int(self, ret);
 			}
 		} else {
-			smcp_outbound_begin_response(0);
+			smcp_outbound_begin_response(self, 0);
 			if(ret && !self->inbound.is_dupe)
 				self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
 			else
 				self->outbound.packet->tt = COAP_TRANS_TYPE_ACK;
-			smcp_outbound_set_token(NULL, 0);
+			smcp_outbound_set_token(self, NULL, 0);
 		}
-		ret = smcp_outbound_send();
+		ret = smcp_outbound_send(self);
 	}
 
 bail:
@@ -531,7 +519,6 @@ bail:
 	self->inbound.packet = NULL;
 	self->inbound.content_ptr = NULL;
 	self->inbound.content_len = 0;
-	smcp_set_current_instance(NULL);
 	return ret;
 }
 
@@ -539,9 +526,8 @@ bail:
 #pragma mark Request Handler
 
 smcp_status_t
-smcp_handle_request() {
+smcp_handle_request(smcp_t self) {
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
-	smcp_t const self = smcp_get_current_instance();
 	smcp_request_handler_func request_handler = self->request_handler;
 	void* context = self->request_handler_context;
 
@@ -558,7 +544,7 @@ smcp_handle_request() {
 	// TODO: Add proxy-server handler.
 
 	// Authenticate the request.
-	ret = smcp_auth_inbound_init();
+	ret = smcp_auth_inbound_init(self);
 	require_noerr(ret,bail);
 
 #if SMCP_CONF_ENABLE_VHOSTS
@@ -571,9 +557,9 @@ smcp_handle_request() {
 
 	require_action(NULL!=request_handler,bail,ret=SMCP_STATUS_NOT_IMPLEMENTED);
 
-	smcp_inbound_reset_next_option();
+	smcp_inbound_reset_next_option(self);
 
-	return (*request_handler)(context);
+	return (*request_handler)(self, context);
 
 bail:
 	return ret;

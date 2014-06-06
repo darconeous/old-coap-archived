@@ -74,7 +74,7 @@ smcp_curl_request_create(void) {
 }
 
 static smcp_status_t
-resend_async_response(void* context) {
+resend_async_response(smcp_t self, void* context) {
 	smcp_status_t ret = 0;
 	smcp_curl_request_t request = (smcp_curl_request_t)context;
 	struct smcp_async_response_s* async_response = &request->async_response;
@@ -86,11 +86,11 @@ resend_async_response(void* context) {
 
 	{
 		long code;
-		curl_easy_getinfo(request->curl, CURLINFO_RESPONSE_CODE,&code);
+		curl_easy_getinfo(request->curl, CURLINFO_RESPONSE_CODE, &code);
 		code = http_to_coap_code(code);
 
-		ret = smcp_outbound_begin_async_response(code,async_response);
-		require_noerr(ret,bail);
+		ret = smcp_outbound_begin_async_response(self, code, async_response);
+		require_noerr(ret, bail);
 	}
 
 	{
@@ -98,17 +98,17 @@ resend_async_response(void* context) {
 		curl_easy_getinfo(request->curl, CURLINFO_CONTENT_TYPE,&content_type_string);
 		coap_content_type_t content_type = coap_content_type_from_cstr(content_type_string);
 		if(content_type!=COAP_CONTENT_TYPE_UNKNOWN) {
-			ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, content_type);
+			ret = smcp_outbound_add_option_uint(self, COAP_OPTION_CONTENT_TYPE, content_type);
 			check_noerr(ret);
 		} else {
 			DEBUG_PRINTF("Unrecognised content-type: %s",content_type_string);
 		}
 	}
 
-	ret = smcp_outbound_append_content(request->content, len);
+	ret = smcp_outbound_append_content(self, request->content, len);
 	require_noerr(ret,bail);
 
-	ret = smcp_outbound_send();
+	ret = smcp_outbound_send(self);
 	require_noerr(ret,bail);
 
 	if(ret) {
@@ -182,20 +182,21 @@ bail:
 
 smcp_status_t
 smcp_curl_proxy_request_handler(
+	smcp_t self,
 	smcp_curl_proxy_node_t		node
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	smcp_curl_request_t request = NULL;
 	struct curl_slist *headerlist=NULL;
-	smcp_method_t method = smcp_inbound_get_code();
+	smcp_method_t method = smcp_inbound_get_code(self);
 
 	//require_action(method<=COAP_METHOD_DELETE,bail,ret = SMCP_STATUS_NOT_ALLOWED);
 
 	//require_action(COAP_OPTION_URI_PATH!=smcp_inbound_peek_option(NULL,NULL),bail,ret=SMCP_STATUS_NOT_FOUND);
 
-	node->interface = smcp_get_current_instance();
+	node->interface = self;
 
-	smcp_inbound_reset_next_option();
+	smcp_inbound_reset_next_option(self);
 
 	request = smcp_curl_request_create();
 	request->proxy_node = node;
@@ -216,7 +217,7 @@ smcp_curl_proxy_request_handler(
 		coap_option_key_t key;
 		const uint8_t* value;
 		coap_size_t value_len;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+		while((key=smcp_inbound_next_option(self, &value, &value_len))!=COAP_OPTION_INVALID) {
 			if(key==COAP_OPTION_PROXY_URI) {
 				char uri[value_len+1];
 				memcpy(uri,value,value_len);
@@ -253,11 +254,11 @@ smcp_curl_proxy_request_handler(
 
 	require_noerr(ret,bail);
 
-	if(smcp_inbound_get_content_len()) {
-		coap_size_t len = smcp_inbound_get_content_len();
+	if(smcp_inbound_get_content_len(self)) {
+		coap_size_t len = smcp_inbound_get_content_len(self);
 		request->output_content = calloc(1,len+1);
 		request->output_content_len = len;
-		memcpy(request->output_content,smcp_inbound_get_content_ptr(),len);
+		memcpy(request->output_content,smcp_inbound_get_content_ptr(self),len);
 		curl_easy_setopt(request->curl, CURLOPT_READFUNCTION, ReadMemoryCallback);
 		curl_easy_setopt(request->curl, CURLOPT_READDATA, (void *)request);
 	}
@@ -267,7 +268,7 @@ smcp_curl_proxy_request_handler(
 	curl_easy_setopt(request->curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 	curl_easy_setopt(request->curl, CURLOPT_WRITEDATA, (void *)request);
 
-	ret = smcp_start_async_response(&request->async_response,0);
+	ret = smcp_start_async_response(self,&request->async_response,0);
 	require_noerr(ret,bail);
 
 	if(node->curl_multi_handle)

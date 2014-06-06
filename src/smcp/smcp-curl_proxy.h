@@ -70,7 +70,7 @@ extern smcp_status_t smcp_curl_proxy_node_update_fdset(
 
 extern smcp_status_t smcp_curl_proxy_node_process(smcp_curl_proxy_node_t node);
 
-extern smcp_status_t smcp_curl_proxy_request_handler(smcp_curl_proxy_node_t node);
+extern smcp_status_t smcp_curl_proxy_request_handler(smcp_t self, smcp_curl_proxy_node_t node);
 
 /*!	@} */
 /*!	@} */

@@ -69,8 +69,6 @@ smcp_transaction_compare_msg_id(
 
 smcp_transaction_t
 smcp_transaction_find_via_msg_id(smcp_t self, coap_msg_id_t msg_id) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
 #if SMCP_TRANSACTIONS_USE_BTREE
 	return (smcp_transaction_t)bt_find(
 		(void*)&self->transactions,
@@ -89,8 +87,6 @@ smcp_transaction_find_via_msg_id(smcp_t self, coap_msg_id_t msg_id) {
 
 smcp_transaction_t
 smcp_transaction_find_via_token(smcp_t self, coap_msg_id_t token) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
 	// Ouch. Linear search.
 #if SMCP_TRANSACTIONS_USE_BTREE
 	smcp_transaction_t ret = bt_first(self->transactions);
@@ -110,11 +106,6 @@ smcp_internal_delete_transaction_(
 ) {
 	DEBUG_PRINTF("smcp_internal_delete_transaction_: %p",handler);
 
-	if(!smcp_get_current_instance())
-		smcp_set_current_instance(self);
-
-	check(self==smcp_get_current_instance());
-
 #if !SMCP_TRANSACTIONS_USE_BTREE
 	ll_remove((void**)&self->transactions,(void*)handler);
 #endif
@@ -127,6 +118,7 @@ smcp_internal_delete_transaction_(
 	// Fire the callback to signal that this handler is now invalidated.
 	if(handler->callback) {
 		(*handler->callback)(
+			self,
 			SMCP_STATUS_TRANSACTION_INVALIDATED,
 			handler->context
 		);
@@ -164,7 +156,6 @@ smcp_transaction_new_msg_id(
 	smcp_transaction_t handler,
 	coap_msg_id_t msg_id
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	require(handler->active,bail);
 
 #if SMCP_TRANSACTIONS_USE_BTREE
@@ -226,7 +217,7 @@ smcp_internal_transaction_timeout_(
 			self->is_responding = false;
 			self->did_respond = false;
 
-			status = handler->resendCallback(context);
+			status = handler->resendCallback(self, context);
 
 			if(status == SMCP_STATUS_OK) {
 				cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount));
@@ -304,7 +295,7 @@ smcp_internal_transaction_timeout_(
 			handler->callback = NULL;
 
 		if(callback)
-			(*callback)(status,context);
+			(*callback)(self,status,context);
 
 		if(handler != self->current_transaction)
 			return;
@@ -359,8 +350,6 @@ smcp_transaction_tickle(
 	smcp_t self,
 	smcp_transaction_t handler
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
 	smcp_invalidate_timer(self, &handler->timer);
 
 	smcp_schedule_timer(self,&handler->timer,0);
@@ -374,8 +363,6 @@ smcp_transaction_begin(
 	smcp_transaction_t handler,
 	cms_t expiration
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
 	require(handler!=NULL, bail);
 
 	DEBUG_PRINTF("smcp_transaction_begin: %p",handler);
@@ -462,7 +449,6 @@ smcp_transaction_end(
 	smcp_t self,
 	smcp_transaction_t transaction
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
 	DEBUG_PRINTF("smcp_transaction_end: %p",transaction);
 
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
@@ -495,11 +481,10 @@ smcp_transaction_end(
 }
 
 smcp_status_t
-smcp_handle_response() {
+smcp_handle_response(smcp_t self) {
 	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
 	smcp_transaction_t handler = NULL;
-	coap_msg_id_t msg_id = smcp_inbound_get_msg_id();
+	coap_msg_id_t msg_id = smcp_inbound_get_msg_id(self);
 
 #if VERBOSE_DEBUG
 	DEBUG_PRINTF(
@@ -528,7 +513,7 @@ smcp_handle_response() {
 			if (self->inbound.packet->tt < COAP_TRANS_TYPE_ACK) {
 				handler = smcp_transaction_find_via_token(self,token);
 			}
-		} else if (smcp_inbound_get_packet()->code != COAP_CODE_EMPTY
+		} else if (smcp_inbound_get_packet(self)->code != COAP_CODE_EMPTY
 			&& token != handler->token
 		) {
 			handler = NULL;
@@ -554,9 +539,9 @@ smcp_handle_response() {
 		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {
 			DEBUG_PRINTF("Inbound: Unknown Response, sending reset. . .");
 
-			smcp_outbound_begin_response(0);
+			smcp_outbound_begin_response(self, 0);
 			self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
-			ret = smcp_outbound_send();
+			ret = smcp_outbound_send(self);
 		} else {
 			DEBUG_PRINTF("Inbound: Unknown ack or reset, ignoring. . .");
 		}
@@ -574,10 +559,10 @@ smcp_handle_response() {
 		DEBUG_PRINTF("Inbound: Transaction handling response.");
 
 		// Handle any authentication headers.
-		ret = smcp_auth_inbound_init();
+		ret = smcp_auth_inbound_init(self);
 		require_noerr(ret,bail);
 
-		smcp_inbound_reset_next_option();
+		smcp_inbound_reset_next_option(self);
 
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 		if((handler->flags & SMCP_TRANSACTION_OBSERVE) && self->inbound.has_observe_option) {
@@ -596,6 +581,7 @@ smcp_handle_response() {
 			handler->last_observe = self->inbound.observe_value;
 
 			ret = (*handler->callback)(
+				self,
 				self->inbound.packet->tt==COAP_TRANS_TYPE_RESET?SMCP_STATUS_RESET:self->inbound.packet->code,
 				handler->context
 			);
@@ -650,6 +636,7 @@ smcp_handle_response() {
 				handler->callback = NULL;
 			}
 			ret = (*callback)(
+				self,
 				(self->inbound.packet->tt==COAP_TRANS_TYPE_RESET)?SMCP_STATUS_RESET:self->inbound.packet->code,
 				handler->context
 			);

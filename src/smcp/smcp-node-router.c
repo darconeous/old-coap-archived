@@ -62,30 +62,27 @@ static struct smcp_node_s smcp_node_pool[SMCP_CONF_MAX_ALLOCED_NODES];
 #pragma mark -
 
 smcp_status_t
-smcp_default_request_handler(
-   smcp_node_t node
-) {
-   if(smcp_inbound_get_code() == COAP_METHOD_GET) {
-	   return smcp_handle_list(node);
+smcp_default_request_handler(smcp_t self, smcp_node_t node) {
+   if(smcp_inbound_get_code(self) == COAP_METHOD_GET) {
+	   return smcp_handle_list(self, node);
    }
    return SMCP_STATUS_NOT_ALLOWED;
 }
 
 smcp_status_t
-smcp_node_router_handler(void* context) {
+smcp_node_router_handler(smcp_t self, void* context) {
 	smcp_request_handler_func handler = NULL;
-	smcp_node_route(context, &handler, &context);
+	smcp_node_route(self, context, &handler, &context);
 	if(!handler)
 		return SMCP_STATUS_NOT_IMPLEMENTED;
-	return (*handler)(context);
+	return (*handler)(self, context);
 }
 
 smcp_status_t
-smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** context) {
+smcp_node_route(smcp_t self, smcp_node_t node, smcp_request_handler_func* func, void** context) {
 	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
 
-	smcp_inbound_reset_next_option();
+	smcp_inbound_reset_next_option(self);
 
 	{
 		// TODO: Rewrite this to be more efficient.
@@ -94,7 +91,7 @@ smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** contex
 		coap_option_key_t key;
 		const uint8_t* value;
 		coap_size_t value_len;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+		while((key=smcp_inbound_next_option(self, &value, &value_len))!=COAP_OPTION_INVALID) {
 			if(key>COAP_OPTION_URI_PATH) {
 				self->inbound.this_option = prev_option_ptr;
 				self->inbound.last_option_key = prev_key;
