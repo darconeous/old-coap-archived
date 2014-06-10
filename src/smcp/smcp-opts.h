@@ -47,6 +47,10 @@
 #endif
 #endif
 
+#ifndef SMCP_MULTITHREAD
+#define SMCP_MULTITHREAD		!SMCP_EMBEDDED
+#endif
+
 #ifndef SMCP_USE_BSD_SOCKETS
 #define SMCP_USE_BSD_SOCKETS    !SMCP_EMBEDDED
 #endif

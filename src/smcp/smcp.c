@@ -58,6 +58,27 @@
 
 #if SMCP_EMBEDDED
 struct smcp_s smcp_global_instance;
+#elif SMCP_MULTITHREAD
+#include <pthread.h>
+static pthread_key_t smcp_current_instance_key;
+static pthread_once_t smcp_current_instance_once;
+void
+smcp_current_instance_setup(void)
+{
+	pthread_key_create(&smcp_current_instance_key, NULL);
+}
+void
+smcp_set_current_instance(smcp_t x)
+{
+	pthread_once(&smcp_current_instance_once, smcp_current_instance_setup);
+	pthread_setspecific(smcp_current_instance_key, (void*)x);
+}
+smcp_t
+smcp_get_current_instance()
+{
+	pthread_once(&smcp_current_instance_once, smcp_current_instance_setup);
+	return (smcp_t)pthread_getspecific(smcp_current_instance_key);
+}
 #else
 static smcp_t smcp_current_instance;
 void
