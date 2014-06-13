@@ -33,7 +33,7 @@
 #include "coap.h"
 
 /*****************************************************************************/
-#pragma mark - SMCP Build Parameters
+// MARK: - SMCP Build Parameters
 
 #ifndef VERBOSE_DEBUG
 #define VERBOSE_DEBUG 0
@@ -162,7 +162,7 @@
 #endif
 
 /*****************************************************************************/
-#pragma mark - Debugging
+// MARK: - Debugging
 
 #ifdef SMCP_CONF_DEBUG_INBOUND_DROP_PERCENT
 #define SMCP_DEBUG_INBOUND_DROP_PERCENT	(SMCP_CONF_DEBUG_INBOUND_DROP_PERCENT)
@@ -173,7 +173,7 @@
 #endif
 
 /*****************************************************************************/
-#pragma mark - Observation Options
+// MARK: - Observation Options
 
 #ifdef SMCP_CONF_MAX_OBSERVERS
 #define SMCP_MAX_OBSERVERS			(SMCP_CONF_MAX_OBSERVERS)
@@ -202,7 +202,7 @@
 #endif
 
 /*****************************************************************************/
-#pragma mark - Extras
+// MARK: - Extras
 
 #ifndef SMCP_CONF_NODE_ROUTER
 #define SMCP_CONF_NODE_ROUTER		!SMCP_EMBEDDED
@@ -242,7 +242,7 @@
 #endif
 
 /*****************************************************************************/
-#pragma mark - Experimental Options
+// MARK: - Experimental Options
 
 //!	@define SMCP_USE_CASCADE_COUNT
 /*!	If set, add experiental support an event cascade counter.
@@ -260,7 +260,7 @@
 #endif
 
 /*****************************************************************************/
-#pragma mark - SMCP Compiler Stuff
+// MARK: - SMCP Compiler Stuff
 
 #if SMCP_EMBEDDED
 #define SMCP_NON_RECURSIVE	static

@@ -181,8 +181,8 @@ SMCP_API_EXTERN void ___smcp_check_version(uint32_t x);
 #define SMCP_LIBRARY_VERSION_CHECK()	___smcp_check_version(___SMCP_CONFIG_ID)
 #endif
 
-#pragma mark -
-#pragma mark SMCP Instance Methods
+// MARK: -
+// MARK: SMCP Instance Methods
 
 /*!	@defgroup smcp-instance Instance Methods
 **	@{
@@ -252,8 +252,8 @@ SMCP_API_EXTERN smcp_status_t smcp_vhost_add(
 
 /*!	@} */
 
-#pragma mark -
-#pragma mark Async IO
+// MARK: -
+// MARK: Async IO
 
 /*!	@defgroup smcp-asyncio Asynchronous IO
 **	@{
@@ -274,8 +274,8 @@ SMCP_API_EXTERN cms_t smcp_get_timeout(smcp_t self);
 
 /*!	@} */
 
-#pragma mark -
-#pragma mark Inbound Packet Interface
+// MARK: -
+// MARK: Inbound Packet Interface
 
 /*!	@defgroup smcp-net Network Interface
 **	@{
@@ -322,8 +322,8 @@ SMCP_API_EXTERN smcp_status_t smcp_inbound_finish_packet(void);
 
 /*!	@} */
 
-#pragma mark -
-#pragma mark Inbound Message Parsing API
+// MARK: -
+// MARK: Inbound Message Parsing API
 
 /*!	@defgroup smcp-inbound Inbound Message Parsing API
 **	@{
@@ -392,8 +392,8 @@ SMCP_API_EXTERN char* smcp_inbound_get_path(char* where, uint8_t flags);
 
 /*!	@} */
 
-#pragma mark -
-#pragma mark Outbound Message Composing API
+// MARK: -
+// MARK: Outbound Message Composing API
 
 /*!	@defgroup smcp-outbound Outbound Message Composing API
 **	@{
@@ -511,8 +511,8 @@ SMCP_API_EXTERN smcp_status_t smcp_outbound_quick_response(coap_code_t code, con
 
 /*!	@} */
 
-#pragma mark -
-#pragma mark Asynchronous response support API
+// MARK: -
+// MARK: Asynchronous response support API
 
 /*!	@defgroup smcp_async Asynchronous response support API
 **	@{
@@ -549,8 +549,8 @@ SMCP_API_EXTERN smcp_status_t smcp_outbound_begin_async_response(coap_code_t cod
 
 /*!	@} */
 
-#pragma mark -
-#pragma mark Helper Functions
+// MARK: -
+// MARK: Helper Functions
 
 SMCP_API_EXTERN coap_msg_id_t smcp_get_next_msg_id(smcp_t self);
 

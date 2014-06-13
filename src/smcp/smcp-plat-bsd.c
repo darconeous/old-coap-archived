@@ -326,7 +326,7 @@ bail:
 	return ret;
 }
 
-#pragma mark -
+// MARK: -
 
 smcp_status_t
 smcp_wait(

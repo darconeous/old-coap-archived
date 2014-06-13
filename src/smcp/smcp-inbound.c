@@ -76,8 +76,8 @@
 #include <ctype.h>
 
 
-#pragma mark -
-#pragma mark Simple inbound getters
+// MARK: -
+// MARK: Simple inbound getters
 
 const struct coap_header_s*
 smcp_inbound_get_packet() {
@@ -113,8 +113,8 @@ smcp_inbound_is_fake() {
 	return smcp_get_current_instance()->inbound.is_fake;
 }
 
-#pragma mark -
-#pragma mark Option Parsing
+// MARK: -
+// MARK: Option Parsing
 
 void
 smcp_inbound_reset_next_option() {
@@ -185,8 +185,8 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 	return cstr[i]==0;
 }
 
-#pragma mark -
-#pragma mark Nontrivial inbound getters
+// MARK: -
+// MARK: Nontrivial inbound getters
 
 bool
 smcp_inbound_origin_is_local() {
@@ -283,8 +283,8 @@ smcp_inbound_get_path(char* where, uint8_t flags)
 	return where;
 }
 
-#pragma mark -
-#pragma mark Inbound packet processing
+// MARK: -
+// MARK: Inbound packet processing
 
 smcp_status_t
 smcp_inbound_start_packet(
@@ -536,8 +536,8 @@ bail:
 	return ret;
 }
 
-#pragma mark -
-#pragma mark Request Handler
+// MARK: -
+// MARK: Request Handler
 
 smcp_status_t
 smcp_handle_request() {

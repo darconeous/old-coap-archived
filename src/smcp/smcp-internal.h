@@ -69,8 +69,8 @@ SMCP_INTERNAL_EXTERN void smcp_set_current_instance(smcp_t x);
 #define SMCP_HOOK_TIMER_NEEDS_REFRESH(x)	do { } while (0)
 #endif
 
-#pragma mark -
-#pragma mark Class Definitions
+// MARK: -
+// MARK: Class Definitions
 
 #if SMCP_USE_BSD_SOCKETS
 #include "smcp-plat-bsd-internal.h"

@@ -355,7 +355,7 @@ void process_input_readline(char *l) {
 }
 #endif
 
-#pragma mark -
+// MARK: -
 
 #if HAVE_LIBREADLINE
 
@@ -589,7 +589,7 @@ print_version() {
 	printf(PACKAGE_TARNAME"ctl "PACKAGE_VERSION"\n");
 }
 
-#pragma mark -
+// MARK: -
 
 
 int

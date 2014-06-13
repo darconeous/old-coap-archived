@@ -79,8 +79,8 @@ smcp_calc_uint32_option_size(uint32_t big_endian_value)
 	return 0;
 }
 
-#pragma mark -
-#pragma mark Constrained sending API
+// MARK: -
+// MARK: Constrained sending API
 
 void
 smcp_outbound_drop() {
@@ -671,7 +671,7 @@ smcp_outbound_set_content_len(coap_size_t len) {
 }
 
 
-#pragma mark -
+// MARK: -
 
 #if !SMCP_AVOID_PRINTF
 smcp_status_t

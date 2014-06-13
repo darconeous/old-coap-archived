@@ -52,14 +52,14 @@
 #include "smcp-logging.h"
 #include "smcp-internal.h"
 
-#pragma mark -
-#pragma mark Globals
+// MARK: -
+// MARK: Globals
 
 #if SMCP_AVOID_MALLOC
 static struct smcp_node_s smcp_node_pool[SMCP_CONF_MAX_ALLOCED_NODES];
 #endif
 
-#pragma mark -
+// MARK: -
 
 smcp_status_t
 smcp_default_request_handler(
@@ -147,8 +147,8 @@ bail:
 	return ret;
 }
 
-#pragma mark -
-#pragma mark Node Funcs
+// MARK: -
+// MARK: Node Funcs
 
 void
 smcp_node_dealloc(smcp_node_t x) {

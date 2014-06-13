@@ -11,8 +11,8 @@
 #include <string.h>
 
 ///////////////////////////////////////////////////////////////////////////////
-#pragma mark -
-#pragma mark Fasthash
+// MARK: -
+// MARK: Fasthash
 
 static struct fasthash_state_s global_fasthash_state;
 

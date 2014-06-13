@@ -54,7 +54,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#pragma mark -
+// MARK: -
 
 #if SMCP_EMBEDDED
 struct smcp_s smcp_global_instance;
@@ -104,8 +104,8 @@ ___smcp_check_version(uint32_t x)
 }
 #endif // !SMCP_EMBEDDED
 
-#pragma mark -
-#pragma mark SMCP Implementation
+// MARK: -
+// MARK: SMCP Implementation
 
 #if !SMCP_EMBEDDED
 smcp_t
@@ -178,8 +178,8 @@ smcp_set_default_request_handler(smcp_t self, smcp_request_handler_func request_
 	self->request_handler_context = context;
 }
 
-#pragma mark -
-#pragma mark VHost Support
+// MARK: -
+// MARK: VHost Support
 
 #if SMCP_CONF_ENABLE_VHOSTS
 smcp_status_t
@@ -239,8 +239,8 @@ smcp_vhost_route(smcp_request_handler_func* func, void** context) {
 
 #endif
 
-#pragma mark -
-#pragma mark Asynchronous Response Support
+// MARK: -
+// MARK: Asynchronous Response Support
 
 smcp_status_t
 smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x) {
@@ -342,8 +342,8 @@ smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
 	return 0 == memcmp(&x->remote_saddr,&self->inbound.saddr,sizeof(x->remote_saddr));
 }
 
-#pragma mark -
-#pragma mark Other
+// MARK: -
+// MARK: Other
 
 coap_msg_id_t
 smcp_get_next_msg_id(smcp_t self) {
