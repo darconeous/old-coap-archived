@@ -4,6 +4,19 @@ Release Notes
 This file contains a reverse-chronological list of releases and their associated
 changes.
 
+## Version 0.6.4 ##
+
+Released 2014-06-13
+
+ * SMCP is now an installable dynamically-linkable library, `libsmcp`.
+ * Support for using multiple SMCP instances on different threads.
+ * Support for more recent versions of Contiki.
+ * Better networking layer abstraction.
+ * Various API Improvements.
+ * Various bugfixes.
+ * Fixed various warnings.
+ * configure.ac: Poach the version from `git describe`, if available.
+
 ## Version 0.6.3 ##
 
 Released 2013-05-22
