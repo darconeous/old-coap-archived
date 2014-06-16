@@ -242,9 +242,9 @@ bail:
 	return size_diff;
 }
 
-uint16_t coap_to_http_code(uint8_t x) { return COAP_TO_HTTP_CODE(x); }
+uint16_t coap_to_http_code(uint8_t x) { return (uint16_t)COAP_TO_HTTP_CODE(x); }
 
-uint8_t http_to_coap_code(uint16_t x) { return HTTP_TO_COAP_CODE(x); }
+uint8_t http_to_coap_code(uint16_t x) { return (uint8_t)HTTP_TO_COAP_CODE(x); }
 
 bool
 coap_option_strequal(const char* optionptr,const char* cstr) {
@@ -265,7 +265,7 @@ coap_option_strequal(const char* optionptr,const char* cstr) {
 void
 coap_decode_block(struct coap_block_info_s* block_info, uint32_t block)
 {
-	block_info->block_size = (1<<((block&0x7)+4));
+	block_info->block_size = (uint16_t)(1<<((block&0x7)+4));
 	block_info->block_offset = (block>>4) * block_info->block_size;
 	block_info->block_m = !!(block&(1<<3));
 }
@@ -631,7 +631,7 @@ http_code_to_cstr(int x) {
 	return "UNKNOWN";
 }
 
-const char* coap_code_to_cstr(int x) { return http_code_to_cstr(coap_to_http_code(x)); }
+const char* coap_code_to_cstr(int x) { return http_code_to_cstr(coap_to_http_code((uint8_t)x)); }
 
 #ifndef __SDCC
 #if SMCP_EMBEDDED && !__AVR__
@@ -768,7 +768,7 @@ coap_dump_header(
 			uint8_t i;
 			for(i = 0; i < value_len; i++)
 				v = (v << 8) + value[i];
-			fprintf(outstream, "%s",coap_content_type_to_cstr(v));
+			fprintf(outstream, "%s",coap_content_type_to_cstr((coap_content_type_t)v));
 		}
 		break;
 		case COAP_OPTION_BLOCK1:

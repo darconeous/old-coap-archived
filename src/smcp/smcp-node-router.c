@@ -194,7 +194,7 @@ smcp_node_compare(
 		return 1;
 	if(!rhs->name)
 		return -1;
-	return strcmp(lhs->name, rhs->name);
+	return (bt_compare_result_t)strcmp(lhs->name, rhs->name);
 }
 #endif
 
@@ -211,7 +211,7 @@ smcp_node_ncompare_cstr(
 	if(!rhs)
 		return -1;
 
-	ret = strncmp(lhs->name, rhs, len);
+	ret = (bt_compare_result_t)strncmp(lhs->name, rhs, len);
 
 	if(ret == 0) {
 		int lhs_len = (int)strlen(lhs->name);

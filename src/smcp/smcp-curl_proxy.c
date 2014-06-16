@@ -82,13 +82,13 @@ resend_async_response(void* context) {
 	smcp_curl_request_t request = (smcp_curl_request_t)context;
 	struct smcp_async_response_s* async_response = &request->async_response;
 
-	size_t len = request->content_len;
+	coap_size_t len = (coap_size_t)request->content_len;
 	if(len>512) {
 		len = 512;
 	}
 
 	{
-		long code;
+		uint16_t code;
 		curl_easy_getinfo(request->curl, CURLINFO_RESPONSE_CODE,&code);
 		code = http_to_coap_code(code);
 

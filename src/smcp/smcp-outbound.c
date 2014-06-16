@@ -679,7 +679,7 @@ smcp_outbound_set_content_formatted(const char* fmt, ...) {
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	va_list args;
 	char* content = smcp_outbound_get_content_ptr(NULL);
-	int len = smcp_outbound_get_space_remaining();
+	coap_size_t len = smcp_outbound_get_space_remaining();
 
 	require(content!=NULL, bail);
 
@@ -687,7 +687,7 @@ smcp_outbound_set_content_formatted(const char* fmt, ...) {
 
 	va_start(args,fmt);
 
-	len = vsnprintf(content,len,fmt,args);
+	len = (coap_size_t)vsnprintf(content,len,fmt,args);
 
 	require(len!=0,bail);
 
