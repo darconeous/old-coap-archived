@@ -146,6 +146,8 @@ fi
 AM_CONDITIONAL([HAVE_LIBREADLINE],$HAVE_LIBREADLINE)
 AC_CHECK_FUNCS([rl_set_prompt])
 
+AX_PTHREAD()
+
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([stdlib.h dlfcn.h unistd.h string.h stdio.h errno.h stdarg.h stddef.h stdint.h stdbool.h])

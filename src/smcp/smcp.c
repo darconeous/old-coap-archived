@@ -58,7 +58,7 @@
 
 #if SMCP_EMBEDDED
 struct smcp_s smcp_global_instance;
-#elif SMCP_MULTITHREAD
+#elif SMCP_MULTITHREAD && HAVE_PTHREAD
 #include <pthread.h>
 static pthread_key_t smcp_current_instance_key;
 static pthread_once_t smcp_current_instance_once;

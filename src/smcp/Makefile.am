@@ -20,7 +20,8 @@ pkginclude_HEADERS += smcp-variable_node.h
 
 EXTRA_DIST = smcp-plat-bsd-internal.h smcp-plat-uip-internal.h smcp-plat-uip.c smcp-plat-uip.h
 
-libsmcp_la_LIBADD = $(LIBOBJS) $(ALLOCA)
+libsmcp_la_LIBADD = $(LIBOBJS) $(ALLOCA) $(PTHREAD_LIBS)
+libsmcp_la_CFLAGS = $(PTHREAD_CFLAGS)
 
 if HAVE_LIBCURL
 libsmcp_la_SOURCES += smcp-curl_proxy.c
