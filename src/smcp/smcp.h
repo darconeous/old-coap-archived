@@ -31,7 +31,7 @@
 **	SMCP is a C-based CoAP stack which is suitable for embedded environments.
 **	Features include:
 **
-**	 * Supports draft-ietf-core-coap-13.
+**	 * Supports draft-ietf-core-coap-18.
 **	 * Fully asynchronous I/O.
 **	 * Supports both BSD sockets and [uIP](http://en.wikipedia.org/wiki/UIP_(micro_IP%29).
 **	 * Supports sending and receiving asynchronous CoAP responses.

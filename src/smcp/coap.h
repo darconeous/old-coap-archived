@@ -203,7 +203,7 @@ typedef enum {
 	COAP_OPTION_CONTENT_TYPE		= 12,
 	COAP_OPTION_MAX_AGE				= 14,
 	COAP_OPTION_URI_QUERY			= 15,
-	COAP_OPTION_ACCEPT				= 16,
+	COAP_OPTION_ACCEPT				= 17,
 	COAP_OPTION_LOCATION_QUERY		= 20,
 	COAP_OPTION_BLOCK2				= 23,	/* draft-ietf-core-block-10 */
 	COAP_OPTION_BLOCK1				= 27,	/* draft-ietf-core-block-10 */
