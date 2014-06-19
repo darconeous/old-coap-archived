@@ -388,9 +388,9 @@ smcp_inbound_finish_packet() {
 	if(self->inbound.was_sent_to_multicast) {
 		// If this was multicast, make sure it isn't confirmable.
 		require_action(
-			packet->tt!=COAP_TRANS_TYPE_CONFIRMABLE,
+			packet->tt != COAP_TRANS_TYPE_CONFIRMABLE,
 			bail,
-			ret=SMCP_STATUS_FAILURE
+			ret = SMCP_STATUS_FAILURE
 		);
 	}
 
@@ -398,23 +398,8 @@ smcp_inbound_finish_packet() {
 	self->cascade_count = 100;
 #endif
 
-	{	// Calculate the message-id hash (address+port+message_id)
-		struct fasthash_state_s fasthash;
-		fasthash_start(&fasthash, 0);
-		fasthash_feed(&fasthash, (void*)&self->inbound.saddr,sizeof(self->inbound.saddr));
-		fasthash_feed(&fasthash, (const uint8_t*)&packet->msg_id,sizeof(packet->msg_id));
-		self->inbound.transaction_hash = fasthash_finish_uint32(&fasthash);
-	}
-
-	// SEC-TODO: This is not a good way to determine if a packet is a duplicate!
-	{	// Check to see if this packet is a duplicate.
-		unsigned int i = SMCP_CONF_DUPE_BUFFER_SIZE;
-		while(i--) {
-			if(self->dupe[i].hash == self->inbound.transaction_hash) {
-				self->inbound.is_dupe = true;
-				break;
-			}
-		}
+	if (!self->inbound.is_fake) {
+		self->inbound.is_dupe = smcp_inbound_dupe_check();
 	}
 
 	{	// Initial scan thru all of the options.
@@ -439,7 +424,7 @@ smcp_inbound_finish_packet() {
 			case COAP_OPTION_MAX_AGE:
 				self->inbound.max_age = coap_decode_uint32(value,(uint8_t)value_len);
 				self->inbound.max_age++;
-				if(self->inbound.max_age < 5)
+				if (self->inbound.max_age < 5)
 					self->inbound.max_age = 5;
 				break;
 
@@ -485,16 +470,6 @@ smcp_inbound_finish_packet() {
 	}
 
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
-
-	if(	(ret == SMCP_STATUS_OK)
-		&& !self->inbound.is_fake
-		&& !self->inbound.is_dupe
-	) {
-		// This is not a dupe, add it to the list.
-		self->dupe[self->dupe_index].hash = self->inbound.transaction_hash;
-		self->dupe_index++;
-		self->dupe_index %= SMCP_CONF_DUPE_BUFFER_SIZE;
-	}
 
 	// Check to make sure we have responded by now. If not, we need to.
 	if(!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {

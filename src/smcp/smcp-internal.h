@@ -78,6 +78,8 @@ SMCP_INTERNAL_EXTERN void smcp_set_current_instance(smcp_t x);
 #include "smcp-plat-uip-internal.h"
 #endif
 
+#include "smcp-dupe.h"
+
 #if SMCP_CONF_ENABLE_VHOSTS
 struct smcp_vhost_s {
 	char name[64];
@@ -179,16 +181,7 @@ struct smcp_s {
 
 	} outbound;
 
-	struct {
-		uint32_t hash;
-		coap_code_t code;
-	} dupe[SMCP_CONF_DUPE_BUFFER_SIZE];
-
-#if SMCP_CONF_DUPE_BUFFER_SIZE<=256
-	uint8_t dupe_index;
-#else
-	uint16_t dupe_index;
-#endif
+	struct smcp_dupe_info_s dupe_info;
 
 #if SMCP_CONF_ENABLE_VHOSTS
 	struct smcp_vhost_s		vhost[SMCP_MAX_VHOSTS];

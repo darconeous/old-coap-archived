@@ -95,6 +95,13 @@
 		A690629616B6EA6E00A98B2C /* smcp-observable.c in Sources */ = {isa = PBXBuildFile; fileRef = A6DB61F916AF190A00D7248E /* smcp-observable.c */; };
 		A69062A216B6EA7B00A98B2C /* example-4.c in Sources */ = {isa = PBXBuildFile; fileRef = A690627D16B6E58E00A98B2C /* example-4.c */; };
 		A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A27BA2127B934F003708DF /* cmd_delete.c */; };
+		A6A4A4051953AF0C001CD98A /* smcp-dupe.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A4A4041953AF0C001CD98A /* smcp-dupe.c */; };
+		A6A4A4061953AF0C001CD98A /* smcp-dupe.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A4A4041953AF0C001CD98A /* smcp-dupe.c */; };
+		A6A4A4071953AF0C001CD98A /* smcp-dupe.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A4A4041953AF0C001CD98A /* smcp-dupe.c */; };
+		A6A4A4081953AF0C001CD98A /* smcp-dupe.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A4A4041953AF0C001CD98A /* smcp-dupe.c */; };
+		A6A4A4091953AF0C001CD98A /* smcp-dupe.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A4A4041953AF0C001CD98A /* smcp-dupe.c */; };
+		A6A4A40A1953AF0C001CD98A /* smcp-dupe.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A4A4041953AF0C001CD98A /* smcp-dupe.c */; };
+		A6A4A40B1953AF0C001CD98A /* smcp-dupe.c in Sources */ = {isa = PBXBuildFile; fileRef = A6A4A4041953AF0C001CD98A /* smcp-dupe.c */; };
 		A6C04B0018AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
 		A6C04B0118AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
 		A6C04B0218AC175700DCE0CC /* smcp-plat-uip.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */; };
@@ -289,6 +296,8 @@
 		A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-plat-bsd.h"; path = "src/smcp/smcp-plat-bsd.h"; sourceTree = "<group>"; };
 		A6A27BA1127B934F003708DF /* cmd_delete.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_delete.h; path = src/smcpctl/cmd_delete.h; sourceTree = "<group>"; };
 		A6A27BA2127B934F003708DF /* cmd_delete.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_delete.c; path = src/smcpctl/cmd_delete.c; sourceTree = "<group>"; };
+		A6A4A4031953AEF0001CD98A /* smcp-dupe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-dupe.h"; path = "src/smcp/smcp-dupe.h"; sourceTree = "<group>"; };
+		A6A4A4041953AF0C001CD98A /* smcp-dupe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-dupe.c"; path = "src/smcp/smcp-dupe.c"; sourceTree = "<group>"; };
 		A6BE9A39164CC63C00473330 /* configure.ac */ = {isa = PBXFileReference; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
 		A6BE9A3A164CC63C00473330 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A6BE9A3B164CC64800473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
@@ -420,6 +429,8 @@
 				A68E13DE1912E575008F5A0A /* smcp-plat-uip-internal.h */,
 				A64F2AFB166EB265001D9878 /* smcp-transaction.h */,
 				A64F2AF8166EB236001D9878 /* smcp-transaction.c */,
+				A6A4A4031953AEF0001CD98A /* smcp-dupe.h */,
+				A6A4A4041953AF0C001CD98A /* smcp-dupe.c */,
 				A613E80216C065FE00C5711D /* smcp-inbound.c */,
 				A6F536F2155F255000E0E324 /* smcp-outbound.c */,
 				A6DB61F816AF131800D7248E /* smcp-observable.h */,
@@ -831,6 +842,7 @@
 			files = (
 				A63EA6DA1278B13800B24867 /* cmd_get.c in Sources */,
 				A63EA6DB1278B13800B24867 /* cmd_list.c in Sources */,
+				A6A4A4051953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A63EA6DD1278B13800B24867 /* cmd_post.c in Sources */,
 				A63EA6DF1278B13800B24867 /* help.c in Sources */,
 				A63EA6E01278B13800B24867 /* main.c in Sources */,
@@ -859,6 +871,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6A4A4081953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A6181DE216B4637700655F4F /* btree.c in Sources */,
 				A6181DE316B4637700655F4F /* url-helpers.c in Sources */,
 				A6181DE416B4637700655F4F /* smcp-transaction.c in Sources */,
@@ -883,6 +896,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A6290E56167670F8008914FD /* btree.c in Sources */,
+				A6A4A4061953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A6290E57167670F8008914FD /* url-helpers.c in Sources */,
 				A6290E58167670F8008914FD /* smcp-transaction.c in Sources */,
 				A6290E59167670F8008914FD /* smcp.c in Sources */,
@@ -907,6 +921,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6A4A4091953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A690624C16B6E43B00A98B2C /* btree.c in Sources */,
 				A690624D16B6E43B00A98B2C /* url-helpers.c in Sources */,
 				A690624E16B6E43B00A98B2C /* smcp-transaction.c in Sources */,
@@ -930,6 +945,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6A4A40A1953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A690626516B6E44000A98B2C /* btree.c in Sources */,
 				A690626616B6E44000A98B2C /* url-helpers.c in Sources */,
 				A690626716B6E44000A98B2C /* smcp-transaction.c in Sources */,
@@ -953,6 +969,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6A4A40B1953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A690628B16B6EA6E00A98B2C /* btree.c in Sources */,
 				A690628C16B6EA6E00A98B2C /* url-helpers.c in Sources */,
 				A690628D16B6EA6E00A98B2C /* smcp-transaction.c in Sources */,
@@ -984,6 +1001,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A6A4A4071953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A6F3594C168A599000F72DF3 /* main-client.c in Sources */,
 				A6F3594D168A5CED00F72DF3 /* btree.c in Sources */,
 				A6F3594E168A5CED00F72DF3 /* url-helpers.c in Sources */,
