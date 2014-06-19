@@ -267,9 +267,10 @@ smcp_variable_node_request_handler(
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 				require_noerr(ret,bail);
 
-				fasthash_start(0);
-				fasthash_feed((const uint8_t*)buffer,strlen(buffer));
-				etag = fasthash_finish_uint32();
+				struct fasthash_state_s fasthash;
+				fasthash_start(&fasthash, 0);
+				fasthash_feed(&fasthash, (const uint8_t*)buffer,strlen(buffer));
+				etag = fasthash_finish_uint32(&fasthash);
 
 				smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
 

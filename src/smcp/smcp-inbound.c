@@ -398,11 +398,13 @@ smcp_inbound_finish_packet() {
 	self->cascade_count = 100;
 #endif
 
-	// Calculate the message-id hash (address+port+message_id)
-	fasthash_start(0);
-	fasthash_feed((void*)&self->inbound.saddr,sizeof(self->inbound.saddr));
-	fasthash_feed((const uint8_t*)&packet->msg_id,sizeof(packet->msg_id));
-	self->inbound.transaction_hash = fasthash_finish_uint32();
+	{	// Calculate the message-id hash (address+port+message_id)
+		struct fasthash_state_s fasthash;
+		fasthash_start(&fasthash, 0);
+		fasthash_feed(&fasthash, (void*)&self->inbound.saddr,sizeof(self->inbound.saddr));
+		fasthash_feed(&fasthash, (const uint8_t*)&packet->msg_id,sizeof(packet->msg_id));
+		self->inbound.transaction_hash = fasthash_finish_uint32(&fasthash);
+	}
 
 	// SEC-TODO: This is not a good way to determine if a packet is a duplicate!
 	{	// Check to see if this packet is a duplicate.

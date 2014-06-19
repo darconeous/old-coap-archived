@@ -161,14 +161,14 @@ smcp_auth_get_remote_user(const char* username) {
 void
 smcp_auth_user_set(smcp_auth_user_t auth_user,const char* username,const char* password,const char* realm) {
 	strncpy(auth_user->username,username,sizeof(auth_user->username)-1);
-
-	fasthash_start(0);
-	fasthash_feed((const uint8_t*)auth_user->username, (uint8_t)strlen(auth_user->username));
-	fasthash_feed_byte(':');
-	fasthash_feed((const uint8_t*)realm, (uint8_t)strlen(realm));
-	fasthash_feed_byte(':');
-	fasthash_feed((const uint8_t*)password, (uint8_t)strlen(password));
-	auth_user->ha1 = fasthash_finish();
+	struct fasthash_state_s fasthash;
+	fasthash_start(&fasthash, 0);
+	fasthash_feed(&fasthash, (const uint8_t*)auth_user->username, (uint8_t)strlen(auth_user->username));
+	fasthash_feed_byte(&fasthash, ':');
+	fasthash_feed(&fasthash, (const uint8_t*)realm, (uint8_t)strlen(realm));
+	fasthash_feed_byte(&fasthash, ':');
+	fasthash_feed(&fasthash, (const uint8_t*)password, (uint8_t)strlen(password));
+	auth_user->ha1 = fasthash_finish(&fasthash);
 
 	// Get the compiler to shut up while this code is in development.
 	(void)current_outbound_user;
