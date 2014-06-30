@@ -127,7 +127,7 @@ strsep_x(char **stringp, const char *delim)
 static inline char*
 strdup(const char* cstr) {
 	size_t len = strlen(cstr);
-	char* ret = malloc(len+1);
+	char* ret = (char*)malloc(len+1);
 	memcpy(ret,cstr,len);
 	ret[len]=0;
 	return ret;

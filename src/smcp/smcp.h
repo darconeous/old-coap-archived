@@ -62,6 +62,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -127,7 +128,7 @@ typedef int32_t cms_t;
 
 //!	Special `cms` value representing the distant future.
 /*!	Note that this value does not refer to a specific time. */
-#define CMS_DISTANT_FUTURE		(cms_t)((1<<(8*sizeof(cms_t)-1))-1)
+#define CMS_DISTANT_FUTURE		INT32_MAX
 
 /*!	@} */
 

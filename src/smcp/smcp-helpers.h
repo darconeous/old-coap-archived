@@ -81,7 +81,7 @@
 static inline char*
 strdup(const char* cstr) {
 	size_t len = strlen(cstr);
-	char* ret = malloc(len+1);
+	char* ret = (char*)malloc(len+1);
 	memcpy(ret,cstr,len);
 	ret[len]=0;
 	return ret;
@@ -96,7 +96,7 @@ strndup(const char* cstr,size_t maxlen) {
 	char* ret;
 	if(maxlen<len)
 		len = maxlen;
-	ret = malloc(len+1);
+	ret = (char*)malloc(len+1);
 	memcpy(ret,cstr,len);
 	ret[len]=0;
 	return ret;

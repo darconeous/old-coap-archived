@@ -80,7 +80,7 @@ static inline void*
 ll_last(
 	void* item
 ) {
-	ll_item_t iter = item;
+	ll_item_t iter = (ll_item_t)item;
 	if(iter)
 	while(iter->next) {
 		iter = iter->next;
@@ -101,7 +101,7 @@ ll_next(
 static inline bool
 ll_verify(void* item) {
 	int ret = 0;
-	ll_item_t item_ = item;
+	ll_item_t item_ = (ll_item_t)item;
 	if(item) {
 		while(item_->prev)
 			item_ = item_->prev;
@@ -118,8 +118,8 @@ static inline void
 ll_insert_after(
 	void* where, void* item
 ) {
-	ll_item_t const location_ = where;
-	ll_item_t const item_ = item;
+	ll_item_t const location_ = (ll_item_t)where;
+	ll_item_t const item_ = (ll_item_t)item;
 
 	LL_ASSERT(ll_verify(where));
 
@@ -135,8 +135,8 @@ static inline void
 ll_insert(
 	void* where, void* item
 ) {
-	ll_item_t const location_ = where;
-	ll_item_t const item_ = item;
+	ll_item_t const location_ = (ll_item_t)where;
+	ll_item_t const item_ = (ll_item_t)item;
 
 	LL_ASSERT(ll_verify(where));
 
@@ -167,7 +167,7 @@ inline
 ll_sorted_insert(
 	void** list, void* item, ll_compare_func_t compare_func, void* context
 ) {
-	ll_item_t location_ = *list;
+	ll_item_t location_ = (ll_item_t)*list;
 
 	LL_ASSERT(ll_verify(location_));
 
@@ -199,15 +199,15 @@ static inline void
 ll_remove(
 	void** list, void* item
 ) {
-	ll_item_t const item_ = item;
+	ll_item_t const item_ = (ll_item_t)item;
 
-	LL_ASSERT(ll_verify(*list));
+	LL_ASSERT(ll_verify((ll_item_t)*list));
 
 	if(item_->prev)
 		item_->prev->next = item_->next;
 	if(item_->next)
 		item_->next->prev = item_->prev;
-	if(*list == item_)
+	if((ll_item_t)*list == item_)
 		*list = item_->next;
 
 	LL_ASSERT(ll_verify(*list));
@@ -217,7 +217,7 @@ static inline void*
 ll_pop(
 	void** list
 ) {
-	void* item = *list;
+	void* item = (ll_item_t)*list;
 	ll_remove(list,item);
 	return item;
 }
@@ -237,7 +237,7 @@ ll_push(
 static inline int
 ll_count(void* item) {
 	int ret = 0;
-	ll_item_t item_ = item;
+	ll_item_t item_ = (ll_item_t)item;
 
 	for(; item_; item_ = item_->next)
 		ret++;
