@@ -10,7 +10,7 @@ libsmcp_la_SOURCES += smcp-plat-bsd.c
 libsmcp_la_SOURCES += btree.c url-helpers.c fasthash.c
 
 libsmcp_la_SOURCES += btree.h coap.h ll.h smcp-helpers.h smcp-internal.h smcp-logging.h url-helpers.h fasthash.h  smcp-dupe.h
-pkginclude_HEADERS = assert-macros.h smcp-timer.h smcp.h smcp-plat-bsd.h smcp-auth.h smcp-transaction.h smcp-opts.h smcp-observable.h
+pkginclude_HEADERS = assert-macros.h smcp-timer.h smcp.h smcp-plat-bsd.h smcp-auth.h smcp-transaction.h smcp-opts.h smcp-observable.h btree.h coap.h ll.h smcp-helpers.h
 
 # Extras
 libsmcp_la_SOURCES += smcp-node-router.c smcp-list.c
