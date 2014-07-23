@@ -38,11 +38,14 @@
 
 #include "smcp-opts.h"
 #include "smcp.h"
+#include "smcp-internal.h"
 #include "smcp-helpers.h"
 #include "smcp-variable_node.h"
 #include "smcp-logging.h"
 #include "fasthash.h"
 #include "smcp-node-router.h"
+
+#include "smcp-missing.h" // For strhasprefix_const()
 
 #include "url-helpers.h"
 #include <stdlib.h>

@@ -31,13 +31,13 @@
 #include <poll.h>
 
 #include <smcp/smcp.h>
+#include <smcp/smcp-missing.h>
 
 #include "cmd_list.h"
 #include "cmd_get.h"
 #include "cmd_post.h"
 #include "cmd_repeat.h"
 #include "cmd_delete.h"
-//#include "cmd_pair.h"
 
 #include "smcpctl.h"
 

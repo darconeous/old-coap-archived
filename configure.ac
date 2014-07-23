@@ -1,7 +1,7 @@
 
 AC_PREREQ(2.59)
 
-AC_INIT([smcp],m4_esyscmd([([ -d .git ] && gitver=`git describe` && printf "$gitver") || printf  "0.6.4"]))
+AC_INIT([smcp],m4_esyscmd([([ -d .git ] && gitver=`git describe --dirty` && printf "$gitver") || printf  "0.6.4"]))
 
 AC_CONFIG_AUX_DIR([m4])
 AC_CONFIG_MACRO_DIR([m4])

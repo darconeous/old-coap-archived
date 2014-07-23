@@ -5,11 +5,11 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 lib_LTLIBRARIES = libsmcp.la
 
-libsmcp_la_SOURCES = smcp.c smcp-timer.c coap.c smcp-outbound.c smcp-inbound.c smcp-observable.c smcp-auth.c smcp-transaction.c smcp-dupe.c
+libsmcp_la_SOURCES = smcp.c smcp-timer.c coap.c smcp-outbound.c smcp-inbound.c smcp-observable.c smcp-auth.c smcp-transaction.c smcp-dupe.c smcp-missing.c
 libsmcp_la_SOURCES += smcp-plat-bsd.c
-libsmcp_la_SOURCES += btree.c url-helpers.c fasthash.c
+libsmcp_la_SOURCES += btree.c url-helpers.c fasthash.c string-utils.c
 
-libsmcp_la_SOURCES += btree.h coap.h ll.h smcp-helpers.h smcp-internal.h smcp-logging.h url-helpers.h fasthash.h  smcp-dupe.h
+libsmcp_la_SOURCES += btree.h coap.h ll.h smcp-helpers.h smcp-internal.h smcp-logging.h url-helpers.h fasthash.h  smcp-dupe.h string-utils.h smcp-missing.h
 pkginclude_HEADERS = assert-macros.h smcp-timer.h smcp.h smcp-plat-bsd.h smcp-auth.h smcp-transaction.h smcp-opts.h smcp-observable.h btree.h coap.h ll.h smcp-helpers.h
 
 # Extras

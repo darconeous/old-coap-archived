@@ -54,7 +54,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "smcp-internal.h"
+#include "smcp-missing.h"
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
 #include "url-helpers.h"

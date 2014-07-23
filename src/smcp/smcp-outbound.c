@@ -55,6 +55,9 @@
 extern void *uip_sappdata;
 #endif
 
+#if HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
 
 #include <stdarg.h>
 #include <stdio.h>

@@ -15,6 +15,12 @@
 #define NUMBER_OF_THREADS			(50)
 #define TRANSACTIONS_PER_THREAD		(500)
 
+//#define VERBOSE_DEBUG		1
+
+#if !VERBOSE_DEBUG
+#define printf(...)		do { } while(0)
+#endif
+
 static smcp_status_t
 request_handler(void* context) {
 	/* This request handler will respond to every GET request with "Hello world!".

@@ -54,6 +54,20 @@
 		A63EA7011278B16D00B24867 /* url-helpers.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F71278B16D00B24867 /* url-helpers.c */; };
 		A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EB2881278CBB100B24867 /* cmd_repeat.c */; };
 		A64F2AF9166EB236001D9878 /* smcp-transaction.c in Sources */ = {isa = PBXBuildFile; fileRef = A64F2AF8166EB236001D9878 /* smcp-transaction.c */; };
+		A669AAE319B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
+		A669AAE419B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
+		A669AAE519B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
+		A669AAE619B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
+		A669AAE719B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
+		A669AAE819B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
+		A669AAE919B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
+		A669AAEB19B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
+		A669AAEC19B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
+		A669AAED19B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
+		A669AAEE19B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
+		A669AAEF19B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
+		A669AAF019B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
+		A669AAF119B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
 		A686D69E16557F3100B14B54 /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A690624C16B6E43B00A98B2C /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E21278B16D00B24867 /* btree.c */; };
 		A690624D16B6E43B00A98B2C /* url-helpers.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F71278B16D00B24867 /* url-helpers.c */; };
@@ -277,6 +291,12 @@
 		A65258391528F47C00E389EC /* cmd_monitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = cmd_monitor.h; path = src/smcpctl/cmd_monitor.h; sourceTree = "<group>"; };
 		A669AADE19AE815700274532 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A669AADF19AE815700274532 /* test-concurrency.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "test-concurrency.c"; sourceTree = "<group>"; };
+		A669AAE019B1232E00274532 /* getline.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = getline.c; sourceTree = "<group>"; };
+		A669AAE119B1239700274532 /* smcp-missing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-missing.h"; path = "src/smcp/smcp-missing.h"; sourceTree = "<group>"; };
+		A669AAE219B1249100274532 /* smcp-missing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-missing.c"; path = "src/smcp/smcp-missing.c"; sourceTree = "<group>"; };
+		A669AAEA19B124F500274532 /* string-utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "string-utils.c"; path = "src/smcp/string-utils.c"; sourceTree = "<group>"; };
+		A669AAF219B1250500274532 /* string-utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "string-utils.h"; path = "src/smcp/string-utils.h"; sourceTree = "<group>"; };
+		A669AAF319B129D100274532 /* bootstrap.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = bootstrap.sh; sourceTree = "<group>"; };
 		A676468F156474380074028C /* Makefile.smcp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.smcp; sourceTree = "<group>"; };
 		A6764690156474380074028C /* smcp-task.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.c.c; path = "smcp-task.c"; sourceTree = "<group>"; tabWidth = 2; usesTabs = 0; };
 		A6764691156474380074028C /* smcp-task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-task.h"; sourceTree = "<group>"; };
@@ -400,6 +420,7 @@
 				A6F35897168A54D300F72DF3 /* Plugtest Client */,
 				A6290E4416766FBE008914FD /* Plugtest Server */,
 				A6BE9A39164CC63C00473330 /* configure.ac */,
+				A669AAF319B129D100274532 /* bootstrap.sh */,
 				A6BE9A3A164CC63C00473330 /* Makefile.am */,
 				A6030638163AE4D100B0AA6C /* smcpd */,
 				A6030636163AE4BC00B0AA6C /* missing */,
@@ -424,8 +445,9 @@
 				A63EA6F41278B16D00B24867 /* smcp.c */,
 				A63EA6E81278B16D00B24867 /* smcp-internal.h */,
 				A6770026156AA2BF00592868 /* smcp-opts.h */,
-				A6C7F8521961D80F00BA0A6E /* smcp-missing.c */,
 				A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */,
+				A669AAE119B1239700274532 /* smcp-missing.h */,
+				A669AAE219B1249100274532 /* smcp-missing.c */,
 				A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */,
 				A68E13DD1912E48C008F5A0A /* smcp-plat-bsd-internal.h */,
 				A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */,
@@ -470,6 +492,7 @@
 			children = (
 				A6030637163AE4BC00B0AA6C /* fgetln.h */,
 				A6030647164595E500B0AA6C /* fls.h */,
+				A669AAE019B1232E00274532 /* getline.c */,
 			);
 			name = missing;
 			path = src/missing;
@@ -513,6 +536,8 @@
 				A6F358961687909E00F72DF3 /* fasthash.h */,
 				A63EA6E71278B16D00B24867 /* smcp-helpers.h */,
 				A63EA6E91278B16D00B24867 /* smcp-logging.h */,
+				A669AAEA19B124F500274532 /* string-utils.c */,
+				A669AAF219B1250500274532 /* string-utils.h */,
 			);
 			name = Utils;
 			sourceTree = "<group>";
@@ -854,6 +879,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A669AAE319B1249100274532 /* smcp-missing.c in Sources */,
 				A63EA6DA1278B13800B24867 /* cmd_get.c in Sources */,
 				A63EA6DB1278B13800B24867 /* cmd_list.c in Sources */,
 				A6A4A4051953AF0C001CD98A /* smcp-dupe.c in Sources */,
@@ -875,6 +901,7 @@
 				A6C04B0818AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A64F2AF9166EB236001D9878 /* smcp-transaction.c in Sources */,
 				A6F358941687909100F72DF3 /* fasthash.c in Sources */,
+				A669AAEB19B124F500274532 /* string-utils.c in Sources */,
 				A6DB61FA16AF190B00D7248E /* smcp-observable.c in Sources */,
 				A6DB621D16B0428500D7248E /* smcp-curl_proxy.c in Sources */,
 				A613E80316C065FE00C5711D /* smcp-inbound.c in Sources */,
@@ -888,12 +915,14 @@
 				A6A4A4081953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A6181DE216B4637700655F4F /* btree.c in Sources */,
 				A6181DE316B4637700655F4F /* url-helpers.c in Sources */,
+				A669AAE619B1249100274532 /* smcp-missing.c in Sources */,
 				A6181DE416B4637700655F4F /* smcp-transaction.c in Sources */,
 				A6181DE516B4637700655F4F /* smcp.c in Sources */,
 				A6181DE616B4637700655F4F /* smcp-list.c in Sources */,
 				A6C04B0318AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A6181DE716B4637700655F4F /* smcp-outbound.c in Sources */,
 				A6181DE816B4637700655F4F /* coap.c in Sources */,
+				A669AAEE19B124F500274532 /* string-utils.c in Sources */,
 				A6181DE916B4637700655F4F /* smcp-auth.c in Sources */,
 				A6181DEA16B4637700655F4F /* smcp-node-router.c in Sources */,
 				A6C04B0B18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
@@ -914,11 +943,13 @@
 				A6290E57167670F8008914FD /* url-helpers.c in Sources */,
 				A6290E58167670F8008914FD /* smcp-transaction.c in Sources */,
 				A6290E59167670F8008914FD /* smcp.c in Sources */,
+				A669AAE419B1249100274532 /* smcp-missing.c in Sources */,
 				A6290E5A167670F8008914FD /* smcp-list.c in Sources */,
 				A6290E5B167670F8008914FD /* smcp-outbound.c in Sources */,
 				A6290E5C167670F8008914FD /* coap.c in Sources */,
 				A6290E5D167670F8008914FD /* smcp-auth.c in Sources */,
 				A6C04B0918AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
+				A669AAEC19B124F500274532 /* string-utils.c in Sources */,
 				A6290E5E167670F8008914FD /* smcp-node-router.c in Sources */,
 				A6290E5F167670F8008914FD /* smcp-timer.c in Sources */,
 				A6F358951687909100F72DF3 /* fasthash.c in Sources */,
@@ -938,12 +969,14 @@
 				A6A4A4091953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A690624C16B6E43B00A98B2C /* btree.c in Sources */,
 				A690624D16B6E43B00A98B2C /* url-helpers.c in Sources */,
+				A669AAE719B1249100274532 /* smcp-missing.c in Sources */,
 				A690624E16B6E43B00A98B2C /* smcp-transaction.c in Sources */,
 				A690624F16B6E43B00A98B2C /* smcp.c in Sources */,
 				A690625016B6E43B00A98B2C /* smcp-list.c in Sources */,
 				A6C04B0418AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A690625116B6E43B00A98B2C /* smcp-outbound.c in Sources */,
 				A690625216B6E43B00A98B2C /* coap.c in Sources */,
+				A669AAEF19B124F500274532 /* string-utils.c in Sources */,
 				A690625316B6E43B00A98B2C /* smcp-auth.c in Sources */,
 				A690625416B6E43B00A98B2C /* smcp-node-router.c in Sources */,
 				A6C04B0C18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
@@ -962,12 +995,14 @@
 				A6A4A40A1953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A690626516B6E44000A98B2C /* btree.c in Sources */,
 				A690626616B6E44000A98B2C /* url-helpers.c in Sources */,
+				A669AAE819B1249100274532 /* smcp-missing.c in Sources */,
 				A690626716B6E44000A98B2C /* smcp-transaction.c in Sources */,
 				A690626816B6E44000A98B2C /* smcp.c in Sources */,
 				A690626916B6E44000A98B2C /* smcp-list.c in Sources */,
 				A6C04B0518AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A690626A16B6E44000A98B2C /* smcp-outbound.c in Sources */,
 				A690626B16B6E44000A98B2C /* coap.c in Sources */,
+				A669AAF019B124F500274532 /* string-utils.c in Sources */,
 				A690626C16B6E44000A98B2C /* smcp-auth.c in Sources */,
 				A690626D16B6E44000A98B2C /* smcp-node-router.c in Sources */,
 				A6C04B0D18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
@@ -986,12 +1021,14 @@
 				A6A4A40B1953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A690628B16B6EA6E00A98B2C /* btree.c in Sources */,
 				A690628C16B6EA6E00A98B2C /* url-helpers.c in Sources */,
+				A669AAE919B1249100274532 /* smcp-missing.c in Sources */,
 				A690628D16B6EA6E00A98B2C /* smcp-transaction.c in Sources */,
 				A690628E16B6EA6E00A98B2C /* smcp.c in Sources */,
 				A690628F16B6EA6E00A98B2C /* smcp-list.c in Sources */,
 				A6C04B0618AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A690629016B6EA6E00A98B2C /* smcp-outbound.c in Sources */,
 				A690629116B6EA6E00A98B2C /* coap.c in Sources */,
+				A669AAF119B124F500274532 /* string-utils.c in Sources */,
 				A690629216B6EA6E00A98B2C /* smcp-auth.c in Sources */,
 				A690629316B6EA6E00A98B2C /* smcp-node-router.c in Sources */,
 				A6C04B0E18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
@@ -1018,12 +1055,14 @@
 				A6A4A4071953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A6F3594C168A599000F72DF3 /* main-client.c in Sources */,
 				A6F3594D168A5CED00F72DF3 /* btree.c in Sources */,
+				A669AAE519B1249100274532 /* smcp-missing.c in Sources */,
 				A6F3594E168A5CED00F72DF3 /* url-helpers.c in Sources */,
 				A6F3594F168A5CED00F72DF3 /* fasthash.c in Sources */,
 				A6F35950168A5CED00F72DF3 /* smcp-transaction.c in Sources */,
 				A6C04B0218AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A6F35951168A5CED00F72DF3 /* smcp.c in Sources */,
 				A6F35952168A5CED00F72DF3 /* smcp-list.c in Sources */,
+				A669AAED19B124F500274532 /* string-utils.c in Sources */,
 				A6F35953168A5CED00F72DF3 /* smcp-outbound.c in Sources */,
 				A6F35954168A5CED00F72DF3 /* coap.c in Sources */,
 				A6C04B0A18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,

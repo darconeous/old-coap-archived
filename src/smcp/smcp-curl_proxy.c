@@ -41,7 +41,7 @@
 
 #include "smcp-helpers.h"
 #include "smcp-logging.h"
-#include "smcp-internal.h"
+#include "smcp-missing.h"
 #include "coap.h"
 #include "smcp-curl_proxy.h"
 #include <stdio.h>

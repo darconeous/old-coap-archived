@@ -46,6 +46,7 @@
 #include <stdio.h>
 
 #include "smcp-timer.h"
+#include "smcp-logging.h"
 #include "smcp.h"
 #include "url-helpers.h"
 #include "smcp-node-router.h"

@@ -16,6 +16,7 @@
 #include <smcp/assert-macros.h>
 #include <stdint.h>
 #include <smcp/smcp-helpers.h>
+#include <smcp/smcp-missing.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>

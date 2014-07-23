@@ -55,7 +55,11 @@
 #endif
 #endif
 
+#include "smcp-missing.h"
+#include "string-utils.h"
+
 __BEGIN_DECLS
+
 
 #if SMCP_EMBEDDED
 // Embedded platforms only support one instance.

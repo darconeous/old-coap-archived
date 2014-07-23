@@ -26,6 +26,8 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#include "assert-macros.h"
+#include "smcp-logging.h"
 #include "smcp-observable.h"
 #include "smcp-internal.h"
 #include "smcp-transaction.h"

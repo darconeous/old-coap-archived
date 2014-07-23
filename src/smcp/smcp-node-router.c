@@ -47,6 +47,7 @@
 #include "url-helpers.h"
 
 #include "smcp.h"
+#include "smcp-missing.h"
 #include "smcp-node-router.h"
 #include "smcp-helpers.h"
 #include "smcp-logging.h"

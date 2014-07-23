@@ -32,6 +32,9 @@
 
 #include "assert-macros.h"
 #include "smcp-opts.h"
+#include "smcp-logging.h"
+#include "smcp-helpers.h"
+#include "smcp-internal.h"
 
 #if CONTIKI
 #include "contiki.h"
@@ -40,8 +43,6 @@
 #include "coap.h"
 #include <stdlib.h>
 #include "ctype.h"
-
-#include "smcp-helpers.h"
 
 #if SMCP_USE_UIP
 #include "net/ip/uip.h"

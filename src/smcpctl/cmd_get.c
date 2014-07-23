@@ -25,7 +25,7 @@
 #include <smcp/url-helpers.h>
 #include <signal.h>
 #include "smcpctl.h"
-#include <smcp/smcp-internal.h>
+#include <smcp/smcp-missing.h>
 
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",	  NULL, "Print Help"				},
