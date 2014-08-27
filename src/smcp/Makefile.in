@@ -89,10 +89,10 @@ DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/src/missing/getline.c $(top_srcdir)/m4/depcomp \
 	$(am__pkginclude_HEADERS_DIST) $(top_srcdir)/m4/test-driver
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
-	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
-	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/configure.ac
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_pthread.m4 \
+	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
+	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
+	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -133,21 +133,21 @@ am__DEPENDENCIES_1 =
 libsmcp_la_DEPENDENCIES = $(LIBOBJS) $(am__DEPENDENCIES_1)
 am__libsmcp_la_SOURCES_DIST = smcp.c smcp-timer.c coap.c \
 	smcp-outbound.c smcp-inbound.c smcp-observable.c smcp-auth.c \
-	smcp-transaction.c smcp-dupe.c smcp-plat-bsd.c btree.c \
-	url-helpers.c fasthash.c btree.h coap.h ll.h smcp-helpers.h \
-	smcp-internal.h smcp-logging.h url-helpers.h fasthash.h \
-	smcp-dupe.h smcp-node-router.c smcp-list.c \
+	smcp-transaction.c smcp-dupe.c smcp-missing.c smcp-plat-bsd.c \
+	btree.c url-helpers.c fasthash.c btree.h coap.h ll.h \
+	smcp-helpers.h smcp-internal.h smcp-logging.h url-helpers.h \
+	fasthash.h smcp-dupe.h smcp-node-router.c smcp-list.c \
 	smcp-variable_node.c smcp-curl_proxy.c
 @HAVE_LIBCURL_TRUE@am__objects_1 = libsmcp_la-smcp-curl_proxy.lo
 am_libsmcp_la_OBJECTS = libsmcp_la-smcp.lo libsmcp_la-smcp-timer.lo \
 	libsmcp_la-coap.lo libsmcp_la-smcp-outbound.lo \
 	libsmcp_la-smcp-inbound.lo libsmcp_la-smcp-observable.lo \
 	libsmcp_la-smcp-auth.lo libsmcp_la-smcp-transaction.lo \
-	libsmcp_la-smcp-dupe.lo libsmcp_la-smcp-plat-bsd.lo \
-	libsmcp_la-btree.lo libsmcp_la-url-helpers.lo \
-	libsmcp_la-fasthash.lo libsmcp_la-smcp-node-router.lo \
-	libsmcp_la-smcp-list.lo libsmcp_la-smcp-variable_node.lo \
-	$(am__objects_1)
+	libsmcp_la-smcp-dupe.lo libsmcp_la-smcp-missing.lo \
+	libsmcp_la-smcp-plat-bsd.lo libsmcp_la-btree.lo \
+	libsmcp_la-url-helpers.lo libsmcp_la-fasthash.lo \
+	libsmcp_la-smcp-node-router.lo libsmcp_la-smcp-list.lo \
+	libsmcp_la-smcp-variable_node.lo $(am__objects_1)
 libsmcp_la_OBJECTS = $(am_libsmcp_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -534,10 +534,10 @@ lib_LTLIBRARIES = libsmcp.la
 # Extras
 libsmcp_la_SOURCES = smcp.c smcp-timer.c coap.c smcp-outbound.c \
 	smcp-inbound.c smcp-observable.c smcp-auth.c \
-	smcp-transaction.c smcp-dupe.c smcp-plat-bsd.c btree.c \
-	url-helpers.c fasthash.c btree.h coap.h ll.h smcp-helpers.h \
-	smcp-internal.h smcp-logging.h url-helpers.h fasthash.h \
-	smcp-dupe.h smcp-node-router.c smcp-list.c \
+	smcp-transaction.c smcp-dupe.c smcp-missing.c smcp-plat-bsd.c \
+	btree.c url-helpers.c fasthash.c btree.h coap.h ll.h \
+	smcp-helpers.h smcp-internal.h smcp-logging.h url-helpers.h \
+	fasthash.h smcp-dupe.h smcp-node-router.c smcp-list.c \
 	smcp-variable_node.c $(am__append_1)
 pkginclude_HEADERS = assert-macros.h smcp-timer.h smcp.h \
 	smcp-plat-bsd.h smcp-auth.h smcp-transaction.h smcp-opts.h \
@@ -651,6 +651,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-dupe.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-inbound.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-list.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-missing.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-node-router.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-observable.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-outbound.Plo@am__quote@
@@ -747,6 +748,13 @@ libsmcp_la-smcp-dupe.lo: smcp-dupe.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-dupe.c' object='libsmcp_la-smcp-dupe.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-dupe.lo `test -f 'smcp-dupe.c' || echo '$(srcdir)/'`smcp-dupe.c
+
+libsmcp_la-smcp-missing.lo: smcp-missing.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-missing.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-missing.Tpo -c -o libsmcp_la-smcp-missing.lo `test -f 'smcp-missing.c' || echo '$(srcdir)/'`smcp-missing.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-missing.Tpo $(DEPDIR)/libsmcp_la-smcp-missing.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-missing.c' object='libsmcp_la-smcp-missing.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-missing.lo `test -f 'smcp-missing.c' || echo '$(srcdir)/'`smcp-missing.c
 
 libsmcp_la-smcp-plat-bsd.lo: smcp-plat-bsd.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-plat-bsd.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-plat-bsd.Tpo -c -o libsmcp_la-smcp-plat-bsd.lo `test -f 'smcp-plat-bsd.c' || echo '$(srcdir)/'`smcp-plat-bsd.c
