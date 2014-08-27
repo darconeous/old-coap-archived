@@ -343,7 +343,9 @@ smcp_wait(
 
 	errno = 0;
 
-	poll(&pollee, 1, cms);
+	if (poll(&pollee, 1, cms) == 0) {
+		ret = SMCP_STATUS_TIMEOUT;
+	}
 
 	// Ensure that poll did not fail with an error.
 	require_action_string(errno == 0,

@@ -267,7 +267,10 @@ SMCP_API_EXTERN smcp_status_t smcp_vhost_add(
 SMCP_API_EXTERN smcp_status_t smcp_process(smcp_t self);
 
 //!	Block until smcp_process() should be called.
-/*! Some platforms do not implement this function. */
+/*! @returns 0 if smcp_process() should be executed,
+**           SMCP_STATUS_TIMEOUT if the given timeout expired,
+**           or an error number if there is some sort of other failure.
+**  Some platforms do not implement this function. */
 SMCP_API_EXTERN smcp_status_t smcp_wait(smcp_t self, cms_t cms);
 
 //!	Maximum amount of time that can pass before smcp_process() must be called again.
