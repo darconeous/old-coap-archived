@@ -50,3 +50,4 @@ src/plugtest/.libs/smcp-plugtest-server
 *.dylib
 *.lai
 .libs
+src/tests/test-concurrency

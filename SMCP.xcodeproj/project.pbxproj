@@ -275,6 +275,8 @@
 		A64F2AFB166EB265001D9878 /* smcp-transaction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-transaction.h"; path = "src/smcp/smcp-transaction.h"; sourceTree = "<group>"; };
 		A65258361528F45300E389EC /* cmd_monitor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_monitor.c; path = src/smcpctl/cmd_monitor.c; sourceTree = "<group>"; };
 		A65258391528F47C00E389EC /* cmd_monitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = cmd_monitor.h; path = src/smcpctl/cmd_monitor.h; sourceTree = "<group>"; };
+		A669AADE19AE815700274532 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
+		A669AADF19AE815700274532 /* test-concurrency.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "test-concurrency.c"; sourceTree = "<group>"; };
 		A676468F156474380074028C /* Makefile.smcp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.smcp; sourceTree = "<group>"; };
 		A6764690156474380074028C /* smcp-task.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.c.c; path = "smcp-task.c"; sourceTree = "<group>"; tabWidth = 2; usesTabs = 0; };
 		A6764691156474380074028C /* smcp-task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-task.h"; sourceTree = "<group>"; };
@@ -404,6 +406,7 @@
 				A6C6C483121B2EE200CAB3A3 /* Tool Source */,
 				08FB7795FE84155DC02AAC07 /* Source */,
 				A6764685156474380074028C /* contiki-src */,
+				A669AADD19AE815700274532 /* tests */,
 				C6A0FF2B0290797F04C91782 /* Documentation */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
 				A63B1EB9125FC4E900BF2543 /* libreadline.dylib */,
@@ -421,6 +424,7 @@
 				A63EA6F41278B16D00B24867 /* smcp.c */,
 				A63EA6E81278B16D00B24867 /* smcp-internal.h */,
 				A6770026156AA2BF00592868 /* smcp-opts.h */,
+				A6C7F8521961D80F00BA0A6E /* smcp-missing.c */,
 				A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */,
 				A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */,
 				A68E13DD1912E48C008F5A0A /* smcp-plat-bsd-internal.h */,
@@ -560,6 +564,16 @@
 				A64B12D916782CF000B2D485 /* smcp-plugtest.c */,
 			);
 			path = "smcp-plugtest";
+			sourceTree = "<group>";
+		};
+		A669AADD19AE815700274532 /* tests */ = {
+			isa = PBXGroup;
+			children = (
+				A669AADE19AE815700274532 /* Makefile.am */,
+				A669AADF19AE815700274532 /* test-concurrency.c */,
+			);
+			name = tests;
+			path = src/tests;
 			sourceTree = "<group>";
 		};
 		A6764685156474380074028C /* contiki-src */ = {
