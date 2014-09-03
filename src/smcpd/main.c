@@ -143,7 +143,7 @@ struct {
 		fd_set *write_fd_set,
 		fd_set *error_fd_set,
 		int *max_fd,
-		cms_t *timeout
+		smcp_cms_t *timeout
 	);
 	smcp_status_t (*process)(smcp_node_t node);
 } async_io_module[SMCPD_MAX_ASYNC_IO_MODULES];
@@ -155,7 +155,7 @@ smcpd_modules_update_fdset(
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *max_fd,
-    cms_t *timeout
+    smcp_cms_t *timeout
 ) {
 	int i;
 	for(i=0;i<async_io_module_count;i++) {
@@ -194,7 +194,7 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 		fd_set *write_fd_set,
 		fd_set *error_fd_set,
 		int *max_fd,
-		cms_t *timeout
+		smcp_cms_t *timeout
 	);
 
 	init_func_t init_func;
@@ -342,7 +342,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 				goto bail;
 			}
 			// Not really supported at the moment.
-			if(smcp_get_port(smcp)!=atoi(arg))
+			if(smcp_plat_get_port(smcp)!=atoi(arg))
 				syslog(LOG_ERR,"ListenPort doesn't match current listening port.");
 		} else if(strcaseequal(cmd,"PIDFile")) {
 			char* arg = get_next_arg(line,&line);
@@ -533,11 +533,16 @@ main(
 	syslog(LOG_NOTICE,"Built with libcurl support.");
 #endif
 
-	smcp = smcp_create(port);
+	smcp = smcp_create();
 
 	if(!smcp) {
 		syslog(LOG_CRIT,"Unable to initialize SMCP instance.");
 		gRet = ERRORCODE_UNKNOWN;
+		goto bail;
+	}
+
+	if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, port) != SMCP_STATUS_OK) {
+		fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
 		goto bail;
 	}
 
@@ -553,13 +558,13 @@ main(
 		syslog(LOG_NOTICE,"Error processing configuration file!");
 		gRet = ERRORCODE_BADCONFIG;
 	} else {
-		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_get_port(smcp));
+		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_plat_get_port(smcp));
 	}
 
 	while(!gRet) {
 		int fds_ready = 0, max_fd = -1;
 		fd_set read_fd_set,write_fd_set,error_fd_set;
-		cms_t cms_timeout = 600000;
+		smcp_cms_t cms_timeout = 600000;
 		struct timeval timeout = {};
 
 		FD_ZERO(&read_fd_set);
@@ -574,9 +579,9 @@ main(
 		);
 
 		cms_timeout = MIN(smcp_get_timeout(smcp),cms_timeout);
-		max_fd = MAX(smcp_get_fd(smcp),max_fd);
-		FD_SET(smcp_get_fd(smcp),&read_fd_set);
-		FD_SET(smcp_get_fd(smcp),&error_fd_set);
+		max_fd = MAX(smcp_plat_get_fd(smcp),max_fd);
+		FD_SET(smcp_plat_get_fd(smcp),&read_fd_set);
+		FD_SET(smcp_plat_get_fd(smcp),&error_fd_set);
 
 		timeout.tv_sec = cms_timeout/1000;
 		timeout.tv_usec = (cms_timeout%1000)*1000;
@@ -587,7 +592,7 @@ main(
 			break;
 		}
 
-		smcp_process(smcp);
+		smcp_plat_process(smcp);
 
 		if(smcpd_modules_process()!=SMCP_STATUS_OK) {
 			syslog(LOG_ERR,"Module process error.");

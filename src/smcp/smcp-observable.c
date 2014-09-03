@@ -68,9 +68,11 @@ static void
 free_observer(struct smcp_observer_s *observer) {
 	smcp_observable_t const context = observer->observable;
 	int8_t i = (int8_t)(observer - observer_table);
+
 #if !SMCP_EMBEDDED
-	if(!observer->observable)
+	if (!observer->observable) {
 		goto bail;
+	}
 	smcp_t const interface = observer->observable->interface;
 #endif
 
@@ -78,19 +80,23 @@ free_observer(struct smcp_observer_s *observer) {
 
 	if((context->first_observer==i+1) && (context->last_observer==i+1)) {
 		context->first_observer = context->last_observer = 0;
+
 	} else if(context->first_observer==i+1) {
 		context->first_observer = observer_table[i].next;
+
 	} else {
 		int8_t prev;
-		for(prev = context->first_observer-1; prev>=0; i = observer_table[i].next - 1) {
-			if(observer_table[prev].next == i)
+		for (prev = context->first_observer-1; prev>=0; i = observer_table[i].next - 1) {
+			if (observer_table[prev].next == i) {
 				break;
+			}
 		}
 
 		observer_table[prev].next = observer_table[i].next;
 
-		if(context->last_observer == i+1)
+		if (context->last_observer == i+1) {
 			context->last_observer = prev;
+		}
 	}
 
 bail:
@@ -108,36 +114,49 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 	context->interface = interface;
 #endif
 
-	if(interface->inbound.packet == NULL || interface->inbound.is_fake || interface->inbound.is_dupe) {
+	if (interface->inbound.packet == NULL || interface->inbound.is_fake || interface->inbound.is_dupe) {
 		goto bail;
 	}
 
-	for(i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
-		if(observer_table[i].key != key)
+	for (i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
+		if (observer_table[i].key != key) {
 			continue;
-		if(smcp_inbound_is_related_to_async_response(&observer_table[i].async_response))
+		}
+		if (smcp_inbound_is_related_to_async_response(&observer_table[i].async_response)) {
 			break;
+		}
 	}
 
-	if(interface->inbound.has_observe_option) {
-		if(i == -1) {
+	if (interface->inbound.has_observe_option) {
+		if (i == -1) {
 			i = get_unused_observer_index();
-			if(i == -1)
+			if (i == -1) {
 				goto bail;
-			if(context->last_observer == 0) {
+			}
+
+			if (context->last_observer == 0) {
 				context->first_observer = context->last_observer = i + 1;
 			} else {
 				observer_table[context->last_observer-1].next = i +1;
 				context->last_observer = i + 1;
 			}
+
 			observer_table[i].key = key;
 			observer_table[i].seq = 0;
 			observer_table[i].observable = context;
 		}
 
-		smcp_start_async_response(&observer_table[i].async_response,SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK);
+		require_noerr_action(
+			ret = smcp_start_async_response(&observer_table[i].async_response,SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK),
+			bail,
+			free_observer(&observer_table[i])
+		);
 
-		ret = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE,observer_table[i].seq);
+		require_noerr_action(
+			ret = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE,observer_table[i].seq),
+			bail,
+			free_observer(&observer_table[i])
+		);
 	} else if(i != -1) {
 		free_observer(&observer_table[i]);
 	}
@@ -149,7 +168,7 @@ bail:
 static smcp_status_t
 event_response_handler(int statuscode, struct smcp_observer_s* observer)
 {
-	if(statuscode==SMCP_STATUS_TIMEOUT) {
+	if (statuscode == SMCP_STATUS_TIMEOUT) {
 		if(SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)) {
 			statuscode = SMCP_STATUS_RESET;
 		} else {
@@ -157,13 +176,13 @@ event_response_handler(int statuscode, struct smcp_observer_s* observer)
 		}
 	}
 
-	if(statuscode!=SMCP_STATUS_TRANSACTION_INVALIDATED) {
+	if (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED) {
 		if(statuscode && ((statuscode < COAP_RESULT_200) || (statuscode >= COAP_RESULT_400))) {
 			statuscode = SMCP_STATUS_RESET;
 		}
 	}
 
-	if(statuscode==SMCP_STATUS_RESET) {
+	if (statuscode == SMCP_STATUS_RESET) {
 		free_observer(observer);
 		return SMCP_STATUS_RESET;
 	}
@@ -177,13 +196,15 @@ retry_sending_event(struct smcp_observer_s* observer)
 	smcp_status_t status;
 	smcp_t const self = smcp_get_current_instance();
 
-	status = smcp_outbound_begin_async_response(COAP_RESULT_205_CONTENT,&observer->async_response);
+	status = smcp_outbound_begin_async_response(COAP_RESULT_205_CONTENT, &observer->async_response);
 	require_noerr(status,bail);
 
-	status = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE,observer->seq);
+	status = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE, observer->seq);
 	require_noerr(status,bail);
 
-	self->outbound.packet->tt = SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)?COAP_TRANS_TYPE_CONFIRMABLE:COAP_TRANS_TYPE_NONCONFIRMABLE;
+	self->outbound.packet->tt = SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)
+		?COAP_TRANS_TYPE_CONFIRMABLE
+		:COAP_TRANS_TYPE_NONCONFIRMABLE;
 
 	self->inbound.has_observe_option = true;
 	self->is_responding = true;
@@ -201,9 +222,9 @@ retry_sending_event(struct smcp_observer_s* observer)
 #endif
 
 	status = smcp_handle_request(self);
-	require(!status||status==SMCP_STATUS_NOT_FOUND||status==SMCP_STATUS_NOT_ALLOWED,bail);
+	require(!status || status == SMCP_STATUS_NOT_FOUND || status == SMCP_STATUS_NOT_ALLOWED, bail);
 
-	if(status) {
+	if (status) {
 		smcp_outbound_set_content_len(0);
 		smcp_outbound_send();
 	}
@@ -222,15 +243,17 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 #if !SMCP_EMBEDDED
 	smcp_t const interface = context->interface;
 
-	if(!interface)
+	if (!interface) {
 		goto bail;
+	}
 #endif
 
-	if(!context->first_observer)
+	if (!context->first_observer) {
 		goto bail;
+	}
 
-	for(i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
-		if(	(observer_table[i].key != SMCP_OBSERVABLE_BROADCAST_KEY)
+	for (i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
+		if ((observer_table[i].key != SMCP_OBSERVABLE_BROADCAST_KEY)
 			&& (key != SMCP_OBSERVABLE_BROADCAST_KEY)
 			&& (observer_table[i].key != key)
 		) {
@@ -239,7 +262,7 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 
 		observer_table[i].seq++;
 
-		if(observer_table[i].transaction.active) {
+		if (observer_table[i].transaction.active) {
 			smcp_transaction_new_msg_id(interface, &observer_table[i].transaction, smcp_get_next_msg_id(interface));
 			smcp_transaction_tickle(interface, &observer_table[i].transaction);
 		} else {
@@ -269,11 +292,12 @@ smcp_observable_observer_count(smcp_observable_t context, uint8_t key)
 	int count = 0;
 	int i;
 
-	if(!context->first_observer)
+	if (!context->first_observer) {
 		goto bail;
+	}
 
-	for(i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
-		if(	(observer_table[i].key != SMCP_OBSERVABLE_BROADCAST_KEY)
+	for (i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
+		if ((observer_table[i].key != SMCP_OBSERVABLE_BROADCAST_KEY)
 			&& (key != SMCP_OBSERVABLE_BROADCAST_KEY)
 			&& (observer_table[i].key != key)
 		) {

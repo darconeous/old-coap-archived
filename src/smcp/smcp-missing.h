@@ -81,12 +81,13 @@ __BEGIN_DECLS
 #define HAVE_ALLOCA HAVE_ALLOCA_H
 #endif
 
-#if !HAVE_VSNPRINTF && !defined(vsnprintf)
+#if !SMCP_AVOID_PRINTF && !HAVE_VSNPRINTF && !defined(vsnprintf)
 #warning VSNPRINTF NOT IMPLEMENTED, VSPRINTF COULD OVERFLOW!
 #define vsnprintf(d,n,fmt,lst) vsprintf(d,fmt,lst)
 #endif
 #endif
 
+#if !SMCP_AVOID_MALLOC
 #if !HAVE_STRDUP && !defined(strdup)
 #define strdup(...) ___smcp_strdup(__VA_ARGS__)
 char* ___smcp_strdup(const char* cstr);
@@ -96,6 +97,7 @@ char* ___smcp_strdup(const char* cstr);
 #define strndup(...) ___smcp_strndup(__VA_ARGS__)
 char* ___smcp_strndup(const char* cstr,size_t maxlen);
 #endif
+#endif //!SMCP_AVOID_MALLOC
 
 #if !HAVE_STPNCPY && !defined(stpncpy)
 #define stpncpy(...) ___smcp_stpncpy(__VA_ARGS__)

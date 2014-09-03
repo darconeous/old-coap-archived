@@ -50,7 +50,7 @@ tool_cmd_repeat(
 ) {
 	ret = 0;
 	int i = 0;
-	cms_t interval = 5 * MSEC_PER_SEC;
+	smcp_cms_t interval = 5 * MSEC_PER_SEC;
 	uint32_t count = 0xFFFFFFFF;
 	const char* prefix_string = NULL;
 
@@ -114,16 +114,14 @@ tool_cmd_repeat(
 		}
 		ret = exec_command(smcp, argc - i, argv + i);
 
-		struct timeval continue_time;
-
-		convert_cms_to_timeval(&continue_time, interval);
+		smcp_timestamp_t continue_time = smcp_plat_cms_to_timestamp(interval);
 
 		do {
-			smcp_wait(smcp,
-				count ? convert_timeval_to_cms(&continue_time) : 0);
-			smcp_process(smcp);
+			smcp_plat_wait(smcp,
+				count ? smcp_plat_timestamp_to_cms(continue_time) : 0);
+			smcp_plat_process(smcp);
 		} while(count && (ret == 0) &&
-		        (convert_timeval_to_cms(&continue_time) > 0));
+		        (smcp_plat_timestamp_to_cms(continue_time) > 0));
 	}
 
 bail:

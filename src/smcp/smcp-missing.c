@@ -37,6 +37,7 @@
 
 #include "smcp-helpers.h"
 
+#if !SMCP_AVOID_MALLOC
 #if !HAVE_STRDUP
 char*
 ___smcp_strdup(const char* cstr) {
@@ -61,6 +62,7 @@ ___smcp_strndup(const char* cstr,size_t maxlen) {
 	return ret;
 }
 #endif
+#endif //!SMCP_AVOID_MALLOC
 
 #if !HAVE_STPNCPY
 char*

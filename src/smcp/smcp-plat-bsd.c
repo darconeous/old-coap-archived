@@ -46,7 +46,6 @@
 
 #include "smcp-internal.h"
 #include "smcp-logging.h"
-#include "smcp-auth.h"
 
 #include <stdio.h>
 #include <poll.h>
@@ -57,6 +56,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include <sys/time.h>
+#include <sys/cdefs.h>
+#include <time.h>
 
 #ifndef SOCKADDR_HAS_LENGTH_FIELD
 #if defined(__KAME__)
@@ -64,18 +66,232 @@
 #endif
 #endif
 
-smcp_t
-smcp_init(
-	smcp_t self, uint16_t port
-) {
-#if SMCP_EMBEDDED
-	smcp_t self = smcp_get_current_instance();
+
+static smcp_status_t
+smcp_internal_join_multicast_group(smcp_t self, const char* group)
+{
+	smcp_status_t ret = SMCP_STATUS_ERRNO;
+
+	if (self->plat.mcfd == -1) {
+		self->plat.mcfd = socket(SMCP_BSD_SOCKETS_NET_FAMILY, SOCK_DGRAM, 0);
+		require(self->plat.mcfd >= 0, bail);
+	}
+
+	struct hostent *tmp = gethostbyname2(group, SMCP_BSD_SOCKETS_NET_FAMILY);
+
+	require(!h_errno && tmp, bail);
+	require(tmp->h_length > 1, bail);
+
+#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
+	{
+		struct ipv6_mreq imreq;
+		int btrue = 1;
+		memset(&imreq, 0, sizeof(imreq));
+		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, tmp->h_addr_list[0], 16);
+
+		require(0 ==
+			setsockopt(self->plat.mcfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+				&btrue,
+				sizeof(btrue)), bail);
+
+		// Do a precautionary leave group, to clear any stake kernel data.
+		setsockopt(self->plat.mcfd,
+			IPPROTO_IPV6,
+			IPV6_LEAVE_GROUP,
+			&imreq,
+			sizeof(imreq));
+
+		require_quiet(0 ==
+			setsockopt(self->plat.mcfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &imreq,
+				sizeof(imreq)), bail);
+	}
+	ret = SMCP_STATUS_OK;
+#else
+#warning TODO: Implement joining the multicast group for this network family!
+	ret = SMCP_STATUS_NOT_IMPLEMENTED;
 #endif
 
-	require(self != NULL, bail);
+bail:
 
-	if(port == 0)
-		port = COAP_DEFAULT_PORT;
+	return ret;
+}
+
+smcp_t
+smcp_plat_init(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
+
+	self->plat.mcfd = -1;
+	self->plat.fd_udp = -1;
+#if SMCP_DTLS
+	self->plat.fd_dtls = -1;
+#endif
+
+#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
+	smcp_internal_join_multicast_group(self, COAP_MULTICAST_IP6_LL_ALLDEVICES);
+#endif
+
+	return self;
+}
+
+void
+smcp_plat_finalize(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
+
+	if(self->plat.fd_udp>=0) {
+		close(self->plat.fd_udp);
+	}
+#if SMCP_DTLS
+	if(self->plat.fd_dtls>=0) {
+		close(self->plat.fd_dtls);
+	}
+#endif
+	if(self->plat.mcfd>=0) {
+		close(self->plat.mcfd);
+	}
+}
+
+int
+smcp_plat_get_fd(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
+	return self->plat.fd_udp;
+}
+
+uint16_t
+smcp_plat_get_port(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
+	smcp_sockaddr_t saddr;
+	socklen_t socklen = sizeof(saddr);
+	getsockname(self->plat.fd_udp, (struct sockaddr*)&saddr, &socklen);
+	return ntohs(saddr.smcp_port);
+}
+
+
+static smcp_cms_t
+monotonic_get_time_ms(void)
+{
+#if HAVE_CLOCK_GETTIME
+	struct timespec tv = { 0 };
+	int ret;
+
+	ret = clock_gettime(CLOCK_MONOTONIC, &tv);
+
+	return (smcp_cms_t)(tv.tv_sec * MSEC_PER_SEC) + (smcp_cms_t)(tv.tv_nsec / NSEC_PER_MSEC);
+#else
+	struct timeval tv = { 0 };
+	gettimeofday(&tv, NULL);
+	return (smcp_cms_t)(tv.tv_sec * MSEC_PER_SEC) + (smcp_cms_t)(tv.tv_usec / USEC_PER_MSEC);
+#endif
+}
+smcp_timestamp_t
+smcp_plat_cms_to_timestamp(
+	smcp_cms_t cms
+) {
+	return monotonic_get_time_ms() + cms;
+}
+
+smcp_cms_t
+smcp_plat_timestamp_diff(smcp_timestamp_t lhs, smcp_timestamp_t rhs) {
+	return lhs - rhs;
+}
+
+smcp_cms_t
+smcp_plat_timestamp_to_cms(smcp_timestamp_t ts) {
+	return smcp_plat_timestamp_diff(ts, monotonic_get_time_ms());
+}
+
+smcp_status_t
+smcp_plat_bind_to_sockaddr(
+	smcp_t self,
+	smcp_session_type_t type,
+	const smcp_sockaddr_t* sockaddr
+) {
+	SMCP_EMBEDDED_SELF_HOOK;
+	smcp_status_t ret = SMCP_STATUS_FAILURE;
+	int fd = -1;
+
+	switch(type) {
+	case SMCP_SESSION_TYPE_UDP:
+#if SMCP_DTLS
+	case SMCP_SESSION_TYPE_DTLS:
+#endif
+#if SMCP_TCP
+	case SMCP_SESSION_TYPE_TCP:
+#endif
+#if SMCP_TLS
+	case SMCP_SESSION_TYPE_TLS:
+#endif
+		break;
+
+	default:
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		// Unsupported session type.
+		goto bail;
+	}
+
+	fd = socket(SMCP_BSD_SOCKETS_NET_FAMILY, SOCK_DGRAM, IPPROTO_UDP);
+
+	require_action_string(fd >= 0, bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
+
+#if defined(IPV6_V6ONLY) && SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
+	{
+		int value = 0; /* explicitly allow ipv4 traffic too (required on bsd and some debian installations) */
+		if (setsockopt(self->plat.fd_udp, IPPROTO_IPV6, IPV6_V6ONLY, &value, sizeof(value)) < 0)
+		{
+			DEBUG_PRINTF(CSTR("Socket won't allow IPv4 connections"));
+		}
+	}
+#endif
+
+	require_action_string(
+		bind(fd, (struct sockaddr*)sockaddr, sizeof(*sockaddr)) == 0,
+		bail,
+		ret = SMCP_STATUS_ERRNO,
+		strerror(errno)
+	);
+
+#ifdef SMCP_RECVPKTINFO
+	{	// Handle sockopts.
+		int value = 1;
+		setsockopt(fd, SMCP_IPPROTO, SMCP_RECVPKTINFO, &value, sizeof(value));
+	}
+#endif
+
+	// TODO: Fix this!
+	switch(type) {
+	case SMCP_SESSION_TYPE_UDP:
+		self->plat.fd_udp = fd;
+		break;
+#if SMCP_DTLS
+	case SMCP_SESSION_TYPE_DTLS:
+		self->plat.fd_dtls = fd;
+		break;
+#endif
+
+	default:
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		// Unsupported session type.
+		goto bail;
+	}
+
+	fd = -1;
+
+	ret = SMCP_STATUS_OK;
+
+bail:
+	if (fd >= 0) {
+		close(fd);
+	}
+	return ret;
+}
+
+
+smcp_status_t
+smcp_plat_bind_to_port(
+	smcp_t self,
+	smcp_session_type_t type,
+	uint16_t port
+) {
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	smcp_sockaddr_t saddr = {
 #if SOCKADDR_HAS_LENGTH_FIELD
@@ -85,229 +301,227 @@ smcp_init(
 		.smcp_port		= htons(port),
 	};
 
-	// Clear the entire structure.
-	memset(self, 0, sizeof(*self));
-
-	// Set up the UDP port for listening.
-	uint16_t attempts = 0x7FFF;
-
-	self->mcfd = -1;
-	self->fd = -1;
-	errno = 0;
-
-	self->fd = socket(SMCP_BSD_SOCKETS_NET_FAMILY, SOCK_DGRAM, IPPROTO_UDP);
-	int prev_errno = errno;
-
-	require_action_string(
-		self->fd >= 0,
-		bail, (
-			smcp_release(self),
-			self = NULL
-		),
-		strerror(prev_errno)
-	);
-
-#if defined(IPV6_V6ONLY) && SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-	{
-		int value = 0; /* explicitly allow ipv4 traffic too (required on bsd and some debian installations) */
-		if (setsockopt(self->fd, IPPROTO_IPV6, IPV6_V6ONLY, &value, sizeof(value)) < 0)
-		{
-			DEBUG_PRINTF(CSTR("Socket won't allow IPv4 connections"));
-		}
-	}
-#endif
-
-	// Keep attempting to bind until we find a port that works.
-	while(bind(self->fd, (struct sockaddr*)&saddr, sizeof(saddr)) != 0) {
-		// We should only continue trying if errno == EADDRINUSE.
-		require_action_string(errno == EADDRINUSE, bail,
-			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_release(
-				    self); self = NULL; }, "Failed to bind socket");
-		port++;
-
-		// Make sure we aren't in an infinite loop.
-		require_action_string(--attempts, bail,
-			{ DEBUG_PRINTF(CSTR("errno=%d"), errno); smcp_release(
-				    self); self = NULL; }, "Failed to bind socket (ran out of ports)");
-
-		saddr.smcp_port = htons(port);
-	}
-
-
-	{	// Handle sockopts.
-		int value;
-
-#ifdef SMCP_RECVPKTINFO
-		value = 1;
-		setsockopt(self->fd, SMCP_IPPROTO, SMCP_RECVPKTINFO, &value, sizeof(value));
-#endif
-	}
-
-
-#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-	// Go ahead and start listening on our multicast address as well.
-	{   // Join the multicast group for COAP_MULTICAST_IP6_LL_ALLDEVICES
-		struct ipv6_mreq imreq;
-		int btrue = 1;
-		struct hostent *tmp = gethostbyname2(COAP_MULTICAST_IP6_LL_ALLDEVICES,
-			AF_INET6);
-		memset(&imreq, 0, sizeof(imreq));
-		self->mcfd = socket(SMCP_BSD_SOCKETS_NET_FAMILY, SOCK_DGRAM, 0);
-
-		require(!h_errno && tmp, skip_mcast);
-		require(tmp->h_length > 1, skip_mcast);
-
-		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, tmp->h_addr_list[0], 16);
-
-		require(0 ==
-			setsockopt(self->mcfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
-				&btrue,
-				sizeof(btrue)), skip_mcast);
-
-		// Do a precautionary leave group, to clear any stake kernel data.
-		setsockopt(self->mcfd,
-			IPPROTO_IPV6,
-			IPV6_LEAVE_GROUP,
-			&imreq,
-			sizeof(imreq));
-
-		require_quiet(0 ==
-			setsockopt(self->mcfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &imreq,
-				sizeof(imreq)), skip_mcast);
-
-	skip_mcast:
-		(void)0;
-	}
-#else
-#warning TODO: Implement joining the multicast group for this network family!
-#endif
-
-bail:
-	return self;
-}
-
-void
-smcp_release_plat(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
-	if(self->fd>=0)
-		close(self->fd);
-	if(self->mcfd>=0)
-		close(self->mcfd);
+	return smcp_plat_bind_to_sockaddr(self, type, &saddr);
 }
 
 int
-smcp_get_fd(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-	return self->fd;
-}
+smcp_plat_update_pollfds(
+	smcp_t self,
+	struct pollfd fds[],
+	int maxfds
+) {
+	int ret = 1;
 
-uint16_t
-smcp_get_port(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-	smcp_sockaddr_t saddr;
-	socklen_t socklen = sizeof(saddr);
-	getsockname(self->fd, (struct sockaddr*)&saddr, &socklen);
-	return ntohs(saddr.smcp_port);
-}
+	require_quiet(maxfds > 0, bail);
 
+	assert(fds != NULL);
 
-smcp_status_t
-smcp_outbound_send_hook() {
-	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	smcp_t const self = smcp_get_current_instance();
-	coap_size_t header_len;
-
-	header_len = (coap_size_t)(smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
-
-	// Remove the start-of-payload marker if we have no payload.
-	if(!smcp_get_current_instance()->outbound.content_len)
-		header_len--;
-
-	require_string(smcp_get_current_instance()->outbound.saddr.___smcp_family!=0,bail,"Destaddr not set");
-
-#if VERBOSE_DEBUG
-	{
-		static const char prefix[] = "Outbound:\t";
-		char from_addr_str[50] = "???";
-		char addr_str[50] = "???";
-		uint16_t port = 0;
-		port = ntohs(self->outbound.saddr.smcp_port);
-		SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&self->outbound.saddr.smcp_addr);
-#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-		SMCP_ADDR_NTOP(from_addr_str,sizeof(from_addr_str),&self->inbound.pktinfo.ipi6_addr);
-#elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
-		SMCP_ADDR_NTOP(from_addr_str,sizeof(from_addr_str),&self->inbound.pktinfo.ipi_addr);
-#endif
-
-		DEBUG_PRINTF("%sTO -> [%s]:%d",prefix,addr_str,(int)port);
-		DEBUG_PRINTF("%sFROM -> [%s]",prefix,from_addr_str);
-		coap_dump_header(
-			SMCP_DEBUG_OUT_FILE,
-			prefix,
-			self->outbound.packet,
-			header_len+smcp_get_current_instance()->outbound.content_len
-		);
+	if (self->plat.fd_udp > 0) {
+		fds->fd = self->plat.fd_udp;
+		fds->events = POLLIN | POLLHUP;
+		fds->revents = 0;
+		fds++;
+		maxfds--;
 	}
-#endif
 
-	ssize_t sent_bytes;
+#if SMCP_DTLS
+	if (self->plat.fd_dtls > 0) {
+		fds->fd = self->plat.fd_dtls;
+		fds->events = POLLIN | POLLHUP;
+		fds->revents = 0;
+		fds++;
+		maxfds--;
+	}
+#endif // SMCP_DTLS
 
-	if(self->is_processing_message)
-	{
-		struct iovec iov = {
-			self->outbound.packet_bytes,
-			header_len + self->outbound.content_len
-		};
+bail:
+	return ret;
+}
+
+
+static ssize_t
+sendtofrom(
+	int fd,
+	const void *data, size_t len, int flags,
+	const struct sockaddr * saddr_to, socklen_t socklen_to,
+	const struct sockaddr * saddr_from, socklen_t socklen_from
+)
+{
+	ssize_t ret = -1;
+	if ((socklen_from == 0)
+		|| (saddr_from == NULL)
+		|| (saddr_from->sa_family != saddr_to->sa_family)
+	) {
+		ret = sendto(
+			fd,
+			data,
+			len,
+			0,
+			(struct sockaddr *)saddr_to,
+			socklen_to
+		);
+		check(ret>0);
+	} else {
+		struct iovec iov = { (void *)data, len };
 		uint8_t cmbuf[CMSG_SPACE(sizeof (struct in6_pktinfo))];
 		struct cmsghdr *scmsgp;
 		struct msghdr msg = {
-			.msg_name = &self->outbound.saddr,
-			.msg_namelen = sizeof(self->outbound.saddr),
+			.msg_name = (void*)saddr_to,
+			.msg_namelen = socklen_to,
 			.msg_iov = &iov,
 			.msg_iovlen = 1,
 			.msg_control = cmbuf,
 			.msg_controllen = sizeof(cmbuf),
 		};
-#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-		struct in6_pktinfo *pktinfo;
-		scmsgp = CMSG_FIRSTHDR(&msg);
-		scmsgp->cmsg_level = IPPROTO_IPV6;
-		scmsgp->cmsg_type = IPV6_PKTINFO;
-		scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
-		pktinfo = (struct in6_pktinfo *)(CMSG_DATA(scmsgp));
-		*pktinfo = self->inbound.pktinfo;
-#elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
-		struct in_pktinfo *pktinfo;
-		scmsgp = CMSG_FIRSTHDR(&msg);
-		scmsgp->cmsg_level = IPPROTO_IPV4;
-		scmsgp->cmsg_type = IP_PKTINFO;
-		scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
-		pktinfo = (struct in_pktinfo *)(CMSG_DATA(scmsgp));
-		*pktinfo = self->inbound.pktinfo;
+
+#if defined(AF_INET6)
+		if (saddr_to->sa_family == AF_INET6) {
+			struct in6_pktinfo *pktinfo;
+			scmsgp = CMSG_FIRSTHDR(&msg);
+			scmsgp->cmsg_level = IPPROTO_IPV6;
+			scmsgp->cmsg_type = IPV6_PKTINFO;
+			scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+			pktinfo = (struct in6_pktinfo *)(CMSG_DATA(scmsgp));
+
+			pktinfo->ipi6_addr = ((struct sockaddr_in6*)saddr_from)->sin6_addr;
+			pktinfo->ipi6_ifindex = ((struct sockaddr_in6*)saddr_from)->sin6_scope_id;
+		} else
 #endif
-		sent_bytes = sendmsg(self->fd, &msg, 0);
-		memset(pktinfo,0,sizeof(*pktinfo));
-	} else {
-		sent_bytes = sendto(
-			self->fd,
-			self->outbound.packet_bytes,
-			header_len +
-			self->outbound.content_len,
-			0,
-			(struct sockaddr *)&self->outbound.saddr,
-			sizeof(self->outbound.saddr)
-		);
+
+		if (saddr_to->sa_family == AF_INET) {
+			struct in_pktinfo *pktinfo;
+			scmsgp = CMSG_FIRSTHDR(&msg);
+			scmsgp->cmsg_level = IPPROTO_IP;
+			scmsgp->cmsg_type = IP_PKTINFO;
+			scmsgp->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+			pktinfo = (struct in_pktinfo *)(CMSG_DATA(scmsgp));
+
+			pktinfo->ipi_spec_dst = ((struct sockaddr_in*)saddr_to)->sin_addr;
+			pktinfo->ipi_addr = ((struct sockaddr_in*)saddr_from)->sin_addr;
+			pktinfo->ipi_ifindex = 0;
+		}
+
+		ret = sendmsg(fd, &msg, flags);
+
+		check(ret > 0);
+		check_string(ret >= 0, strerror(errno));
 	}
 
+	return ret;
+}
+
+void
+smcp_plat_set_remote_sockaddr(const smcp_sockaddr_t* addr)
+{
+	smcp_t const self = smcp_get_current_instance();
+
+	if (addr) {
+		self->plat.sockaddr_remote = *addr;
+	} else {
+		memset(&self->plat.sockaddr_remote,0,sizeof(self->plat.sockaddr_remote));
+	}
+}
+
+void
+smcp_plat_set_local_sockaddr(const smcp_sockaddr_t* addr)
+{
+	smcp_t const self = smcp_get_current_instance();
+
+	if (addr) {
+		self->plat.sockaddr_local = *addr;
+	} else {
+		memset(&self->plat.sockaddr_local,0,sizeof(self->plat.sockaddr_local));
+	}
+}
+
+void
+smcp_plat_set_session_type(smcp_session_type_t type)
+{
+	smcp_t const self = smcp_get_current_instance();
+
+	self->plat.session_type = type;
+}
+
+
+const smcp_sockaddr_t*
+smcp_plat_get_remote_sockaddr(void)
+{
+	return &smcp_get_current_instance()->plat.sockaddr_remote;
+}
+
+const smcp_sockaddr_t*
+smcp_plat_get_local_sockaddr(void)
+{
+	return &smcp_get_current_instance()->plat.sockaddr_local;
+}
+
+smcp_session_type_t
+smcp_plat_get_session_type(void)
+{
+	return smcp_get_current_instance()->plat.session_type;
+}
+
+smcp_status_t
+smcp_plat_outbound_start(smcp_t self, uint8_t** data_ptr, coap_size_t *data_len)
+{
+	SMCP_EMBEDDED_SELF_HOOK;
+	if (data_ptr) {
+		*data_ptr = (uint8_t*)self->plat.outbound_packet_bytes;
+	}
+	if (data_len) {
+		*data_len = sizeof(self->plat.outbound_packet_bytes);
+	}
+	self->outbound.packet = (struct coap_header_s*)self->plat.outbound_packet_bytes;
+	return SMCP_STATUS_OK;
+}
+
+
+smcp_status_t
+smcp_plat_outbound_finish(smcp_t self,const uint8_t* data_ptr, coap_size_t data_len, int flags)
+{
+	SMCP_EMBEDDED_SELF_HOOK;
+	smcp_status_t ret = SMCP_STATUS_FAILURE;
+	ssize_t sent_bytes = -1;
+	const int fd = smcp_get_current_instance()->plat.fd_udp;
+
+	assert(fd >= 0);
+
+	require(data_len > 0, bail);
+
+#if VERBOSE_DEBUG
+	{
+		char addr_str[50] = "???";
+		uint16_t port = ntohs(smcp_plat_get_remote_sockaddr()->smcp_port);
+		SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&smcp_plat_get_remote_sockaddr()->smcp_addr);
+		DEBUG_PRINTF("smcp(%p): Outbound packet to [%s]:%d", self,addr_str,(int)port);
+		coap_dump_header(
+			SMCP_DEBUG_OUT_FILE,
+			"Outbound:\t",
+			(struct coap_header_s*)data_ptr,
+			(coap_size_t)data_len
+		);
+	}
+#endif
+
+	sent_bytes = sendtofrom(
+		fd,
+		data_ptr,
+		data_len,
+		0,
+		(struct sockaddr *)smcp_plat_get_remote_sockaddr(),
+		sizeof(smcp_sockaddr_t),
+		(struct sockaddr *)smcp_plat_get_local_sockaddr(),
+		sizeof(smcp_sockaddr_t)
+	);
+
 	require_action_string(
-		(sent_bytes>=0),
+		(sent_bytes >= 0),
 		bail, ret = SMCP_STATUS_ERRNO, strerror(errno)
 	);
 
 	require_action_string(
-		sent_bytes,
-		bail, ret = SMCP_STATUS_FAILURE, "sendto() returned zero."
+		(sent_bytes == data_len),
+		bail, ret = SMCP_STATUS_FAILURE, "sendto() returned less than len"
 	);
 
 	ret = SMCP_STATUS_OK;
@@ -315,129 +529,149 @@ bail:
 	return ret;
 }
 
-smcp_status_t
-smcp_outbound_send_secure_hook() {
-	smcp_status_t ret = SMCP_STATUS_FAILURE;
-
-	// DTLS support not yet implemeted.
-	ret = SMCP_STATUS_NOT_IMPLEMENTED;
-
-bail:
-	return ret;
-}
-
 // MARK: -
 
 smcp_status_t
-smcp_wait(
-	smcp_t self, cms_t cms
+smcp_plat_wait(
+	smcp_t self, smcp_cms_t cms
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
-	smcp_status_t ret = 0;
-	struct pollfd pollee = { self->fd, POLLIN | POLLHUP, 0 };
+	smcp_status_t ret = SMCP_STATUS_OK;
+	struct pollfd pollee = { self->plat.fd_udp, POLLIN | POLLHUP, 0 };
+	int descriptors_ready;
 
-	if(cms >= 0)
+	if(cms >= 0) {
 		cms = MIN(cms, smcp_get_timeout(self));
-	else
+	} else {
 		cms = smcp_get_timeout(self);
+	}
 
 	errno = 0;
 
-	if (poll(&pollee, 1, cms) == 0) {
-		ret = SMCP_STATUS_TIMEOUT;
-	}
+	descriptors_ready = poll(&pollee, 1, cms);
 
 	// Ensure that poll did not fail with an error.
-	require_action_string(errno == 0,
+	require_action_string(descriptors_ready != -1,
 		bail,
 		ret = SMCP_STATUS_ERRNO,
 		strerror(errno)
 	);
 
+	if (descriptors_ready == 0) {
+		ret = SMCP_STATUS_TIMEOUT;
+	}
+
 bail:
 	return ret;
 }
 
 smcp_status_t
-smcp_process(
+smcp_plat_process(
 	smcp_t self
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
 
 	int tmp;
-	struct pollfd pollee = { self->fd, POLLIN | POLLHUP, 0 };
+	struct pollfd polls[2];
+	int poll_count;
+
+	poll_count = smcp_plat_update_pollfds(self, polls, sizeof(polls)/sizeof(polls[0]));
 
 	errno = 0;
 
-	tmp = poll(&pollee, 1, 0);
+	tmp = poll(polls, poll_count, 0);
 
 	// Ensure that poll did not fail with an error.
-	require_action_string(errno == 0,
+	require_action_string(
+		errno == 0,
 		bail,
 		ret = SMCP_STATUS_ERRNO,
 		strerror(errno)
 	);
 
 	if(tmp > 0) {
-		char packet[SMCP_MAX_PACKET_LENGTH+1];
-		smcp_sockaddr_t packet_saddr;
-		ssize_t packet_len = 0;
-		char cmbuf[0x100];
-		struct iovec iov = { packet, SMCP_MAX_PACKET_LENGTH };
-		struct msghdr msg = {
-			.msg_name = &packet_saddr,
-			.msg_namelen = sizeof(packet_saddr),
-			.msg_iov = &iov,
-			.msg_iovlen = 1,
-			.msg_control = cmbuf,
-			.msg_controllen = sizeof(cmbuf),
-		};
-		struct cmsghdr *cmsg;
-
-		packet_len = recvmsg(self->fd, &msg, 0);
-
-		require_action(packet_len > 0, bail, ret = SMCP_STATUS_ERRNO);
-
-		packet[packet_len] = 0;
-
-		ret = smcp_inbound_start_packet(self, msg.msg_iov[0].iov_base, (coap_size_t)packet_len);
-		require(ret==SMCP_STATUS_OK,bail);
-
-		// Set the source address
-		ret = smcp_inbound_set_srcaddr((smcp_sockaddr_t*)msg.msg_name);
-		require(ret==SMCP_STATUS_OK,bail);
-
-		for (
-			cmsg = CMSG_FIRSTHDR(&msg);
-			cmsg != NULL;
-			cmsg = CMSG_NXTHDR(&msg, cmsg)
-		) {
-			if (cmsg->cmsg_level != SMCP_IPPROTO
-				|| cmsg->cmsg_type != SMCP_PKTINFO
-			) {
+		for (tmp = 0; tmp < poll_count; tmp++) {
+			if (!polls[tmp].revents) {
 				continue;
-			}
+			} else {
+				char packet[SMCP_MAX_PACKET_LENGTH+1];
+				smcp_sockaddr_t packet_saddr;
+				smcp_sockaddr_t dest_saddr;
+				ssize_t packet_len = 0;
+				char cmbuf[0x100];
+				struct iovec iov = { packet, SMCP_MAX_PACKET_LENGTH };
+				struct msghdr msg = {
+					.msg_name = &packet_saddr,
+					.msg_namelen = sizeof(packet_saddr),
+					.msg_iov = &iov,
+					.msg_iovlen = 1,
+					.msg_control = cmbuf,
+					.msg_controllen = sizeof(cmbuf),
+				};
+				struct cmsghdr *cmsg;
+				smcp_sockaddr_t* src_addr = NULL;
+				smcp_sockaddr_t* dst_addr = NULL;
+
+				packet_len = recvmsg(polls[tmp].fd, &msg, 0);
+
+				require_action(packet_len > 0, bail, ret = SMCP_STATUS_ERRNO);
+
+				packet[packet_len] = 0;
+
+				// Set the source address
+				src_addr = (smcp_sockaddr_t*)msg.msg_name;
+
+				for (
+					cmsg = CMSG_FIRSTHDR(&msg);
+					cmsg != NULL;
+					cmsg = CMSG_NXTHDR(&msg, cmsg)
+				) {
+					if (cmsg->cmsg_level != SMCP_IPPROTO
+						|| cmsg->cmsg_type != SMCP_PKTINFO
+					) {
+						continue;
+					}
+
+					dest_saddr = packet_saddr;
 
 #if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-			struct in6_pktinfo *pi = (struct in6_pktinfo *)CMSG_DATA(cmsg);
-			packet_saddr.smcp_addr = pi->ipi6_addr;
+					struct in6_pktinfo *pi = (struct in6_pktinfo *)CMSG_DATA(cmsg);
+					dest_saddr.smcp_addr = pi->ipi6_addr;
+					dest_saddr.sin6_scope_id = pi->ipi6_ifindex;
+
 #elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
-			struct in_pktinfo *pi = (struct in_pktinfo *)CMSG_DATA(cmsg);
-			packet_saddr.smcp_addr = pi->ipi_addr;
+					struct in_pktinfo *pi = (struct in_pktinfo *)CMSG_DATA(cmsg);
+					dest_saddr.smcp_addr = pi->ipi_addr;
 #endif
-			packet_saddr.smcp_port = htons(smcp_get_port(self));
-			ret = smcp_inbound_set_destaddr(&packet_saddr);
-			require(ret==SMCP_STATUS_OK,bail);
 
-			self->inbound.pktinfo = *pi;
+					dest_saddr.smcp_port = htons(smcp_plat_get_port(self));
+					dst_addr = (smcp_sockaddr_t*)&packet_saddr;
+
+					self->plat.pktinfo = *pi;
+				}
+
+				if (self->plat.fd_udp == polls[tmp].fd) {
+					ret = smcp_inbound_start_packet(self, packet, (coap_size_t)packet_len);
+					require_noerr(ret, bail);
+
+					smcp_plat_set_remote_sockaddr(src_addr);
+					smcp_plat_set_local_sockaddr(dst_addr);
+					smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
+
+					ret = smcp_inbound_finish_packet();
+					require(ret==SMCP_STATUS_OK,bail);
+
+#if SMCP_DTLS
+				} else if (self->plat.fd_dtls == polls[tmp].fd) {
+					// TODO: Feed it into dtls, see if anything pops out.
+
+#endif
+				}
+			}
 		}
-
-		ret = smcp_inbound_finish_packet();
-		require(ret==SMCP_STATUS_OK,bail);
 	}
 
-	smcp_set_current_instance(self);
 	smcp_handle_timers(self);
 
 bail:
@@ -447,7 +681,7 @@ bail:
 }
 
 smcp_status_t
-smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
+smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
 {
 	smcp_status_t ret;
 	struct addrinfo hint = {

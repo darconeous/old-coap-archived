@@ -45,28 +45,10 @@
 #include "smcp.h"
 #include "smcp-internal.h"
 #include "smcp-logging.h"
-#include "smcp-auth.h"
 #include "smcp-timer.h"
 
 #include "url-helpers.h"
 #include "ll.h"
-
-#if CONTIKI
-#include "contiki.h"
-#include "net/ip/tcpip.h"
-#include "net/ip/resolv.h"
-#endif // CONTIKI
-
-#if SMCP_USE_BSD_SOCKETS
-#include <poll.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <sys/errno.h>
-#include <sys/types.h>
-#include <unistd.h>
-#endif // SMCP_USE_BSD_SOCKETS
-
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -190,13 +172,13 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 
 bool
 smcp_inbound_origin_is_local() {
-	const smcp_sockaddr_t* const saddr = smcp_inbound_get_srcaddr();
+	const smcp_sockaddr_t* const saddr = smcp_plat_get_remote_sockaddr();
 
 	if (NULL == saddr) {
 		return false;
 	}
 
-	if (htonl(smcp_get_port(smcp_get_current_instance())) != saddr->smcp_port) {
+	if (htonl(smcp_plat_get_port(smcp_get_current_instance())) != saddr->smcp_port) {
 		return false;
 	}
 
@@ -318,6 +300,8 @@ smcp_inbound_start_packet(
 	self->inbound.packet_len = packet_length;
 	self->inbound.content_type = COAP_CONTENT_TYPE_UNKNOWN;
 
+	self->current_transaction = NULL;
+
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
 	// Kind of a hack, but very convenient.
@@ -325,41 +309,6 @@ smcp_inbound_start_packet(
 
 bail:
 	return ret;
-}
-
-smcp_status_t
-smcp_inbound_set_srcaddr(const smcp_sockaddr_t* sockaddr) {
-	smcp_t const self = smcp_get_current_instance();
-	if(!self->is_processing_message)
-		return SMCP_STATUS_FAILURE;
-	memcpy(&self->inbound.saddr, sockaddr, sizeof(self->inbound.saddr));
-
-	return SMCP_STATUS_OK;
-}
-
-smcp_status_t
-smcp_inbound_set_destaddr(const smcp_sockaddr_t* sockaddr) {
-	smcp_t const self = smcp_get_current_instance();
-	if(!self->is_processing_message)
-		return SMCP_STATUS_FAILURE;
-
-	self->inbound.was_sent_to_multicast = SMCP_IS_ADDR_MULTICAST(&sockaddr->smcp_addr);
-
-#if SMCP_USE_BSD_SOCKETS
-#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-	self->inbound.pktinfo.ipi6_addr = sockaddr->smcp_addr;
-	self->inbound.pktinfo.ipi6_ifindex = 0;
-#elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
-	self->inbound.pktinfo.ipi_addr = sockaddr->smcp_addr;
-	self->inbound.pktinfo.ipi_ifindex = 0;
-#endif
-#endif
-
-	return SMCP_STATUS_OK;
-}
-
-const smcp_sockaddr_t* smcp_inbound_get_srcaddr() {
-	return (const smcp_sockaddr_t*)&smcp_get_current_instance()->inbound.saddr;
 }
 
 smcp_status_t
@@ -373,8 +322,8 @@ smcp_inbound_finish_packet() {
 #if VERBOSE_DEBUG
 	{
 		char addr_str[50] = "???";
-		uint16_t port = ntohs(self->inbound.saddr.smcp_port);
-		SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&self->inbound.saddr.smcp_addr);
+		uint16_t port = ntohs(smcp_plat_get_remote_sockaddr()->smcp_port);
+		SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&smcp_plat_get_remote_sockaddr()->smcp_addr);
 		DEBUG_PRINTF("smcp(%p): Inbound packet from [%s]:%d", self,addr_str,(int)port);
 		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
@@ -486,18 +435,22 @@ smcp_inbound_finish_packet() {
 				else if(packet->code==COAP_METHOD_DELETE)
 					result_code = COAP_RESULT_202_DELETED;
 			}
-			smcp_outbound_begin_response(result_code);
+			ret = smcp_outbound_begin_response(result_code);
+
+			require_noerr(ret, bail);
 
 			// For an ISE, let's give a little more information.
 			if(result_code==COAP_RESULT_500_INTERNAL_SERVER_ERROR) {
 				smcp_outbound_set_var_content_int(ret);
 			}
 		} else {
-			smcp_outbound_begin_response(0);
-			if(ret && !self->inbound.is_dupe)
+			ret = smcp_outbound_begin_response(0);
+			require_noerr(ret, bail);
+			if(ret && !self->inbound.is_dupe) {
 				self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
-			else
+			} else {
 				self->outbound.packet->tt = COAP_TRANS_TYPE_ACK;
+			}
 			smcp_outbound_set_token(NULL, 0);
 		}
 		ret = smcp_outbound_send();
@@ -535,15 +488,11 @@ smcp_handle_request() {
 
 	// TODO: Add proxy-server handler.
 
-	// Authenticate the request.
-	ret = smcp_auth_inbound_init();
-	require_noerr(ret,bail);
-
 #if SMCP_CONF_ENABLE_VHOSTS
 	{
 		extern smcp_status_t smcp_vhost_route(smcp_request_handler_func* func, void** context);
-		smcp_vhost_route(&request_handler, &context);
-		require_noerr(ret,bail);
+		ret = smcp_vhost_route(&request_handler, &context);
+		require_noerr(ret, bail);
 	}
 #endif
 

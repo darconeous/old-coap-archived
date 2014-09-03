@@ -1,4 +1,4 @@
-INCLUDES = -I.. -I$(top_srcdir)/src
+AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
 #AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 
 AM_LDFLAGS = -export-dynamic @LOAD_ALL_SYMBOLS_FLAG@

@@ -43,7 +43,6 @@
 #include "smcp.h"
 #include "smcp-internal.h"
 #include "smcp-logging.h"
-#include "smcp-auth.h"
 #include "smcp-helpers.h"
 #include "smcp-timer.h"
 
@@ -107,25 +106,40 @@ ___smcp_check_version(uint32_t x)
 // MARK: -
 // MARK: SMCP Implementation
 
-#if !SMCP_EMBEDDED
 smcp_t
-smcp_create(uint16_t port) {
+smcp_create(void) {
+#if !SMCP_EMBEDDED
 	smcp_t ret = NULL;
 
 	ret = (smcp_t)calloc(1, sizeof(struct smcp_s));
 
 	require(ret != NULL, bail);
 
-	ret = smcp_init(ret, port);
+	ret = smcp_init(ret);
 
 bail:
 	return ret;
-}
+#else
+	return smcp_init(&smcp_global_instance);
 #endif
+}
+
+smcp_t
+smcp_init(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
+
+	if (NULL == self) {
+		return NULL;
+	}
+
+	// Clear the entire structure.
+	memset(self, 0, sizeof(*self));
+
+	return smcp_plat_init(self);
+}
 
 void
 smcp_release(smcp_t self) {
-	void smcp_release_plat(smcp_t self);
 
 	SMCP_EMBEDDED_SELF_HOOK;
 	require(self, bail);
@@ -143,7 +157,7 @@ smcp_release(smcp_t self) {
 		smcp_invalidate_timer(self, timer);
 	}
 
-	smcp_release_plat(self);
+	smcp_plat_finalize(self);
 
 #if !SMCP_EMBEDDED
 	free(self);
@@ -240,109 +254,6 @@ smcp_vhost_route(smcp_request_handler_func* func, void** context) {
 #endif
 
 // MARK: -
-// MARK: Asynchronous Response Support
-
-smcp_status_t
-smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x) {
-	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
-	self->inbound.packet = &x->request.header;
-	self->inbound.packet_len = x->request_len;
-	self->inbound.content_ptr = (char*)x->request.header.token + x->request.header.token_len;
-	self->inbound.last_option_key = 0;
-	self->inbound.this_option = x->request.header.token;
-	self->inbound.is_fake = true;
-	self->inbound.saddr = x->remote_saddr;
-#if SMCP_USE_BSD_SOCKETS
-	self->inbound.pktinfo = x->pktinfo;
-#endif
-	self->is_processing_message = true;
-	self->did_respond = false;
-
-	smcp_outbound_begin_response(code);
-
-	self->outbound.packet->msg_id = self->current_transaction->msg_id;
-
-	self->outbound.packet->tt = x->request.header.tt;
-
-	ret = smcp_outbound_set_token(x->request.header.token, x->request.header.token_len);
-	require_noerr(ret, bail);
-
-	ret = smcp_outbound_set_destaddr(&x->remote_saddr);
-
-	require_noerr(ret, bail);
-
-	assert(coap_verify_packet((const char*)x->request.bytes, x->request_len));
-bail:
-	return ret;
-}
-
-smcp_status_t
-smcp_start_async_response(struct smcp_async_response_s* x, int flags) {
-	smcp_status_t ret = 0;
-	smcp_t const self = smcp_get_current_instance();
-
-	require_action_string(x!=NULL,bail,ret=SMCP_STATUS_INVALID_ARGUMENT,"NULL async_response arg");
-
-	require_action_string(
-		smcp_inbound_get_packet_length()-smcp_inbound_get_content_len()<=sizeof(x->request),
-		bail,
-		(smcp_outbound_quick_response(COAP_RESULT_413_REQUEST_ENTITY_TOO_LARGE,NULL),ret=SMCP_STATUS_FAILURE),
-		"Request too big for async response"
-	);
-
-	x->request_len = smcp_inbound_get_packet_length()-smcp_inbound_get_content_len();
-	memcpy(x->request.bytes,smcp_inbound_get_packet(),x->request_len);
-
-	assert(coap_verify_packet((const char*)x->request.bytes, x->request_len));
-
-	memcpy(&x->remote_saddr,&self->inbound.saddr,sizeof(x->remote_saddr));
-#if SMCP_USE_BSD_SOCKETS
-	x->pktinfo = self->inbound.pktinfo;
-#endif
-
-	if(	!(flags & SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK)
-		&& self->inbound.packet->tt==COAP_TRANS_TYPE_CONFIRMABLE
-	) {
-		// Fake inbound packets are created to tickle
-		// content out of nodes by the pairing system.
-		// Since we are asynchronous, this clearly isn't
-		// going to work. Support for this will have to
-		// come in the future.
-		require_action(!self->inbound.is_fake,bail,ret = SMCP_STATUS_NOT_IMPLEMENTED);
-
-		ret = smcp_outbound_begin_response(COAP_CODE_EMPTY);
-		require_noerr(ret, bail);
-
-		ret = smcp_outbound_send();
-		require_noerr(ret, bail);
-	}
-
-	if(self->inbound.is_dupe) {
-		ret = SMCP_STATUS_DUPE;
-		goto bail;
-	}
-
-bail:
-	return ret;
-}
-
-smcp_status_t
-smcp_finish_async_response(struct smcp_async_response_s* x) {
-	// This method is largely a hook for future functionality.
-	// It doesn't really do much at the moment, but it may later.
-	x->request_len = 0;
-	return SMCP_STATUS_OK;
-}
-
-bool
-smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
-{
-	smcp_t const self = smcp_get_current_instance();
-	return 0 == memcmp(&x->remote_saddr,&self->inbound.saddr,sizeof(x->remote_saddr));
-}
-
-// MARK: -
 // MARK: Other
 
 coap_msg_id_t
@@ -378,7 +289,7 @@ const char* smcp_status_to_cstr(int x) {
 	case SMCP_STATUS_TIMEOUT: return "Timeout"; break;
 	case SMCP_STATUS_NOT_IMPLEMENTED: return "Not Implemented"; break;
 	case SMCP_STATUS_NOT_FOUND: return "Not Found"; break;
-	case SMCP_STATUS_H_ERRNO: return "HERRNO"; break;
+	case SMCP_STATUS_H_ERRNO: return "H_ERRNO"; break;
 	case SMCP_STATUS_RESPONSE_NOT_ALLOWED: return "Response not allowed";
 		break;
 
@@ -393,6 +304,9 @@ const char* smcp_status_to_cstr(int x) {
 
 	case SMCP_STATUS_RESET: return "Transaction Reset"; break;
 	case SMCP_STATUS_URI_PARSE_FAILURE: return "URI Parse Failure"; break;
+
+	case SMCP_STATUS_WAIT_FOR_DNS: return "Wait For DNS"; break;
+	case SMCP_STATUS_WAIT_FOR_SESSION: return "Wait For Session"; break;
 
 	case SMCP_STATUS_ERRNO:
 #if SMCP_USE_BSD_SOCKETS

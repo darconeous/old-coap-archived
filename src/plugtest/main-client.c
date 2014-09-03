@@ -58,8 +58,8 @@ typedef struct {
 	bool has_block1_option;
 	bool has_block2_option;
 
-	struct timeval start_time;
-	struct timeval stop_time;
+	smcp_timestamp_t start_time;
+	smcp_timestamp_t stop_time;
 
 	enum {
 		EXT_NONE,
@@ -79,7 +79,7 @@ dump_test_results(const test_data_s *test_data) {
 			printf("\terror: %s (%d)\n", smcp_status_to_cstr(test_data->error), test_data->error);
 	}
 	{
-		cms_t duration = period_between_timevals_in_cms(&test_data->stop_time,&test_data->start_time);
+		smcp_cms_t duration = smcp_plat_timestamp_diff(test_data->stop_time,test_data->start_time);
 		printf("\tduration: %dms\n", (int)duration);
 
 	}
@@ -144,7 +144,8 @@ resend_test_request(void* context) {
 					content[i-block1_info.block_offset] = '0'+(i%10);
 			}
 
-			status = smcp_outbound_set_content_len(MIN(block_stop-block1_info.block_offset,resource_length-block1_info.block_offset));
+			status = smcp_outbound_set_content_len(MIN((coap_code_t)(block_stop-block1_info.block_offset),(coap_code_t)(resource_length-block1_info.block_offset)));
+			require_noerr(status,bail);
 		}
 	}
 
@@ -200,7 +201,7 @@ response_test_handler(int statuscode, void* context) {
 			}
 
 			test_data->inbound_content_len+=smcp_inbound_get_content_len();
-			test_data->inbound_code = statuscode;
+			test_data->inbound_code = (coap_code_t)statuscode;
 			if(smcp_inbound_is_dupe())
 				test_data->inbound_dupe_packets++;
 			else
@@ -213,18 +214,20 @@ response_test_handler(int statuscode, void* context) {
 bool
 test_simple(smcp_t smcp, test_data_s *test_data, const char* url, const char* rel, coap_code_t outbound_code,coap_transaction_type_t outbound_tt,coap_code_t expected_code, int extra)
 {
+	smcp_status_t status;
 	smcp_transaction_t transaction = NULL;
 	memset(test_data,0,sizeof(*test_data));
 	test_data->outbound_code = outbound_code;
 	test_data->outbound_tt = outbound_tt;
 	test_data->expected_code = expected_code;
 	test_data->extra = extra;
-	if(strlen(url) && (url[strlen(url)-1] == '/'))
+	if(strlen(url) && (url[strlen(url)-1] == '/')) {
 		snprintf(test_data->url,sizeof(test_data->url), "%s%s",url,rel);
-	else
+	} else {
 		snprintf(test_data->url,sizeof(test_data->url), "%s/%s",url,rel);
+	}
 
-	gettimeofday(&test_data->start_time, NULL);
+	test_data->start_time = smcp_plat_cms_to_timestamp(0);
 	transaction = smcp_transaction_init(
 		transaction,
 		SMCP_TRANSACTION_ALWAYS_INVALIDATE, // Flags
@@ -233,18 +236,23 @@ test_simple(smcp_t smcp, test_data_s *test_data, const char* url, const char* re
 		(void*)test_data
 	);
 
-	smcp_transaction_begin(
+	status = smcp_transaction_begin(
 		smcp,
 		transaction,
 		30*MSEC_PER_SEC
 	);
 
+	require_noerr(status, bail);
+
 	while(!test_data->finished) {
-		smcp_wait(smcp,30*MSEC_PER_SEC);
-		smcp_process(smcp);
+		status = smcp_plat_wait(smcp,30*MSEC_PER_SEC);
+		require((status==SMCP_STATUS_OK) || (status==SMCP_STATUS_TIMEOUT), bail);
+
+		status = smcp_plat_process(smcp);
+		require_noerr(status, bail);
 	}
 
-	gettimeofday(&test_data->stop_time, NULL);
+	test_data->stop_time = smcp_plat_cms_to_timestamp(0);
 
 	test_data->failed = true;
 	require(test_data->inbound_code == test_data->expected_code,bail);
@@ -252,7 +260,7 @@ test_simple(smcp_t smcp, test_data_s *test_data, const char* url, const char* re
 	test_data->failed = false;
 
 bail:
-	return !test_data->failed;
+	return (status == SMCP_STATUS_OK) && !test_data->failed;
 }
 
 bool
@@ -512,7 +520,10 @@ main(int argc, char * argv[]) {
 
 	SMCP_LIBRARY_VERSION_CHECK();
 
-	smcp = smcp_create(61616);
+	smcp = smcp_create();
+
+	smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, 0);
+
 
 //	url = "coap://contiki.local./";
 //	url = "coap://coap.me/";
@@ -524,7 +535,7 @@ main(int argc, char * argv[]) {
 		exit(-1);
 	}
 
-	printf("Client using port %d.\n", smcp_get_port(smcp));
+	printf("Client using port %d.\n", smcp_plat_get_port(smcp));
 
 #define do_test(x)	do { printf("%s: Testing...\n",#x); if(test_ ## x(smcp,url,&test_data)) { dump_test_results(&test_data); printf("\tresult = OK\n"); } else { dump_test_results(&test_data); printf("\tresult = FAIL\n"); errorcount++; } } while(0)
 

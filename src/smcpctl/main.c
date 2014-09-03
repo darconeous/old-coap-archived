@@ -658,11 +658,18 @@ main(
 	show_headers = debug_mode;
 	istty = isatty(fileno(stdin));
 
-	gSMCPInstance = smcp_create(port);
+	gSMCPInstance = smcp_create();
 
 	if(!gSMCPInstance) {
 		fprintf(stderr,"%s: FATAL-ERROR: Unable to initialize smcp instance! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
 		return ERRORCODE_INIT_FAILURE;
+	}
+
+	if (smcp_plat_bind_to_port(gSMCPInstance, SMCP_SESSION_TYPE_UDP, port) != SMCP_STATUS_OK) {
+		if(smcp_plat_bind_to_port(gSMCPInstance, SMCP_SESSION_TYPE_UDP, 0) != SMCP_STATUS_OK) {
+			fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
+			return ERRORCODE_INIT_FAILURE;
+		}
 	}
 
 	setenv("SMCP_CURRENT_PATH", "coap://localhost/", 0);
@@ -689,7 +696,7 @@ main(
 	}
 
 	if(istty) {
-		fprintf(stderr,"Listening on port %d.\n",smcp_get_port(gSMCPInstance));
+		fprintf(stderr,"Listening on port %d.\n",smcp_plat_get_port(gSMCPInstance));
 #if !HAVE_LIBREADLINE
 		print_arg_list_help(option_list,
 			argv[0],
@@ -709,14 +716,30 @@ main(
 	while((gRet != ERRORCODE_QUIT) && !feof(stdin)) {
 #if HAVE_LIBREADLINE
 		if(istty) {
-			struct pollfd polltable[2] = {
+			struct pollfd polltable[10] = {
 				{ fileno(stdin), POLLIN | POLLHUP, 0 },
-				{ smcp_get_fd(gSMCPInstance), POLLIN | POLLHUP, 0 },
 			};
+			int pollfdcount = 1;
+			int smcppollfdcount = 0;
+			int smcpmaxpollfds = sizeof(polltable)/sizeof(*polltable)-1;
 
-			if(poll(
+			smcppollfdcount = smcp_plat_update_pollfds(gSMCPInstance, polltable+1, smcpmaxpollfds);
+
+			if (smcppollfdcount < 0) {
+				perror("smcp_plat_update_pollfds");
+				abort();
+			}
+
+			if (smcppollfdcount > smcpmaxpollfds) {
+				perror("too many fds");
+				abort();
+			}
+
+			pollfdcount += smcppollfdcount;
+
+			if (poll(
 					polltable,
-					2,
+					pollfdcount,
 					smcp_get_timeout(gSMCPInstance)
 				) < 0
 			) {
@@ -738,7 +761,7 @@ main(
 			process_input_line(linebuffer);
 		}
 
-		smcp_process(gSMCPInstance);
+		smcp_plat_process(gSMCPInstance);
 	}
 
 bail:

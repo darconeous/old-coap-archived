@@ -244,8 +244,8 @@ smcp_node_init(
 		bt_insert(
 			(void**)&((smcp_node_t)node)->children,
 			ret,
-		    (bt_compare_func_t)smcp_node_compare,
-		    (bt_delete_func_t)smcp_node_delete,
+			(bt_compare_func_t)smcp_node_compare,
+			(bt_delete_func_t)smcp_node_delete,
 			NULL
 		);
 #else
@@ -372,7 +372,7 @@ smcp_node_find_next_with_path(
 		int namelen;
 		for(namelen = 0; path[namelen]; namelen++) {
 			if((path[namelen] == '/') || (path[namelen] == '?') ||
-			        (path[namelen] == '!'))
+					(path[namelen] == '!'))
 				break;
 		}
 
@@ -418,7 +418,7 @@ smcp_node_find_next_with_path(
 
 	// Move to next name
 	while(path[0] && (path[0] != '/') && (path[0] != '!') &&
-	        (path[0] != '?'))
+			(path[0] != '?'))
 		path++;
 
 	// Move past any preceding slashes.

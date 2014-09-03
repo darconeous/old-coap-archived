@@ -43,7 +43,6 @@
 #include "smcp.h"
 #include "smcp-internal.h"
 #include "smcp-logging.h"
-#include "smcp-auth.h"
 
 #if CONTIKI
 #include "contiki.h"
@@ -67,25 +66,9 @@ extern void *uip_sappdata;
 #define UIP_UDP_BUF                        ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 #endif
 
-
 smcp_t
-smcp_init(
-	smcp_t self, uint16_t port
-) {
+smcp_plat_init(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
-
-	require(self != NULL, bail);
-
-	if(port == 0)
-		port = COAP_DEFAULT_PORT;
-
-	// Clear the entire structure.
-	memset(self, 0, sizeof(*self));
-
-	// Set up the UDP port for listening.
-	self->udp_conn = udp_new(NULL, 0, NULL);
-	uip_udp_bind(self->udp_conn, htons(port));
-	self->udp_conn->rport = 0;
 
 #if UIP_CONF_IPV6
 	{
@@ -99,78 +82,180 @@ smcp_init(
 	}
 #endif
 
-bail:
 	return self;
 }
 
+smcp_status_t
+smcp_plat_bind_to_port(
+	smcp_t self,
+	smcp_session_type_t type,
+	uint16_t port
+) {
+	SMCP_EMBEDDED_SELF_HOOK;
+	smcp_status_t ret = SMCP_STATUS_FAILURE;
+
+	switch(type) {
+	case SMCP_SESSION_TYPE_UDP:
+#if SMCP_DTLS
+	case SMCP_SESSION_TYPE_DTLS:
+#endif
+#if SMCP_TCP
+	case SMCP_SESSION_TYPE_TCP:
+#endif
+#if SMCP_TLS
+	case SMCP_SESSION_TYPE_TLS:
+#endif
+		break;
+
+	default:
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		// Unsupported session type.
+		goto bail;
+	}
+
+	// Set up the UDP port for listening.
+	self->plat.udp_conn = udp_new(NULL, 0, NULL);
+	uip_udp_bind(self->plat.udp_conn, htons(port));
+	self->plat.udp_conn->rport = 0;
+
+	ret = SMCP_STATUS_OK;
+
+bail:
+	return ret;
+}
+
 void
-smcp_release_plat(smcp_t self) {
+smcp_plat_finalize(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
 
-	if(self->udp_conn)
-		uip_udp_remove(self->udp_conn);
+	if(self->plat.udp_conn) {
+		uip_udp_remove(self->plat.udp_conn);
+	}
+}
+
+void
+smcp_plat_set_remote_sockaddr(const smcp_sockaddr_t* addr)
+{
+	smcp_t const self = smcp_get_current_instance();
+
+	if (addr) {
+		self->plat.sockaddr_remote = *addr;
+	} else {
+		memset(&self->plat.sockaddr_remote,0,sizeof(self->plat.sockaddr_remote));
+	}
+}
+
+void
+smcp_plat_set_local_sockaddr(const smcp_sockaddr_t* addr)
+{
+	smcp_t const self = smcp_get_current_instance();
+
+	if (addr) {
+		self->plat.sockaddr_local = *addr;
+	} else {
+		memset(&self->plat.sockaddr_local,0,sizeof(self->plat.sockaddr_local));
+	}
+}
+
+void
+smcp_plat_set_session_type(smcp_session_type_t type)
+{
+	smcp_t const self = smcp_get_current_instance();
+
+	self->plat.session_type = type;
+}
+
+
+const smcp_sockaddr_t*
+smcp_plat_get_remote_sockaddr(void)
+{
+	return &smcp_get_current_instance()->plat.sockaddr_remote;
+}
+
+const smcp_sockaddr_t*
+smcp_plat_get_local_sockaddr(void)
+{
+	return &smcp_get_current_instance()->plat.sockaddr_local;
+}
+
+smcp_session_type_t
+smcp_plat_get_session_type(void)
+{
+	return smcp_get_current_instance()->plat.session_type;
 }
 
 
 struct uip_udp_conn*
-smcp_get_udp_conn(smcp_t self) {
+smcp_plat_get_udp_conn(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
-	return self->udp_conn;
+	return self->plat.udp_conn;
 }
 
 uint16_t
-smcp_get_port(smcp_t self) {
+smcp_plat_get_port(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
-	return ntohs(self->udp_conn->lport);
+	return ntohs(self->plat.udp_conn->lport);
+}
+
+
+smcp_status_t
+smcp_plat_outbound_start(smcp_t self, uint8_t** data_ptr, coap_size_t *data_len)
+{
+	SMCP_EMBEDDED_SELF_HOOK;
+	uint8_t *buffer;
+	int space_remaining = UIP_BUFSIZE;
+
+	uip_udp_conn = self->plat.udp_conn;
+	buffer = (uint8_t*)uip_sappdata;
+
+	if(buffer == (uint8_t*)self->inbound.packet) {
+		// We want to preserve at least the headers from the inbound packet,
+		// so we will put the outbound packet immediately after the last
+		// header option of the inbound packet.
+		buffer = (uint8_t*)self->inbound.content_ptr;
+
+		// Fix the alignment for 32-bit platforms.
+		buffer = (uint8_t*)((uintptr_t)((uint8_t*)self->outbound.packet+7)&~(uintptr_t)0x7);
+
+		space_remaining -= (buffer-(uint8_t*)uip_buf);
+
+		if (space_remaining-4<0) {
+			buffer = (uint8_t*)uip_sappdata;
+			space_remaining = UIP_BUFSIZE;
+		}
+	}
+
+	if (data_ptr) {
+		*data_ptr = buffer;
+	}
+
+	if (data_len) {
+		*data_len = space_remaining;
+	}
+
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
-smcp_outbound_send_hook(void) {
+smcp_plat_outbound_finish(smcp_t self,const uint8_t* data_ptr, coap_size_t data_len, int flags)
+{
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
-	smcp_t const self = smcp_get_current_instance();
-	coap_size_t header_len;
 
-	assert(uip_udp_conn == smcp_get_current_instance()->udp_conn);
+	assert(uip_udp_conn == self->plat.udp_conn);
 
-	header_len = (smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
-
-	// Remove the start-of-payload marker if we have no payload.
-	if(!smcp_get_current_instance()->outbound.content_len)
-		header_len--;
-
-#if VERBOSE_DEBUG
-	{
-		static const char prefix[] = "Outbound:\t";
-		char from_addr_str[50] = "???";
-		char addr_str[50] = "???";
-		uint16_t port = 0;
-		port = ntohs(self->outbound.saddr.smcp_port);
-		SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&self->outbound.saddr.smcp_addr);
-		DEBUG_PRINTF("%sTO -> [%s]:%d",prefix,addr_str,(int)port);
-		DEBUG_PRINTF("%sFROM -> [%s]",prefix,from_addr_str);
-		coap_dump_header(
-			SMCP_DEBUG_OUT_FILE,
-			prefix,
-			self->outbound.packet,
-			header_len+smcp_get_current_instance()->outbound.content_len
-		);
-	}
-#endif
-
-	uip_slen = header_len +	smcp_get_current_instance()->outbound.content_len;
+	uip_slen = data_len;
 
 	require_action(uip_slen<SMCP_MAX_PACKET_LENGTH, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
-	if (self->outbound.packet!=(struct coap_header_s*)uip_sappdata) {
+	if (data_ptr != uip_sappdata) {
 		memmove(
 			uip_sappdata,
-			(char*)self->outbound.packet,
+			data_ptr,
 			uip_slen
 		);
-		self->outbound.packet = (struct coap_header_s*)uip_sappdata;
+		data_ptr = (const uint8_t*)uip_sappdata;
 	}
-
-	//uip_sappdata = self->outbound.packet;
 
 #if 0
 	// TODO: For some reason this isn't working anymore. Investigate.
@@ -178,17 +263,18 @@ smcp_outbound_send_hook(void) {
 		// We are responding, let uIP handle preparing the packet.
 	} else
 #endif
+
 	{	// Here we explicitly tickle UIP to send the packet.
 
 		// Change the remote IP address temporarily.
-		uip_ipaddr_copy(&uip_udp_conn->ripaddr, &self->outbound.saddr.smcp_addr);
-		smcp_get_current_instance()->udp_conn->rport = self->outbound.saddr.smcp_port;
+		uip_ipaddr_copy(&uip_udp_conn->ripaddr, &self->plat.sockaddr_remote.smcp_addr);
+		smcp_get_current_instance()->plat.udp_conn->rport = self->plat.sockaddr_remote.smcp_port;
 
 		uip_process(UIP_UDP_SEND_CONN);
 
 #if UIP_CONF_IPV6_MULTICAST
 		/* Let the multicast engine process the datagram before we send it */
-		if(uip_is_addr_mcast_routable(&uip_udp_conn->ripaddr)) {
+		if (uip_is_addr_mcast_routable(&uip_udp_conn->ripaddr)) {
 			UIP_MCAST6.out();
 		}
 #endif /* UIP_IPV6_MULTICAST */
@@ -204,9 +290,10 @@ smcp_outbound_send_hook(void) {
 		// to prevent uIP from trying to send out a packet.
 		uip_slen = 0;
 
-		// Make our remote address unspecified again.
-		memset(&smcp_get_current_instance()->udp_conn->ripaddr, 0, sizeof(uip_ipaddr_t));
-		smcp_get_current_instance()->udp_conn->rport = 0;
+		// Make our remote address unspecified again, so that we can continue
+		// to receive traffic.
+		memset(&smcp_get_current_instance()->plat.udp_conn->ripaddr, 0, sizeof(uip_ipaddr_t));
+		smcp_get_current_instance()->plat.udp_conn->rport = 0;
 	}
 
 	ret = SMCP_STATUS_OK;
@@ -214,65 +301,35 @@ bail:
 	return ret;
 }
 
-smcp_status_t
-smcp_outbound_send_secure_hook() {
-	smcp_status_t ret = SMCP_STATUS_FAILURE;
-
-	// DTLS support not yet implemeted.
-	ret = SMCP_STATUS_NOT_IMPLEMENTED;
-
-bail:
-	return ret;
-}
-
 // MARK: -
 
 smcp_status_t
-smcp_wait(
-	smcp_t self, cms_t cms
+smcp_plat_wait(
+	smcp_t self, smcp_cms_t cms
 ) {
-	SMCP_EMBEDDED_SELF_HOOK;
-	smcp_status_t ret = 0;
-
 	// This doesn't really make sense with UIP.
-
-bail:
-	return ret;
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
-smcp_process(smcp_t self) {
+smcp_plat_process(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
 
 	if (!uip_udpconnection()) {
 		goto bail;
 	}
 
-	if (uip_udp_conn != smcp_get_udp_conn(smcp)) {
+	if (uip_udp_conn != smcp_plat_get_udp_conn(smcp)) {
 		goto bail;
 	}
 
 	if(uip_newdata()) {
+		memcpy(&self->plat.sockaddr_remote.smcp_addr,&UIP_IP_BUF->srcipaddr,sizeof(smcp_addr_t));
+		self->plat.sockaddr_remote.smcp_port = UIP_UDP_BUF->srcport;
+		memcpy(&self->plat.sockaddr_local.smcp_addr,&UIP_IP_BUF->destipaddr,sizeof(smcp_addr_t));
+		self->plat.sockaddr_local.smcp_port = UIP_UDP_BUF->destport;
+
 		smcp_inbound_start_packet(smcp, uip_appdata, uip_datalen());
-		{
-			// Put all of this stuff in a block so it doesn't get added
-			// to the stack for no reason.
-			smcp_sockaddr_t addr;
-
-#if 0
-			char addr_str[50];
-			SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&UIP_IP_BUF->srcipaddr);
-			printf("**** IN %s\n",addr_str);
-#endif
-
-			memcpy(&addr.smcp_addr,&UIP_IP_BUF->srcipaddr,sizeof(addr.smcp_addr));
-			addr.smcp_port = UIP_UDP_BUF->srcport;
-			smcp_inbound_set_srcaddr(&addr);
-
-			memcpy(&addr.smcp_addr,&UIP_IP_BUF->destipaddr,sizeof(addr.smcp_addr));
-			addr.smcp_port = UIP_UDP_BUF->destport;
-			smcp_inbound_set_destaddr(&addr);
-		}
 		smcp_inbound_finish_packet();
 	} else if(uip_poll()) {
 		smcp_set_current_instance(self);
@@ -287,7 +344,7 @@ bail:
 }
 
 smcp_status_t
-smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
+smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
 {
 	smcp_status_t ret;
 	memset(saddr, 0, sizeof(*saddr));
@@ -329,6 +386,26 @@ smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
 bail:
 	return ret;
 }
+
+
+#if defined(CONTIKI)
+smcp_timestamp_t
+smcp_plat_cms_to_timestamp(
+	smcp_cms_t cms
+) {
+	return clock_time() + cms*CLOCK_SECOND/MSEC_PER_SEC;
+}
+smcp_cms_t
+smcp_plat_timestamp_diff(smcp_timestamp_t lhs, smcp_timestamp_t rhs) {
+	return (lhs - rhs)*MSEC_PER_SEC/CLOCK_SECOND;
+}
+smcp_cms_t
+smcp_plat_timestamp_to_cms(smcp_timestamp_t ts) {
+	return smcp_plat_timestamp_diff(ts, clock_time());
+}
+#endif
+
+
 
 
 #endif //#if SMCP_USE_UIP

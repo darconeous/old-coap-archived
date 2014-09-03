@@ -69,6 +69,7 @@
 #include "coap.h"
 
 #include "smcp-opts.h"
+#include "smcp-defaults.h"
 #include "smcp-helpers.h"
 
 #ifdef CONTIKI
@@ -112,6 +113,11 @@ enum {
 	SMCP_STATUS_ASYNC_RESPONSE		= -24,
 	SMCP_STATUS_UNAUTHORIZED		= -25,
 	SMCP_STATUS_BAD_PACKET			= -26,
+	SMCP_STATUS_MULTICAST_NOT_SUPPORTED		= -27,
+	SMCP_STATUS_WAIT_FOR_SESSION    = -28,
+	SMCP_STATUS_SESSION_ERROR       = -29,
+	SMCP_STATUS_SESSION_CLOSED      = -30,
+	SMCP_STATUS_OUT_OF_SESSIONS     = -31,
 };
 
 typedef int smcp_status_t;
@@ -124,7 +130,10 @@ typedef struct smcp_s *smcp_t;
 */
 
 //!	Relative time period, in milliseconds.
-typedef int32_t cms_t;
+typedef int32_t smcp_cms_t;
+
+//!	Absolute timestamp, platform-specific value.
+typedef int32_t smcp_timestamp_t;
 
 //!	Special `cms` value representing the distant future.
 /*!	Note that this value does not refer to a specific time. */
@@ -143,40 +152,48 @@ typedef smcp_callback_func smcp_inbound_resend_func;
 // amount of stack space by simply removing the first argument
 // from many functions. In order to make things as maintainable
 // as possible, these macros do all of the work for us.
-#define SMCP_EMBEDDED_SELF_HOOK 	smcp_t const self = smcp_get_current_instance()
-#define smcp_init(self,...)		smcp_init(__VA_ARGS__)
+#define SMCP_EMBEDDED_SELF_HOOK 	smcp_t const self = smcp_get_current_instance();(void)self
+#define smcp_init(self)		smcp_init()
 #define smcp_release(self)		smcp_release()
 #define smcp_get_next_msg_id(self)		smcp_get_next_msg_id()
-#define smcp_get_port(self)		smcp_get_port()
-#define smcp_wait(self,...)		smcp_wait(__VA_ARGS__)
-#define smcp_process(self)		smcp_process()
-#define smcp_release_plat(self)		smcp_release_plat()
 #define smcp_handle_request(self,...)		smcp_handle_request(__VA_ARGS__)
 #define smcp_handle_response(self,...)		smcp_handle_response(__VA_ARGS__)
 #define smcp_get_timeout(self)		smcp_get_timeout()
 #define smcp_set_proxy_url(self,...)		smcp_set_proxy_url(__VA_ARGS__)
-#define smcp_get_fd(self)		smcp_get_fd()
-#define smcp_get_udp_conn(self)		smcp_get_udp_conn()
+#define smcp_plat_get_udp_conn(self)		smcp_plat_get_udp_conn()
 #define smcp_handle_inbound_packet(self,...)		smcp_handle_inbound_packet(__VA_ARGS__)
 #define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
 #define smcp_inbound_start_packet(self,...)		smcp_inbound_start_packet(__VA_ARGS__)
 #define smcp_vhost_add(self,...)		smcp_vhost_add(__VA_ARGS__)
 #define smcp_set_default_request_handler(self,...)		smcp_set_default_request_handler(__VA_ARGS__)
+
+#define smcp_plat_get_port(self)		smcp_plat_get_port()
+#define smcp_plat_init(self)		smcp_plat_init()
+#define smcp_plat_finalize(self)		smcp_plat_finalize()
+#define smcp_plat_get_fd(self)		smcp_plat_get_fd()
+#define smcp_plat_wait(self,...)		smcp_plat_wait(__VA_ARGS__)
+#define smcp_plat_process(self)		smcp_plat_process()
+
+#define smcp_plat_outbound_start(self,...)		smcp_plat_outbound_start(__VA_ARGS__)
+#define smcp_plat_outbound_finish(self,...)		smcp_plat_outbound_finish(__VA_ARGS__)
+#define smcp_plat_bind_to_port(self,...)		smcp_plat_bind_to_port(__VA_ARGS__)
+#define smcp_plat_bind_to_sockaddr(self,...)		smcp_plat_bind_to_sockaddr(__VA_ARGS__)
+
+
 #else
 #define SMCP_EMBEDDED_SELF_HOOK
 #endif
 
-#if SMCP_USE_BSD_SOCKETS
-#include "smcp-plat-bsd.h"
-#elif SMCP_USE_UIP
-#include "smcp-plat-uip.h"
-#endif
+#include "smcp-session.h"
+
+#include "smcp-plat.h"
+
 
 #if SMCP_EMBEDDED
 #define SMCP_LIBRARY_VERSION_CHECK()	do { } while(0)
 #else
 #ifndef ___SMCP_CONFIG_ID
-#define ___SMCP_CONFIG_ID 0
+#define ___SMCP_CONFIG_ID 1
 #endif
 SMCP_API_EXTERN void ___smcp_check_version(uint32_t x);
 #define SMCP_LIBRARY_VERSION_CHECK()	___smcp_check_version(___SMCP_CONFIG_ID)
@@ -190,38 +207,20 @@ SMCP_API_EXTERN void ___smcp_check_version(uint32_t x);
 **	@brief Initializing, Configuring, and Releasing the SMCP instance.
 */
 
-//! Initializes an SMCP instance
-SMCP_API_EXTERN smcp_t smcp_init(smcp_t self, uint16_t port);
+//! Allocates and initializes an SMCP instance.
+SMCP_API_EXTERN smcp_t smcp_create(void);
 
 //! Releases an SMCP instance, closing all ports and ending all transactions.
 SMCP_API_EXTERN void smcp_release(smcp_t self);
 
-//! Returns the current listening port of the instance in host order.
-SMCP_API_EXTERN uint16_t smcp_get_port(smcp_t self);
-
 #if SMCP_EMBEDDED && !defined(DOXYGEN_SHOULD_SKIP_THIS)
 SMCP_API_EXTERN struct smcp_s smcp_global_instance;
 #define smcp_get_current_instance() (&smcp_global_instance)
-#define smcp_create(port)		smcp_init(smcp_get_current_instance(), (port))
 #else
 //! Used from inside of callbacks to obtain a reference to the current instance.
 SMCP_API_EXTERN smcp_t smcp_get_current_instance(void);
 
-//! Allocates and initializes an SMCP instance.
-SMCP_API_EXTERN smcp_t smcp_create(uint16_t port);
 #endif
-
-//!	Sets the URL to use as a CoAP proxy.
-/*!	The proxy is used whenever the scheme is
-**	unrecognised or the host does not appear
-**	to be directly reachable.
-**
-**	If SMCP_AVOID_MALLOC and SMCP_EMBEDDED are set then
-**	the string IS NOT COPIED and used as is. If you
-**	are building on an embedded platform, don't pass
-**	in strings that are in temporary memory or that
-**	live on the stack. */
-SMCP_API_EXTERN void smcp_set_proxy_url(smcp_t self, const char* url);
 
 //!	Sets the default request handler.
 /*!	Whenever the instance receives a request that isn't
@@ -251,6 +250,18 @@ SMCP_API_EXTERN smcp_status_t smcp_vhost_add(
 );
 #endif
 
+//!	Sets the URL to use as a CoAP proxy.
+/*!	The proxy is used whenever the scheme is
+**	unrecognised or the host does not appear
+**	to be directly reachable.
+**
+**	If SMCP_AVOID_MALLOC and SMCP_EMBEDDED are set then
+**	the string IS NOT COPIED and used as is. If you
+**	are building on an embedded platform, don't pass
+**	in strings that are in temporary memory or that
+**	live on the stack. */
+SMCP_API_EXTERN void smcp_set_proxy_url(smcp_t self, const char* url);
+
 /*!	@} */
 
 // MARK: -
@@ -261,20 +272,8 @@ SMCP_API_EXTERN smcp_status_t smcp_vhost_add(
 **	@brief Functions supporting non-blocking asynchronous IO.
 */
 
-//!	Processes one event or inbound packet (if available).
-/*!	This function must be called periodically for SMCP to handle events and packets.
-*/
-SMCP_API_EXTERN smcp_status_t smcp_process(smcp_t self);
-
-//!	Block until smcp_process() should be called.
-/*! @returns 0 if smcp_process() should be executed,
-**           SMCP_STATUS_TIMEOUT if the given timeout expired,
-**           or an error number if there is some sort of other failure.
-**  Some platforms do not implement this function. */
-SMCP_API_EXTERN smcp_status_t smcp_wait(smcp_t self, cms_t cms);
-
-//!	Maximum amount of time that can pass before smcp_process() must be called again.
-SMCP_API_EXTERN cms_t smcp_get_timeout(smcp_t self);
+//!	Maximum amount of time that can pass before smcp_plat_process() must be called again.
+SMCP_API_EXTERN smcp_cms_t smcp_get_timeout(smcp_t self);
 
 /*!	@} */
 
@@ -294,19 +293,15 @@ SMCP_API_EXTERN smcp_status_t smcp_inbound_start_packet(
 	coap_size_t	packet_length
 );
 
-//! Sets the address from where this packet originated.
-/*!	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet(). */
-/*!	If you are using BSD sockets, you don't need to use this function. */
-SMCP_API_EXTERN smcp_status_t smcp_inbound_set_srcaddr(const smcp_sockaddr_t* addr);
-
-//! Sets the address to where this packet was sent to.
-/*!	This method is optional in describing the inbound packet,
-**	but it is necessary to correctly implement multicast behavior.
-**
-**	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet().
-**
-**	If you are using BSD sockets, you don't need to use this function. */
-SMCP_API_EXTERN smcp_status_t smcp_inbound_set_destaddr(const smcp_sockaddr_t* addr);
+////! Sets the session associated with this packet.
+///*!	Must be called between smcp_inbound_start_packet() and
+//**	smcp_inbound_finish_packet().
+//**
+//**	Use either this or smcp_inbound_set_addr(). Don't use both.
+//**
+//**	@sa smcp_inbound_set_addr()
+//*/
+//SMCP_API_EXTERN smcp_status_t smcp_inbound_set_session(smcp_session_t session);
 
 //! Call this function if the inbound packet has been truncated.
 /*!	Calling this will instruct the instance to not process
@@ -314,14 +309,15 @@ SMCP_API_EXTERN smcp_status_t smcp_inbound_set_destaddr(const smcp_sockaddr_t* a
 **	response, if appropriate. You must still call smcp_inbound_set_srcaddr()
 **	and smcp_inbound_finish_packet().
 **
-**	@note Not currently implemented. */
-/*!	Must be called between smcp_inbound_start_packet() and smcp_inbound_finish_packet(). */
-/*!	If you are using BSD sockets, you don't need to use this function. */
+**	@note Not currently implemented.
+**
+**	Must be called between smcp_inbound_start_packet() and
+**	smcp_inbound_finish_packet().
+*/
 SMCP_API_EXTERN void smcp_inbound_packet_was_truncated(void);
 
 //! Indicate that we are finished describing the inbound packet.
 /*!	Must be called after smcp_inbound_start_packet(). */
-/*!	If you are using BSD sockets, you don't need to use this function. */
 SMCP_API_EXTERN smcp_status_t smcp_inbound_finish_packet(void);
 
 /*!	@} */
@@ -368,9 +364,6 @@ SMCP_API_EXTERN coap_size_t smcp_inbound_get_content_len(void);
 
 //!	Convenience function for getting the content type of the inbound packet.
 SMCP_API_EXTERN coap_content_type_t smcp_inbound_get_content_type(void);
-
-//!	Gets a pointer to the srcaddr of the source of the inbound packet.
-SMCP_API_EXTERN const smcp_sockaddr_t* smcp_inbound_get_srcaddr(void);
 
 //! Retrieve the value and type of the next option in the header and move to the next header.
 SMCP_API_EXTERN coap_option_key_t smcp_inbound_next_option(const uint8_t** ptr, coap_size_t* len);
@@ -422,9 +415,8 @@ SMCP_API_EXTERN smcp_status_t smcp_outbound_begin_response(coap_code_t code);
 //!	Changes the code on the current outbound packet.
 SMCP_API_EXTERN smcp_status_t smcp_outbound_set_code(coap_code_t code);
 
-//!	Sets the destination address and port.
-/*!	Not necessary if you called smcp_outbound_begin_response(). */
-SMCP_API_EXTERN smcp_status_t smcp_outbound_set_destaddr(const smcp_sockaddr_t* sockaddr);
+SMCP_API_EXTERN smcp_status_t smcp_set_remote_sockaddr_from_host_and_port(const char* addr_str, uint16_t toport);
+
 
 //!	Adds the given option to the outbound packet.
 /*!
@@ -516,44 +508,6 @@ SMCP_API_EXTERN smcp_status_t smcp_outbound_quick_response(coap_code_t code, con
 /*!	@} */
 
 // MARK: -
-// MARK: Asynchronous response support API
-
-/*!	@defgroup smcp_async Asynchronous response support API
-**	@{
-*/
-
-#define SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK		(1<<0)
-
-struct smcp_async_response_s {
-	smcp_sockaddr_t			remote_saddr;
-#if SMCP_USE_BSD_SOCKETS
-#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-	struct in6_pktinfo		pktinfo;
-#elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
-	struct in_pktinfo		pktinfo;
-#endif
-#endif
-
-	coap_size_t request_len;
-	union {
-		struct coap_header_s header;
-		uint8_t bytes[80];
-	} request;
-};
-
-typedef struct smcp_async_response_s* smcp_async_response_t;
-
-SMCP_API_EXTERN bool smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x);
-
-SMCP_API_EXTERN smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,int flags);
-
-SMCP_API_EXTERN smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
-
-SMCP_API_EXTERN smcp_status_t smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x);
-
-/*!	@} */
-
-// MARK: -
 // MARK: Helper Functions
 
 SMCP_API_EXTERN coap_msg_id_t smcp_get_next_msg_id(smcp_t self);
@@ -573,6 +527,8 @@ __END_DECLS
 
 #endif
 
+#include "smcp-async.h"
 #include "smcp-transaction.h"
 #include "smcp-observable.h"
 #include "smcp-helpers.h"
+#include "smcp-session.h"

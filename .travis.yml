@@ -1,9 +1,35 @@
 language: c
+
+branches:
+    except:
+        - scripts
+        - gh-pages
+        - /^autoconf\/.*$/
+
+os:
+    - linux
+    - osx
+
+before_install:
+    - if [ $TRAVIS_OS_NAME == linux ] ;
+      then
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -y update ;
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -y install bsdtar autoconf-archive automake autoconf ;
+      fi
+    - if [ $TRAVIS_OS_NAME == osx ] ;
+      then
+        brew update ;
+        brew install autoconf-archive ;
+      fi
+
 before_script:
     - "if [ $BUILD_PLATFORM = contiki ] ; then git clone git://github.com/contiki-os/contiki.git && cd contiki && git checkout 1d69099 && cd .. ; else true ; fi"
-    - "if [ $BUILD_PLATFORM = unix ] ; then mkdir build && cd build && ( [ -e ../configure ] || ../bootstrap.sh ) && ../configure && cd .. ; else true ; fi"
+    - "if [ $BUILD_PLATFORM = unix ] && [ ! -x ./configure ] ; then ./bootstrap.sh ; else true ; fi"
+
 script:
+    - "if [ $BUILD_PLATFORM = unix ] ; then ( mkdir -p $BUILD_MAKEPATH && cd $BUILD_MAKEPATH && ../configure ) ; else true ; fi"
     - "make -C $BUILD_MAKEPATH $BUILD_MAKEARGS"
+
 env:
     - BUILD_PLATFORM='unix' BUILD_MAKEPATH='build' BUILD_MAKEARGS='distcheck'
     - BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-plugtest' BUILD_MAKEARGS='TARGET=minimal-net CONTIKI=../../../contiki'

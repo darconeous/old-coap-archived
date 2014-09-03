@@ -1,0 +1,7 @@
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif
+#include "version.h"
+
+const char *internal_build_source_version = SOURCE_VERSION;
+const char *internal_build_date = __DATE__ " " __TIME__;

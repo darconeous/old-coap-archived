@@ -43,10 +43,13 @@ main(int argc, char * argv[]) {
 	smcp_t smcp;
 	struct plugtest_server_s plugtest_server = {};
 	struct smcp_node_s root_node = {};
+	smcp_status_t status;
+	uint16_t port = COAP_DEFAULT_PORT;
 
 	SMCP_LIBRARY_VERSION_CHECK();
 
-	smcp = smcp_create(0);
+	smcp = smcp_create();
+
 
 	// Set up the root node.
 	smcp_node_init(&root_node,NULL,NULL);
@@ -60,8 +63,9 @@ main(int argc, char * argv[]) {
 #if VERBOSE_DEBUG
 	fprintf(stderr,"VERBOSE_DEBUG = %d\n",VERBOSE_DEBUG);
 #endif
+
 	fprintf(stderr,"SMCP_EMBEDDED = %d\n",SMCP_EMBEDDED);
-	fprintf(stderr,"SMCP_USE_BSD_SOCKETS = %d\n",SMCP_USE_BSD_SOCKETS);
+//	fprintf(stderr,"SMCP_USE_BSD_SOCKETS = %d\n",SMCP_USE_BSD_SOCKETS);
 	fprintf(stderr,"SMCP_DEFAULT_PORT = %d\n",SMCP_DEFAULT_PORT);
 	fprintf(stderr,"SMCP_MAX_PATH_LENGTH = %d\n",SMCP_MAX_PATH_LENGTH);
 	fprintf(stderr,"SMCP_MAX_URI_LENGTH = %d\n",SMCP_MAX_URI_LENGTH);
@@ -87,15 +91,27 @@ main(int argc, char * argv[]) {
 #ifdef SMCP_DEBUG_INBOUND_DROP_PERCENT
 	fprintf(stderr,"SMCP_DEBUG_INBOUND_DROP_PERCENT = %.1f%%\n",SMCP_DEBUG_INBOUND_DROP_PERCENT*100.0);
 #endif
-
+	fprintf(stderr,"SMCP_CONF_MAX_SESSION_COUNT = %d\n",SMCP_CONF_MAX_SESSION_COUNT);
 
 	plugtest_server_init(&plugtest_server,&root_node);
 
-	fprintf(stderr,"\nPlugtest server listening on port %d.\n", smcp_get_port(smcp));
+	do {
+		status = smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, port);
+		if (status != SMCP_STATUS_OK) {
+			port++;
+		}
+	} while(status != SMCP_STATUS_OK && port != 0);
+
+	if (status) {
+		fprintf(stderr,"\nFailed to bind to port.\n");
+		exit(EXIT_FAILURE);
+	}
+	fprintf(stderr,"\nPlugtest server listening on port %d.\n", port);
+
 
 	while(1) {
-		smcp_wait(smcp,30*MSEC_PER_SEC);
-		smcp_process(smcp);
+		smcp_plat_wait(smcp,30*MSEC_PER_SEC);
+		smcp_plat_process(smcp);
 	}
 
 	return 0;

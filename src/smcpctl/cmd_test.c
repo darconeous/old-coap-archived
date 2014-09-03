@@ -246,7 +246,7 @@ tool_cmd_test(
 	struct smcp_node_s async_response_node = {};
 
 	smcp2 = smcp_create(12345);
-	if(smcp_get_port(smcp_instance) == SMCP_DEFAULT_PORT)
+	if(smcp_plat_get_port(smcp_instance) == SMCP_DEFAULT_PORT)
 		smcp = smcp_instance;
 	else
 		smcp = smcp_create(SMCP_DEFAULT_PORT);
@@ -318,7 +318,7 @@ tool_cmd_test(
 		snprintf(url,
 			sizeof(url),
 			"smcp://127.0.0.1:%d/device/action",
-			smcp_get_port(smcp2));
+			smcp_plat_get_port(smcp2));
 		smcp_pair_with_uri(smcp,
 			"device/loadavg",
 			url,
@@ -332,7 +332,7 @@ tool_cmd_test(
 		snprintf(url,
 			sizeof(url),
 			"smcp://[::1]:%d/device/loadavg",
-			smcp_get_port(smcp));
+			smcp_plat_get_port(smcp));
 		smcp_pair_with_uri(smcp2, "device/action", url, 0, NULL);
 		printf("ACTION_NODE PAIRED WITH %s\n", url);
 	}
@@ -388,12 +388,12 @@ tool_cmd_test(
 		snprintf(url,
 			sizeof(url),
 			"smcp://["COAP_MULTICAST_IP6_LL_ALLDEVICES"]:%d/device/",
-			smcp_get_port(smcp));
+			smcp_plat_get_port(smcp));
 #else
 		snprintf(url,
 			sizeof(url),
 			"smcp://[::1]:%d/device/",
-			smcp_get_port(smcp));
+			smcp_plat_get_port(smcp));
 #endif
 
 		smcp_begin_transaction_old(
@@ -424,8 +424,8 @@ tool_cmd_test(
 			smcp_variable_node_did_change(&device_node,0,NULL);
 		}
 #endif
-		smcp_process(smcp);
-		smcp_process(smcp2);
+		smcp_plat_process(smcp);
+		smcp_plat_process(smcp2);
 #if HAVE_LIBCURL
 		smcp_curl_proxy_node_process(&proxy_node);
 #endif

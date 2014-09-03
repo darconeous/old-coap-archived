@@ -513,8 +513,8 @@ tool_cmd_list(
 	require(send_list_request(smcp, url, NULL, 0), bail);
 
 	while(ERRORCODE_INPROGRESS == gRet) {
-		smcp_wait(smcp,1000);
-		smcp_process(smcp);
+		smcp_plat_wait(smcp,1000);
+		smcp_plat_process(smcp);
 	}
 
 bail:

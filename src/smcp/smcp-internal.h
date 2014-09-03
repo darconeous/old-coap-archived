@@ -30,12 +30,13 @@
 #ifndef __SMCP_INTERNAL_H__
 #define __SMCP_INTERNAL_H__ 1
 
-#include <stdbool.h>
-
 #include "smcp.h"
 #include "smcp-timer.h"
 #include "fasthash.h"
-#include "smcp-auth.h"
+
+#ifndef VERBOSE_DEBUG
+#define VERBOSE_DEBUG 0
+#endif
 
 #ifndef SMCP_FUNC_RANDOM_UINT32
 #if defined(__APPLE__)
@@ -44,13 +45,13 @@
 #elif CONTIKI
 #include "lib/random.h"
 #define SMCP_FUNC_RANDOM_UINT32() \
-        ((uint32_t)random_rand() ^ \
-            ((uint32_t)random_rand() << 16))
+		((uint32_t)random_rand() ^ \
+			((uint32_t)random_rand() << 16))
 #define SMCP_RANDOM_MAX			RAND_MAX
 #else
 #define SMCP_FUNC_RANDOM_UINT32() \
-        ((uint32_t)random() ^ \
-            ((uint32_t)random() << 16))
+		((uint32_t)random() ^ \
+			((uint32_t)random() << 16))
 #define SMCP_RANDOM_MAX			RAND_MAX
 #endif
 #endif
@@ -97,12 +98,7 @@ struct smcp_s {
 	smcp_request_handler_func	request_handler;
 	void*						request_handler_context;
 
-#if SMCP_USE_BSD_SOCKETS
-	int						fd;
-	int						mcfd;	// For multicast
-#elif SMCP_USE_UIP
-	struct uip_udp_conn*	udp_conn;
-#endif
+	struct smcp_plat_s		plat;
 
 	smcp_timer_t			timers;
 
@@ -140,22 +136,6 @@ struct smcp_s {
 		int32_t					max_age;
 		uint32_t				observe_value;
 		uint32_t				block2_value;
-
-
-		smcp_sockaddr_t			saddr;
-
-#if SMCP_USE_BSD_SOCKETS
-#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-		struct in6_pktinfo		pktinfo;
-#elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
-		struct in_pktinfo		pktinfo;
-#endif
-#endif
-
-#if SMCP_USE_EXPERIMENTAL_DIGEST_AUTH
-		struct smcp_auth_inbound_s     auth;
-#endif
-
 	} inbound;
 
 	//! Outbound packet variables.
@@ -164,25 +144,11 @@ struct smcp_s {
 		coap_size_t				max_packet_len;
 
 		char*					content_ptr;
-		coap_size_t					content_len;
+		coap_size_t				content_len;
 
-		coap_msg_id_t	next_tid;
+		coap_msg_id_t           next_tid;
 
 		coap_option_key_t		last_option_key;
-
-#if SMCP_DTLS
-		bool					use_dtls;
-#endif
-
-		smcp_sockaddr_t			saddr;
-#if SMCP_USE_BSD_SOCKETS
-		char					packet_bytes[SMCP_MAX_PACKET_LENGTH+1];
-#endif
-
-#if SMCP_USE_EXPERIMENTAL_DIGEST_AUTH
-		struct smcp_auth_outbound_s	auth;
-#endif
-
 	} outbound;
 
 	struct smcp_dupe_info_s dupe_info;
@@ -200,9 +166,16 @@ struct smcp_s {
 };
 
 
+//! Initializes an SMCP instance. Does not allocate any memory.
+SMCP_API_EXTERN smcp_t smcp_init(smcp_t self);
+
+
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_handle_request();
 
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_handle_response();
+
+SMCP_INTERNAL_EXTERN smcp_t smcp_plat_init(smcp_t self);
+SMCP_INTERNAL_EXTERN void smcp_plat_finalize(smcp_t self);
 
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_outbound_set_var_content_int(int v);
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_outbound_set_var_content_unsigned_int(unsigned int v);

@@ -1,7 +1,8 @@
-/*	@file smcp-plat-uip.h
+/*!	@file smcp-async.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
+**	@brief Asynchronous Response Support
 **
-**	Copyright (C) 2014 Robert Quattlebaum
+**	Copyright (C) 2015 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -26,26 +27,51 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef SMCP_smcp_plat_uip_h
-#define SMCP_smcp_plat_uip_h
+#ifndef SMCP_smcp_async_h
+#define SMCP_smcp_async_h
 
-#if !SMCP_USE_UIP
-#error SMCP_USE_UIP not defined
-#endif
+#include "smcp.h"
 
-#include "net/ip/uip.h"
+__BEGIN_DECLS
 
-#if UIP_CONF_IPV6
-typedef uip_ip6addr_t smcp_addr_t;
-#else
-typedef uip_ipaddr_t smcp_addr_t;
-#endif
+/*!	@addtogroup smcp
+**	@{
+*/
 
-typedef struct {
-	smcp_addr_t smcp_addr;
-	uint16_t smcp_port;
-} smcp_sockaddr_t;
+//struct smcp_session_s;
+//
+/*!	@defgroup smcp_async Asynchronous response support API
+**	@{
+*/
 
-SMCP_API_EXTERN struct uip_udp_conn* smcp_plat_get_udp_conn(smcp_t self);
+#define SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK		(1<<0)
+
+struct smcp_async_response_s {
+	smcp_sockaddr_t sockaddr_local;
+	smcp_sockaddr_t sockaddr_remote;
+
+	coap_size_t request_len;
+	union {
+		struct coap_header_s header;
+		uint8_t bytes[80];
+	} request;
+};
+
+typedef struct smcp_async_response_s* smcp_async_response_t;
+
+SMCP_API_EXTERN bool smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x);
+
+SMCP_API_EXTERN smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,int flags);
+
+SMCP_API_EXTERN smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
+
+SMCP_API_EXTERN smcp_status_t smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x);
+
+/*!	@} */
+
+
+/*!	@} */
+
+__END_DECLS
 
 #endif

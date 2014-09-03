@@ -8,6 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		8DD76FB00486AB0100D96B5E /* smcpctl.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6A0FF2C0290799A04C91782 /* smcpctl.1 */; };
+		A60E4FE619B6745000D876DD /* smcp-session.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E4FE519B6745000D876DD /* smcp-session.c */; };
+		A60E4FE719B6745000D876DD /* smcp-session.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E4FE519B6745000D876DD /* smcp-session.c */; };
+		A60E4FE819B6745000D876DD /* smcp-session.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E4FE519B6745000D876DD /* smcp-session.c */; };
+		A60E4FE919B6745000D876DD /* smcp-session.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E4FE519B6745000D876DD /* smcp-session.c */; };
+		A60E4FEA19B6745000D876DD /* smcp-session.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E4FE519B6745000D876DD /* smcp-session.c */; };
+		A60E4FEB19B6745000D876DD /* smcp-session.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E4FE519B6745000D876DD /* smcp-session.c */; };
+		A60E4FEC19B6745000D876DD /* smcp-session.c in Sources */ = {isa = PBXBuildFile; fileRef = A60E4FE519B6745000D876DD /* smcp-session.c */; };
 		A613E80316C065FE00C5711D /* smcp-inbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A613E80216C065FE00C5711D /* smcp-inbound.c */; };
 		A613E80416C065FE00C5711D /* smcp-inbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A613E80216C065FE00C5711D /* smcp-inbound.c */; };
 		A613E80516C065FE00C5711D /* smcp-inbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A613E80216C065FE00C5711D /* smcp-inbound.c */; };
@@ -22,7 +29,6 @@
 		A6181DE616B4637700655F4F /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
 		A6181DE716B4637700655F4F /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
 		A6181DE816B4637700655F4F /* coap.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E41278B16D00B24867 /* coap.c */; };
-		A6181DE916B4637700655F4F /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A6181DEA16B4637700655F4F /* smcp-node-router.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EA1278B16D00B24867 /* smcp-node-router.c */; };
 		A6181DEB16B4637700655F4F /* smcp-timer.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F01278B16D00B24867 /* smcp-timer.c */; };
 		A6181DEC16B4637700655F4F /* fasthash.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F358931687909100F72DF3 /* fasthash.c */; };
@@ -37,7 +43,6 @@
 		A6290E5A167670F8008914FD /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
 		A6290E5B167670F8008914FD /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
 		A6290E5C167670F8008914FD /* coap.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E41278B16D00B24867 /* coap.c */; };
-		A6290E5D167670F8008914FD /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A6290E5E167670F8008914FD /* smcp-node-router.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EA1278B16D00B24867 /* smcp-node-router.c */; };
 		A6290E5F167670F8008914FD /* smcp-timer.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F01278B16D00B24867 /* smcp-timer.c */; };
 		A63B1EBA125FC4E900BF2543 /* libreadline.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A63B1EB9125FC4E900BF2543 /* libreadline.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
@@ -68,7 +73,13 @@
 		A669AAEF19B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
 		A669AAF019B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
 		A669AAF119B124F500274532 /* string-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAEA19B124F500274532 /* string-utils.c */; };
-		A686D69E16557F3100B14B54 /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
+		A67FA5CE1BF94019003FE1B3 /* smcp-async.c in Sources */ = {isa = PBXBuildFile; fileRef = A67FA5CC1BF94019003FE1B3 /* smcp-async.c */; };
+		A67FA5CF1BF94019003FE1B3 /* smcp-async.c in Sources */ = {isa = PBXBuildFile; fileRef = A67FA5CC1BF94019003FE1B3 /* smcp-async.c */; };
+		A67FA5D01BF94019003FE1B3 /* smcp-async.c in Sources */ = {isa = PBXBuildFile; fileRef = A67FA5CC1BF94019003FE1B3 /* smcp-async.c */; };
+		A67FA5D11BF94019003FE1B3 /* smcp-async.c in Sources */ = {isa = PBXBuildFile; fileRef = A67FA5CC1BF94019003FE1B3 /* smcp-async.c */; };
+		A67FA5D21BF94019003FE1B3 /* smcp-async.c in Sources */ = {isa = PBXBuildFile; fileRef = A67FA5CC1BF94019003FE1B3 /* smcp-async.c */; };
+		A67FA5D31BF94019003FE1B3 /* smcp-async.c in Sources */ = {isa = PBXBuildFile; fileRef = A67FA5CC1BF94019003FE1B3 /* smcp-async.c */; };
+		A67FA5D41BF94019003FE1B3 /* smcp-async.c in Sources */ = {isa = PBXBuildFile; fileRef = A67FA5CC1BF94019003FE1B3 /* smcp-async.c */; };
 		A690624C16B6E43B00A98B2C /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E21278B16D00B24867 /* btree.c */; };
 		A690624D16B6E43B00A98B2C /* url-helpers.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F71278B16D00B24867 /* url-helpers.c */; };
 		A690624E16B6E43B00A98B2C /* smcp-transaction.c in Sources */ = {isa = PBXBuildFile; fileRef = A64F2AF8166EB236001D9878 /* smcp-transaction.c */; };
@@ -76,7 +87,6 @@
 		A690625016B6E43B00A98B2C /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
 		A690625116B6E43B00A98B2C /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
 		A690625216B6E43B00A98B2C /* coap.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E41278B16D00B24867 /* coap.c */; };
-		A690625316B6E43B00A98B2C /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A690625416B6E43B00A98B2C /* smcp-node-router.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EA1278B16D00B24867 /* smcp-node-router.c */; };
 		A690625516B6E43B00A98B2C /* smcp-timer.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F01278B16D00B24867 /* smcp-timer.c */; };
 		A690625616B6E43B00A98B2C /* fasthash.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F358931687909100F72DF3 /* fasthash.c */; };
@@ -88,7 +98,6 @@
 		A690626916B6E44000A98B2C /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
 		A690626A16B6E44000A98B2C /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
 		A690626B16B6E44000A98B2C /* coap.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E41278B16D00B24867 /* coap.c */; };
-		A690626C16B6E44000A98B2C /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A690626D16B6E44000A98B2C /* smcp-node-router.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EA1278B16D00B24867 /* smcp-node-router.c */; };
 		A690626E16B6E44000A98B2C /* smcp-timer.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F01278B16D00B24867 /* smcp-timer.c */; };
 		A690626F16B6E44000A98B2C /* fasthash.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F358931687909100F72DF3 /* fasthash.c */; };
@@ -102,7 +111,6 @@
 		A690628F16B6EA6E00A98B2C /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
 		A690629016B6EA6E00A98B2C /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
 		A690629116B6EA6E00A98B2C /* coap.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E41278B16D00B24867 /* coap.c */; };
-		A690629216B6EA6E00A98B2C /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A690629316B6EA6E00A98B2C /* smcp-node-router.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EA1278B16D00B24867 /* smcp-node-router.c */; };
 		A690629416B6EA6E00A98B2C /* smcp-timer.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F01278B16D00B24867 /* smcp-timer.c */; };
 		A690629516B6EA6E00A98B2C /* fasthash.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F358931687909100F72DF3 /* fasthash.c */; };
@@ -147,7 +155,6 @@
 		A6F35952168A5CED00F72DF3 /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
 		A6F35953168A5CED00F72DF3 /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
 		A6F35954168A5CED00F72DF3 /* coap.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E41278B16D00B24867 /* coap.c */; };
-		A6F35955168A5CED00F72DF3 /* smcp-auth.c in Sources */ = {isa = PBXBuildFile; fileRef = A686D69D16557F3100B14B54 /* smcp-auth.c */; };
 		A6F35956168A5CED00F72DF3 /* smcp-node-router.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6EA1278B16D00B24867 /* smcp-node-router.c */; };
 		A6F35957168A5CED00F72DF3 /* smcp-timer.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F01278B16D00B24867 /* smcp-timer.c */; };
 		A6F536F1155F0EC700E0E324 /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
@@ -232,7 +239,9 @@
 		A603999D16D68B9B00E996FC /* smcp-complex.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "smcp-complex.c"; sourceTree = "<group>"; };
 		A60BF11B158D425F00D39B5C /* COPYING */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYING; sourceTree = "<group>"; };
 		A60BF11C158D425F00D39B5C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
-		A613E80216C065FE00C5711D /* smcp-inbound.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-inbound.c"; path = "src/smcp/smcp-inbound.c"; sourceTree = "<group>"; };
+		A60E4FE419B6744100D876DD /* smcp-session.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-session.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A60E4FE519B6745000D876DD /* smcp-session.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-session.c"; sourceTree = "<group>"; usesTabs = 1; };
+		A613E80216C065FE00C5711D /* smcp-inbound.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-inbound.c"; sourceTree = "<group>"; usesTabs = 1; };
 		A6181DDC16B462C700655F4F /* example-1.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "example-1.c"; sourceTree = "<group>"; };
 		A6181DF516B4637700655F4F /* example-1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "example-1"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6181DFA16B4689300655F4F /* example-2.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "example-2.c"; sourceTree = "<group>"; };
@@ -259,92 +268,93 @@
 		A63EA6D71278B13800B24867 /* help.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = help.c; path = src/smcpctl/help.c; sourceTree = "<group>"; };
 		A63EA6D81278B13800B24867 /* help.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = help.h; path = src/smcpctl/help.h; sourceTree = "<group>"; };
 		A63EA6D91278B13800B24867 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = src/smcpctl/main.c; sourceTree = "<group>"; };
-		A63EA6E11278B16D00B24867 /* assert-macros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "assert-macros.h"; path = "src/smcp/assert-macros.h"; sourceTree = "<group>"; };
-		A63EA6E21278B16D00B24867 /* btree.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = btree.c; path = src/smcp/btree.c; sourceTree = "<group>"; };
-		A63EA6E31278B16D00B24867 /* btree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = btree.h; path = src/smcp/btree.h; sourceTree = "<group>"; };
-		A63EA6E41278B16D00B24867 /* coap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = coap.c; path = src/smcp/coap.c; sourceTree = "<group>"; };
-		A63EA6E51278B16D00B24867 /* coap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = coap.h; path = src/smcp/coap.h; sourceTree = "<group>"; };
-		A63EA6E61278B16D00B24867 /* ll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ll.h; path = src/smcp/ll.h; sourceTree = "<group>"; };
-		A63EA6E71278B16D00B24867 /* smcp-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-helpers.h"; path = "src/smcp/smcp-helpers.h"; sourceTree = "<group>"; };
-		A63EA6E81278B16D00B24867 /* smcp-internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-internal.h"; path = "src/smcp/smcp-internal.h"; sourceTree = "<group>"; };
-		A63EA6E91278B16D00B24867 /* smcp-logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-logging.h"; path = "src/smcp/smcp-logging.h"; sourceTree = "<group>"; };
-		A63EA6EA1278B16D00B24867 /* smcp-node-router.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-node-router.c"; path = "src/smcp/smcp-node-router.c"; sourceTree = "<group>"; };
-		A63EA6EB1278B16D00B24867 /* smcp-node-router.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-node-router.h"; path = "src/smcp/smcp-node-router.h"; sourceTree = "<group>"; };
-		A63EA6F01278B16D00B24867 /* smcp-timer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-timer.c"; path = "src/smcp/smcp-timer.c"; sourceTree = "<group>"; };
-		A63EA6F11278B16D00B24867 /* smcp-timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-timer.h"; path = "src/smcp/smcp-timer.h"; sourceTree = "<group>"; };
-		A63EA6F21278B16D00B24867 /* smcp-variable_node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-variable_node.c"; path = "src/smcp/smcp-variable_node.c"; sourceTree = "<group>"; };
-		A63EA6F31278B16D00B24867 /* smcp-variable_node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-variable_node.h"; path = "src/smcp/smcp-variable_node.h"; sourceTree = "<group>"; };
-		A63EA6F41278B16D00B24867 /* smcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = smcp.c; path = src/smcp/smcp.c; sourceTree = "<group>"; };
-		A63EA6F51278B16D00B24867 /* smcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = smcp.h; path = src/smcp/smcp.h; sourceTree = "<group>"; };
+		A63EA6E11278B16D00B24867 /* assert-macros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "assert-macros.h"; sourceTree = "<group>"; };
+		A63EA6E21278B16D00B24867 /* btree.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = btree.c; sourceTree = "<group>"; };
+		A63EA6E31278B16D00B24867 /* btree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = btree.h; sourceTree = "<group>"; };
+		A63EA6E41278B16D00B24867 /* coap.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = coap.c; sourceTree = "<group>"; };
+		A63EA6E51278B16D00B24867 /* coap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = coap.h; sourceTree = "<group>"; };
+		A63EA6E61278B16D00B24867 /* ll.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ll.h; sourceTree = "<group>"; };
+		A63EA6E71278B16D00B24867 /* smcp-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-helpers.h"; sourceTree = "<group>"; };
+		A63EA6E81278B16D00B24867 /* smcp-internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-internal.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A63EA6E91278B16D00B24867 /* smcp-logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-logging.h"; sourceTree = "<group>"; };
+		A63EA6EA1278B16D00B24867 /* smcp-node-router.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-node-router.c"; sourceTree = "<group>"; };
+		A63EA6EB1278B16D00B24867 /* smcp-node-router.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-node-router.h"; sourceTree = "<group>"; };
+		A63EA6F01278B16D00B24867 /* smcp-timer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-timer.c"; sourceTree = "<group>"; usesTabs = 1; };
+		A63EA6F11278B16D00B24867 /* smcp-timer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-timer.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A63EA6F21278B16D00B24867 /* smcp-variable_node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-variable_node.c"; sourceTree = "<group>"; };
+		A63EA6F31278B16D00B24867 /* smcp-variable_node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-variable_node.h"; sourceTree = "<group>"; };
+		A63EA6F41278B16D00B24867 /* smcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smcp.c; sourceTree = "<group>"; usesTabs = 1; };
+		A63EA6F51278B16D00B24867 /* smcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smcp.h; sourceTree = "<group>"; usesTabs = 1; };
 		A63EA6F61278B16D00B24867 /* smcpctl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = smcpctl.h; path = src/smcpctl/smcpctl.h; sourceTree = "<group>"; };
-		A63EA6F71278B16D00B24867 /* url-helpers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "url-helpers.c"; path = "src/smcp/url-helpers.c"; sourceTree = "<group>"; };
-		A63EA6F81278B16D00B24867 /* url-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "url-helpers.h"; path = "src/smcp/url-helpers.h"; sourceTree = "<group>"; };
+		A63EA6F71278B16D00B24867 /* url-helpers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "url-helpers.c"; sourceTree = "<group>"; };
+		A63EA6F81278B16D00B24867 /* url-helpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "url-helpers.h"; sourceTree = "<group>"; };
 		A63EB2871278CBB100B24867 /* cmd_repeat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_repeat.h; path = src/smcpctl/cmd_repeat.h; sourceTree = "<group>"; };
 		A63EB2881278CBB100B24867 /* cmd_repeat.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_repeat.c; path = src/smcpctl/cmd_repeat.c; sourceTree = "<group>"; };
 		A64B12D616782CF000B2D485 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		A64B12D716782CF000B2D485 /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		A64B12D816782CF000B2D485 /* Makefile.target */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.target; sourceTree = "<group>"; };
 		A64B12D916782CF000B2D485 /* smcp-plugtest.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "smcp-plugtest.c"; sourceTree = "<group>"; };
-		A64F2AF8166EB236001D9878 /* smcp-transaction.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-transaction.c"; path = "src/smcp/smcp-transaction.c"; sourceTree = "<group>"; };
-		A64F2AFB166EB265001D9878 /* smcp-transaction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-transaction.h"; path = "src/smcp/smcp-transaction.h"; sourceTree = "<group>"; };
+		A64F2AF8166EB236001D9878 /* smcp-transaction.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-transaction.c"; sourceTree = "<group>"; usesTabs = 1; };
+		A64F2AFB166EB265001D9878 /* smcp-transaction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-transaction.h"; sourceTree = "<group>"; usesTabs = 1; };
 		A65258361528F45300E389EC /* cmd_monitor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_monitor.c; path = src/smcpctl/cmd_monitor.c; sourceTree = "<group>"; };
 		A65258391528F47C00E389EC /* cmd_monitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = cmd_monitor.h; path = src/smcpctl/cmd_monitor.h; sourceTree = "<group>"; };
 		A669AADE19AE815700274532 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A669AADF19AE815700274532 /* test-concurrency.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "test-concurrency.c"; sourceTree = "<group>"; };
 		A669AAE019B1232E00274532 /* getline.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = getline.c; sourceTree = "<group>"; };
-		A669AAE119B1239700274532 /* smcp-missing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-missing.h"; path = "src/smcp/smcp-missing.h"; sourceTree = "<group>"; };
-		A669AAE219B1249100274532 /* smcp-missing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-missing.c"; path = "src/smcp/smcp-missing.c"; sourceTree = "<group>"; };
-		A669AAEA19B124F500274532 /* string-utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "string-utils.c"; path = "src/smcp/string-utils.c"; sourceTree = "<group>"; };
-		A669AAF219B1250500274532 /* string-utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "string-utils.h"; path = "src/smcp/string-utils.h"; sourceTree = "<group>"; };
+		A669AAE119B1239700274532 /* smcp-missing.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-missing.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A669AAE219B1249100274532 /* smcp-missing.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-missing.c"; sourceTree = "<group>"; usesTabs = 1; };
+		A669AAEA19B124F500274532 /* string-utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "string-utils.c"; sourceTree = "<group>"; };
+		A669AAF219B1250500274532 /* string-utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "string-utils.h"; sourceTree = "<group>"; };
 		A669AAF319B129D100274532 /* bootstrap.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = bootstrap.sh; sourceTree = "<group>"; };
 		A676468F156474380074028C /* Makefile.smcp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.smcp; sourceTree = "<group>"; };
 		A6764690156474380074028C /* smcp-task.c */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.c.c; path = "smcp-task.c"; sourceTree = "<group>"; tabWidth = 2; usesTabs = 0; };
 		A6764691156474380074028C /* smcp-task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-task.h"; sourceTree = "<group>"; };
 		A67646A9156479E50074028C /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		A67646AA156479E50074028C /* smcp-simple.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "smcp-simple.c"; sourceTree = "<group>"; };
-		A6770026156AA2BF00592868 /* smcp-opts.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-opts.h"; path = "src/smcp/smcp-opts.h"; sourceTree = "<group>"; };
+		A6770026156AA2BF00592868 /* smcp-opts.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-opts.h"; sourceTree = "<group>"; usesTabs = 1; };
 		A679FFB7164BD4F700736F58 /* system-node.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "system-node.c"; sourceTree = "<group>"; };
-		A686D69C16557F3100B14B54 /* smcp-auth.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-auth.h"; path = "src/smcp/smcp-auth.h"; sourceTree = "<group>"; };
-		A686D69D16557F3100B14B54 /* smcp-auth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-auth.c"; path = "src/smcp/smcp-auth.c"; sourceTree = "<group>"; };
-		A68E13DD1912E48C008F5A0A /* smcp-plat-bsd-internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-plat-bsd-internal.h"; path = "src/smcp/smcp-plat-bsd-internal.h"; sourceTree = "<group>"; };
-		A68E13DE1912E575008F5A0A /* smcp-plat-uip-internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-plat-uip-internal.h"; path = "src/smcp/smcp-plat-uip-internal.h"; sourceTree = "<group>"; };
-		A68E13DF191D809E008F5A0A /* smcp-dtls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-dtls.h"; path = "src/smcp/smcp-dtls.h"; sourceTree = "<group>"; };
+		A67FA5CC1BF94019003FE1B3 /* smcp-async.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-async.c"; sourceTree = "<group>"; usesTabs = 1; };
+		A67FA5CD1BF94019003FE1B3 /* smcp-async.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-async.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A67FA5D51BFA638E003FE1B3 /* smcp-defaults.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-defaults.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A68E13DD1912E48C008F5A0A /* smcp-plat-bsd-internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-plat-bsd-internal.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A68E13DE1912E575008F5A0A /* smcp-plat-uip-internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-plat-uip-internal.h"; sourceTree = "<group>"; usesTabs = 1; };
 		A690626016B6E43B00A98B2C /* example-2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "example-2"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A690627916B6E44000A98B2C /* example-3 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "example-3"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A690627D16B6E58E00A98B2C /* example-4.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "example-4.c"; sourceTree = "<group>"; };
 		A690627E16B6E5FA00A98B2C /* doxygen.cfg.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = doxygen.cfg.in; sourceTree = "<group>"; };
 		A690629F16B6EA6E00A98B2C /* example-4 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "example-4"; sourceTree = BUILT_PRODUCTS_DIR; };
-		A69D2C9D190B0CBA003CE26C /* smcp-plat-uip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-plat-uip.h"; path = "src/smcp/smcp-plat-uip.h"; sourceTree = "<group>"; };
-		A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-plat-bsd.h"; path = "src/smcp/smcp-plat-bsd.h"; sourceTree = "<group>"; };
+		A69D2C9D190B0CBA003CE26C /* smcp-plat-uip.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-plat-uip.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-plat-bsd.h"; sourceTree = "<group>"; usesTabs = 1; };
 		A6A27BA1127B934F003708DF /* cmd_delete.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_delete.h; path = src/smcpctl/cmd_delete.h; sourceTree = "<group>"; };
 		A6A27BA2127B934F003708DF /* cmd_delete.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_delete.c; path = src/smcpctl/cmd_delete.c; sourceTree = "<group>"; };
-		A6A4A4031953AEF0001CD98A /* smcp-dupe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-dupe.h"; path = "src/smcp/smcp-dupe.h"; sourceTree = "<group>"; };
-		A6A4A4041953AF0C001CD98A /* smcp-dupe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-dupe.c"; path = "src/smcp/smcp-dupe.c"; sourceTree = "<group>"; };
+		A6A4A4031953AEF0001CD98A /* smcp-dupe.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-dupe.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A6A4A4041953AF0C001CD98A /* smcp-dupe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-dupe.c"; sourceTree = "<group>"; usesTabs = 1; };
 		A6BE9A39164CC63C00473330 /* configure.ac */ = {isa = PBXFileReference; lastKnownFileType = text; path = configure.ac; sourceTree = "<group>"; };
 		A6BE9A3A164CC63C00473330 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A6BE9A3B164CC64800473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A6BE9A3C164CC66100473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = src/smcpctl/Makefile.am; sourceTree = "<group>"; };
-		A6BE9A3D164CC67D00473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = src/smcp/Makefile.am; sourceTree = "<group>"; };
+		A6BE9A3D164CC67D00473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A6BE9A3E164CC86B00473330 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; name = smcpctl.1; path = docs/smcpctl.1; sourceTree = "<group>"; };
 		A6BE9A40164CC87F00473330 /* Makefile.am */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Makefile.am; path = docs/Makefile.am; sourceTree = "<group>"; };
 		A6BE9A41164CD28A00473330 /* smcpd.conf.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = smcpd.conf.in; sourceTree = "<group>"; };
-		A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-plat-uip.c"; path = "src/smcp/smcp-plat-uip.c"; sourceTree = "<group>"; };
-		A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-plat-bsd.c"; path = "src/smcp/smcp-plat-bsd.c"; sourceTree = "<group>"; };
+		A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-plat-uip.c"; sourceTree = "<group>"; usesTabs = 1; };
+		A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-plat-bsd.c"; sourceTree = "<group>"; usesTabs = 1; };
 		A6CD695D1283463900254A8B /* btreetest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = btreetest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6D0C8C21661CC3C00E9F440 /* cgi-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "cgi-node.c"; sourceTree = "<group>"; };
-		A6DB61F816AF131800D7248E /* smcp-observable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "smcp-observable.h"; path = "src/smcp/smcp-observable.h"; sourceTree = "<group>"; };
-		A6DB61F916AF190A00D7248E /* smcp-observable.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-observable.c"; path = "src/smcp/smcp-observable.c"; sourceTree = "<group>"; };
+		A6DB61F816AF131800D7248E /* smcp-observable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-observable.h"; sourceTree = "<group>"; usesTabs = 1; };
+		A6DB61F916AF190A00D7248E /* smcp-observable.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-observable.c"; sourceTree = "<group>"; usesTabs = 1; };
 		A6DC100916CEADAE00DD2180 /* NEWS.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = NEWS.md; sourceTree = "<group>"; };
-		A6F358931687909100F72DF3 /* fasthash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fasthash.c; path = src/smcp/fasthash.c; sourceTree = "<group>"; };
-		A6F358961687909E00F72DF3 /* fasthash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = fasthash.h; path = src/smcp/fasthash.h; sourceTree = "<group>"; };
+		A6F358931687909100F72DF3 /* fasthash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = fasthash.c; sourceTree = "<group>"; };
+		A6F358961687909E00F72DF3 /* fasthash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fasthash.h; sourceTree = "<group>"; };
 		A6F3593D168A552300F72DF3 /* main-client.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "main-client.c"; path = "src/plugtest/main-client.c"; sourceTree = "<group>"; };
 		A6F35942168A598800F72DF3 /* smcp-plugtest-client */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "smcp-plugtest-client"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6F35976168CBA6A00F72DF3 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; name = Makefile.am; path = src/plugtest/Makefile.am; sourceTree = "<group>"; };
-		A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-curl_proxy.c"; path = "src/smcp/smcp-curl_proxy.c"; sourceTree = "<group>"; };
-		A6F536ED155F0E5200E0E324 /* smcp-curl_proxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "smcp-curl_proxy.h"; path = "src/smcp/smcp-curl_proxy.h"; sourceTree = "<group>"; };
+		A6F536EC155F0E5200E0E324 /* smcp-curl_proxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-curl_proxy.c"; sourceTree = "<group>"; };
+		A6F536ED155F0E5200E0E324 /* smcp-curl_proxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-curl_proxy.h"; sourceTree = "<group>"; };
 		A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcurl.4.dylib; path = ../../../../usr/lib/libcurl.4.dylib; sourceTree = "<group>"; };
-		A6F536F2155F255000E0E324 /* smcp-outbound.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-outbound.c"; path = "src/smcp/smcp-outbound.c"; sourceTree = "<group>"; };
-		A6F536F71561B7A600E0E324 /* smcp-list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "smcp-list.c"; path = "src/smcp/smcp-list.c"; sourceTree = "<group>"; };
+		A6F536F2155F255000E0E324 /* smcp-outbound.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-outbound.c"; sourceTree = "<group>"; usesTabs = 1; };
+		A6F536F71561B7A600E0E324 /* smcp-list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-list.c"; sourceTree = "<group>"; };
+		A6FB08681D038281004116B1 /* smcp-plat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-plat.h"; sourceTree = "<group>"; usesTabs = 1; };
 		A6FB241C16B7748400BA6C0F /* selftest.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = selftest.sh; path = src/plugtest/selftest.sh; sourceTree = "<group>"; };
 		A6FB241E16B77A7D00BA6C0F /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; name = smcpctl.1; path = docs/smcpctl.1; sourceTree = "<group>"; };
@@ -435,19 +445,26 @@
 			);
 			name = SHAP;
 			sourceTree = "<group>";
+			usesTabs = 1;
 		};
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
 				A6BE9A3D164CC67D00473330 /* Makefile.am */,
 				A60D0DB312795ADF00C04B8C /* Utils */,
+				A6770026156AA2BF00592868 /* smcp-opts.h */,
+				A67FA5D51BFA638E003FE1B3 /* smcp-defaults.h */,
+				A63EA6E81278B16D00B24867 /* smcp-internal.h */,
 				A63EA6F51278B16D00B24867 /* smcp.h */,
 				A63EA6F41278B16D00B24867 /* smcp.c */,
-				A63EA6E81278B16D00B24867 /* smcp-internal.h */,
-				A6770026156AA2BF00592868 /* smcp-opts.h */,
-				A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */,
+				A6FB08681D038281004116B1 /* smcp-plat.h */,
+				A67FA5CC1BF94019003FE1B3 /* smcp-async.c */,
+				A67FA5CD1BF94019003FE1B3 /* smcp-async.h */,
 				A669AAE119B1239700274532 /* smcp-missing.h */,
 				A669AAE219B1249100274532 /* smcp-missing.c */,
+				A60E4FE419B6744100D876DD /* smcp-session.h */,
+				A60E4FE519B6745000D876DD /* smcp-session.c */,
+				A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */,
 				A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */,
 				A68E13DD1912E48C008F5A0A /* smcp-plat-bsd-internal.h */,
 				A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */,
@@ -461,15 +478,13 @@
 				A6F536F2155F255000E0E324 /* smcp-outbound.c */,
 				A6DB61F816AF131800D7248E /* smcp-observable.h */,
 				A6DB61F916AF190A00D7248E /* smcp-observable.c */,
-				A68E13DF191D809E008F5A0A /* smcp-dtls.h */,
-				A686D69C16557F3100B14B54 /* smcp-auth.h */,
-				A686D69D16557F3100B14B54 /* smcp-auth.c */,
 				A63EA6F11278B16D00B24867 /* smcp-timer.h */,
 				A63EA6F01278B16D00B24867 /* smcp-timer.c */,
 				A6DB621A16AFBBCB00D7248E /* Extras */,
 				A6DB620716AF7A6800D7248E /* Node Router */,
 			);
 			name = Source;
+			path = src/smcp;
 			sourceTree = "<group>";
 		};
 		1AB674ADFE9D54B511CA2CBB /* Products */ = {
@@ -845,7 +860,7 @@
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0430;
+				LastUpgradeCheck = 0730;
 				ORGANIZATIONNAME = deepdarc;
 			};
 			buildConfigurationList = 1DEB928908733DD80010E9CD /* Build configuration list for PBXProject "SMCP" */;
@@ -882,6 +897,7 @@
 				A669AAE319B1249100274532 /* smcp-missing.c in Sources */,
 				A63EA6DA1278B13800B24867 /* cmd_get.c in Sources */,
 				A63EA6DB1278B13800B24867 /* cmd_list.c in Sources */,
+				A67FA5CE1BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A6A4A4051953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A63EA6DD1278B13800B24867 /* cmd_post.c in Sources */,
 				A63EA6DF1278B13800B24867 /* help.c in Sources */,
@@ -894,10 +910,10 @@
 				A63EA7001278B16D00B24867 /* smcp.c in Sources */,
 				A63EA7011278B16D00B24867 /* url-helpers.c in Sources */,
 				A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */,
+				A60E4FE619B6745000D876DD /* smcp-session.c in Sources */,
 				A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */,
 				A6F536F3155F255000E0E324 /* smcp-outbound.c in Sources */,
 				A6F536F81561B7A600E0E324 /* smcp-list.c in Sources */,
-				A686D69E16557F3100B14B54 /* smcp-auth.c in Sources */,
 				A6C04B0818AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A64F2AF9166EB236001D9878 /* smcp-transaction.c in Sources */,
 				A6F358941687909100F72DF3 /* fasthash.c in Sources */,
@@ -921,12 +937,13 @@
 				A6181DE616B4637700655F4F /* smcp-list.c in Sources */,
 				A6C04B0318AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A6181DE716B4637700655F4F /* smcp-outbound.c in Sources */,
+				A67FA5D11BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A6181DE816B4637700655F4F /* coap.c in Sources */,
 				A669AAEE19B124F500274532 /* string-utils.c in Sources */,
-				A6181DE916B4637700655F4F /* smcp-auth.c in Sources */,
 				A6181DEA16B4637700655F4F /* smcp-node-router.c in Sources */,
 				A6C04B0B18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A6181DEB16B4637700655F4F /* smcp-timer.c in Sources */,
+				A60E4FE919B6745000D876DD /* smcp-session.c in Sources */,
 				A6181DEC16B4637700655F4F /* fasthash.c in Sources */,
 				A6181DED16B4637700655F4F /* smcp-observable.c in Sources */,
 				A6181DF716B463A000655F4F /* example-1.c in Sources */,
@@ -941,13 +958,13 @@
 				A6290E56167670F8008914FD /* btree.c in Sources */,
 				A6A4A4061953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A6290E57167670F8008914FD /* url-helpers.c in Sources */,
+				A67FA5CF1BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A6290E58167670F8008914FD /* smcp-transaction.c in Sources */,
 				A6290E59167670F8008914FD /* smcp.c in Sources */,
 				A669AAE419B1249100274532 /* smcp-missing.c in Sources */,
 				A6290E5A167670F8008914FD /* smcp-list.c in Sources */,
 				A6290E5B167670F8008914FD /* smcp-outbound.c in Sources */,
 				A6290E5C167670F8008914FD /* coap.c in Sources */,
-				A6290E5D167670F8008914FD /* smcp-auth.c in Sources */,
 				A6C04B0918AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A669AAEC19B124F500274532 /* string-utils.c in Sources */,
 				A6290E5E167670F8008914FD /* smcp-node-router.c in Sources */,
@@ -957,6 +974,7 @@
 				A6DB61FB16AF190F00D7248E /* smcp-observable.c in Sources */,
 				A6DB621116AF9A9200D7248E /* smcp-variable_node.c in Sources */,
 				A6181DF816B4662200655F4F /* main-server.c in Sources */,
+				A60E4FE719B6745000D876DD /* smcp-session.c in Sources */,
 				A6181DF916B4662700655F4F /* plugtest-server.c in Sources */,
 				A613E80416C065FE00C5711D /* smcp-inbound.c in Sources */,
 			);
@@ -975,12 +993,13 @@
 				A690625016B6E43B00A98B2C /* smcp-list.c in Sources */,
 				A6C04B0418AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A690625116B6E43B00A98B2C /* smcp-outbound.c in Sources */,
+				A67FA5D21BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A690625216B6E43B00A98B2C /* coap.c in Sources */,
 				A669AAEF19B124F500274532 /* string-utils.c in Sources */,
-				A690625316B6E43B00A98B2C /* smcp-auth.c in Sources */,
 				A690625416B6E43B00A98B2C /* smcp-node-router.c in Sources */,
 				A6C04B0C18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A690625516B6E43B00A98B2C /* smcp-timer.c in Sources */,
+				A60E4FEA19B6745000D876DD /* smcp-session.c in Sources */,
 				A690625616B6E43B00A98B2C /* fasthash.c in Sources */,
 				A690625716B6E43B00A98B2C /* smcp-observable.c in Sources */,
 				A690627B16B6E45B00A98B2C /* example-2.c in Sources */,
@@ -1001,12 +1020,13 @@
 				A690626916B6E44000A98B2C /* smcp-list.c in Sources */,
 				A6C04B0518AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A690626A16B6E44000A98B2C /* smcp-outbound.c in Sources */,
+				A67FA5D31BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A690626B16B6E44000A98B2C /* coap.c in Sources */,
 				A669AAF019B124F500274532 /* string-utils.c in Sources */,
-				A690626C16B6E44000A98B2C /* smcp-auth.c in Sources */,
 				A690626D16B6E44000A98B2C /* smcp-node-router.c in Sources */,
 				A6C04B0D18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A690626E16B6E44000A98B2C /* smcp-timer.c in Sources */,
+				A60E4FEB19B6745000D876DD /* smcp-session.c in Sources */,
 				A690626F16B6E44000A98B2C /* fasthash.c in Sources */,
 				A690627016B6E44000A98B2C /* smcp-observable.c in Sources */,
 				A690627C16B6E45E00A98B2C /* example-3.c in Sources */,
@@ -1027,12 +1047,13 @@
 				A690628F16B6EA6E00A98B2C /* smcp-list.c in Sources */,
 				A6C04B0618AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A690629016B6EA6E00A98B2C /* smcp-outbound.c in Sources */,
+				A67FA5D41BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A690629116B6EA6E00A98B2C /* coap.c in Sources */,
 				A669AAF119B124F500274532 /* string-utils.c in Sources */,
-				A690629216B6EA6E00A98B2C /* smcp-auth.c in Sources */,
 				A690629316B6EA6E00A98B2C /* smcp-node-router.c in Sources */,
 				A6C04B0E18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A690629416B6EA6E00A98B2C /* smcp-timer.c in Sources */,
+				A60E4FEC19B6745000D876DD /* smcp-session.c in Sources */,
 				A690629516B6EA6E00A98B2C /* fasthash.c in Sources */,
 				A690629616B6EA6E00A98B2C /* smcp-observable.c in Sources */,
 				A69062A216B6EA7B00A98B2C /* example-4.c in Sources */,
@@ -1061,12 +1082,13 @@
 				A6F35950168A5CED00F72DF3 /* smcp-transaction.c in Sources */,
 				A6C04B0218AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
 				A6F35951168A5CED00F72DF3 /* smcp.c in Sources */,
+				A67FA5D01BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A6F35952168A5CED00F72DF3 /* smcp-list.c in Sources */,
 				A669AAED19B124F500274532 /* string-utils.c in Sources */,
 				A6F35953168A5CED00F72DF3 /* smcp-outbound.c in Sources */,
 				A6F35954168A5CED00F72DF3 /* coap.c in Sources */,
 				A6C04B0A18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
-				A6F35955168A5CED00F72DF3 /* smcp-auth.c in Sources */,
+				A60E4FE819B6745000D876DD /* smcp-session.c in Sources */,
 				A6F35956168A5CED00F72DF3 /* smcp-node-router.c in Sources */,
 				A6F35957168A5CED00F72DF3 /* smcp-timer.c in Sources */,
 				A6DB61FC16AF191000D7248E /* smcp-observable.c in Sources */,
@@ -1115,9 +1137,9 @@
 		1DEB928A08733DD80010E9CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
+				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1147,7 +1169,6 @@
 		1DEB928B08733DD80010E9CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -1175,7 +1196,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1198,7 +1218,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1216,7 +1235,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1239,7 +1257,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1257,7 +1274,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1280,7 +1296,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1298,7 +1313,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1321,7 +1335,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1339,7 +1352,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1362,7 +1374,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -1420,7 +1431,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
@@ -1442,7 +1452,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;

@@ -69,32 +69,23 @@ __BEGIN_DECLS
 **
 **	SMCP has two ways to represent a point in time:
 **
-**	 * Relative time (`cms_t`), measured in milliseconds from "now". The future
+**	 * Relative time (`smcp_cms_t`), measured in milliseconds from "now". The future
 **	   is positive and the past is negative.
-**	 * Absolute time (`struct timeval`), measured from some platform-specific
+**	 * Absolute time (`smcp_timestamp_t`), measured from some platform-specific
 **     reference epoc.
 **
 **	The relative notation is convenient for specifying timeouts and such,
 **	but the individual timers store their firing time in absolute time.
 **	You can convert between relative time and absolute time using
-**	`convert_cms_to_timeval()` and back again using `convert_timeval_to_cms()`.
+**	`smcp_plat_cms_to_timestamp()` and back again using `smcp_plat_timestamp_to_cms()`.
 **
 */
-
-//!< Converts relative time from 'now' into an absolute time.
-SMCP_API_EXTERN void convert_cms_to_timeval(
-	struct timeval* tv, //!< [OUT] Pointer to timeval struct.
-	cms_t cms //!< [IN] Time from now, in milliseconds
-);
-
-SMCP_API_EXTERN cms_t period_between_timevals_in_cms(const struct timeval* tv_lhs,const struct timeval* tv_rhs);
-SMCP_API_EXTERN cms_t convert_timeval_to_cms(const struct timeval* tv);
 
 typedef void (*smcp_timer_callback_t)(smcp_t, void*);
 
 typedef struct smcp_timer_s {
 	struct ll_item_s		ll;
-	struct timeval			fire_date;
+	smcp_timestamp_t		fire_date;
 	void*					context;
 	smcp_timer_callback_t	callback;
 	smcp_timer_callback_t	cancel;
@@ -110,11 +101,11 @@ SMCP_API_EXTERN smcp_timer_t smcp_timer_init(
 SMCP_API_EXTERN smcp_status_t smcp_schedule_timer(
 	smcp_t	self,
 	smcp_timer_t	timer,
-	cms_t			cms
+	smcp_cms_t			cms
 );
 
 SMCP_API_EXTERN void smcp_invalidate_timer(smcp_t self, smcp_timer_t timer);
-SMCP_API_EXTERN cms_t smcp_get_timeout(smcp_t self);
+SMCP_API_EXTERN smcp_cms_t smcp_get_timeout(smcp_t self);
 SMCP_API_EXTERN void smcp_handle_timers(smcp_t self);
 SMCP_API_EXTERN bool smcp_timer_is_scheduled(smcp_t self, smcp_timer_t timer);
 

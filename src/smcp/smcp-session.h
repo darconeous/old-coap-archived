@@ -1,8 +1,8 @@
-/*!	@file smcp-dtls.h
+/*!	@file smcp-session.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
-**	@brief Experimental DTLS functions
+**	@brief Session tracking
 **
-**	Copyright (C) 2011,2012 Robert Quattlebaum
+**	Copyright (C) 2014 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -27,16 +27,35 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_DTLS_H__
-#define __SMCP_DTLS_H__ 1
+#ifndef SMCP_smcp_session_h
+#define SMCP_smcp_session_h
 
-#include "smcp.h"
+__BEGIN_DECLS
 
-typedef void* smcp_dtls_session_t;
+/*!	@addtogroup smcp
+**	@{
+*/
 
-//smcp_dtls_session_t smcp_dtls_new_session(void);
+typedef enum {
+	SMCP_SESSION_TYPE_NIL,
+	SMCP_SESSION_TYPE_UDP,
+	SMCP_SESSION_TYPE_TCP,
+	SMCP_SESSION_TYPE_DTLS,
+	SMCP_SESSION_TYPE_TLS
+} smcp_session_type_t;
 
-SMCP_API_EXTERN smcp_status_t smcp_inbound_set_dtls_session(smcp_t self, smcp_dtls_session_t session);
-SMCP_API_EXTERN smcp_status_t smcp_dtls_session_send(smcp_dtls_session_t session, const uint8_t* data, coap_size_t data_len);
+
+SMCP_API_EXTERN bool smcp_session_type_supports_multicast(smcp_session_type_t session_type);
+
+SMCP_API_EXTERN bool smcp_session_type_is_reliable(smcp_session_type_t session_type);
+
+SMCP_INTERNAL_EXTERN smcp_session_type_t smcp_session_type_from_uri_scheme(const char* uri_scheme);
+
+//!	Returns the default port number for the given session type.
+SMCP_INTERNAL_EXTERN uint16_t smcp_default_port_from_session_type(smcp_session_type_t type);
+
+/*!	@} */
+
+__END_DECLS
 
 #endif

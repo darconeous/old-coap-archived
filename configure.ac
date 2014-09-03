@@ -1,7 +1,7 @@
 
 AC_PREREQ(2.59)
 
-AC_INIT([smcp],m4_esyscmd([([ -d .git ] && gitver=`git describe --dirty` && printf "$gitver") || printf  "0.6.5"]))
+AC_INIT([smcp],[0.07.00])
 
 AC_CONFIG_AUX_DIR([m4])
 AC_CONFIG_MACRO_DIR([m4])
@@ -10,9 +10,20 @@ AC_CONFIG_LIBOBJ_DIR([src/missing/])
 AM_INIT_AUTOMAKE()
 LT_INIT()
 
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
+m4_ifdef([AX_CODE_COVERAGE], [AX_CODE_COVERAGE], [AC_SUBST([CODE_COVERAGE_RULES])])
+
+SOURCE_VERSION=m4_esyscmd([
+	configver="$PACKAGE_VERSION"
+	(test -d .git && gitver=`git describe --dirty` && printf "$gitver") ||
+	(test -d .git && gitver=`git describe --always` && printf "$configver-g$gitver") ||
+	printf "$configver"
+])
+AC_DEFINE_UNQUOTED([SOURCE_VERSION], ["`eval echo "$SOURCE_VERSION"`"], [Source version])
+
 AC_LIBTOOL_DLOPEN_SELF
 AC_PROG_LIBTOOL
-#eval `libtool --tag=CC --config|grep '^wl='`
 
 AC_CACHE_CHECK([for -rdynamic linker flag],[lt_cv_ld_rdynamic],[
 	lt_cv_ld_rdynamic=no
@@ -146,7 +157,13 @@ fi
 AM_CONDITIONAL([HAVE_LIBREADLINE],$HAVE_LIBREADLINE)
 AC_CHECK_FUNCS([rl_set_prompt])
 
-AX_PTHREAD()
+AX_PTHREAD
+
+AX_CHECK_OPENSSL(
+	AC_DEFINE_UNQUOTED([HAVE_OPENSSL],
+	[1],
+	[Set if OpenSSL is present])
+)
 
 # Checks for header files.
 AC_HEADER_STDC
