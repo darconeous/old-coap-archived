@@ -527,7 +527,7 @@ smcp_outbound_set_uri(
 #if SMCP_DTLS
 		if(strequal_const(components.protocol, "coaps")) {
 			// There is a lot more that is needed for this to work...
-			toport = COAP_DEFAULT_TLSPORT;
+			toport = COAP_DEFAULT_TLS_PORT;
 
 			require_noerr(ret = smcp_auth_outbound_use_dtls(), bail);
 		} else

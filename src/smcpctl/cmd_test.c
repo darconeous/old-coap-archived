@@ -387,7 +387,7 @@ tool_cmd_test(
 #if 0
 		snprintf(url,
 			sizeof(url),
-			"smcp://["COAP_MULTICAST_IP6_ALLDEVICES"]:%d/device/",
+			"smcp://["COAP_MULTICAST_IP6_LL_ALLDEVICES"]:%d/device/",
 			smcp_get_port(smcp));
 #else
 		snprintf(url,

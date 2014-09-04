@@ -42,20 +42,24 @@
 #define COAP_VERSION    (1)
 
 // Port numbers
-#define COAP_DEFAULT_PORT			(5683)
-#define COAP_DEFAULT_TLSPORT		(COAP_DEFAULT_PORT+100)	//!< Guess
-#define COAP_DEFAULT_PROXY_PORT		(COAP_DEFAULT_PORT+1)	//!< Guess
-#define COAP_DEFAULT_PROXY_TLS_PORT	(COAP_DEFAULT_PORT+101)	//!< Guess
+#define COAP_DEFAULT_PORT				(5683)	//!< Defined in RFC7252
+#define COAP_DEFAULT_TLS_PORT			(5684)	//!< Defined in RFC7252
 
+// THESE ARE JUST GUESSES, NOT OFFICIAL PORT NUMBERS!
+#define COAP_DEFAULT_PROXY_PORT			(COAP_DEFAULT_PORT+10)
+#define COAP_DEFAULT_PROXY_TLS_PORT		(COAP_DEFAULT_TLS_PORT+10)
+
+//! String representation for coap all-devices multicast address
 #define COAP_MULTICAST_STR_ALLDEVICES	"coap-alldevices"
 
-#define COAP_MULTICAST_IP_ALLDEVICES	"224.0.0.88"
+//! IPv4 multicast address for CoAP all-devices.
+#define COAP_MULTICAST_IP4_ALLDEVICES	"224.0.1.187" //!< Defined in RFC7252
 
-//! IPv6 multicast address for CoAP all-devices.
-/*!	Note that the official multicast address has not yet been chosen.
-**	This is just a temporary address until the official address
-**	has been chosen. */
-#define COAP_MULTICAST_IP6_ALLDEVICES	"FF02::436F:4150"
+//! IPv6 Link-Local multicast address for CoAP all-devices.
+#define COAP_MULTICAST_IP6_LL_ALLDEVICES	"FF02::FD"
+
+//! IPv6 Mesh-Local multicast address for CoAP all-devices.
+#define COAP_MULTICAST_IP6_ML_ALLDEVICES	"FF03::FD"
 
 // General limits.
 #define COAP_MAX_MESSAGE_SIZE				(1280-40)

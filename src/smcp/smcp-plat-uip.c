@@ -91,7 +91,7 @@ smcp_init(
 	{
 		uip_ipaddr_t all_coap_nodes_addr;
 		if(uiplib_ipaddrconv(
-			COAP_MULTICAST_IP6_ALLDEVICES,
+			COAP_MULTICAST_IP6_LL_ALLDEVICES,
 			&all_coap_nodes_addr
 		)) {
 			uip_ds6_maddr_add(&all_coap_nodes_addr);

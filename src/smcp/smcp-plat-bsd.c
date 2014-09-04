@@ -146,10 +146,10 @@ smcp_init(
 
 #if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
 	// Go ahead and start listening on our multicast address as well.
-	{   // Join the multicast group for COAP_MULTICAST_IP6_ALLDEVICES
+	{   // Join the multicast group for COAP_MULTICAST_IP6_LL_ALLDEVICES
 		struct ipv6_mreq imreq;
 		int btrue = 1;
-		struct hostent *tmp = gethostbyname2(COAP_MULTICAST_IP6_ALLDEVICES,
+		struct hostent *tmp = gethostbyname2(COAP_MULTICAST_IP6_LL_ALLDEVICES,
 			AF_INET6);
 		memset(&imreq, 0, sizeof(imreq));
 		self->mcfd = socket(SMCP_BSD_SOCKETS_NET_FAMILY, SOCK_DGRAM, 0);
