@@ -48,6 +48,56 @@ __BEGIN_DECLS
 
 /*!	@defgroup smcp-node-router Node Router
 **	@{
+**
+**	The node router is a way to dispatch inbound packets to a specific
+**	packet handler based on a hierarchical interpretation of the path
+**	options. When an inbound packet is being processed, it starts out
+**	being evaluated at the root node. If the next path option of the
+**	inbound packet matches the name of one of the children of the current
+**	node, we descent into that child and move forward to the next path
+**	element. We continue to descend and follow this process until we get
+**	to a node where we don't have a match. Once this happens—even if
+**	there are additional path elements which haven't matched—the packet
+**	is processed by the handler of the current node.
+**
+**	Keep in mind that this parsing of the path and descending into child
+**	nodes happens if there is a handler specified for that node or not.
+**
+**	If a handler isn't specified, the list handler is used. The list
+**	handler is simply a convenience function which returns a link list of
+**	that node's children. It's handy and easy to use, but in exchange you
+**	give up a little flexibility. For example, with the exception of
+**	adding child nodes, you currently can't programmatically add entries
+**	to the list, nor can you easily add additional attributes to items in
+**	the list.
+**
+**	As a convenience (that, by the way, is actually built into the list
+**	node), if the root doesn't have a handler (and neither does
+**	"/.well-known/core"), then a request for "/.well-known/core" is
+**	interpreted as a request for the root (but will yield absolute URIs in
+**	the link list instead of relative URIs). But this is really only
+**	useful for quick prototyping: to do proper service discovery, you'll
+**	need to list more than just the contents of your root node: so unless
+**	you are doing something very simple, you will likely need a custom
+**	handler for "/.well-known" or "/.well-known/core".
+**
+**	If your device is really constrained, you may want to consider not
+**	using the node router, writing your own request router instead. You
+**	would have an inbound packet handler that would simply examine the
+**	path options and optionally call other handlers directly depending on
+**	whatever criteria you want. You don't get the convenience of the
+**	"list" handler, but you do get something that is much smaller and
+**	flexible.
+**
+**	The convention of the node router (which is also followed by the
+**	"variable node") is that when your handler is called that the next
+**	option you fetch will be the option immediately after the path that
+**	was evaluated to get you to that handler. So if you want to use the
+**	variable node handler to wrap around getting and setting variables
+**	("a", "b", and "c") that lives at "/mydevice/blah/", when the variable
+**	node handles a GET for "/mydevice/blah/a", the first option it fetches
+**	will be the urlpath option "a".
+**
 **	@sa @ref smcp-example-3
 */
 
