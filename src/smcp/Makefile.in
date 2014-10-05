@@ -134,9 +134,10 @@ libsmcp_la_DEPENDENCIES = $(LIBOBJS) $(am__DEPENDENCIES_1)
 am__libsmcp_la_SOURCES_DIST = smcp.c smcp-timer.c coap.c \
 	smcp-outbound.c smcp-inbound.c smcp-observable.c smcp-auth.c \
 	smcp-transaction.c smcp-dupe.c smcp-missing.c smcp-plat-bsd.c \
-	btree.c url-helpers.c fasthash.c btree.h coap.h ll.h \
-	smcp-helpers.h smcp-internal.h smcp-logging.h url-helpers.h \
-	fasthash.h smcp-dupe.h smcp-node-router.c smcp-list.c \
+	btree.c url-helpers.c fasthash.c string-utils.c btree.h coap.h \
+	ll.h smcp-helpers.h smcp-internal.h smcp-logging.h \
+	url-helpers.h fasthash.h smcp-dupe.h string-utils.h \
+	smcp-missing.h smcp-node-router.c smcp-list.c \
 	smcp-variable_node.c smcp-curl_proxy.c
 @HAVE_LIBCURL_TRUE@am__objects_1 = libsmcp_la-smcp-curl_proxy.lo
 am_libsmcp_la_OBJECTS = libsmcp_la-smcp.lo libsmcp_la-smcp-timer.lo \
@@ -146,8 +147,9 @@ am_libsmcp_la_OBJECTS = libsmcp_la-smcp.lo libsmcp_la-smcp-timer.lo \
 	libsmcp_la-smcp-dupe.lo libsmcp_la-smcp-missing.lo \
 	libsmcp_la-smcp-plat-bsd.lo libsmcp_la-btree.lo \
 	libsmcp_la-url-helpers.lo libsmcp_la-fasthash.lo \
-	libsmcp_la-smcp-node-router.lo libsmcp_la-smcp-list.lo \
-	libsmcp_la-smcp-variable_node.lo $(am__objects_1)
+	libsmcp_la-string-utils.lo libsmcp_la-smcp-node-router.lo \
+	libsmcp_la-smcp-list.lo libsmcp_la-smcp-variable_node.lo \
+	$(am__objects_1)
 libsmcp_la_OBJECTS = $(am_libsmcp_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -535,9 +537,10 @@ lib_LTLIBRARIES = libsmcp.la
 libsmcp_la_SOURCES = smcp.c smcp-timer.c coap.c smcp-outbound.c \
 	smcp-inbound.c smcp-observable.c smcp-auth.c \
 	smcp-transaction.c smcp-dupe.c smcp-missing.c smcp-plat-bsd.c \
-	btree.c url-helpers.c fasthash.c btree.h coap.h ll.h \
-	smcp-helpers.h smcp-internal.h smcp-logging.h url-helpers.h \
-	fasthash.h smcp-dupe.h smcp-node-router.c smcp-list.c \
+	btree.c url-helpers.c fasthash.c string-utils.c btree.h coap.h \
+	ll.h smcp-helpers.h smcp-internal.h smcp-logging.h \
+	url-helpers.h fasthash.h smcp-dupe.h string-utils.h \
+	smcp-missing.h smcp-node-router.c smcp-list.c \
 	smcp-variable_node.c $(am__append_1)
 pkginclude_HEADERS = assert-macros.h smcp-timer.h smcp.h \
 	smcp-plat-bsd.h smcp-auth.h smcp-transaction.h smcp-opts.h \
@@ -660,6 +663,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-transaction.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-variable_node.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-string-utils.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-url-helpers.Plo@am__quote@
 
 .c.o:
@@ -783,6 +787,13 @@ libsmcp_la-fasthash.lo: fasthash.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fasthash.c' object='libsmcp_la-fasthash.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-fasthash.lo `test -f 'fasthash.c' || echo '$(srcdir)/'`fasthash.c
+
+libsmcp_la-string-utils.lo: string-utils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-string-utils.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-string-utils.Tpo -c -o libsmcp_la-string-utils.lo `test -f 'string-utils.c' || echo '$(srcdir)/'`string-utils.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-string-utils.Tpo $(DEPDIR)/libsmcp_la-string-utils.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='string-utils.c' object='libsmcp_la-string-utils.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-string-utils.lo `test -f 'string-utils.c' || echo '$(srcdir)/'`string-utils.c
 
 libsmcp_la-smcp-node-router.lo: smcp-node-router.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-node-router.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-node-router.Tpo -c -o libsmcp_la-smcp-node-router.lo `test -f 'smcp-node-router.c' || echo '$(srcdir)/'`smcp-node-router.c
