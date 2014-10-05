@@ -4,6 +4,20 @@ Release Notes
 This file contains a reverse-chronological list of releases and their associated
 changes.
 
+## Version 0.6.5 ##
+
+Released 2014-10-05
+
+ * We support RFC7252!
+ * Support for running multiple SMCP instances on different threads in the same process.
+ * smcp-inbound: Better abstracted duplicate packet detection.
+ * Added some headers that were necessary to compile against `libsmcp`.
+ * Fixes for various warnings and pedantic compiler errors.
+ * Make `smcp_wait()` return SMCP_STATUS_TIMEOUT if the timeout expired.
+ * unit-tests: Added "test-concurrency" to test general concurrency.
+ * Cleanup of various untidy bits.
+ * Added some additional documentation.
+
 ## Version 0.6.4 ##
 
 Released 2014-06-13
