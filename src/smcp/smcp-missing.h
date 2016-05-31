@@ -30,6 +30,10 @@
 #ifndef SMCP_smcp_missing_h
 #define SMCP_smcp_missing_h
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
 #define __BEGIN_DECLS   extern "C" {
