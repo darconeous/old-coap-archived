@@ -51,3 +51,5 @@ src/plugtest/.libs/smcp-plugtest-server
 *.lai
 .libs
 src/tests/test-concurrency
+*.gcno
+*.gcda

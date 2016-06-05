@@ -83,6 +83,24 @@
 #error Unsupported value for SMCP_BSD_SOCKETS_NET_FAMILY
 #endif // SMCP_BSD_SOCKETS_NET_FAMILY
 
-SMCP_INTERNAL_EXTERN smcp_status_t smcp_internal_lookup_hostname(const char* hostname, smcp_sockaddr_t* sockaddr);
+struct smcp_plat_s {
+	int						mcfd;	//!< For multicast
+
+	int						fd_udp;
+	int						fd_dtls;
+
+	smcp_sockaddr_t			sockaddr_local;
+	smcp_sockaddr_t			sockaddr_remote;
+	smcp_session_type_t     session_type;
+
+#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
+	struct in6_pktinfo		pktinfo;
+#elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
+	struct in_pktinfo		pktinfo;
+#endif
+
+	char					outbound_packet_bytes[SMCP_MAX_PACKET_LENGTH+1];
+};
+
 
 #endif

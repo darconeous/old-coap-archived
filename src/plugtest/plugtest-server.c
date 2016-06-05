@@ -97,7 +97,7 @@ plugtest_test_handler(smcp_node_t node)
 		}
 	}
 
-	smcp_outbound_set_content_len(strlen(content));
+	smcp_outbound_set_content_len((coap_size_t)strlen(content));
 
 	ret = smcp_outbound_send();
 
@@ -190,7 +190,7 @@ plugtest_separate_handler(
 		ret = smcp_transaction_begin(
 			smcp_get_current_instance(),
 			transaction,
-			(smcp_inbound_get_packet()->tt==COAP_TRANS_TYPE_CONFIRMABLE)?COAP_MAX_TRANSMIT_WAIT*MSEC_PER_SEC:1
+			(smcp_inbound_get_packet()->tt==COAP_TRANS_TYPE_CONFIRMABLE)?(smcp_cms_t)(COAP_MAX_TRANSMIT_WAIT*MSEC_PER_SEC):1
 		);
 		if(SMCP_STATUS_OK != ret) {
 			smcp_transaction_end(smcp_get_current_instance(),transaction);
@@ -249,7 +249,7 @@ plugtest_obs_handler(
 		require_action(max_len>11, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
 		ret = smcp_outbound_set_content_len(
-			strlen(uint32_to_dec_cstr(content, (uint32_t)time(NULL)))
+			(coap_size_t)strlen(uint32_to_dec_cstr(content, (uint32_t)time(NULL)))
 		);
 		require_noerr(ret, bail);
 
@@ -344,7 +344,7 @@ plugtest_large_handler(
 		}
 	}
 
-	ret = smcp_outbound_set_content_len(MIN(block_stop-block_start,resource_length-block_start));
+	ret = smcp_outbound_set_content_len((coap_size_t)MIN(block_stop-block_start,resource_length-block_start));
 	if(ret) goto bail;
 
 	ret = smcp_outbound_send();

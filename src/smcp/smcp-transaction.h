@@ -59,6 +59,8 @@ __BEGIN_DECLS
 **	@{
 */
 
+//struct smcp_session_s;
+//
 /*!	@defgroup smcp_trans Transaction API
 **	@{
 */
@@ -86,15 +88,15 @@ struct smcp_transaction_s {
 	// not observable, the expiration is when the transaction should
 	// be "timed out". If it is observable, it is when the
 	// max-age expires and we need to restart observing.
-	struct timeval				expiration;
+	smcp_timestamp_t			expiration;
 	struct smcp_timer_s			timer;
 
 	coap_msg_id_t				token;
 	coap_msg_id_t				msg_id;
-	smcp_sockaddr_t				saddr;
+	smcp_sockaddr_t				sockaddr_remote;
 
-#if SMCP_DTLS
-	void*						dtls_session;
+#if SMCP_TLS
+	void*						security_context;
 #endif
 
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
@@ -138,7 +140,7 @@ SMCP_API_EXTERN smcp_transaction_t smcp_transaction_init(
 SMCP_API_EXTERN smcp_status_t smcp_transaction_begin(
 	smcp_t self,
 	smcp_transaction_t transaction,
-	cms_t expiration
+	smcp_cms_t expiration
 );
 
 //!	Explicitly terminate this transaction.

@@ -13,7 +13,7 @@ Released 2014-10-05
  * smcp-inbound: Better abstracted duplicate packet detection.
  * Added some headers that were necessary to compile against `libsmcp`.
  * Fixes for various warnings and pedantic compiler errors.
- * Make `smcp_wait()` return SMCP_STATUS_TIMEOUT if the timeout expired.
+ * Make `smcp_plat_wait()` return SMCP_STATUS_TIMEOUT if the timeout expired.
  * unit-tests: Added "test-concurrency" to test general concurrency.
  * Cleanup of various untidy bits.
  * Added some additional documentation.

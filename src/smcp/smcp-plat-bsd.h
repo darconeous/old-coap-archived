@@ -59,9 +59,30 @@ typedef struct sockaddr_in smcp_sockaddr_t;
 #error Unsupported value for SMCP_BSD_SOCKETS_NET_FAMILY
 #endif // SMCP_BSD_SOCKETS_NET_FAMILY
 
+#include <sys/select.h>
+
+//! Support for `select()` style asynchronous operation
+SMCP_API_EXTERN int smcp_plat_update_fdsets(
+	smcp_t self,
+	fd_set *read_fd_set,
+	fd_set *write_fd_set,
+	fd_set *error_fd_set,
+	int *max_fd,
+	smcp_cms_t *timeout
+);
+
+#include <poll.h>
+
+//! Support for `poll()` style asynchronous operation
+SMCP_API_EXTERN int smcp_plat_update_pollfds(
+	smcp_t self,
+	struct pollfd fds[],
+	int maxfds
+);
+
 //!	Gets the file descriptor for the UDP socket.
 /*!	Useful for implementing asynchronous operation using select(),
 **	poll(), or other async mechanisms. */
-SMCP_API_EXTERN int smcp_get_fd(smcp_t self);
+SMCP_API_EXTERN int smcp_plat_get_fd(smcp_t self);
 
 #endif

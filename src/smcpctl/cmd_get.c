@@ -48,7 +48,7 @@ static int gRet;
 static sig_t previous_sigint_handler;
 static bool get_show_headers, get_observe, get_keep_alive;
 static uint16_t size_request;
-static cms_t get_timeout;
+static smcp_cms_t get_timeout;
 static bool observe_ignore_first;
 static bool observe_once;
 static coap_transaction_type_t get_tt;
@@ -270,7 +270,7 @@ tool_cmd_get(
 	HANDLE_LONG_ARGUMENT("follow") redirect_count = 10;
 	HANDLE_LONG_ARGUMENT("no-follow") redirect_count = 0;
 	HANDLE_LONG_ARGUMENT("slice-size") size_request = htons(strtol(argv[++i], NULL, 0));
-	HANDLE_LONG_ARGUMENT("timeout") get_timeout = (cms_t)(1000*strtof(argv[++i], NULL));
+	HANDLE_LONG_ARGUMENT("timeout") get_timeout = (smcp_cms_t)(1000*strtof(argv[++i], NULL));
 	HANDLE_LONG_ARGUMENT("observe") get_observe = true;
 	HANDLE_LONG_ARGUMENT("no-observe") get_observe = false;
 	HANDLE_LONG_ARGUMENT("non") get_tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
@@ -345,8 +345,8 @@ tool_cmd_get(
 	}
 
 	while(ERRORCODE_INPROGRESS == gRet) {
-		smcp_wait(smcp,1000);
-		smcp_process(smcp);
+		smcp_plat_wait(smcp,1000);
+		smcp_plat_process(smcp);
 	}
 
 bail:

@@ -402,6 +402,8 @@ bail:
 
 #if BTREE_SELF_TEST
 
+// LCOV_EXCL_START
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -809,5 +811,7 @@ again:
 
 	return ret;
 }
+
+// LCOV_EXCL_STOP
 
 #endif

@@ -71,17 +71,22 @@ PROCESS_THREAD(smcp_task, ev, data)
 
 	PRINTF("Starting SMCP\n");
 
-	if(!smcp_init(smcp, SMCP_DEFAULT_PORT)) {
+	if(!smcp_create()) {
 		PRINTF("Failed to start SMCP\n");
 		goto bail;
 	}
 
-	if(!smcp_get_udp_conn(smcp)) {
+	if(!smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, SMCP_DEFAULT_PORT)) {
+		PRINTF("Failed to bind to port\n");
+		goto bail;
+	}
+
+	if(!smcp_plat_get_udp_conn(smcp)) {
 		PRINTF("SMCP failed to create UDP conneciton!\n");
 		goto bail;
 	}
 
-	PRINTF("SMCP started. UDP Connection = %p\n",smcp_get_udp_conn(smcp));
+	PRINTF("SMCP started. UDP Connection = %p\n",smcp_plat_get_udp_conn(smcp));
 
 	etimer_set(&et, 1);
 
@@ -89,12 +94,12 @@ PROCESS_THREAD(smcp_task, ev, data)
 		PROCESS_WAIT_EVENT();
 
 		if(ev == tcpip_event) {
-      smcp_process(smcp);
+      smcp_plat_process(smcp);
       etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/MSEC_PER_SEC+1);
 		}
 
     if(etimer_expired(&et)) {
-      tcpip_poll_udp(smcp_get_udp_conn(smcp));
+      tcpip_poll_udp(smcp_plat_get_udp_conn(smcp));
     } else {
       etimer_set(&et, CLOCK_SECOND*smcp_get_timeout(smcp)/MSEC_PER_SEC+1);
     }

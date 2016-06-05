@@ -85,7 +85,7 @@ smcp_handle_list(
 	}
 
 	if(smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH,"")) {
-		// Handle trailing '/'.
+		// Eat the trailing '/'.
 		smcp_inbound_next_option(NULL, NULL);
 		if(prefix[0]) prefix = NULL;
 	}
@@ -99,20 +99,13 @@ smcp_handle_list(
 			require_action(key!=COAP_OPTION_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
 			if(key == COAP_OPTION_URI_QUERY) {
 				// Skip URI query components for now.
-//			} else if(key == COAP_OPTION_SIZE_REQUEST) {
-//				uint8_t i;
-//				content_break_threshold = 0;
-//				for(i = 0; i < value_len; i++)
-//					content_break_threshold =
-//						(content_break_threshold << 8) + value[i];
-//				if(content_break_threshold >= sizeof(replyContent)) {
-//					DEBUG_PRINTF(
-//						"Requested size (%d) is too large, trimming to %d.",
-//						(int)content_break_threshold,
-//						(int)sizeof(replyContent) - 1
-//					);
-//					content_break_threshold = sizeof(replyContent) - 1;
-//				}
+			} else if(key == COAP_OPTION_ACCEPT) {
+				if ((value_len != 1) || (*value != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)) {
+					// We only support application/link-format
+					smcp_outbound_quick_response(COAP_RESULT_415_UNSUPPORTED_MEDIA_TYPE, NULL);
+					ret = SMCP_STATUS_OK;
+					goto bail;
+				}
 			} else {
 				if(COAP_OPTION_IS_CRITICAL(key)) {
 					ret=SMCP_STATUS_BAD_OPTION;
@@ -129,14 +122,15 @@ smcp_handle_list(
 	// Node should always be set by the time we get here.
 	require_action(node, bail, ret = SMCP_STATUS_BAD_ARGUMENT);
 
-	if(((smcp_node_t)node)->children)
+	if (NULL != node->children) {
 #if SMCP_NODE_ROUTER_USE_BTREE
-		node = bt_first(((smcp_node_t)node)->children);
+		node = bt_first(node->children);
 #else
-		node = ((smcp_node_t)node)->children;
+		node = node->children;
 #endif
-	else
+	} else {
 		node = NULL;
+	}
 
 	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	require_noerr(ret, bail);
@@ -175,16 +169,19 @@ smcp_handle_list(
 				url_encode_cstr(replyContent+len, node_name, content_break_threshold - len);
 		}
 
-		if(node->children)
+		if(node->children) {
 			strlcat(replyContent, "/", content_break_threshold);
+		}
 
 		strlcat(replyContent, ">", content_break_threshold);
 
-		if(node->children || node->has_link_content)
+		if(node->children || node->has_link_content) {
 			strlcat(replyContent, ";ct=40", content_break_threshold);
+		}
 
-		if(node->is_observable)
+		if(node->is_observable) {
 			strlcat(replyContent, ";obs", content_break_threshold);
+		}
 
 #if SMCP_NODE_ROUTER_USE_BTREE
 		next = bt_next((void*)node);

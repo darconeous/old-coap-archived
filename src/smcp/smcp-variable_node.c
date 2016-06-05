@@ -156,7 +156,7 @@ smcp_variable_node_request_handler(
 			) {
 				if(strequal_const(key, "v")) {
 					content_ptr = value;
-					content_len = strlen(value);
+					content_len = (coap_size_t)strlen(value);
 					break;
 				}
 			}
@@ -239,7 +239,7 @@ smcp_variable_node_request_handler(
 
 				*content_ptr++ = ',';
 			}
-			ret = smcp_outbound_set_content_len(content_len-(content_end_ptr-content_ptr));
+			ret = smcp_outbound_set_content_len(content_len-(coap_size_t)(content_end_ptr-content_ptr));
 			require_noerr(ret,bail);
 
 			ret = smcp_outbound_send();
@@ -272,7 +272,7 @@ smcp_variable_node_request_handler(
 
 				struct fasthash_state_s fasthash;
 				fasthash_start(&fasthash, 0);
-				fasthash_feed(&fasthash, (const uint8_t*)buffer,strlen(buffer));
+				fasthash_feed(&fasthash, (const uint8_t*)buffer, (uint8_t)strlen(buffer));
 				etag = fasthash_finish_uint32(&fasthash);
 
 				smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED);
@@ -284,7 +284,7 @@ smcp_variable_node_request_handler(
 				*replyContent++ = 'v';
 				*replyContent++ = '=';
 				replyContentLength -= 2;
-				replyContentLength = url_encode_cstr(
+				replyContentLength = (coap_size_t)url_encode_cstr(
 					replyContent,
 					buffer,
 					replyContentLength

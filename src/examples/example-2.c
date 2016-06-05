@@ -61,14 +61,16 @@ main(void) {
 
 	// Create our instance on the default CoAP port. If the port
 	// is already in use, we will pick the next available port number.
-	instance = smcp_create(0);
+	instance = smcp_create();
 
 	if(!instance) {
 		perror("Unable to create SMCP instance");
 		abort();
 	}
 
-	printf("Listening on port %d\n",smcp_get_port(instance));
+	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
+
+	printf("Listening on port %d\n",smcp_plat_get_port(instance));
 
 	// SMCP will always respond to requests with METHOD_NOT_IMPLEMENTED
 	// unless a request handler is set. Unless your program is only
@@ -81,8 +83,8 @@ main(void) {
 	// can haave with SMCP. It is appropriate for simple CoAP servers
 	// and clients which do not need asynchronous I/O.
 	while(1) {
-		smcp_wait(instance, CMS_DISTANT_FUTURE);
-		smcp_process(instance);
+		smcp_plat_wait(instance, CMS_DISTANT_FUTURE);
+		smcp_plat_process(instance);
 	}
 
 	// We won't actually get to this line with the above loop, but it

@@ -27,14 +27,18 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "assert-macros.h"
 #include "smcp-logging.h"
 #include "smcp.h"
 #include "smcp-internal.h"
 #include "smcp-transaction.h"
-#include "smcp-auth.h"
 
 #if SMCP_AVOID_MALLOC
+#warning Transaction pool should be moved into the SMCP instance.
 static struct smcp_transaction_s smcp_transaction_pool[SMCP_CONF_MAX_TRANSACTIONS];
 #endif // SMCP_AVOID_MALLOC
 
@@ -46,10 +50,12 @@ smcp_transaction_compare(
 	const smcp_transaction_t lhs = (smcp_transaction_t)lhs_;
 	const smcp_transaction_t rhs = (smcp_transaction_t)rhs_;
 
-	if(lhs->msg_id > rhs->msg_id)
+	if (lhs->msg_id > rhs->msg_id) {
 		return 1;
-	if(lhs->msg_id < rhs->msg_id)
+	}
+	if (lhs->msg_id < rhs->msg_id) {
 		return -1;
+	}
 	return 0;
 }
 
@@ -60,10 +66,12 @@ smcp_transaction_compare_msg_id(
 	const smcp_transaction_t lhs = (smcp_transaction_t)lhs_;
 	coap_msg_id_t rhs = (coap_msg_id_t)(uintptr_t)rhs_;
 
-	if(lhs->msg_id > rhs)
+	if(lhs->msg_id > rhs) {
 		return 1;
-	if(lhs->msg_id < rhs)
+	}
+	if(lhs->msg_id < rhs) {
 		return -1;
+	}
 	return 0;
 }
 #endif
@@ -134,17 +142,19 @@ smcp_internal_delete_transaction_(
 	}
 
 #if SMCP_AVOID_MALLOC
-	if(handler->should_dealloc)
+	if (handler->should_dealloc) {
 		handler->callback = NULL;
+	}
 #else
-	if(handler->should_dealloc)
+	if (handler->should_dealloc) {
 		free(handler);
+	}
 #endif
 }
 
-static cms_t
+static smcp_cms_t
 calc_retransmit_timeout(int retries) {
-	cms_t ret = (cms_t)(COAP_ACK_TIMEOUT * MSEC_PER_SEC);
+	smcp_cms_t ret = (smcp_cms_t)(COAP_ACK_TIMEOUT * MSEC_PER_SEC);
 
 	ret <<= retries;
 
@@ -203,7 +213,7 @@ smcp_internal_transaction_timeout_(
 ) {
 	smcp_status_t status = SMCP_STATUS_TIMEOUT;
 	void* context = handler->context;
-	cms_t cms = convert_timeval_to_cms(&handler->expiration);
+	smcp_cms_t cms = smcp_plat_timestamp_to_cms(handler->expiration);
 
 	self->current_transaction = handler;
 	if((cms > 0) || (0==handler->attemptCount)) {
@@ -213,14 +223,18 @@ smcp_internal_transaction_timeout_(
 			cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
 		}
 
-		if(cms <= 0)
+		if (cms <= 0) {
 			cms = 0;
+		}
 
-		if((0==handler->attemptCount) && handler->waiting_for_async_response && !(handler->flags&SMCP_TRANSACTION_KEEPALIVE)) {
+		if ((0 == handler->attemptCount)
+			&& handler->waiting_for_async_response
+			&& !(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
+		) {
 			status = SMCP_STATUS_OK;
 		}
 
-		if(status == SMCP_STATUS_TIMEOUT && handler->resendCallback) {
+		if (status == SMCP_STATUS_TIMEOUT && handler->resendCallback) {
 			// Resend.
 			self->outbound.next_tid = handler->msg_id;
 			self->is_processing_message = false;
@@ -229,12 +243,20 @@ smcp_internal_transaction_timeout_(
 
 			status = handler->resendCallback(context);
 
-			if(status == SMCP_STATUS_OK) {
+			if (status == SMCP_STATUS_OK) {
 				cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount));
 
-				if (SMCP_TRANSACTION_MAX_ATTEMPTS != handler->attemptCount)
+				if (SMCP_TRANSACTION_MAX_ATTEMPTS != handler->attemptCount) {
 					handler->attemptCount++;
-			} else if(status == SMCP_STATUS_WAIT_FOR_DNS) {
+				}
+
+			} else if (status == SMCP_STATUS_WAIT_FOR_DNS) {
+				// TODO: Figure out a way to avoid polling?
+				cms = 100;
+				status = SMCP_STATUS_OK;
+
+			} else if (status == SMCP_STATUS_WAIT_FOR_SESSION) {
+				// TODO: Figure out a way to avoid polling?
 				cms = 100;
 				status = SMCP_STATUS_OK;
 			}
@@ -263,7 +285,7 @@ smcp_internal_transaction_timeout_(
 		handler->next_block2 = 0;
 #endif
 		smcp_transaction_new_msg_id(self,handler,smcp_get_next_msg_id(self));
-		convert_cms_to_timeval(&handler->expiration, SMCP_OBSERVATION_DEFAULT_MAX_AGE);
+		handler->expiration = smcp_plat_cms_to_timestamp(SMCP_OBSERVATION_DEFAULT_MAX_AGE);
 
 		if(handler->resendCallback) {
 			// In this case we will be reattempting for a given duration.
@@ -373,8 +395,9 @@ smcp_status_t
 smcp_transaction_begin(
 	smcp_t self,
 	smcp_transaction_t handler,
-	cms_t expiration
+	smcp_cms_t expiration
 ) {
+	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	SMCP_EMBEDDED_SELF_HOOK;
 
 	require(handler!=NULL, bail);
@@ -394,7 +417,7 @@ smcp_transaction_begin(
 #endif
 
 	if (expiration<0) {
-		expiration = (cms_t)(COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC);
+		expiration = (smcp_cms_t)(COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC);
 	}
 
 	handler->token = smcp_get_next_msg_id(self);
@@ -408,7 +431,7 @@ smcp_transaction_begin(
 	handler->next_block2 = 0;
 #endif
 	handler->active = 1;
-	convert_cms_to_timeval(&handler->expiration, expiration);
+	handler->expiration = smcp_plat_cms_to_timestamp(expiration);
 
 	if(handler->resendCallback) {
 		// In this case we will be reattempting for a given duration.
@@ -427,7 +450,7 @@ smcp_transaction_begin(
 		expiration = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
 	}
 
-	smcp_schedule_timer(
+	ret = smcp_schedule_timer(
 		self,
 		smcp_timer_init(
 			&handler->timer,
@@ -437,6 +460,8 @@ smcp_transaction_begin(
 		),
 		expiration
 	);
+
+	require_noerr(ret, bail);
 
 #if SMCP_TRANSACTIONS_USE_BTREE
 	bt_insert(
@@ -454,9 +479,10 @@ smcp_transaction_begin(
 		(int)ll_count((void**)&self->transactions));
 #endif
 
+	ret = SMCP_STATUS_OK;
 
 bail:
-	return 0;
+	return ret;
 }
 
 smcp_status_t
@@ -537,20 +563,20 @@ smcp_handle_response() {
 		}
 	}
 
-	if(handler
-		&& !handler->multicast
-		&& ((0 != memcmp(&handler->saddr.smcp_addr, &self->inbound.saddr.smcp_addr, sizeof(handler->saddr.smcp_addr)))
-			|| handler->saddr.smcp_port != self->inbound.saddr.smcp_port
-		)
+	if ( handler
+	  && !handler->multicast
+	  && ( (0 != memcmp(&handler->sockaddr_remote.smcp_addr, &smcp_plat_get_remote_sockaddr()->smcp_addr, sizeof(smcp_addr_t)))
+		|| (handler->sockaddr_remote.smcp_port != smcp_plat_get_remote_sockaddr()->smcp_port)
+	  )
 	) {
-		DEBUG_PRINTF("Bad address!");
+		DEBUG_PRINTF("Remote address doesn't match transaction, fail.");
 		// Message-ID or token matched, but the address didn't. Fail.
 		handler = NULL;
 	}
 
 	self->current_transaction = handler;
 
-	if(!handler) {
+	if (handler == NULL) {
 		// This is an unknown response. If the packet
 		// if confirmable, send a reset. If not, don't bother.
 		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {
@@ -575,15 +601,11 @@ smcp_handle_response() {
 
 		DEBUG_PRINTF("Inbound: Transaction handling response.");
 
-		// Handle any authentication headers.
-		ret = smcp_auth_inbound_init();
-		require_noerr(ret,bail);
-
 		smcp_inbound_reset_next_option();
 
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 		if((handler->flags & SMCP_TRANSACTION_OBSERVE) && self->inbound.has_observe_option) {
-			cms_t cms = self->inbound.max_age*MSEC_PER_SEC;
+			smcp_cms_t cms = self->inbound.max_age*MSEC_PER_SEC;
 
 			if(	self->inbound.has_observe_option
 				&& (self->inbound.observe_value<=handler->last_observe)
@@ -632,7 +654,7 @@ smcp_handle_response() {
 					cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
 			}
 
-			convert_cms_to_timeval(&handler->expiration, cms);
+			handler->expiration = smcp_plat_cms_to_timestamp(cms);
 
 			if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
 				&& cms>SMCP_OBSERVATION_KEEPALIVE_INTERVAL
@@ -681,7 +703,7 @@ smcp_handle_response() {
 #endif // SMCP_CONF_TRANS_ENABLE_BLOCK2
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 				if (!ret && (handler->flags&SMCP_TRANSACTION_OBSERVE)) {
-					cms_t cms = self->inbound.max_age*1000;
+					smcp_cms_t cms = self->inbound.max_age*1000;
 #if SMCP_CONF_TRANS_ENABLE_BLOCK2
 					handler->next_block2 = 0;
 #endif // SMCP_CONF_TRANS_ENABLE_BLOCK2
@@ -695,7 +717,7 @@ smcp_handle_response() {
 							cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
 					}
 
-					convert_cms_to_timeval(&handler->expiration, cms);
+					handler->expiration = smcp_plat_cms_to_timestamp(cms);
 
 					if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
 						&& cms>SMCP_OBSERVATION_KEEPALIVE_INTERVAL

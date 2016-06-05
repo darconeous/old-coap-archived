@@ -150,8 +150,8 @@ cgi_node_get_associated_request(cgi_node_t node) {
 //			printf("cgi_node_get_associated_request: %d: token mismatch\n",i);
 			continue;
 		}
-		if(0!=memcmp(&request->async_response.remote_saddr,smcp_inbound_get_srcaddr(),sizeof(request->async_response.remote_saddr))) {
-//			printf("cgi_node_get_associated_request: %d: saddr mismatch\n",i);
+		if(smcp_inbound_is_related_to_async_response(request)) {
+//			printf("cgi_node_get_associated_request: %d: session mismatch\n",i);
 			continue;
 		}
 
@@ -796,7 +796,7 @@ cgi_node_update_fdset(
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *max_fd,
-	cms_t *timeout
+	smcp_cms_t *timeout
 ) {
 	int i;
 	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
@@ -842,7 +842,7 @@ cgi_node_process(cgi_node_t self) {
 	int i;
 	fd_set rd_set, wr_set, er_set;
 	int max_fd = -1;
-	struct timeval t = {};
+	smcp_timestamp_t t;
 	FD_ZERO(&rd_set);
 	FD_ZERO(&wr_set);
 	FD_ZERO(&er_set);
@@ -944,7 +944,7 @@ SMCPD_module__cgi_node_update_fdset(
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *max_fd,
-	cms_t *timeout
+	smcp_cms_t *timeout
 );
 
 extern cgi_node_t
@@ -967,7 +967,7 @@ SMCPD_module__cgi_node_update_fdset(
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *max_fd,
-	cms_t *timeout
+	smcp_cms_t *timeout
 ) {
 	return cgi_node_update_fdset(self, read_fd_set, write_fd_set, error_fd_set, max_fd, timeout);
 }

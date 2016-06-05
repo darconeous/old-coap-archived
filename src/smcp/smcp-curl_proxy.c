@@ -296,7 +296,7 @@ smcp_curl_proxy_node_dealloc(smcp_curl_proxy_node_t x) {
 smcp_curl_proxy_node_t
 smcp_smcp_curl_proxy_node_alloc() {
 	smcp_curl_proxy_node_t ret =
-	    (smcp_curl_proxy_node_t)calloc(sizeof(struct smcp_curl_proxy_node_s), 1);
+		(smcp_curl_proxy_node_t)calloc(sizeof(struct smcp_curl_proxy_node_s), 1);
 
 	ret->node.finalize = (void (*)(smcp_node_t)) &smcp_curl_proxy_node_dealloc;
 	return ret;
@@ -333,11 +333,11 @@ bail:
 smcp_status_t
 smcp_curl_proxy_node_update_fdset(
 	smcp_curl_proxy_node_t self,
-    fd_set *read_fd_set,
-    fd_set *write_fd_set,
-    fd_set *error_fd_set,
-    int *max_fd,
-	cms_t *timeout
+	fd_set *read_fd_set,
+	fd_set *write_fd_set,
+	fd_set *error_fd_set,
+	int *max_fd,
+	smcp_cms_t *timeout
 ) {
 	int fd = *max_fd;
 	long cms_timeout = *timeout;

@@ -44,7 +44,7 @@ smcp_inbound_dupe_check(void)
 
 	// Calculate the message-id hash (address+port+message_id)
 	fasthash_start(&fasthash, 0);
-	fasthash_feed(&fasthash, (void*)&self->inbound.saddr,sizeof(self->inbound.saddr));
+	fasthash_feed(&fasthash, (const void*)smcp_plat_get_remote_sockaddr(), sizeof(smcp_sockaddr_t));
 	fasthash_feed(&fasthash, (const uint8_t*)&self->inbound.packet->msg_id,sizeof(self->inbound.packet->msg_id));
 	hash = fasthash_finish_uint32(&fasthash);
 
@@ -52,7 +52,7 @@ smcp_inbound_dupe_check(void)
 	unsigned int i = SMCP_CONF_DUPE_BUFFER_SIZE;
 	while (i--) {
 		if (self->dupe_info.dupe[i].hash == hash) {
-			if ((0 == memcmp(&self->dupe_info.dupe[i].from, &self->inbound.saddr, sizeof(self->inbound.saddr)))
+			if ((0 == memcmp(&self->dupe_info.dupe[i].from, (const void*)smcp_plat_get_remote_sockaddr(), sizeof(smcp_sockaddr_t)))
 				&& (self->dupe_info.dupe[i].msg_id == self->inbound.packet->msg_id)
 			) {
 				is_dupe = true;
@@ -65,7 +65,7 @@ smcp_inbound_dupe_check(void)
 		// This is not a dupe, add it to the list.
 		self->dupe_info.dupe[self->dupe_info.dupe_index].hash = hash;
 		self->dupe_info.dupe[self->dupe_info.dupe_index].msg_id = self->inbound.packet->msg_id;
-		memcpy(&self->dupe_info.dupe[self->dupe_info.dupe_index].from, &self->inbound.saddr, sizeof(self->inbound.saddr));
+		memcpy(&self->dupe_info.dupe[self->dupe_info.dupe_index].from, (const void*)smcp_plat_get_remote_sockaddr(), sizeof(smcp_sockaddr_t));
 		self->dupe_info.dupe_index++;
 		self->dupe_info.dupe_index %= SMCP_CONF_DUPE_BUFFER_SIZE;
 	}

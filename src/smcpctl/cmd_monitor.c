@@ -126,8 +126,8 @@ tool_cmd_monitor(
 	gRet = ERRORCODE_OK;
 
 	while(ERRORCODE_INPROGRESS == gRet) {
-		smcp_wait(smcp,50);
-		smcp_process(smcp);
+		smcp_plat_wait(smcp,50);
+		smcp_plat_process(smcp);
 	}
 
 bail:

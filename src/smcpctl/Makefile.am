@@ -1,5 +1,10 @@
-INCLUDES = -I.. -I$(top_srcdir)/src
+AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
 #AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
+
+@CODE_COVERAGE_RULES@
+
+AM_LIBS = $(CODE_COVERAGE_LDFLAGS)
+AM_CFLAGS = $(CODE_COVERAGE_CFLAGS)
 
 bin_PROGRAMS = smcpctl
 

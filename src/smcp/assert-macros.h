@@ -114,8 +114,11 @@
 	do { \
 		int err = (int)(c); \
 		if(err!=0) { \
-		assert_printf("Requirement Failed, error %d (%s)", \
-			err, s); a; goto l; \
+			int errnobackup = errno; \
+			assert_printf("Requirement Failed, error %d (%s)", err, s); \
+			errno = errnobackup; \
+			a; \
+			goto l; \
 		 } \
 	} while(0)
 #endif
@@ -126,6 +129,7 @@
  #define require(c, l)   require_action_string(c, l, {}, # c)
 
  #define require_noerr(c, l)   require_noerr_action_string(c, l, {}, # c)
+ #define require_noerr_action(c, l, a)   require_noerr_action_string(c, l, a, # c)
  #define require_action(c, l, a)   require_action_string(c, l, a, # c)
  #define require_string(c, l, s) \
     require_action_string(c, l, \

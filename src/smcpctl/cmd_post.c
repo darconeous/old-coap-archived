@@ -261,8 +261,8 @@ tool_cmd_post(
 	transaction = send_post_request(smcp, url, method,content, (coap_size_t)strlen(content),content_type);
 
 	while(ERRORCODE_INPROGRESS == gRet) {
-		smcp_wait(smcp,1000);
-		smcp_process(smcp);
+		smcp_plat_wait(smcp,1000);
+		smcp_plat_process(smcp);
 	}
 
 	smcp_transaction_end(smcp, transaction);

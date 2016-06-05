@@ -234,8 +234,8 @@ tool_cmd_pair(
 	gRet = ERRORCODE_INPROGRESS;
 
 	while(ERRORCODE_INPROGRESS == gRet) {
-		smcp_wait(smcp,1000);
-		smcp_process(smcp);
+		smcp_plat_wait(smcp,1000);
+		smcp_plat_process(smcp);
 	}
 
 bail:

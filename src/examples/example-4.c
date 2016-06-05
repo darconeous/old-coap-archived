@@ -92,16 +92,18 @@ main(void) {
 
 	// Create our instance on the default CoAP port. If the port
 	// is already in use, we will pick the next available port number.
-	instance = smcp_create(0);
-
-	root_node = smcp_node_init(NULL,NULL,NULL);
-
-	next_trigger = time(NULL)+TRIGGER_FREQUENCY;
+	instance = smcp_create();
 
 	if(!instance) {
 		perror("Unable to create SMCP instance");
 		abort();
 	}
+
+	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
+
+	root_node = smcp_node_init(NULL,NULL,NULL);
+
+	next_trigger = time(NULL)+TRIGGER_FREQUENCY;
 
 	smcp_set_default_request_handler(instance, &smcp_node_router_handler, (void*)root_node);
 
@@ -109,11 +111,11 @@ main(void) {
 	hello_node->request_handler = &request_handler;
 	hello_node->context = &observable;
 
-	printf("Listening on port %d\n",smcp_get_port(instance));
+	printf("Listening on port %d\n",smcp_plat_get_port(instance));
 
 	while(1) {
-		smcp_wait(instance, (next_trigger-time(NULL))*MSEC_PER_SEC);
-		smcp_process(instance);
+		smcp_plat_wait(instance, (next_trigger-time(NULL))*MSEC_PER_SEC);
+		smcp_plat_process(instance);
 
 		// Occasionally trigger this resource as having changed.
 		if((next_trigger-time(NULL))<=0) {

@@ -1,11 +1,11 @@
 #!/bin/sh
 
-DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib ./smcp-plugtest-server > /dev/stderr &
+MallocScribble=1 MallocPreScribble=1 MallocGuardEdges=1 MallocCheckHeapStart=1 MallocCheckHeapEach=1 MALLOC_PERTURB_=1 MALLOC_CHECK_=1 DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib ./smcp-plugtest-server > /dev/stderr &
 SERVER_PID=$!
 
-DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib ./smcp-plugtest-client > /dev/stderr
-RESULT=$?
+trap "kill $SERVER_PID" EXIT INT TERM
 
-kill $SERVER_PID
+MallocScribble=1 MallocPreScribble=1 MallocGuardEdges=1 MallocCheckHeapStart=1 MallocCheckHeapEach=1 MALLOC_PERTURB_=1 MALLOC_CHECK_=1 DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib ./smcp-plugtest-client coap://127.0.0.1 > /dev/stderr
+RESULT=$?
 
 exit $RESULT

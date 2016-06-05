@@ -12,8 +12,8 @@
 #include <smcp/assert-macros.h>
 #include <smcp/smcp.h>
 
-#define NUMBER_OF_THREADS			(50)
-#define TRANSACTIONS_PER_THREAD		(500)
+#define NUMBER_OF_THREADS			(10)
+#define TRANSACTIONS_PER_THREAD		(10)
 
 //#define VERBOSE_DEBUG		1
 
@@ -133,14 +133,16 @@ thread_main(void* context) {
 
 	// Create our instance on the default CoAP port. If the port
 	// is already in use, we will pick the next available port number.
-	instance = smcp_create(0);
+	instance = smcp_create();
 
 	if(!instance) {
 		perror("Unable to create second SMCP instance");
 		exit(EXIT_FAILURE);
 	}
 
-	printf("%d: Thread Listening on port %d\n",obj->index,smcp_get_port(instance));
+	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
+
+	printf("%d: Thread Listening on port %d\n",obj->index,smcp_plat_get_port(instance));
 
 	while(obj->remaining > 0) {
 		if(obj->transaction == NULL) {
@@ -158,8 +160,8 @@ thread_main(void* context) {
 				3*MSEC_PER_SEC
 			);
 		}
-		smcp_wait(instance, 5000);
-		smcp_process(instance);
+		smcp_plat_wait(instance, 5000);
+		smcp_plat_process(instance);
 	}
 
 	obj->remaining = 0;
@@ -173,21 +175,23 @@ main(void) {
 	struct test_concurrency_thread_s threads[NUMBER_OF_THREADS] = { };
 	int i;
 	bool is_finished = false;
+	smcp_timestamp_t start_time = smcp_plat_cms_to_timestamp(0);
+
 
 	SMCP_LIBRARY_VERSION_CHECK();
 
-	// Create our instance on the default CoAP port. If the port
-	// is already in use, we will pick the next available port number.
-	instance = smcp_create(0);
+	instance = smcp_create();
 
 	if(!instance) {
 		perror("Unable to create first SMCP instance");
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Main Listening on port %d\n", smcp_get_port(instance));
+	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
 
-	asprintf(&gMainThreadURL, "coap://localhost:%d/", smcp_get_port(instance));
+	printf("Main Listening on port %d\n", smcp_plat_get_port(instance));
+
+	asprintf(&gMainThreadURL, "coap://localhost:%d/", smcp_plat_get_port(instance));
 
 	smcp_set_default_request_handler(instance, &request_handler, NULL);
 
@@ -202,8 +206,12 @@ main(void) {
 	}
 
 	while (!is_finished) {
-		smcp_process(instance);
-		if (smcp_wait(instance, 1000) == SMCP_STATUS_TIMEOUT) {
+		if (-smcp_plat_cms_to_timestamp(start_time) > MSEC_PER_SEC*10) {
+			fprintf(stderr,"TIMEOUT\n");
+			abort();
+		}
+		smcp_plat_process(instance);
+		if (smcp_plat_wait(instance, 1000) == SMCP_STATUS_TIMEOUT) {
 			is_finished = true;
 			for (i = 0; i < sizeof(threads)/sizeof(*threads); i++) {
 				if (threads[i].remaining > 0) {
