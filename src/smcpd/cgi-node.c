@@ -95,7 +95,7 @@ typedef enum {
 
 struct cgi_node_request_s {
 
-struct smcp_async_response_s async_response;
+	struct smcp_async_response_s async_response;
 	cgi_node_state_t state;
 	time_t expiration;
 	bool is_active;
@@ -135,7 +135,7 @@ cgi_node_get_associated_request(cgi_node_t node) {
 
 	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
 		cgi_node_request_t request = &node->requests[i];
-		if(request->state<CGI_NODE_STATE_FINISHED) {
+		if(request->state < CGI_NODE_STATE_FINISHED) {
 			continue;
 		}
 		if(request->async_response.request.header.token_len != smcp_inbound_get_packet()->token_len) {
@@ -150,7 +150,7 @@ cgi_node_get_associated_request(cgi_node_t node) {
 //			printf("cgi_node_get_associated_request: %d: token mismatch\n",i);
 			continue;
 		}
-		if(smcp_inbound_is_related_to_async_response(request)) {
+		if(smcp_inbound_is_related_to_async_response(&request->async_response)) {
 //			printf("cgi_node_get_associated_request: %d: session mismatch\n",i);
 			continue;
 		}
@@ -795,41 +795,46 @@ cgi_node_update_fdset(
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
-    int *max_fd,
+    int *fd_count,
 	smcp_cms_t *timeout
 ) {
 	int i;
-	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
+	for (i = 0; i < CGI_NODE_MAX_REQUESTS; i++) {
 		cgi_node_request_t request = &self->requests[i];
 
-		if(request->state<=CGI_NODE_STATE_FINISHED)
+		if (request->state<=CGI_NODE_STATE_FINISHED) {
 			continue;
+		}
 
-		if(	request->stdin_buffer_len
-			&& request->fd_cmd_stdin >= 0
-			&& write_fd_set
+		if ( request->stdin_buffer_len
+		  && request->fd_cmd_stdin >= 0
+		  && write_fd_set
 		) {
 			//printf("Adding FD %d to write set\n",request->fd_cmd_stdin);
 			FD_SET(request->fd_cmd_stdin,write_fd_set);
-			if(error_fd_set)
+			if (error_fd_set) {
 				FD_SET(request->fd_cmd_stdin,error_fd_set);
-			if(max_fd)
-				*max_fd = MAX(*max_fd,request->fd_cmd_stdin);
+			}
+			if (fd_count) {
+				*fd_count = MAX(*fd_count,request->fd_cmd_stdin+1);
+			}
 		}
 
-		if(	request->fd_cmd_stdout >= 0
-			&& request->stdout_buffer_len<(1<<((request->block2&0x7)+4))
-			&& read_fd_set
+		if ( request->fd_cmd_stdout >= 0
+		  && request->stdout_buffer_len<(1<<((request->block2&0x7)+4))
+		  && read_fd_set
 		) {
 			//printf("Adding FD %d to read set\n",request->fd_cmd_stdout);
 			FD_SET(request->fd_cmd_stdout,read_fd_set);
-			if(error_fd_set)
+			if (error_fd_set) {
 				FD_SET(request->fd_cmd_stdout,error_fd_set);
-			if(max_fd)
-				*max_fd = MAX(*max_fd,request->fd_cmd_stdout);
+			}
+			if (fd_count) {
+				*fd_count = MAX(*fd_count,request->fd_cmd_stdout+1);
+			}
 		}
 
-		if(timeout && request->expiration) {
+		if (timeout && request->expiration) {
 			*timeout = MIN(*timeout,MAX(0,request->expiration-time(NULL) ));
 		}
 
@@ -837,19 +842,41 @@ cgi_node_update_fdset(
 	return SMCP_STATUS_OK;
 }
 
+void
+convert_cms_to_timeval(
+	struct timeval* tv, smcp_cms_t cms
+) {
+	gettimeofday(tv, NULL);
+
+	// Add all whole seconds to tv_sec
+	tv->tv_sec += cms / MSEC_PER_SEC;
+
+	// Remove all whole seconds from cms
+	cms -= ((cms / MSEC_PER_SEC) * MSEC_PER_SEC);
+
+	tv->tv_usec += ((cms % MSEC_PER_SEC) * MSEC_PER_SEC);
+
+	tv->tv_sec += tv->tv_usec / USEC_PER_SEC;
+
+	tv->tv_usec %= USEC_PER_SEC;
+}
+
 smcp_status_t
 cgi_node_process(cgi_node_t self) {
 	int i;
 	fd_set rd_set, wr_set, er_set;
-	int max_fd = -1;
-	smcp_timestamp_t t;
+	int fd_count = 0;
+	struct timeval t = {};
+	smcp_cms_t timeout = CMS_DISTANT_FUTURE;
 	FD_ZERO(&rd_set);
 	FD_ZERO(&wr_set);
 	FD_ZERO(&er_set);
 
-	cgi_node_update_fdset(self,&rd_set,&wr_set,&er_set,&max_fd,NULL);
+	cgi_node_update_fdset(self,&rd_set,&wr_set,&er_set,&fd_count,&timeout);
 
-	if(select(max_fd+1,&rd_set,&wr_set,&er_set,&t)>0) {
+	convert_cms_to_timeval(&t, timeout);
+
+	if(select(fd_count, &rd_set, &wr_set, &er_set, &t) > 0) {
 		for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
 			cgi_node_request_t request = &self->requests[i];
 			if(request->state<=CGI_NODE_STATE_FINISHED)

@@ -107,13 +107,6 @@ smcp_outbound_begin(
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	SMCP_EMBEDDED_SELF_HOOK;
 
-#if !SMCP_EMBEDDED
-	// TODO: ??? Not sure why I put this here...
-	if (!self) {
-		self = smcp_get_current_instance();
-	}
-#endif
-
 	check(!smcp_get_current_instance() || smcp_get_current_instance()==self);
 
 	smcp_set_current_instance(self);
@@ -139,14 +132,15 @@ smcp_outbound_begin(
 	self->outbound.packet->version = COAP_VERSION;
 
 	// Set the token.
-	if(	self->is_processing_message
-		&& self->inbound.packet
-		&& self->inbound.packet->token_len
-		&& code
+	if ( self->is_processing_message
+	  && self->inbound.packet != NULL
+	  && self->inbound.packet->token_len != 0
+	  && code != COAP_CODE_EMPTY
 	) {
 		self->outbound.packet->token_len = self->inbound.packet->token_len;
 		memcpy(self->outbound.packet->token,self->inbound.packet->token,self->outbound.packet->token_len);
-	} else if(code && (code < COAP_RESULT_100) && self->current_transaction) {
+
+	} else if (code && (code < COAP_RESULT_100) && self->current_transaction) {
 		// For sending a request.
 		self->outbound.packet->token_len = sizeof(self->current_transaction->token);
 		memcpy(self->outbound.packet->token,(void*)&self->current_transaction->token,self->outbound.packet->token_len);
@@ -196,11 +190,11 @@ smcp_status_t smcp_outbound_begin_response(coap_code_t code) {
 
 	self->is_responding = true;
 
-	if(self->is_processing_message) {
+	if (self->is_processing_message) {
 		require_noerr(ret=smcp_outbound_set_msg_id(smcp_inbound_get_msg_id()),bail);
 	}
 bail:
-	if (ret!=SMCP_STATUS_OK) {
+	if (ret != SMCP_STATUS_OK) {
 		self->is_responding = false;
 	}
 	return ret;
@@ -230,7 +224,7 @@ smcp_outbound_set_token(const uint8_t *token,uint8_t token_length) {
 
 	require_action(token_length<=8,bail,ret=SMCP_STATUS_INVALID_ARGUMENT);
 
-	if(self->outbound.packet->token_len != token_length) {
+	if (self->outbound.packet->token_len != token_length) {
 		self->outbound.packet->token_len = token_length;
 		self->outbound.content_ptr = (char*)self->outbound.packet->token+self->outbound.packet->token_len;
 		self->outbound.content_len = 0;
@@ -258,12 +252,14 @@ smcp_outbound_add_option_(
 		return SMCP_STATUS_MESSAGE_TOO_BIG;
 	}
 
-	if(key<self->outbound.last_option_key) {
+	if (key < self->outbound.last_option_key) {
+		// This is just a performance issue.
 		assert_printf("warning: Out of order header: %s",coap_option_key_to_cstr(key, self->is_responding));
 	}
 
-	if(self->outbound.content_ptr!=(char*)self->outbound.packet->token+self->outbound.packet->token_len)
+	if (self->outbound.content_ptr!=(char*)self->outbound.packet->token+self->outbound.packet->token_len) {
 		self->outbound.content_ptr--;	// remove end-of-options marker
+	}
 
 	self->outbound.content_ptr += coap_insert_option(
 		(uint8_t*)self->outbound.packet->token+self->outbound.packet->token_len,
@@ -273,8 +269,9 @@ smcp_outbound_add_option_(
 		len
 	);
 
-	if(key>self->outbound.last_option_key)
+	if (key>self->outbound.last_option_key) {
 		self->outbound.last_option_key = key;
+	}
 
 	*self->outbound.content_ptr++ = 0xFF;  // Add end-of-options marker
 
@@ -294,11 +291,10 @@ static smcp_status_t
 smcp_outbound_add_options_up_to_key_(
 	coap_option_key_t key
 ) {
-	smcp_status_t ret;
+	smcp_status_t ret = SMCP_STATUS_OK;
 	smcp_t const self = smcp_get_current_instance();
 
 	(void)self;
-	ret = SMCP_STATUS_OK;
 
 #if SMCP_CONF_TRANS_ENABLE_BLOCK2
 	if(	(self->current_transaction
@@ -359,9 +355,9 @@ smcp_outbound_add_option(
 	require_noerr(ret, bail);
 
 #if SMCP_CONF_TRANS_ENABLE_BLOCK2
-	if(key==COAP_OPTION_BLOCK2
-		&& smcp_get_current_instance()->current_transaction
-		&& smcp_get_current_instance()->current_transaction->next_block2
+	if ( key == COAP_OPTION_BLOCK2
+	  && smcp_get_current_instance()->current_transaction
+	  && smcp_get_current_instance()->current_transaction->next_block2
 	) {
 		goto bail;
 	}
@@ -483,7 +479,7 @@ smcp_outbound_set_uri(
 		);
 	}
 
-	if(components.protocol) {
+	if (components.protocol) {
 		smcp_session_type_t session_type = smcp_session_type_from_uri_scheme(components.protocol);
 		smcp_plat_set_session_type(session_type);
 
@@ -507,7 +503,7 @@ smcp_outbound_set_uri(
 		}
 	}
 
-	if(!(flags & SMCP_MSG_SKIP_AUTHORITY)) {
+	if (!(flags & SMCP_MSG_SKIP_AUTHORITY)) {
 		if(components.host && !string_contains_colons(components.host)) {
 			ret = smcp_outbound_add_option(COAP_OPTION_URI_HOST, components.host, SMCP_CSTR_LEN);
 			require_noerr(ret, bail);
@@ -519,8 +515,8 @@ smcp_outbound_set_uri(
 	}
 
 
-	if (!(flags & SMCP_MSG_SKIP_DESTADDR)
-	 && components.host && components.host[0]!=0
+	if ( !(flags & SMCP_MSG_SKIP_DESTADDR)
+	  && components.host && components.host[0]!=0
 	) {
 		ret = smcp_set_remote_sockaddr_from_host_and_port(
 			components.host,
@@ -529,28 +525,30 @@ smcp_outbound_set_uri(
 		require_noerr(ret, bail);
 	}
 
-	if(components.path) {
+	if (components.path) {
 		SMCP_NON_RECURSIVE char* component;
 		const bool has_trailing_slash = components.path[0]?('/' == components.path[strlen(components.path)-1]):false;
 
 		// Move past any preceding slashes.
-		while(components.path[0] == '/')
+		while (components.path[0] == '/') {
 			components.path++;
+		}
 
-		while(url_path_next_component(&components.path,&component)) {
+		while (url_path_next_component(&components.path,&component)) {
 			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, component, SMCP_CSTR_LEN);
 			require_noerr(ret,bail);
 		}
-		if(has_trailing_slash) {
+
+		if (has_trailing_slash) {
 			ret = smcp_outbound_add_option(COAP_OPTION_URI_PATH, NULL, 0);
 			require_noerr(ret,bail);
 		}
 	}
 
-	if(components.query) {
+	if (components.query) {
 		SMCP_NON_RECURSIVE char* key;
 
-		while(url_form_next_value(&components.query, &key, NULL)) {
+		while (url_form_next_value(&components.query, &key, NULL)) {
 			coap_size_t len = (coap_size_t)strlen(key);
 
 			if (len) {
@@ -561,8 +559,9 @@ smcp_outbound_set_uri(
 	}
 
 bail:
-	if(ret)
+	if(ret) {
 		DEBUG_PRINTF("URI Parse failed for URI: \"%s\"",uri);
+	}
 
 #if !HAVE_ALLOCA && !SMCP_AVOID_MALLOC
 	free(uri_copy);
@@ -577,8 +576,9 @@ smcp_outbound_get_space_remaining(void)
 	smcp_t const self = smcp_get_current_instance();
 	coap_size_t len = (coap_size_t)(self->outbound.content_ptr-(char*)self->outbound.packet)
 		+ self->outbound.content_len;
-	if (self->outbound.max_packet_len > len)
+	if (self->outbound.max_packet_len > len) {
 		return self->outbound.max_packet_len - len;
+	}
 	return 0;
 }
 
@@ -734,7 +734,7 @@ smcp_outbound_send() {
 	coap_size_t header_len = (coap_size_t)(smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 
 	// Remove the start-of-payload marker if we have no payload.
-	if(!smcp_get_current_instance()->outbound.content_len) {
+	if (!smcp_get_current_instance()->outbound.content_len) {
 		header_len--;
 	}
 

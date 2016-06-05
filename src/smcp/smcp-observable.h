@@ -59,7 +59,7 @@ struct smcp_observable_s {
 	// Consider all members below this line as private!
 
 	int8_t first_observer; //!^ always +1, zero is end of list
-	int8_t last_observer; //!^ always +1, zero is end of list
+	int8_t last_observer;  //!^ always +1, zero is end of list
 };
 
 //! Key to trigger all observers using the given observable context.

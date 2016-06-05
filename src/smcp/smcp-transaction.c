@@ -351,17 +351,21 @@ smcp_transaction_init(
 	if(!handler) {
 #if SMCP_AVOID_MALLOC
 		uint8_t i;
-		for(i=0;i<SMCP_CONF_MAX_TRANSACTIONS;i++) {
+		for (i = 0; i < SMCP_CONF_MAX_TRANSACTIONS; i++) {
 			handler = &smcp_transaction_pool[i];
-			if(!handler->callback)
+
+			if (!handler->callback) {
 				break;
+			}
+
 			handler = NULL;
 		}
 #else
 		handler = (smcp_transaction_t)calloc(sizeof(*handler), 1);
 #endif
-		if(handler)
+		if (handler) {
 			handler->should_dealloc = 1;
+		}
 	} else {
 		memset(handler,0,sizeof(*handler));
 	}

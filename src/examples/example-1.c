@@ -12,7 +12,8 @@
 #include <smcp/smcp.h>
 
 static smcp_status_t
-request_handler(void* context) {
+request_handler(void* context)
+{
 	/* This request handler will respond to every GET request with "Hello world!".
 	 * It isn't usually a good idea to (almost) completely ignore the actual
 	 * request, but since this is just an example we can get away with it.
@@ -23,8 +24,9 @@ request_handler(void* context) {
 	// Only handle GET requests for now. Returning SMCP_STATUS_NOT_IMPLEMENTED
 	// here without sending a response will cause us to automatically
 	// send a METHOD_NOT_IMPLEMENTED response.
-	if(smcp_inbound_get_code() != COAP_METHOD_GET)
+	if(smcp_inbound_get_code() != COAP_METHOD_GET) {
 		return SMCP_STATUS_NOT_IMPLEMENTED;
+	}
 
 	// Begin describing the response message. (2.05 CONTENT,
 	// in this case)
@@ -45,7 +47,8 @@ request_handler(void* context) {
 }
 
 int
-main(void) {
+main(void)
+{
 	smcp_t instance;
 
 	SMCP_LIBRARY_VERSION_CHECK();
@@ -54,9 +57,9 @@ main(void) {
 	// is already in use, we will pick the next available port number.
 	instance = smcp_create();
 
-	if(!instance) {
+	if (!instance) {
 		perror("Unable to create SMCP instance");
-		abort();
+		exit(EXIT_FAILURE);
 	}
 
 	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
@@ -73,7 +76,7 @@ main(void) {
 	// Loop forever. This is the most simple kind of main loop you
 	// can haave with SMCP. It is appropriate for simple CoAP servers
 	// and clients which do not need asynchronous I/O.
-	while(1) {
+	while (1) {
 		smcp_plat_wait(instance, CMS_DISTANT_FUTURE);
 		smcp_plat_process(instance);
 	}
@@ -84,5 +87,5 @@ main(void) {
 	// can tear down the SMCP instance using the following command.
 	smcp_release(instance);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

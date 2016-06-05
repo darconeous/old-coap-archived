@@ -326,11 +326,13 @@ smcp_plat_process(smcp_t self) {
 	if(uip_newdata()) {
 		memcpy(&self->plat.sockaddr_remote.smcp_addr,&UIP_IP_BUF->srcipaddr,sizeof(smcp_addr_t));
 		self->plat.sockaddr_remote.smcp_port = UIP_UDP_BUF->srcport;
+
 		memcpy(&self->plat.sockaddr_local.smcp_addr,&UIP_IP_BUF->destipaddr,sizeof(smcp_addr_t));
 		self->plat.sockaddr_local.smcp_port = UIP_UDP_BUF->destport;
 
-		smcp_inbound_start_packet(smcp, uip_appdata, uip_datalen());
-		smcp_inbound_finish_packet();
+		smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
+
+		smcp_inbound_packet_process(smcp, uip_appdata, uip_datalen(), 0);
 	} else if(uip_poll()) {
 		smcp_set_current_instance(self);
 		smcp_handle_timers(self);

@@ -108,8 +108,9 @@ smcp_inbound_reset_next_option() {
 coap_option_key_t
 smcp_inbound_next_option(const uint8_t** value, coap_size_t* len) {
 	smcp_t const self = smcp_get_current_instance();
-	if(self->inbound.this_option < ((uint8_t*)self->inbound.packet+self->inbound.packet_len)
-		&& self->inbound.this_option[0]!=0xFF
+
+	if ( self->inbound.this_option    <  ((uint8_t*)self->inbound.packet+self->inbound.packet_len)
+	  && self->inbound.this_option[0] != 0xFF
 	) {
 		self->inbound.this_option = coap_decode_option(
 			self->inbound.this_option,
@@ -117,6 +118,7 @@ smcp_inbound_next_option(const uint8_t** value, coap_size_t* len) {
 			value,
 			len
 		);
+
 	} else {
 		self->inbound.last_option_key = COAP_OPTION_INVALID;
 	}
@@ -127,9 +129,10 @@ coap_option_key_t
 smcp_inbound_peek_option(const uint8_t** value, coap_size_t* len) {
 	smcp_t const self = smcp_get_current_instance();
 	coap_option_key_t ret = self->inbound.last_option_key;
-	if(self->inbound.last_option_key!=COAP_OPTION_INVALID
-		&& self->inbound.this_option<((uint8_t*)self->inbound.packet+self->inbound.packet_len)
-		&& self->inbound.this_option[0]!=0xFF
+
+	if ( self->inbound.last_option_key != COAP_OPTION_INVALID
+	  && self->inbound.this_option     <  ((uint8_t*)self->inbound.packet+self->inbound.packet_len)
+	  && self->inbound.this_option[0]  != 0xFF
 	) {
 		coap_decode_option(
 			self->inbound.this_option,
@@ -152,17 +155,20 @@ smcp_inbound_option_strequal(coap_option_key_t key,const char* cstr) {
 	coap_size_t value_len;
 	coap_size_t i;
 
-	if(!self->inbound.this_option)
+	if (!self->inbound.this_option) {
 		return false;
+	}
 
 	coap_decode_option(self->inbound.this_option, &curr_key, (const uint8_t**)&value, &value_len);
 
-	if(curr_key != key)
+	if (curr_key != key) {
 		return false;
+	}
 
-	for(i=0;i<value_len;i++) {
-		if(!cstr[i] || (value[i]!=cstr[i]))
+	for (i = 0; i < value_len; i++) {
+		if(!cstr[i] || (value[i] != cstr[i])) {
 			return false;
+		}
 	}
 	return cstr[i]==0;
 }
@@ -198,24 +204,27 @@ smcp_inbound_get_path(char* where, uint8_t flags)
 	coap_option_key_t key;
 	char* iter;
 
-	if(!where)
+#if !SMCP_AVOID_MALLOC
+	if (!where) {
 		where = calloc(1,SMCP_MAX_URI_LENGTH+1);
+	}
+#endif
 
-	if(!where)
-		return 0;
+	require(where != NULL, bail);
 
 	iter = where;
 
-	if(!(flags&SMCP_GET_PATH_REMAINING))
+	if ((flags & SMCP_GET_PATH_REMAINING) != SMCP_GET_PATH_REMAINING) {
 		smcp_inbound_reset_next_option();
+	}
 
-	while((key = smcp_inbound_peek_option(NULL,NULL))!=COAP_OPTION_URI_PATH
+	while ((key = smcp_inbound_peek_option(NULL,NULL))!=COAP_OPTION_URI_PATH
 		&& key!=COAP_OPTION_INVALID
 	) {
 		smcp_inbound_next_option(NULL,NULL);
 	}
 
-	while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_PATH) {
+	while (smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_PATH) {
 		char old_end = filename[filename_len];
 		if(iter!=where || (flags&SMCP_GET_PATH_LEADING_SLASH))
 			*iter++='/';
@@ -224,31 +233,33 @@ smcp_inbound_get_path(char* where, uint8_t flags)
 		filename[filename_len] = old_end;
 	}
 
-	if(flags&SMCP_GET_PATH_INCLUDE_QUERY) {
+	if (flags & SMCP_GET_PATH_INCLUDE_QUERY) {
 		smcp_inbound_reset_next_option();
 		while((key = smcp_inbound_peek_option((const uint8_t**)&filename, &filename_len))!=COAP_OPTION_URI_QUERY
 			&& key!=COAP_OPTION_INVALID
 		) {
 			smcp_inbound_next_option(NULL,NULL);
 		}
-		if(key==COAP_OPTION_URI_QUERY) {
+		if (key == COAP_OPTION_URI_QUERY) {
 			*iter++='?';
-			while(smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_QUERY) {
+			while (smcp_inbound_next_option((const uint8_t**)&filename, &filename_len)==COAP_OPTION_URI_QUERY) {
 				char old_end = filename[filename_len];
 				char* equal_sign;
 
-				if(iter[-1]!='?')
+				if (iter[-1] != '?') {
 					*iter++=';';
+				}
 
 				filename[filename_len] = 0;
 				equal_sign = strchr(filename,'=');
 
-				if(equal_sign)
+				if (equal_sign) {
 					*equal_sign = 0;
+				}
 
 				iter+=url_encode_cstr(iter, filename, SMCP_MAX_URI_LENGTH-(iter-where));
 
-				if(equal_sign) {
+				if (equal_sign) {
 					*iter++='=';
 					iter+=url_encode_cstr(iter, equal_sign+1, SMCP_MAX_URI_LENGTH-(iter-where));
 					*equal_sign = '=';
@@ -262,6 +273,8 @@ smcp_inbound_get_path(char* where, uint8_t flags)
 
 	self->inbound.last_option_key = last_option_key;
 	self->inbound.this_option = this_option;
+
+bail:
 	return where;
 }
 
@@ -269,10 +282,11 @@ smcp_inbound_get_path(char* where, uint8_t flags)
 // MARK: Inbound packet processing
 
 smcp_status_t
-smcp_inbound_start_packet(
-	smcp_t	self,
-	char*			buffer,
-	coap_size_t			packet_length
+smcp_inbound_packet_process(
+	smcp_t self,
+	char* buffer,
+	coap_size_t packet_length,
+	int flags
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = 0;
@@ -281,7 +295,7 @@ smcp_inbound_start_packet(
 	require_action(coap_verify_packet(buffer,packet_length),bail,ret=SMCP_STATUS_BAD_PACKET);
 
 #if defined(SMCP_DEBUG_INBOUND_DROP_PERCENT)
-	if((uint32_t)(SMCP_DEBUG_INBOUND_DROP_PERCENT*SMCP_RANDOM_MAX)>SMCP_FUNC_RANDOM_UINT32()) {
+	if ((uint32_t)(SMCP_DEBUG_INBOUND_DROP_PERCENT*SMCP_RANDOM_MAX)>SMCP_FUNC_RANDOM_UINT32()) {
 		DEBUG_PRINTF("Dropping inbound packet for debugging!");
 		goto bail;
 	}
@@ -302,29 +316,21 @@ smcp_inbound_start_packet(
 
 	self->current_transaction = NULL;
 
+#if SMCP_USE_CASCADE_COUNT
+	self->cascade_count = SMCP_MAX_CASCADE_COUNT;
+#endif
+
 	// Make sure there is a zero at the end of the packet, so that
 	// if the content is a string it will be conveniently zero terminated.
 	// Kind of a hack, but very convenient.
 	buffer[packet_length] = 0;
-
-bail:
-	return ret;
-}
-
-smcp_status_t
-smcp_inbound_finish_packet() {
-	smcp_t const self = smcp_get_current_instance();
-	smcp_status_t ret = SMCP_STATUS_OK;
-	struct coap_header_s* const packet = (void*)self->inbound.packet;
-
-	require_action(self->is_processing_message,bail,ret=SMCP_STATUS_FAILURE);
 
 #if VERBOSE_DEBUG
 	{
 		char addr_str[50] = "???";
 		uint16_t port = ntohs(smcp_plat_get_remote_sockaddr()->smcp_port);
 		SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&smcp_plat_get_remote_sockaddr()->smcp_addr);
-		DEBUG_PRINTF("smcp(%p): Inbound packet from [%s]:%d", self,addr_str,(int)port);
+		DEBUG_PRINTF("smcp(%p): Inbound packet from [%s]:%d", self, addr_str, (int)port);
 		coap_dump_header(
 			SMCP_DEBUG_OUT_FILE,
 			"Inbound:\t",
@@ -334,7 +340,7 @@ smcp_inbound_finish_packet() {
 	}
 #endif
 
-	if(self->inbound.was_sent_to_multicast) {
+	if (self->inbound.was_sent_to_multicast) {
 		// If this was multicast, make sure it isn't confirmable.
 		require_action(
 			packet->tt != COAP_TRANS_TYPE_CONFIRMABLE,
@@ -343,9 +349,14 @@ smcp_inbound_finish_packet() {
 		);
 	}
 
-#if SMCP_USE_CASCADE_COUNT
-	self->cascade_count = 100;
-#endif
+	if ((flags & SMCP_INBOUND_PACKET_TRUNCATED) == SMCP_INBOUND_PACKET_TRUNCATED) {
+		ret = smcp_outbound_quick_response(
+			COAP_RESULT_413_REQUEST_ENTITY_TOO_LARGE,
+			"too-big"
+		);
+		check_noerr(ret);
+		goto bail;
+	}
 
 	if (!self->inbound.is_fake) {
 		self->inbound.is_dupe = smcp_inbound_dupe_check();
@@ -402,7 +413,7 @@ smcp_inbound_finish_packet() {
 	self->inbound.content_len = (self->inbound.packet_len-(coap_size_t)((uint8_t*)self->inbound.content_ptr-(uint8_t*)packet));
 
 	// Move past start-of-content marker.
-	if(self->inbound.content_len) {
+	if (self->inbound.content_len > 0) {
 		self->inbound.content_ptr++;
 		self->inbound.content_len--;
 	}
@@ -410,10 +421,12 @@ smcp_inbound_finish_packet() {
 	// Be nice and reset the option scanner for the handler.
 	smcp_inbound_reset_next_option();
 
-	if(COAP_CODE_IS_REQUEST(packet->code)) {
-		// See code below.
+	// Dispatch the packet to the appropriate handler.
+	if (COAP_CODE_IS_REQUEST(packet->code)) {
+		// Implementation of the following function is further
+		// down in this file.
 		ret = smcp_handle_request();
-	} else if(COAP_CODE_IS_RESULT(packet->code)) {
+	} else if (COAP_CODE_IS_RESULT(packet->code)) {
 		// See implementation in `smcp-transaction.c`.
 		ret = smcp_handle_response();
 	}
@@ -421,36 +434,47 @@ smcp_inbound_finish_packet() {
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 
 	// Check to make sure we have responded by now. If not, we need to.
-	if(!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {
+	if (!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {
 		smcp_outbound_reset();
-		if(COAP_CODE_IS_REQUEST(packet->code)) {
+
+		if (COAP_CODE_IS_REQUEST(packet->code)) {
 			coap_code_t result_code = smcp_convert_status_to_result_code(ret);
-			if(self->inbound.is_dupe)
+
+			if(self->inbound.is_dupe) {
 				ret = 0;
-			if(ret == SMCP_STATUS_OK) {
-				if(packet->code==COAP_METHOD_GET)
-					result_code = COAP_RESULT_205_CONTENT;
-				else if(packet->code==COAP_METHOD_POST || packet->code==COAP_METHOD_PUT)
-					result_code = COAP_RESULT_204_CHANGED;
-				else if(packet->code==COAP_METHOD_DELETE)
-					result_code = COAP_RESULT_202_DELETED;
 			}
+
+			if(ret == SMCP_STATUS_OK) {
+				if(packet->code==COAP_METHOD_GET) {
+					result_code = COAP_RESULT_205_CONTENT;
+				} else if(packet->code==COAP_METHOD_POST || packet->code==COAP_METHOD_PUT) {
+					result_code = COAP_RESULT_204_CHANGED;
+				} else if(packet->code==COAP_METHOD_DELETE) {
+					result_code = COAP_RESULT_202_DELETED;
+				}
+			}
+
 			ret = smcp_outbound_begin_response(result_code);
 
 			require_noerr(ret, bail);
 
 			// For an ISE, let's give a little more information.
-			if(result_code==COAP_RESULT_500_INTERNAL_SERVER_ERROR) {
+			if (result_code == COAP_RESULT_500_INTERNAL_SERVER_ERROR) {
 				smcp_outbound_set_var_content_int(ret);
 			}
-		} else {
-			ret = smcp_outbound_begin_response(0);
+		} else { // !COAP_CODE_IS_REQUEST(packet->code)
+			// This isn't a request, so we send either an ACK,
+			// or a RESET.
+			ret = smcp_outbound_begin_response(COAP_CODE_EMPTY);
+
 			require_noerr(ret, bail);
-			if(ret && !self->inbound.is_dupe) {
+
+			if ((ret != SMCP_STATUS_OK) && !self->inbound.is_dupe) {
 				self->outbound.packet->tt = COAP_TRANS_TYPE_RESET;
 			} else {
 				self->outbound.packet->tt = COAP_TRANS_TYPE_ACK;
 			}
+
 			smcp_outbound_set_token(NULL, 0);
 		}
 		ret = smcp_outbound_send();

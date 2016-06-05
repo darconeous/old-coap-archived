@@ -31,13 +31,14 @@
 #include <smcp/smcp-node-router.h>
 
 static smcp_status_t
-request_handler(void* context) {
-
+request_handler(void* context)
+{
 	printf("Got a request!\n");
 
 	// Only handle GET requests for now.
-	if(smcp_inbound_get_code() != COAP_METHOD_GET)
+	if(smcp_inbound_get_code() != COAP_METHOD_GET) {
 		return SMCP_STATUS_NOT_IMPLEMENTED;
+	}
 
 	// Begin describing the response.
 	smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
@@ -53,7 +54,8 @@ request_handler(void* context) {
 }
 
 int
-main(void) {
+main(void)
+{
 	smcp_t instance;
 	smcp_node_t root_node;
 
@@ -63,14 +65,14 @@ main(void) {
 	// is already in use, we will pick the next available port number.
 	instance = smcp_create();
 
-	if(!instance) {
+	if (!instance) {
 		perror("Unable to create SMCP instance");
-		abort();
+		exit(EXIT_FAILURE);
 	}
 
 	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
 
-	root_node = smcp_node_init(NULL,NULL,NULL);
+	root_node = smcp_node_init(NULL, NULL, NULL);
 
 	// SMCP will always respond to requests with METHOD_NOT_IMPLEMENTED
 	// unless a request handler is set. Unless your program is only
@@ -80,16 +82,16 @@ main(void) {
 	// In this case, we are going to use the node router.
 	smcp_set_default_request_handler(instance, &smcp_node_router_handler, (void*)root_node);
 
-	smcp_node_t hello_node = smcp_node_init(NULL,root_node,"hello-world");
+	smcp_node_t hello_node = smcp_node_init(NULL, root_node, "hello-world");
 	hello_node->request_handler = &request_handler;
 	hello_node->context = NULL;
 
-	printf("Listening on port %d\n",smcp_plat_get_port(instance));
+	printf("Listening on port %d\n", smcp_plat_get_port(instance));
 
 	// Loop forever. This is the most simple kind of main loop you
 	// can haave with SMCP. It is appropriate for simple CoAP servers
 	// and clients which do not need asynchronous I/O.
-	while(1) {
+	while (1) {
 		smcp_plat_wait(instance, CMS_DISTANT_FUTURE);
 		smcp_plat_process(instance);
 	}
@@ -100,5 +102,5 @@ main(void) {
 	// can tear down the SMCP instance using the following command.
 	smcp_release(instance);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

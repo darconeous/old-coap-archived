@@ -59,6 +59,9 @@
 #include <sys/time.h>
 #include <sys/cdefs.h>
 #include <time.h>
+#include <sys/select.h>
+#include <poll.h>
+
 
 #ifndef SOCKADDR_HAS_LENGTH_FIELD
 #if defined(__KAME__)
@@ -237,7 +240,7 @@ smcp_plat_bind_to_sockaddr(
 		int value = 0; /* explicitly allow ipv4 traffic too (required on bsd and some debian installations) */
 		if (setsockopt(self->plat.fd_udp, IPPROTO_IPV6, IPV6_V6ONLY, &value, sizeof(value)) < 0)
 		{
-			DEBUG_PRINTF(CSTR("Socket won't allow IPv4 connections"));
+			DEBUG_PRINTF("Setting IPV6_V6ONLY=0 on socket failed (%s)",strerror(errno));
 		}
 	}
 #endif
@@ -335,6 +338,58 @@ smcp_plat_update_pollfds(
 #endif // SMCP_DTLS
 
 bail:
+	return ret;
+}
+
+smcp_status_t
+smcp_plat_update_fdsets(
+	smcp_t self,
+	fd_set *read_fd_set,
+	fd_set *write_fd_set,
+	fd_set *error_fd_set,
+	int *fd_count,
+	smcp_cms_t *timeout
+) {
+	smcp_status_t ret = SMCP_STATUS_OK;
+
+	if (self->plat.fd_udp > 0) {
+		if (read_fd_set) {
+			FD_SET(self->plat.fd_udp, read_fd_set);
+		}
+
+		if (error_fd_set) {
+			FD_SET(self->plat.fd_udp, error_fd_set);
+		}
+
+		if (fd_count && (*fd_count <= self->plat.fd_udp)) {
+			*fd_count = self->plat.fd_udp + 1;
+		}
+	}
+
+#if SMCP_DTLS
+	if (self->plat.fd_dtls > 0) {
+		if (read_fd_set) {
+			FD_SET(self->plat.fd_dtls, read_fd_set);
+		}
+
+		if (error_fd_set) {
+			FD_SET(self->plat.fd_dtls, error_fd_set);
+		}
+
+		if (fd_count && (*fd_count <= self->plat.fd_dtls)) {
+			*fd_count = self->plat.fd_dtls + 1;
+		}
+	}
+#endif
+
+	if (timeout) {
+		smcp_cms_t tmp = smcp_get_timeout(self);
+
+		if (tmp <= *timeout) {
+			*timeout = tmp;
+		}
+	}
+
 	return ret;
 }
 
@@ -596,31 +651,26 @@ smcp_plat_process(
 				continue;
 			} else {
 				char packet[SMCP_MAX_PACKET_LENGTH+1];
-				smcp_sockaddr_t packet_saddr;
-				smcp_sockaddr_t dest_saddr;
+				smcp_sockaddr_t remote_saddr = {};
+				smcp_sockaddr_t local_saddr = {};
 				ssize_t packet_len = 0;
 				char cmbuf[0x100];
 				struct iovec iov = { packet, SMCP_MAX_PACKET_LENGTH };
 				struct msghdr msg = {
-					.msg_name = &packet_saddr,
-					.msg_namelen = sizeof(packet_saddr),
+					.msg_name = &remote_saddr,
+					.msg_namelen = sizeof(remote_saddr),
 					.msg_iov = &iov,
 					.msg_iovlen = 1,
 					.msg_control = cmbuf,
 					.msg_controllen = sizeof(cmbuf),
 				};
 				struct cmsghdr *cmsg;
-				smcp_sockaddr_t* src_addr = NULL;
-				smcp_sockaddr_t* dst_addr = NULL;
 
 				packet_len = recvmsg(polls[tmp].fd, &msg, 0);
 
 				require_action(packet_len > 0, bail, ret = SMCP_STATUS_ERRNO);
 
 				packet[packet_len] = 0;
-
-				// Set the source address
-				src_addr = (smcp_sockaddr_t*)msg.msg_name;
 
 				for (
 					cmsg = CMSG_FIRSTHDR(&msg);
@@ -633,34 +683,33 @@ smcp_plat_process(
 						continue;
 					}
 
-					dest_saddr = packet_saddr;
+					// Preinitialize some of the fields.
+					local_saddr = remote_saddr;
 
 #if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
 					struct in6_pktinfo *pi = (struct in6_pktinfo *)CMSG_DATA(cmsg);
-					dest_saddr.smcp_addr = pi->ipi6_addr;
-					dest_saddr.sin6_scope_id = pi->ipi6_ifindex;
+					local_saddr.smcp_addr = pi->ipi6_addr;
+					local_saddr.sin6_scope_id = pi->ipi6_ifindex;
 
 #elif SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET
 					struct in_pktinfo *pi = (struct in_pktinfo *)CMSG_DATA(cmsg);
-					dest_saddr.smcp_addr = pi->ipi_addr;
+					local_saddr.smcp_addr = pi->ipi_addr;
 #endif
 
-					dest_saddr.smcp_port = htons(smcp_plat_get_port(self));
-					dst_addr = (smcp_sockaddr_t*)&packet_saddr;
+					local_saddr.smcp_port = htons(smcp_plat_get_port(self));
 
 					self->plat.pktinfo = *pi;
 				}
 
-				if (self->plat.fd_udp == polls[tmp].fd) {
-					ret = smcp_inbound_start_packet(self, packet, (coap_size_t)packet_len);
-					require_noerr(ret, bail);
+				smcp_set_current_instance(self);
+				smcp_plat_set_remote_sockaddr(&remote_saddr);
+				smcp_plat_set_local_sockaddr(&local_saddr);
 
-					smcp_plat_set_remote_sockaddr(src_addr);
-					smcp_plat_set_local_sockaddr(dst_addr);
+				if (self->plat.fd_udp == polls[tmp].fd) {
 					smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
 
-					ret = smcp_inbound_finish_packet();
-					require(ret==SMCP_STATUS_OK,bail);
+					ret = smcp_inbound_packet_process(self, packet, (coap_size_t)packet_len, 0);
+					require_noerr(ret, bail);
 
 #if SMCP_DTLS
 				} else if (self->plat.fd_dtls == polls[tmp].fd) {

@@ -163,7 +163,7 @@ typedef smcp_callback_func smcp_inbound_resend_func;
 #define smcp_plat_get_udp_conn(self)		smcp_plat_get_udp_conn()
 #define smcp_handle_inbound_packet(self,...)		smcp_handle_inbound_packet(__VA_ARGS__)
 #define smcp_outbound_begin(self,...)		smcp_outbound_begin(__VA_ARGS__)
-#define smcp_inbound_start_packet(self,...)		smcp_inbound_start_packet(__VA_ARGS__)
+#define smcp_inbound_packet_process(self,...)		smcp_inbound_packet_process(__VA_ARGS__)
 #define smcp_vhost_add(self,...)		smcp_vhost_add(__VA_ARGS__)
 #define smcp_set_default_request_handler(self,...)		smcp_set_default_request_handler(__VA_ARGS__)
 
@@ -193,7 +193,7 @@ typedef smcp_callback_func smcp_inbound_resend_func;
 #define SMCP_LIBRARY_VERSION_CHECK()	do { } while(0)
 #else
 #ifndef ___SMCP_CONFIG_ID
-#define ___SMCP_CONFIG_ID 1
+#define ___SMCP_CONFIG_ID 2
 #endif
 SMCP_API_EXTERN void ___smcp_check_version(uint32_t x);
 #define SMCP_LIBRARY_VERSION_CHECK()	___smcp_check_version(___SMCP_CONFIG_ID)
@@ -285,40 +285,34 @@ SMCP_API_EXTERN smcp_cms_t smcp_get_timeout(smcp_t self);
 **	@brief Functions for manually handling inbound packets.
 */
 
-//! Start describing the inbound packet.
-/*!	If you are using BSD sockets you don't need to use this function. */
-SMCP_API_EXTERN smcp_status_t smcp_inbound_start_packet(
+#define SMCP_INBOUND_PACKET_TRUNCATED		(1 << 0)
+
+//! Handles an inbound packet inbound packet.
+/*!	This is useful if you need direct control over the ingress
+**	of traffic or want to inject packets into the CoAP stack.
+**
+**	Before calling this function, you *MUST* at least call the
+**	function `smcp_plat_set_remote_sockaddr()`, to set the address
+**	of the sender of the packet. You can also call the following
+**	functions if the default values are not appropriate:
+**
+**	* `smcp_plat_set_local_sockaddr()`: If not called, uses a
+**    reasonable platform-specific value.
+**	* `smcp_plat_set_session_type()`: If not called, uses the
+**    value `SMCP_SESSION_TYPE_UDP`.
+**
+**	If you are using BSD sockets you don't need to use this function.
+**
+**	Calling this function with the flag SMCP_INBOUND_PACKET_TRUNCATED
+**	will instruct the instance to not process this message and to only
+**	attempt to send back a 4.13 ENTITY_TOO_LARGE response, if appropriate.
+*/
+SMCP_API_EXTERN smcp_status_t smcp_inbound_packet_process(
 	smcp_t	self,
 	char*	packet,
-	coap_size_t	packet_length
+	coap_size_t	packet_length,
+	int flags
 );
-
-////! Sets the session associated with this packet.
-///*!	Must be called between smcp_inbound_start_packet() and
-//**	smcp_inbound_finish_packet().
-//**
-//**	Use either this or smcp_inbound_set_addr(). Don't use both.
-//**
-//**	@sa smcp_inbound_set_addr()
-//*/
-//SMCP_API_EXTERN smcp_status_t smcp_inbound_set_session(smcp_session_t session);
-
-//! Call this function if the inbound packet has been truncated.
-/*!	Calling this will instruct the instance to not process
-**	this message and to only attempt to send back a 4.13 ENTITY_TOO_LARGE
-**	response, if appropriate. You must still call smcp_inbound_set_srcaddr()
-**	and smcp_inbound_finish_packet().
-**
-**	@note Not currently implemented.
-**
-**	Must be called between smcp_inbound_start_packet() and
-**	smcp_inbound_finish_packet().
-*/
-SMCP_API_EXTERN void smcp_inbound_packet_was_truncated(void);
-
-//! Indicate that we are finished describing the inbound packet.
-/*!	Must be called after smcp_inbound_start_packet(). */
-SMCP_API_EXTERN smcp_status_t smcp_inbound_finish_packet(void);
 
 /*!	@} */
 

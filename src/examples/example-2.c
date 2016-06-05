@@ -11,7 +11,8 @@
 #include <smcp/smcp.h>
 
 static smcp_status_t
-request_handler(void* context) {
+request_handler(void* context)
+{
 	/*	This will respond to every GET request to `/hello-world' with
 	**	"Hello world!". Everyone else gets a 4.04 Not Found. */
 
@@ -20,17 +21,19 @@ request_handler(void* context) {
 	// Only handle GET requests for now. Returning SMCP_STATUS_NOT_IMPLEMENTED
 	// here without sending a response will cause us to automatically
 	// send a METHOD_NOT_IMPLEMENTED response.
-	if(smcp_inbound_get_code() != COAP_METHOD_GET) {
+	if (smcp_inbound_get_code() != COAP_METHOD_GET) {
 		return SMCP_STATUS_NOT_IMPLEMENTED;
 	}
 
 	// Skip to the URI path option
-	while(smcp_inbound_peek_option(NULL, NULL) != COAP_OPTION_URI_PATH)
-		if(smcp_inbound_next_option(NULL, NULL) == COAP_OPTION_INVALID)
+	while (smcp_inbound_peek_option(NULL, NULL) != COAP_OPTION_URI_PATH) {
+		if (smcp_inbound_next_option(NULL, NULL) == COAP_OPTION_INVALID) {
 			break;
+		}
+	}
 
 	// If our URI path matches what we are looking for...
-	if(smcp_inbound_option_strequal(COAP_OPTION_URI_PATH, "hello-world")) {
+	if (smcp_inbound_option_strequal(COAP_OPTION_URI_PATH, "hello-world")) {
 
 		// Begin describing the response message. (2.05 CONTENT,
 		// in this case)
@@ -54,7 +57,8 @@ request_handler(void* context) {
 }
 
 int
-main(void) {
+main(void)
+{
 	smcp_t instance;
 
 	SMCP_LIBRARY_VERSION_CHECK();
@@ -63,9 +67,9 @@ main(void) {
 	// is already in use, we will pick the next available port number.
 	instance = smcp_create();
 
-	if(!instance) {
+	if (!instance) {
 		perror("Unable to create SMCP instance");
-		abort();
+		exit(EXIT_FAILURE);
 	}
 
 	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
@@ -82,7 +86,7 @@ main(void) {
 	// Loop forever. This is the most simple kind of main loop you
 	// can haave with SMCP. It is appropriate for simple CoAP servers
 	// and clients which do not need asynchronous I/O.
-	while(1) {
+	while (1) {
 		smcp_plat_wait(instance, CMS_DISTANT_FUTURE);
 		smcp_plat_process(instance);
 	}
@@ -93,5 +97,5 @@ main(void) {
 	// can tear down the SMCP instance using the following command.
 	smcp_release(instance);
 
-	return 0;
+	return EXIT_SUCCESS;
 }

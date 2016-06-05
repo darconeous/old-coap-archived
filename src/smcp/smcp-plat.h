@@ -36,50 +36,79 @@
 #include "smcp-plat-uip.h"
 #endif
 
-/*
-To implement a new platform, the following methods must be implemented:
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-* smcp_plat_init()
-* smcp_plat_finalize()
-* smcp_plat_lookup_hostname()
-* smcp_plat_bind_to_sockaddr()
-* smcp_plat_bind_to_port()
+#if SMCP_EMBEDDED
+#define smcp_plat_get_port(self)		smcp_plat_get_port()
+#define smcp_plat_init(self)		smcp_plat_init()
+#define smcp_plat_finalize(self)		smcp_plat_finalize()
+#define smcp_plat_get_fd(self)		smcp_plat_get_fd()
+#define smcp_plat_process(self)		smcp_plat_process()
+#define smcp_plat_wait(self,...)		smcp_plat_wait(__VA_ARGS__)
+#define smcp_plat_outbound_start(self,...)		smcp_plat_outbound_start(__VA_ARGS__)
+#define smcp_plat_outbound_finish(self,...)		smcp_plat_outbound_finish(__VA_ARGS__)
+#define smcp_plat_bind_to_port(self,...)		smcp_plat_bind_to_port(__VA_ARGS__)
+#define smcp_plat_bind_to_sockaddr(self,...)		smcp_plat_bind_to_sockaddr(__VA_ARGS__)
+#endif
 
-* smcp_plat_cms_to_timestamp()
-* smcp_plat_timestamp_to_cms()
-* smcp_plat_timestamp_diff();
-
-* smcp_plat_get_session_type()
-* smcp_plat_set_session_type()
-* smcp_plat_get_remote_sockaddr()
-* smcp_plat_get_local_sockaddr()
-* smcp_plat_set_remote_sockaddr()
-* smcp_plat_set_local_sockaddr()
-
-
-* smcp_plat_outbound_start()
-* smcp_plat_outbound_send_packet()
-
-Any data that you need to associate with an instance needs to be stored here:
-
-* struct smcp_plat_s {}
-
-Optionally, if the platform supports simplified run-loops:
-
-* smcp_plat_process
-* smcp_plat_wait
-
-Optionally, if the platform supports unix file descriptors:
-
-* smcp_plat_update_pollfds
-* smcp_plat_update_fdsets
-
-*/
+#endif
 
 /*!	@addtogroup smcp
 **	@{
 */
 
+
+/*!	@defgroup smcp-plat Platform API
+**	@{
+*/
+
+/*!	## Defining New Platforms ##
+**
+**	Platforms have two header files, one for the public API (Called
+**	something like `smcp-plat-bsd.h`, for example) and one for the
+**	internal API (Called something like `smcp-plat-bsd-internal.h`).
+**	These files are analogous to `smcp.h` and `smcp-internal.h`---they
+**	describe both the external user-facing interface and the internal
+**	under-the-hood implementation details.
+**
+**	To implement a new platform, the following methods must be implemented:
+**
+**	* smcp_plat_init()
+**	* smcp_plat_finalize()
+**	* smcp_plat_lookup_hostname()
+**	* smcp_plat_bind_to_sockaddr()
+**	* smcp_plat_bind_to_port()
+**	* smcp_plat_cms_to_timestamp()
+**	* smcp_plat_timestamp_to_cms()
+**	* smcp_plat_timestamp_diff()
+**	* smcp_plat_get_session_type()
+**	* smcp_plat_set_session_type()
+**	* smcp_plat_get_remote_sockaddr()
+**	* smcp_plat_get_local_sockaddr()
+**	* smcp_plat_set_remote_sockaddr()
+**	* smcp_plat_set_local_sockaddr()
+**	* smcp_plat_outbound_start()
+**	* smcp_plat_outbound_send_packet()
+**
+**	Any data that you need to associate with an instance needs to
+**	be stored in the struct `smcp_plat_s`, defined in the internal
+**	platform-specific header:
+**
+**	* struct smcp_plat_s {}
+**
+**	Optionally, if the platform supports simplified run-loops you should also
+**	implement:
+**
+**	* smcp_plat_process()
+**	* smcp_plat_wait()
+**
+**	Optionally, if the platform supports unix file descriptors, you may want
+**	to also implement:
+**
+**	* smcp_plat_update_pollfds()
+**	* smcp_plat_update_fdsets()
+**
+*/
 
 // MARK: -
 // MARK: Async IO
@@ -140,16 +169,27 @@ SMCP_API_EXTERN void smcp_plat_set_session_type(smcp_session_type_t type);
 
 //!	Gets a pointer to the sockaddr of the remote machine for the current packet.
 SMCP_API_EXTERN const smcp_sockaddr_t* smcp_plat_get_remote_sockaddr(void);
+
+//!	Gets a pointer to the sockaddr of the local socket for the current packet.
 SMCP_API_EXTERN const smcp_sockaddr_t* smcp_plat_get_local_sockaddr(void);
+
+//!	Gets the session type for the current packet.
 SMCP_API_EXTERN smcp_session_type_t smcp_plat_get_session_type(void);
 
+struct pollfd;
 
+//! Support for `poll()` style asynchronous operation
+SMCP_API_EXTERN int smcp_plat_update_pollfds(
+	smcp_t self,
+	struct pollfd *fds,
+	int maxfds
+);
 
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* sockaddr);
-
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_plat_outbound_start(smcp_t self, uint8_t** data_ptr, coap_size_t *data_len);
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_plat_outbound_finish(smcp_t self, const uint8_t* data_ptr, coap_size_t data_len, int flags);
 
+/*!	@} */
 
 /*!	@} */
 
