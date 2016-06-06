@@ -639,14 +639,12 @@ main(
 		FD_SET(smcp_plat_get_fd(smcp),&read_fd_set);
 		FD_SET(smcp_plat_get_fd(smcp),&error_fd_set);
 
-		syslog_dump_select_info(LOG_INFO, &read_fd_set,&write_fd_set,&error_fd_set, fd_count, cms_timeout);
+		//syslog_dump_select_info(LOG_INFO, &read_fd_set,&write_fd_set,&error_fd_set, fd_count, cms_timeout);
 
 		timeout.tv_sec = cms_timeout / MSEC_PER_SEC;
 		timeout.tv_usec = (cms_timeout % MSEC_PER_SEC) * USEC_PER_MSEC;
 
 		fds_ready = select(fd_count,&read_fd_set,&write_fd_set,&error_fd_set,&timeout);
-
-		//printf(__FILE__":%d\n",__LINE__);
 
 		if(fds_ready < 0 && errno!=EINTR) {
 			syslog(LOG_ERR,"select() errno=\"%s\" (%d)",strerror(errno),errno);
@@ -658,8 +656,6 @@ main(
 		}
 
 		smcp_plat_process(smcp);
-
-		//printf(__FILE__":%d\n",__LINE__);
 
 		if (smcpd_modules_process()!=SMCP_STATUS_OK) {
 			syslog(LOG_ERR,"Module process error.");

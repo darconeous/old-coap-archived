@@ -257,7 +257,7 @@ enum {
 typedef uint16_t coap_content_type_t;
 
 struct coap_header_s {
-#if __BIG_ENDIAN__
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 	uint8_t
 		version:2,
 		tt:2,

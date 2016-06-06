@@ -193,7 +193,7 @@ AC_C_INLINE
 AC_C_VOLATILE
 
 # Checks for library functions.
-AC_CHECK_FUNCS([alloca memcmp memset strtol strdup strndup strlcpy strlcat stpncpy vsnprintf vsprintf snprintf])
+AC_CHECK_FUNCS([alloca memcmp memset strtol strdup strndup strlcpy strlcat stpncpy vsnprintf vsprintf snprintf getloadavg])
 
 AC_REPLACE_FUNCS([getline])
 

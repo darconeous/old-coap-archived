@@ -30,6 +30,8 @@
 #include <config.h>
 #endif
 
+#define _BSD_SOURCE
+
 #include <smcp/assert-macros.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,10 +43,13 @@
 #include "system-node.h"
 
 enum {
-	SYS_NODE_PATH_LOADAVG_1=0,
+	SYS_NODE_PATH_UPTIME=0,
+
+#if HAVE_GETLOADAVG
+	SYS_NODE_PATH_LOADAVG_1,
 	SYS_NODE_PATH_LOADAVG_5,
 	SYS_NODE_PATH_LOADAVG_15,
-	SYS_NODE_PATH_UPTIME,
+#endif
 
 	SYS_NODE_PATH_COUNT
 };
@@ -87,20 +92,24 @@ static smcp_status_t device_func(
 		ret = SMCP_STATUS_NOT_FOUND;
 	} else if(action==SMCP_VAR_GET_KEY) {
 		static const char* path_names[] = {
+			[SYS_NODE_PATH_UPTIME]="uptime",
+#if HAVE_GETLOADAVG
 			[SYS_NODE_PATH_LOADAVG_1]="loadavg-1",
 			[SYS_NODE_PATH_LOADAVG_5]="loadavg-5",
 			[SYS_NODE_PATH_LOADAVG_15]="loadavg-15",
-			[SYS_NODE_PATH_UPTIME]="uptime",
+#endif
 		};
 		strcpy(value,path_names[path]);
 	} else if(action==SMCP_VAR_GET_MAX_AGE) {
 		int max_age = 0;
 		switch(path) {
+#if HAVE_GETLOADAVG
 			case SYS_NODE_PATH_LOADAVG_1:
 			case SYS_NODE_PATH_LOADAVG_5:
 			case SYS_NODE_PATH_LOADAVG_15:
 				max_age = 5;
 				break;
+#endif
 			case SYS_NODE_PATH_UPTIME:
 				max_age = 1;
 				break;
@@ -112,16 +121,19 @@ static smcp_status_t device_func(
 		}
 	} else if(action==SMCP_VAR_GET_OBSERVABLE) {
 		static const bool observable[] = {
+			[SYS_NODE_PATH_UPTIME] = 0,
+#if HAVE_GETLOADAVG
 			[SYS_NODE_PATH_LOADAVG_1] = 0,
 			[SYS_NODE_PATH_LOADAVG_5] = 0,
 			[SYS_NODE_PATH_LOADAVG_15] = 0,
-			[SYS_NODE_PATH_UPTIME] = 0,
+#endif
 		};
 		if(!observable[path]) {
 			return SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else if(action==SMCP_VAR_GET_VALUE) {
 		switch(path) {
+#if HAVE_GETLOADAVG
 			case SYS_NODE_PATH_LOADAVG_1:
 			case SYS_NODE_PATH_LOADAVG_5:
 			case SYS_NODE_PATH_LOADAVG_15:
@@ -145,6 +157,7 @@ static smcp_status_t device_func(
 					);
 				}
 				break;
+#endif // HAVE_GETLOADAVG
 
 			case SYS_NODE_PATH_UPTIME:
 				require_action(

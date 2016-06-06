@@ -277,57 +277,57 @@ coap_verify_packet(const char* packet,coap_size_t packet_size) {
 	coap_option_key_t key = 0;
 	const uint8_t* option_ptr = header->token + header->token_len;
 
-	if(packet_size<4) {
+	if (packet_size < 4) {
 		// Packet too small
 		DEBUG_PRINTF("PACKET CORRUPTED: Too Small");
 		return false;
 	}
 
-	if(header->version!=COAP_VERSION) {
+	if (header->version != COAP_VERSION) {
 		// Bad version.
-		DEBUG_PRINTF("PACKET CORRUPTED: Bad Version");
+		DEBUG_PRINTF("PACKET CORRUPTED: Bad Version (%d, should be %d)", header->version, COAP_VERSION);
 		return false;
 	}
 
-	if(packet_size>COAP_MAX_MESSAGE_SIZE) {
+	if (packet_size > COAP_MAX_MESSAGE_SIZE) {
 		// Packet too large
 		DEBUG_PRINTF("PACKET CORRUPTED: Too Large: %d (%d max)", packet_size, COAP_MAX_MESSAGE_SIZE);
 		return false;
 	}
 
-	if(header->token_len>8) {
+	if (header->token_len > 8) {
 		// Token too large
 		DEBUG_PRINTF("PACKET CORRUPTED: Bad Token");
 		return false;
 	}
 
-	if(header->code==COAP_CODE_EMPTY && packet_size!=4) {
-		DEBUG_PRINTF("PACKET CORRUPTED: Extra Data With Empty Packet (packet_size = %u)\n",packet_size);
+	if (header->code == COAP_CODE_EMPTY && packet_size != 4) {
+		DEBUG_PRINTF("PACKET CORRUPTED: Extra Data With Empty Packet (packet_size = %u)",packet_size);
 		return false;
 	}
 
 	for(;option_ptr && (unsigned)(option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
 		option_ptr = coap_decode_option(option_ptr, &key, NULL, NULL);
 		if(!option_ptr) {
-			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
+			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options");
 			return false;
 		}
 		if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
-			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options\n");
+			DEBUG_PRINTF("PACKET CORRUPTED: Premature end of options");
 			return false;
 		}
 	}
 
 	if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
 		// Option too large
-		DEBUG_PRINTF("PACKET CORRUPTED: Options overflow packet size\n");
+		DEBUG_PRINTF("PACKET CORRUPTED: Options overflow packet size");
 		return false;
 	}
 
 	if((unsigned)(option_ptr-(uint8_t*)header)<packet_size) {
 		if(option_ptr && option_ptr[0]==0xFF) {
 		} else {
-			DEBUG_PRINTF("PACKET CORRUPTED: Missing content marker\n");
+			DEBUG_PRINTF("PACKET CORRUPTED: Missing content marker");
 			return false;
 		}
 	}
