@@ -20,8 +20,8 @@ pkginclude_HEADERS = assert-macros.h smcp-timer.h smcp.h smcp-plat-bsd.h smcp-tr
 # Extras
 libsmcp_la_SOURCES += smcp-node-router.c smcp-list.c
 pkginclude_HEADERS += smcp-node-router.h
-libsmcp_la_SOURCES += smcp-variable_node.c
-pkginclude_HEADERS += smcp-variable_node.h
+libsmcp_la_SOURCES += smcp-variable_handler.c
+pkginclude_HEADERS += smcp-variable_handler.h
 
 EXTRA_DIST = smcp-plat-bsd-internal.h smcp-plat-uip-internal.h smcp-plat-uip.c smcp-plat-uip.h
 

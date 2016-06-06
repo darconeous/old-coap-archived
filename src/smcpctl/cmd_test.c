@@ -23,7 +23,7 @@
 #include <smcp/smcp.h>
 #include <smcp/smcp-node-router.h>
 #include <smcp/smcp-timer_node.h>
-#include <smcp/smcp-variable_node.h>
+#include <smcp/smcp-variable_handler.h>
 #include <smcp/smcp-pairing.h>
 #include "help.h"
 #include "cmd_test.h"
@@ -32,7 +32,7 @@
 #endif
 
 smcp_status_t device_func(
-	smcp_variable_node_t node,
+	smcp_variable_handler_t node,
 	uint8_t action,
 	uint8_t i,
 	char* value
@@ -242,7 +242,7 @@ tool_cmd_test(
 	smcp_t smcp2;
 
 	struct smcp_timer_node_s timer_node = {};
-	struct smcp_variable_node_s device_node = {};
+	struct smcp_variable_handler_s device_node = {};
 	struct smcp_node_s async_response_node = {};
 
 	smcp2 = smcp_create(12345);
@@ -279,7 +279,7 @@ tool_cmd_test(
 
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
-	smcp_variable_node_init(
+	smcp_variable_handler_init(
 		&device_node,
 		smcp_get_root_node(smcp),
 		"device"
@@ -288,7 +288,7 @@ tool_cmd_test(
 
 	//printf(__FILE__":%d: root node child count = %d\n",__LINE__,(int)bt_count(&smcp_get_root_node(smcp)->children));
 
-	smcp_variable_node_init(
+	smcp_variable_handler_init(
 		NULL,
 		smcp_get_root_node(smcp2),
 		"device"
@@ -421,7 +421,7 @@ tool_cmd_test(
 #if 1
 		if((i - 1) % 250 == 0) {
 			fprintf(stderr, " *** Forcing variable refresh...\n");
-			smcp_variable_node_did_change(&device_node,0,NULL);
+			smcp_variable_handler_did_change(&device_node,0,NULL);
 		}
 #endif
 		smcp_plat_process(smcp);

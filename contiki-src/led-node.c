@@ -29,11 +29,11 @@
 #include "led-node.h"
 #include "assert-macros.h"
 #include "dev/leds.h"
-#include <smcp/smcp-variable_node.h>
+#include <smcp/smcp-variable_handler.h>
 
 smcp_status_t
 led_var_func(
-	smcp_variable_node_t node,
+	smcp_variable_handler_t node,
 	uint8_t action,
 	uint8_t i,
 	char* value

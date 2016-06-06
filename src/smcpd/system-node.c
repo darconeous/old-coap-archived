@@ -1,7 +1,7 @@
 /*	@file system-node.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Copyright (C) 2011,2012 Robert Quattlebaum
+**	Copyright (C) 2016 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -34,9 +34,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <smcp/smcp.h>
-#include <smcp/smcp-variable_node.h>
+#include <smcp/smcp-variable_handler.h>
+#include <smcp/smcp-node-router.h>
 #include <time.h>
 #include <errno.h>
+#include "system-node.h"
 
 enum {
 	SYS_NODE_PATH_LOADAVG_1=0,
@@ -68,8 +70,14 @@ static time_t uptime() {
 }
 #endif
 
+struct system_node_s {
+	struct smcp_node_s node;
+	struct smcp_variable_handler_s variable_handler;
+};
+
+
 static smcp_status_t device_func(
-	smcp_variable_node_t node,
+	smcp_variable_handler_t node,
 	uint8_t action,
 	uint8_t path,
 	char* value
@@ -109,8 +117,9 @@ static smcp_status_t device_func(
 			[SYS_NODE_PATH_LOADAVG_15] = 0,
 			[SYS_NODE_PATH_UPTIME] = 0,
 		};
-		if(!observable)
+		if(!observable[path]) {
 			return SMCP_STATUS_NOT_ALLOWED;
+		}
 	} else if(action==SMCP_VAR_GET_VALUE) {
 		switch(path) {
 			case SYS_NODE_PATH_LOADAVG_1:
@@ -165,35 +174,46 @@ bail:
 }
 
 static void
-system_node_dealloc(smcp_variable_node_t x) {
+system_node_dealloc(system_node_t x) {
 	free(x);
 }
 
-smcp_variable_node_t
-system_node_alloc() {
-	smcp_variable_node_t ret =
-	    (smcp_variable_node_t)calloc(sizeof(struct smcp_variable_node_s), 1);
+system_node_t
+system_node_alloc()
+{
+	system_node_t ret =
+	    (system_node_t)calloc(sizeof(struct system_node_s), 1);
 
 	ret->node.finalize = (void (*)(smcp_node_t)) &system_node_dealloc;
 	return ret;
 }
 
+smcp_status_t
+system_node_request_handler(
+	system_node_t		node
+) {
+	return smcp_variable_handler_request_handler(&node->variable_handler);
+}
 
-smcp_variable_node_t
-smcp_system_node_init(
-	smcp_variable_node_t self,
+system_node_t
+system_node_init(
+	system_node_t self,
 	smcp_node_t parent,
-	const char* name
+	const char* name,
+	const char* other
 ) {
 	require(self || (self = system_node_alloc()), bail);
 
-	require(smcp_variable_node_init(
-		self,
-		(void*)parent,
-		name
+	self->variable_handler.func = device_func;
+
+	require(smcp_node_init(
+			&self->node,
+			(void*)parent,
+			name
 	), bail);
 
-	self->func = device_func;
+	((smcp_node_t)&self->node)->request_handler = (void*)&system_node_request_handler;
+
 
 bail:
 	return self;
@@ -202,3 +222,30 @@ bail:
 
 
 
+
+smcp_status_t
+SMCPD_module__system_node_process(system_node_t self) {
+	return SMCP_STATUS_OK;
+}
+
+smcp_status_t
+SMCPD_module__system_node_update_fdset(
+	system_node_t self,
+    fd_set *read_fd_set,
+    fd_set *write_fd_set,
+    fd_set *error_fd_set,
+    int *fd_count,
+	smcp_cms_t *timeout
+) {
+	return SMCP_STATUS_OK;
+}
+
+system_node_t
+SMCPD_module__system_node_init(
+	system_node_t	self,
+	smcp_node_t			parent,
+	const char*			name,
+	const char*			cmd
+) {
+	return system_node_init(self, parent, name, cmd);
+}

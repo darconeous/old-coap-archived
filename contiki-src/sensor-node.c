@@ -29,13 +29,13 @@
 #include "sensor-node.h"
 #include "assert-macros.h"
 #include "lib/sensors.h"
-#include <smcp/smcp-variable_node.h>
+#include <smcp/smcp-variable_handler.h>
 
 const extern struct sensors_sensor *sensors[];
 
 smcp_status_t
 sensor_var_func(
-	smcp_variable_node_t node,
+	smcp_variable_handler_t node,
 	uint8_t action,
 	uint8_t i,
 	char* value

@@ -87,8 +87,6 @@ AC_SUBST(LOAD_ALL_SYMBOLS_FLAG)
 AC_CONFIG_SRCDIR([src/smcp/smcp.c])
 AC_CONFIG_HEADERS([src/config.h])
 
-AM_MAINTAINER_MODE
-
 AC_ARG_ENABLE(debug, AC_HELP_STRING([--enable-debug],
             [enable compiling with debugging information]), [
     if (test "${enableval}" = "yes" &&
@@ -211,6 +209,4 @@ AC_OUTPUT
 $HAVE_LIBREADLINE ||
 	echo "warning: libreadline was disabled or not found, interactive smcpctl command line interface will not be enabled."
 
-$HAVE_LIBDL ||
-	echo "warning: libdl was disabled or not found, smcpd will not be built."
 

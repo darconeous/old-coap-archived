@@ -1,4 +1,6 @@
 
+Port 5683
+
 <node "sys" system>
 </node>
 
@@ -11,7 +13,7 @@
 <node "cgi-file" "cgi" "./cgi-file.sh">
 </node>
 
-<node "cgi-env" "cgi" "set">
+<node "cgi-env" "cgi" "printenv">
 </node>
 
 <node "cgi-sysctl" "cgi" "sysctl -a">
@@ -23,6 +25,6 @@
 <node "cgi-cat" "cgi" "echo Here is what you sent: ; cat">
 </node>
 
-<node "timer1" timer>
-</node>
+#<node "timer1" timer>
+#</node>
 

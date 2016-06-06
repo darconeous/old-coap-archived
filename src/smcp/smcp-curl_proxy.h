@@ -64,7 +64,7 @@ SMCP_API_EXTERN smcp_status_t smcp_curl_proxy_node_update_fdset(
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *exc_fd_set,
-    int *max_fd,
+    int *fd_count,
 	smcp_cms_t *timeout
 );
 

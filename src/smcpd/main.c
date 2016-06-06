@@ -69,6 +69,9 @@
 #endif
 #endif
 
+#include "cgi-node.h"
+#include "system-node.h"
+
 #if HAVE_LIBCURL
 #include <smcp/smcp-curl_proxy.h>
 #endif
@@ -119,6 +122,7 @@ signal_SIGINT(int sig) {
 	gRet = ERRORCODE_INTERRUPT;
 	syslog(LOG_NOTICE,"Caught SIGINT!");
 	signal(SIGINT, gPreviousHandlerForSIGINT);
+	gPreviousHandlerForSIGINT = NULL;
 }
 
 static void
@@ -126,6 +130,7 @@ signal_SIGTERM(int sig) {
 	gRet = ERRORCODE_INTERRUPT;
 	syslog(LOG_NOTICE,"Caught SIGTERM!");
 	signal(SIGTERM, gPreviousHandlerForSIGTERM);
+	gPreviousHandlerForSIGTERM = NULL;
 }
 
 static void
@@ -142,7 +147,7 @@ struct {
 		fd_set *read_fd_set,
 		fd_set *write_fd_set,
 		fd_set *error_fd_set,
-		int *max_fd,
+		int *fd_count,
 		smcp_cms_t *timeout
 	);
 	smcp_status_t (*process)(smcp_node_t node);
@@ -154,7 +159,7 @@ smcpd_modules_update_fdset(
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
-    int *max_fd,
+    int *fd_count,
     smcp_cms_t *timeout
 ) {
 	int i;
@@ -165,7 +170,7 @@ smcpd_modules_update_fdset(
 				read_fd_set,
 				write_fd_set,
 				error_fd_set,
-				max_fd,
+				fd_count,
 				timeout
 			);
 	}
@@ -193,7 +198,7 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 		fd_set *read_fd_set,
 		fd_set *write_fd_set,
 		fd_set *error_fd_set,
-		int *max_fd,
+		int *fd_count,
 		smcp_cms_t *timeout
 	);
 
@@ -214,6 +219,14 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 		update_fdset_func = (update_fdset_func_t)&smcp_curl_proxy_node_update_fdset;
 		process_func = (process_func_t)&smcp_curl_proxy_node_process;
 #endif
+	} else if(strcaseequal(type,"system_node")) {
+		init_func = (init_func_t)&SMCPD_module__system_node_init;
+		update_fdset_func = (update_fdset_func_t)&SMCPD_module__system_node_update_fdset;
+		process_func = (process_func_t)&SMCPD_module__system_node_process;
+	} else if(strcaseequal(type,"cgi_node")) {
+		init_func = (init_func_t)&SMCPD_module__cgi_node_init;
+		update_fdset_func = (update_fdset_func_t)&SMCPD_module__cgi_node_update_fdset;
+		process_func = (process_func_t)&SMCPD_module__cgi_node_process;
 #if HAVE_DLFCN_H
 	} else if(type) {
 		char symbol_name[100];
@@ -341,9 +354,15 @@ read_configuration(smcp_t smcp,const char* filename) {
 				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
 			}
-			// Not really supported at the moment.
-			if(smcp_plat_get_port(smcp)!=atoi(arg))
+
+			if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, atoi(arg)) != SMCP_STATUS_OK) {
+				syslog(LOG_ERR,"Unable to bind to port! \"%s\" (%d)",strerror(errno),errno);
+			}
+
+
+			if(smcp_plat_get_port(smcp)!=atoi(arg)) {
 				syslog(LOG_ERR,"ListenPort doesn't match current listening port.");
+			}
 		} else if(strcaseequal(cmd,"PIDFile")) {
 			char* arg = get_next_arg(line,&line);
 			if(!arg) {
@@ -468,6 +487,34 @@ bail:
 	return ret;
 }
 
+static void
+syslog_dump_select_info(int loglevel, fd_set *read_fd_set, fd_set *write_fd_set, fd_set *error_fd_set, int fd_count, smcp_cms_t timeout)
+{
+#define DUMP_FD_SET(l, x) do {\
+		int i; \
+		char buffer[90] = ""; \
+		for (i = 0; i < fd_count; i++) { \
+			if (!FD_ISSET(i, x)) { \
+				continue; \
+			} \
+			if (strlen(buffer) != 0) { \
+				strncat(buffer, ", ", sizeof(buffer)); \
+			} \
+			snprintf(buffer+strlen(buffer), sizeof(buffer)-strlen(buffer), "%d", i); \
+		} \
+		syslog(l, "SELECT:     %s: %s", #x, buffer); \
+	} while (0)
+
+	// Check the log level preemptively to avoid wasted CPU.
+	if((setlogmask(0)&LOG_MASK(loglevel))) {
+		syslog(loglevel, "SELECT: fd_count=%d cms_timeout=%d", fd_count, timeout);
+
+		DUMP_FD_SET(loglevel, read_fd_set);
+		DUMP_FD_SET(loglevel, write_fd_set);
+		//DUMP_FD_SET(loglevel, error_fd_set); // Commented out to reduce log volume
+	}
+}
+
 int
 main(
 	int argc, char * argv[]
@@ -541,9 +588,18 @@ main(
 		goto bail;
 	}
 
-	if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, port) != SMCP_STATUS_OK) {
-		fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
-		goto bail;
+	if (port) {
+		if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, port) != SMCP_STATUS_OK) {
+			fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
+			goto bail;
+		}
+	}
+
+	if (smcp_plat_get_port(smcp) == 0) {
+		if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, COAP_DEFAULT_PORT) != SMCP_STATUS_OK) {
+			fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
+			goto bail;
+		}
 	}
 
 	// Set up the root node.
@@ -562,9 +618,9 @@ main(
 	}
 
 	while(!gRet) {
-		int fds_ready = 0, max_fd = -1;
+		int fds_ready = 0, fd_count = 0;
 		fd_set read_fd_set,write_fd_set,error_fd_set;
-		smcp_cms_t cms_timeout = 600000;
+		smcp_cms_t cms_timeout = 60 * MSEC_PER_SEC;
 		struct timeval timeout = {};
 
 		FD_ZERO(&read_fd_set);
@@ -574,27 +630,38 @@ main(
 			&read_fd_set,
 			&write_fd_set,
 			&error_fd_set,
-			&max_fd,
+			&fd_count,
 			&cms_timeout
 		);
 
 		cms_timeout = MIN(smcp_get_timeout(smcp),cms_timeout);
-		max_fd = MAX(smcp_plat_get_fd(smcp),max_fd);
+		fd_count = MAX(smcp_plat_get_fd(smcp)+1,fd_count);
 		FD_SET(smcp_plat_get_fd(smcp),&read_fd_set);
 		FD_SET(smcp_plat_get_fd(smcp),&error_fd_set);
 
-		timeout.tv_sec = cms_timeout/1000;
-		timeout.tv_usec = (cms_timeout%1000)*1000;
+		syslog_dump_select_info(LOG_INFO, &read_fd_set,&write_fd_set,&error_fd_set, fd_count, cms_timeout);
 
-		fds_ready = select(max_fd+1,&read_fd_set,&write_fd_set,&error_fd_set,&timeout);
+		timeout.tv_sec = cms_timeout / MSEC_PER_SEC;
+		timeout.tv_usec = (cms_timeout % MSEC_PER_SEC) * USEC_PER_MSEC;
+
+		fds_ready = select(fd_count,&read_fd_set,&write_fd_set,&error_fd_set,&timeout);
+
+		//printf(__FILE__":%d\n",__LINE__);
+
 		if(fds_ready < 0 && errno!=EINTR) {
 			syslog(LOG_ERR,"select() errno=\"%s\" (%d)",strerror(errno),errno);
 			break;
 		}
 
+		if (gRet) {
+			break;
+		}
+
 		smcp_plat_process(smcp);
 
-		if(smcpd_modules_process()!=SMCP_STATUS_OK) {
+		//printf(__FILE__":%d\n",__LINE__);
+
+		if (smcpd_modules_process()!=SMCP_STATUS_OK) {
 			syslog(LOG_ERR,"Module process error.");
 			gRet = ERRORCODE_UNKNOWN;
 		}

@@ -1,7 +1,7 @@
-/*	@file led-node.h
+/*	@file cgi-node.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Copyright (C) 2011,2012 Robert Quattlebaum
+**	Copyright (C) 2016 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -26,20 +26,36 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef SMCP_led_node_h
-#define SMCP_led_node_h
 
-#include "contiki.h"
+#ifndef cgi_node_h
+#define cgi_node_h
+
 #include <smcp/smcp.h>
-#include <smcp/smcp-variable_handler.h>
-#include "dev/leds.h"
 
-smcp_status_t
-led_var_func(
-	smcp_variable_handler_t node,
-	uint8_t action,
-	uint8_t i,
-	char* value
+struct cgi_node_s;
+
+typedef struct cgi_node_s* cgi_node_t;
+
+extern smcp_status_t
+SMCPD_module__cgi_node_process(cgi_node_t self);
+
+extern smcp_status_t
+SMCPD_module__cgi_node_update_fdset(
+	cgi_node_t self,
+    fd_set *read_fd_set,
+    fd_set *write_fd_set,
+    fd_set *error_fd_set,
+    int *fd_count,
+	smcp_cms_t *timeout
 );
 
-#endif
+extern cgi_node_t
+SMCPD_module__cgi_node_init(
+	cgi_node_t	self,
+	smcp_node_t			parent,
+	const char*			name,
+	const char*			cmd
+);
+
+
+#endif /* cgi_node_h */

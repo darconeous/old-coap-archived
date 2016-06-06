@@ -34,7 +34,7 @@ AUTOSTART_PROCESSES(
 
 #include <smcp/smcp.h>
 #include <smcp/smcp-node-router.h>
-#include <smcp/smcp-variable_node.h>
+#include <smcp/smcp-variable_handler.h>
 #include "led-node.h"
 #include "sensor-node.h"
 #include "dev/leds.h"
@@ -443,21 +443,21 @@ PROCESS_THREAD(smcp_simple, ev, data)
 
 	{
 		static struct smcp_node_s led_node;
-		static struct smcp_variable_node_s variable_node = { .func = &led_var_func };
+		static struct smcp_variable_handler_s variable_handler = { .func = &led_var_func };
 		leds_init();
 		smcp_node_init(&led_node, &root_node, "leds");
-		led_node.request_handler = (void*)&smcp_variable_node_request_handler;
-		led_node.context = &variable_node;
+		led_node.request_handler = (void*)&smcp_variable_handler_request_handler;
+		led_node.context = &variable_handler;
 		led_node.has_link_content = true;
 	}
 
 #if !CONTIKI_TARGET_MINIMAL_NET
-	static struct smcp_variable_node_s sensor_variable_node = { .func = &sensor_var_func };
+	static struct smcp_variable_handler_s sensor_variable_handler = { .func = &sensor_var_func };
 	static struct smcp_node_s sensor_node;
 
 	smcp_node_init(&sensor_node, &root_node, "sensors");
-	sensor_node.request_handler = (void*)&smcp_variable_node_request_handler;
-	sensor_node.context = &sensor_variable_node;
+	sensor_node.request_handler = (void*)&smcp_variable_handler_request_handler;
+	sensor_node.context = &sensor_variable_handler;
 	sensor_node.has_link_content = true;
 	sensor_node.is_observable = true;
 
@@ -470,7 +470,7 @@ PROCESS_THREAD(smcp_simple, ev, data)
 		PROCESS_WAIT_EVENT();
 
 		if(ev == sensors_event) {
-			smcp_observable_trigger(&sensor_variable_node.observable,SMCP_OBSERVABLE_BROADCAST_KEY,0);
+			smcp_observable_trigger(&sensor_variable_handler.observable,SMCP_OBSERVABLE_BROADCAST_KEY,0);
 		}
 	} while(1);
 #endif

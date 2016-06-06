@@ -1,4 +1,4 @@
-/*	@file smcp_variable_node.c
+/*	@file smcp_variable_handler.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -40,7 +40,7 @@
 #include "smcp.h"
 #include "smcp-internal.h"
 #include "smcp-helpers.h"
-#include "smcp-variable_node.h"
+#include "smcp-variable_handler.h"
 #include "smcp-logging.h"
 #include "fasthash.h"
 #include "smcp-node-router.h"
@@ -53,8 +53,8 @@
 #define BAD_KEY_INDEX		(255)
 
 smcp_status_t
-smcp_variable_node_request_handler(
-	smcp_variable_node_t		node
+smcp_variable_handler_request_handler(
+	smcp_variable_handler_t		node
 ) {
 	// TODO: Make this function use less stack space!
 
@@ -312,4 +312,3 @@ bail:
 	check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
 	return ret;
 }
-

@@ -1,7 +1,7 @@
-/*!	@file smcp-variable_node.h
+/*	@file system-node.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Copyright (C) 2011,2012 Robert Quattlebaum
+**	Copyright (C) 2016 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -26,55 +26,35 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_VARIABLE_NODE_H__
-#define __SMCP_VARIABLE_NODE_H__ 1
+#ifndef system_node_h
+#define system_node_h
 
-#include "smcp-opts.h"
-#include "smcp-observable.h"
+#include <smcp/smcp.h>
 
-__BEGIN_DECLS
+struct system_node_s;
 
-/*!	@addtogroup smcp-extras
-**	@{
-*/
+typedef struct system_node_s* system_node_t;
 
-/*!	@defgroup smcp-variable_node Variable Node
-**	@{
-*/
+extern smcp_status_t
+SMCPD_module__system_node_process(system_node_t self);
 
-struct smcp_variable_node_s;
-typedef struct smcp_variable_node_s *smcp_variable_node_t;
-
-enum {
-	SMCP_VAR_GET_KEY,
-	SMCP_VAR_CHECK_KEY,
-	SMCP_VAR_SET_VALUE,
-	SMCP_VAR_GET_VALUE,
-	SMCP_VAR_GET_LF_TITLE,
-	SMCP_VAR_GET_MAX_AGE,
-	SMCP_VAR_GET_ETAG,
-	SMCP_VAR_GET_OBSERVABLE,
-};
-
-typedef smcp_status_t (*smcp_variable_node_func)(
-	smcp_variable_node_t node,
-	uint8_t action,
-	uint8_t i,
-	char* value
+extern smcp_status_t
+SMCPD_module__system_node_update_fdset(
+	system_node_t self,
+    fd_set *read_fd_set,
+    fd_set *write_fd_set,
+    fd_set *error_fd_set,
+    int *fd_count,
+	smcp_cms_t *timeout
 );
 
-struct smcp_variable_node_s {
-	smcp_variable_node_func func;
-	struct smcp_observable_s observable;
-};
-
-SMCP_API_EXTERN smcp_status_t smcp_variable_node_request_handler(
-	smcp_variable_node_t		node
+extern system_node_t
+SMCPD_module__system_node_init(
+	system_node_t	self,
+	smcp_node_t			parent,
+	const char*			name,
+	const char*			cmd
 );
 
-/*!	@} */
-/*!	@} */
 
-__END_DECLS
-
-#endif //__SMCP_TIMER_NODE_H__
+#endif /* system_node_h */

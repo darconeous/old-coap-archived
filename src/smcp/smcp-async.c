@@ -38,6 +38,7 @@
 #include "assert-macros.h"
 #include "smcp.h"
 #include "smcp-internal.h"
+#include "smcp-logging.h"
 
 smcp_status_t
 smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x) {
@@ -130,9 +131,31 @@ smcp_finish_async_response(struct smcp_async_response_s* x) {
 bool
 smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
 {
-	return 0 == memcmp(
-		&x->sockaddr_remote,
-		smcp_plat_get_remote_sockaddr(),
-		sizeof(x->sockaddr_remote)
-	);
+	const smcp_sockaddr_t *curr_remote = smcp_plat_get_remote_sockaddr();
+
+	if (x->sockaddr_remote.smcp_port != curr_remote->smcp_port) {
+		return false;
+	}
+
+	if (x->request.header.token_len != smcp_inbound_get_packet()->token_len) {
+		return false;
+	}
+
+	if (x->request.header.code != smcp_inbound_get_packet()->code) {
+		return false;
+	}
+
+	if (0!=memcmp(x->request.header.token, smcp_inbound_get_packet()->token,smcp_inbound_get_packet()->token_len)) {
+		return false;
+	}
+
+	if (0 == memcmp(
+		&x->sockaddr_remote.smcp_addr,
+		&curr_remote->smcp_addr,
+		sizeof(smcp_addr_t)
+	)) {
+		return false;
+	}
+
+	return true;
 }

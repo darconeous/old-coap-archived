@@ -164,6 +164,9 @@ smcp_plat_get_port(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_sockaddr_t saddr;
 	socklen_t socklen = sizeof(saddr);
+	if (self->plat.fd_udp < 0) {
+		return 0;
+	}
 	getsockname(self->plat.fd_udp, (struct sockaddr*)&saddr, &socklen);
 	return ntohs(saddr.smcp_port);
 }

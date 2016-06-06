@@ -336,10 +336,10 @@ smcp_curl_proxy_node_update_fdset(
 	fd_set *read_fd_set,
 	fd_set *write_fd_set,
 	fd_set *error_fd_set,
-	int *max_fd,
+	int *fd_count,
 	smcp_cms_t *timeout
 ) {
-	int fd = *max_fd;
+	int fd = *fd_count-1;
 	long cms_timeout = *timeout;
 
 	curl_multi_fdset(
@@ -350,7 +350,7 @@ smcp_curl_proxy_node_update_fdset(
 		&fd
 	);
 
-	*max_fd = MAX(*max_fd,fd);
+	*fd_count = MAX(*fd_count,fd + 1);
 
 	curl_multi_timeout(
 		self->curl_multi_handle,

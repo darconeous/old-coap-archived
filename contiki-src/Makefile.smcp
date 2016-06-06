@@ -17,7 +17,7 @@ CFLAGS += -DSMCP_CONF_NODE_ROUTER=1
 endif
 
 ifeq ($(SMCP_CONF_EXTRAS),1)
-PROJECT_SOURCEFILES += smcp-variable_node.c
+PROJECT_SOURCEFILES += smcp-variable_handler.c
 PROJECT_SOURCEFILES += led-node.c
 PROJECT_SOURCEFILES += sensor-node.c
 endif

@@ -1,7 +1,7 @@
 /*	@file cgi-node.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Copyright (C) 2011,2012 Robert Quattlebaum
+**	Copyright (C) 2016 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -26,6 +26,7 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+
 #include <stdio.h>
 
 #if HAVE_CONFIG_H
@@ -45,6 +46,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include "cgi-node.h"
 
 #ifndef CGI_NODE_MAX_REQUESTS
 #define CGI_NODE_MAX_REQUESTS		(20)
@@ -97,7 +99,7 @@ struct cgi_node_request_s {
 
 	struct smcp_async_response_s async_response;
 	cgi_node_state_t state;
-	time_t expiration;
+	smcp_timestamp_t expiration;
 	bool is_active;
 
 	int fd_cmd_stdin;
@@ -124,8 +126,6 @@ struct cgi_node_s {
 	int request_count;
 };
 
-typedef struct cgi_node_s* cgi_node_t;
-
 smcp_status_t cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_node_state_t new_state);
 
 cgi_node_request_t
@@ -135,23 +135,23 @@ cgi_node_get_associated_request(cgi_node_t node) {
 
 	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
 		cgi_node_request_t request = &node->requests[i];
-		if(request->state < CGI_NODE_STATE_FINISHED) {
+		if (request->state < CGI_NODE_STATE_FINISHED) {
 			continue;
 		}
-		if(request->async_response.request.header.token_len != smcp_inbound_get_packet()->token_len) {
-//			printf("cgi_node_get_associated_request: %d: token_len mismatch\n",i);
+		if (request->async_response.request.header.token_len != smcp_inbound_get_packet()->token_len) {
+			printf("cgi_node_get_associated_request: %d: token_len mismatch\n",i);
 			continue;
 		}
-		if(request->async_response.request.header.code != smcp_inbound_get_packet()->code) {
-//			printf("cgi_node_get_associated_request: %d: code mismatch\n",i);
+		if (request->async_response.request.header.code != smcp_inbound_get_packet()->code) {
+			printf("cgi_node_get_associated_request: %d: code mismatch\n",i);
 			continue;
 		}
-		if(0!=memcmp(request->async_response.request.header.token,smcp_inbound_get_packet()->token,smcp_inbound_get_packet()->token_len)) {
-//			printf("cgi_node_get_associated_request: %d: token mismatch\n",i);
+		if (0!=memcmp(request->async_response.request.header.token, smcp_inbound_get_packet()->token,smcp_inbound_get_packet()->token_len)) {
+			printf("cgi_node_get_associated_request: %d: token mismatch\n",i);
 			continue;
 		}
-		if(smcp_inbound_is_related_to_async_response(&request->async_response)) {
-//			printf("cgi_node_get_associated_request: %d: session mismatch\n",i);
+		if (smcp_inbound_is_related_to_async_response(&request->async_response)) {
+			printf("cgi_node_get_associated_request: %d: session mismatch\n",i);
 			continue;
 		}
 
@@ -188,10 +188,14 @@ cgi_node_create_request(cgi_node_t node) {
 		kill(ret->pid,SIGKILL);
 		waitpid(ret->pid, &status, 0);
 	}
-	if(ret->fd_cmd_stdin>=0)
+
+	if(ret->fd_cmd_stdin>=0) {
 		close(ret->fd_cmd_stdin);
-	if(ret->fd_cmd_stdout>=0)
+	}
+
+	if(ret->fd_cmd_stdout>=0) {
 		close(ret->fd_cmd_stdout);
+	}
 
 	ret->pid = 0;
 	ret->fd_cmd_stdin = -1;
@@ -200,7 +204,7 @@ cgi_node_create_request(cgi_node_t node) {
 	ret->block2 = BLOCK_OPTION_DEFAULT; // Default value, overwrite with actual block
 	ret->stdin_buffer_len = 0;
 	ret->stdout_buffer_len = 0;
-	ret->expiration = time(NULL)+30;
+	ret->expiration = smcp_plat_cms_to_timestamp(30 * MSEC_PER_SEC);
 
 	free(ret->stdin_buffer);
 	ret->stdin_buffer = NULL;
@@ -285,13 +289,14 @@ bail:
 }
 
 smcp_status_t
-cgi_node_async_resend_response(void* context) {
+cgi_node_async_resend_response(void* context)
+{
 	smcp_status_t ret = 0;
 	cgi_node_request_t request = context;
 	coap_size_t block_len = (1<<((request->block2&0x7)+4));
 	coap_size_t max_len;
 
-//	printf("Resending async response. . .\n");
+	printf("Resending async response. . .\n");
 
 	ret = smcp_outbound_begin_async_response(COAP_RESULT_205_CONTENT,&request->async_response);
 	require_noerr(ret,bail);
@@ -339,7 +344,7 @@ cgi_node_request_pop_bytes_from_stdin(cgi_node_request_t request, int count) {
 
 smcp_status_t
 cgi_node_request_pop_bytes_from_stdout(cgi_node_request_t request, int count) {
-	//fprintf(stderr,"pushing %d bytes from stdout buffer\n",count);
+	fprintf(stderr,"pushing %d bytes from stdout buffer\n",count);
 	if((signed)request->stdout_buffer_len>count) {
 		request->stdout_buffer_len-=count;
 		memmove(request->stdout_buffer,request->stdout_buffer+count,request->stdout_buffer_len);
@@ -350,12 +355,13 @@ cgi_node_request_pop_bytes_from_stdout(cgi_node_request_t request, int count) {
 }
 
 smcp_status_t
-cgi_node_async_ack_handler(int statuscode, void* context) {
+cgi_node_async_ack_handler(int statuscode, void* context)
+{
 	smcp_status_t ret = SMCP_STATUS_OK;
 	cgi_node_request_t request = context;
 	cgi_node_t node = (cgi_node_t)smcp_get_current_instance(); // TODO: WTF!!?!!!
 
-//	printf("Finished sending async response.\n");
+	printf("Finished sending async response.\n");
 
 
 	if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK) {
@@ -398,6 +404,8 @@ smcp_status_t
 cgi_node_send_next_block(cgi_node_t node,cgi_node_request_t request) {
 	smcp_status_t ret = 0;
 
+		printf(__FILE__":%d\n",__LINE__);
+
 	// If we are currently asynchronous, go ahead and send an asynchronous response.
 	// Otherwise, we don't have much to do: We will just go ahead and send
 	// the rest of the data at the next query.
@@ -435,7 +443,7 @@ smcp_status_t
 cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_node_state_t new_state) {
 	// TODO: Possibly do more later...?
 
-	//printf("STATE CHANGE: %d -> %d\n",request->state,new_state);
+	printf("STATE CHANGE: %d -> %d\n",request->state,new_state);
 
 
 	if(request->state == new_state) {
@@ -508,7 +516,7 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 		}
 	} else {
 		// INVALID STATE TRANSITION!
-//		printf("BAD STATE CHANGE: %d -> %d\n",request->state,new_state);
+		printf("BAD STATE CHANGE: %d -> %d\n",request->state,new_state);
 		abort();
 	}
 
@@ -532,6 +540,8 @@ cgi_node_request_handler(
 	require(node,bail);
 
 	node->interface = smcp_get_current_instance();
+
+	printf(__FILE__":%d\n",__LINE__);
 
 	if(method==COAP_METHOD_GET) {
 		ret = 0;
@@ -574,8 +584,10 @@ cgi_node_request_handler(
 	}
 
 	request = cgi_node_get_associated_request(node);
+	printf(__FILE__":%d\n",__LINE__);
 
 	if(!request) {
+		printf(__FILE__":%d\n",__LINE__);
 		// Possibly new request.
 		// Assume new for now, but we may need to do additional checks.
 
@@ -737,6 +749,8 @@ cgi_node_request_handler(
 	}
 
 bail:
+	printf(__FILE__":%d ret=%d %s\n",__LINE__,ret,smcp_status_to_cstr(ret));
+
 	return ret;
 }
 
@@ -808,10 +822,11 @@ cgi_node_update_fdset(
 
 		if ( request->stdin_buffer_len
 		  && request->fd_cmd_stdin >= 0
-		  && write_fd_set
 		) {
-			//printf("Adding FD %d to write set\n",request->fd_cmd_stdin);
-			FD_SET(request->fd_cmd_stdin,write_fd_set);
+			printf("Adding FD %d to write set\n",request->fd_cmd_stdin);
+			if (write_fd_set) {
+				FD_SET(request->fd_cmd_stdin,write_fd_set);
+			}
 			if (error_fd_set) {
 				FD_SET(request->fd_cmd_stdin,error_fd_set);
 			}
@@ -822,12 +837,13 @@ cgi_node_update_fdset(
 
 		if ( request->fd_cmd_stdout >= 0
 		  && request->stdout_buffer_len<(1<<((request->block2&0x7)+4))
-		  && read_fd_set
 		) {
-			//printf("Adding FD %d to read set\n",request->fd_cmd_stdout);
-			FD_SET(request->fd_cmd_stdout,read_fd_set);
+			printf("Adding FD %d to read set\n",request->fd_cmd_stdout);
+			if (read_fd_set) {
+				FD_SET(request->fd_cmd_stdout, read_fd_set);
+			}
 			if (error_fd_set) {
-				FD_SET(request->fd_cmd_stdout,error_fd_set);
+				FD_SET(request->fd_cmd_stdout, error_fd_set);
 			}
 			if (fd_count) {
 				*fd_count = MAX(*fd_count,request->fd_cmd_stdout+1);
@@ -835,13 +851,14 @@ cgi_node_update_fdset(
 		}
 
 		if (timeout && request->expiration) {
-			*timeout = MIN(*timeout,MAX(0,request->expiration-time(NULL) ));
+			*timeout = MIN(*timeout,MAX(0,smcp_plat_timestamp_to_cms(request->expiration)));
 		}
 
 	}
 	return SMCP_STATUS_OK;
 }
 
+/*
 void
 convert_cms_to_timeval(
 	struct timeval* tv, smcp_cms_t cms
@@ -860,29 +877,32 @@ convert_cms_to_timeval(
 
 	tv->tv_usec %= USEC_PER_SEC;
 }
-
+*/
 smcp_status_t
 cgi_node_process(cgi_node_t self) {
 	int i;
 	fd_set rd_set, wr_set, er_set;
 	int fd_count = 0;
-	struct timeval t = {};
+	struct timeval tv = {0,0};
 	smcp_cms_t timeout = CMS_DISTANT_FUTURE;
+
 	FD_ZERO(&rd_set);
 	FD_ZERO(&wr_set);
 	FD_ZERO(&er_set);
 
-	cgi_node_update_fdset(self,&rd_set,&wr_set,&er_set,&fd_count,&timeout);
+	cgi_node_update_fdset(self, &rd_set, &wr_set, &er_set, &fd_count, &timeout);
 
-	convert_cms_to_timeval(&t, timeout);
+	errno = 0;
+	if (select(fd_count, &rd_set, &wr_set, &er_set, &tv) >= 0) {
 
-	if(select(fd_count, &rd_set, &wr_set, &er_set, &t) > 0) {
-		for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
+		for (i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
 			cgi_node_request_t request = &self->requests[i];
-			if(request->state<=CGI_NODE_STATE_FINISHED)
+			if (request->state<=CGI_NODE_STATE_FINISHED) {
+				//printf("Skipping Request %p, stdin_fd=%d, stdout_fd=%d\n",request,request->fd_cmd_stdin,request->fd_cmd_stdout);
 				continue;
+			}
 
-			if(request->expiration<time(NULL)) {
+			if (smcp_plat_timestamp_to_cms(request->expiration) < 0) {
 				request->expiration = 0;
 				cgi_node_request_change_state(
 					self,
@@ -891,19 +911,25 @@ cgi_node_process(cgi_node_t self) {
 				);
 			}
 
-			//printf("Request %p, stdin_fd=%d, stdout_fd=%d\n",request,request->fd_cmd_stdin,request->fd_cmd_stdout);
+			printf("Request %p, stdin_fd=%d, stdout_fd=%d\n",request,request->fd_cmd_stdin,request->fd_cmd_stdout);
 			errno = 0;
 
-			if(request->stdin_buffer_len && request->fd_cmd_stdin>=0 && (FD_ISSET(request->fd_cmd_stdin,&wr_set)||FD_ISSET(request->fd_cmd_stdin,&er_set))) {
+			if ( request->stdin_buffer_len
+			  && request->fd_cmd_stdin >= 0
+			  && ( FD_ISSET(request->fd_cmd_stdin,&wr_set)
+			    || FD_ISSET(request->fd_cmd_stdin,&er_set)
+			  )
+			) {
 				// Ready to send data to command
 				int bytes_written = write(request->fd_cmd_stdin, request->stdin_buffer, request->stdin_buffer_len);
-				//printf("WROTE %d BYTES TO FD_CMD_STDIN\n",bytes_written);
-				if(bytes_written<0 || errno || FD_ISSET(request->fd_cmd_stdin,&er_set)) {
-					if(errno!=EPIPE)
+				printf("WROTE %d BYTES TO FD_CMD_STDIN\n",bytes_written);
+				if (bytes_written<0 || errno || FD_ISSET(request->fd_cmd_stdin,&er_set)) {
+					if (errno!=EPIPE) {
 						syslog(LOG_ERR,"Error on write, %s (%d)",strerror(errno),errno);
+					}
 					close(request->fd_cmd_stdin);
 					request->fd_cmd_stdin = -1;
-				} else if((size_t)bytes_written==request->stdin_buffer_len) {
+				} else if ((size_t)bytes_written==request->stdin_buffer_len) {
 					request->stdin_buffer_len = 0;
 				} else {
 					request->stdin_buffer_len-=bytes_written;
@@ -921,7 +947,11 @@ cgi_node_process(cgi_node_t self) {
 			}
 
 			errno = 0;
-			if(request->fd_cmd_stdout>=0 && (FD_ISSET(request->fd_cmd_stdout,&rd_set)||FD_ISSET(request->fd_cmd_stdout,&er_set))) {
+			if ( request->fd_cmd_stdout >= 0
+			  && ( FD_ISSET(request->fd_cmd_stdout,&rd_set)
+			    || FD_ISSET(request->fd_cmd_stdout,&er_set)
+			  )
+			) {
 				// Data is pending from command
 				int bytes_read = (1<<((request->block2&0x7)+4))*2;
 				request->stdout_buffer = realloc(request->stdout_buffer,request->stdout_buffer_len+bytes_read);
@@ -935,16 +965,21 @@ cgi_node_process(cgi_node_t self) {
 					close(request->fd_cmd_stdout);
 					request->fd_cmd_stdout = -1;
 				} else {
-					//printf("READ %d BYTES FROM FD_CMD_STDOUT\n",bytes_read);
+					printf("READ %d BYTES FROM FD_CMD_STDOUT\n",bytes_read);
 					request->stdout_buffer_len += bytes_read;
 				}
 			}
-			if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD) {
-				if(!request->stdin_buffer_len &&  request->fd_cmd_stdin>=0) {
+
+			if (request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD) {
+				if ( !request->stdin_buffer_len
+				  && request->fd_cmd_stdin >= 0
+				) {
 					close(request->fd_cmd_stdin);
 					request->fd_cmd_stdin = -1;
 				}
-				if(request->stdout_buffer_len>=(1<<((request->block2&0x7)+4)) || request->fd_cmd_stdout<0) {
+				if ( request->stdout_buffer_len>= (1<<((request->block2&0x7)+4))
+				  || request->fd_cmd_stdout <= 0
+				) {
 					cgi_node_request_change_state(
 						self,
 						request,
@@ -954,33 +989,15 @@ cgi_node_process(cgi_node_t self) {
 			}
 		}
 	} else {
-//		if(max_fd>-1)printf("...\n");
+		if (fd_count > 0) {
+			printf("...fd_count:%d timeout:%d errno: %d %s\n",fd_count,timeout, errno, strerror(errno));
+		}
+		//usleep(1000);
 	}
 	return SMCP_STATUS_OK;
 }
 
 
-
-extern smcp_status_t
-SMCPD_module__cgi_node_process(cgi_node_t self);
-
-extern smcp_status_t
-SMCPD_module__cgi_node_update_fdset(
-	cgi_node_t self,
-    fd_set *read_fd_set,
-    fd_set *write_fd_set,
-    fd_set *error_fd_set,
-    int *max_fd,
-	smcp_cms_t *timeout
-);
-
-extern cgi_node_t
-SMCPD_module__cgi_node_init(
-	cgi_node_t	self,
-	smcp_node_t			parent,
-	const char*			name,
-	const char*			cmd
-);
 
 smcp_status_t
 SMCPD_module__cgi_node_process(cgi_node_t self) {
@@ -993,10 +1010,10 @@ SMCPD_module__cgi_node_update_fdset(
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
-    int *max_fd,
+    int *fd_count,
 	smcp_cms_t *timeout
 ) {
-	return cgi_node_update_fdset(self, read_fd_set, write_fd_set, error_fd_set, max_fd, timeout);
+	return cgi_node_update_fdset(self, read_fd_set, write_fd_set, error_fd_set, fd_count, timeout);
 }
 
 cgi_node_t

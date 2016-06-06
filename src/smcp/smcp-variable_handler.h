@@ -1,4 +1,4 @@
-/*	@file led-node.h
+/*!	@file smcp-variable_handler.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -26,20 +26,55 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef SMCP_led_node_h
-#define SMCP_led_node_h
+#ifndef __SMCP_variable_handler_H__
+#define __SMCP_variable_handler_H__ 1
 
-#include "contiki.h"
-#include <smcp/smcp.h>
-#include <smcp/smcp-variable_handler.h>
-#include "dev/leds.h"
+#include "smcp-opts.h"
+#include "smcp-observable.h"
 
-smcp_status_t
-led_var_func(
+__BEGIN_DECLS
+
+/*!	@addtogroup smcp-extras
+**	@{
+*/
+
+/*!	@defgroup smcp-variable_handler Variable Node
+**	@{
+*/
+
+struct smcp_variable_handler_s;
+typedef struct smcp_variable_handler_s *smcp_variable_handler_t;
+
+enum {
+	SMCP_VAR_GET_KEY,
+	SMCP_VAR_CHECK_KEY,
+	SMCP_VAR_SET_VALUE,
+	SMCP_VAR_GET_VALUE,
+	SMCP_VAR_GET_LF_TITLE,
+	SMCP_VAR_GET_MAX_AGE,
+	SMCP_VAR_GET_ETAG,
+	SMCP_VAR_GET_OBSERVABLE,
+};
+
+typedef smcp_status_t (*smcp_variable_handler_func)(
 	smcp_variable_handler_t node,
 	uint8_t action,
 	uint8_t i,
 	char* value
 );
 
-#endif
+struct smcp_variable_handler_s {
+	smcp_variable_handler_func func;
+	struct smcp_observable_s observable;
+};
+
+SMCP_API_EXTERN smcp_status_t smcp_variable_handler_request_handler(
+	smcp_variable_handler_t		node
+);
+
+/*!	@} */
+/*!	@} */
+
+__END_DECLS
+
+#endif //__SMCP_TIMER_NODE_H__

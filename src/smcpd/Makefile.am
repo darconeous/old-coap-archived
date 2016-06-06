@@ -1,17 +1,17 @@
-AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
-#AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 
+AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
+
+if HAVE_LIBDL
 AM_LDFLAGS = -export-dynamic @LOAD_ALL_SYMBOLS_FLAG@
+endif
 
 CFLAGS += -DASSERT_MACROS_USES_SYSLOG=1
 
-if HAVE_LIBDL
 bin_PROGRAMS = smcpd
-endif
 
 smcpd_SOURCES = main.c help.h
-smcpd_SOURCES += cgi-node.c
-#smcpd_SOURCES += system-node.c
+smcpd_SOURCES += cgi-node.c cgi-node.h
+smcpd_SOURCES += system-node.c system-node.h
 smcpd_LDADD = ../smcp/libsmcp.la
 
 if HAVE_GE_RS232
