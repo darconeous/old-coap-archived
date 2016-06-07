@@ -7,9 +7,14 @@ die() {
 
 set -x
 
-./update-autoconf master autoconf/master || die
+BASE="$1"
 
-git branch -f autoconf/master __AUTOCONF_HEAD || die
+[ -n "$BASE" ] || BASE="master"
+
+
+./update-autoconf ${BASE} autoconf/${BASE} || die
+
+git branch -f autoconf/${BASE} __AUTOCONF_HEAD || die
 
 git branch -D __AUTOCONF_HEAD
 
@@ -17,5 +22,5 @@ git branch -D __AUTOCONF_HEAD
 
 read -p "Press enter to push." || exit 0
 
-git push origin autoconf/master:autoconf/master || die
+git push origin autoconf/${BASE}:autoconf/${BASE} || die
 
