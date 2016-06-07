@@ -1,37 +1,39 @@
 language: c
 
-branches:
-    except:
-        - scripts
-        - gh-pages
-        - /^autoconf\/.*$/
-
 os:
     - linux
     - osx
 
+compiler:
+    - clang
+    - gcc
+
 before_install:
-    - if [ $TRAVIS_OS_NAME == linux ] ;
-      then
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -y update ;
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -y install bsdtar autoconf-archive automake autoconf ;
-      fi
-    - if [ $TRAVIS_OS_NAME == osx ] ;
-      then
-        brew update ;
-        brew install autoconf-archive ;
-      fi
+    - .travis/before_install.sh
 
 before_script:
-    - "if [ $BUILD_PLATFORM = contiki ] ; then git clone git://github.com/contiki-os/contiki.git && cd contiki && git checkout 1d69099 && cd .. ; else true ; fi"
-    - "if [ $BUILD_PLATFORM = unix ] && [ ! -x ./configure ] ; then ./bootstrap.sh ; else true ; fi"
+    - .travis/before_script.sh
 
 script:
-    - "if [ $BUILD_PLATFORM = unix ] ; then ( mkdir -p $BUILD_MAKEPATH && cd $BUILD_MAKEPATH && ../configure ) ; else true ; fi"
-    - "make -C $BUILD_MAKEPATH $BUILD_MAKEARGS"
+    - .travis/script.sh
+
+after_success:
+    - ssh-agent .travis/after_success.sh
 
 env:
     - BUILD_PLATFORM='unix' BUILD_MAKEPATH='build' BUILD_MAKEARGS='distcheck'
-    - BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-plugtest' BUILD_MAKEARGS='TARGET=minimal-net CONTIKI=../../../contiki'
-    - BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-simple' BUILD_MAKEARGS='TARGET=minimal-net CONTIKI=../../../contiki'
-    - BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-complex' BUILD_MAKEARGS='TARGET=native CONTIKI=../../../contiki'
+
+matrix:
+    exclude:
+        - os: osx
+          compiler: gcc
+    include:
+        - os: linux
+          compiler: gcc
+          env: BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-plugtest' BUILD_MAKEARGS='TARGET=minimal-net CONTIKI=../../../contiki'
+        - os: linux
+          compiler: gcc
+          env: BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-complex' BUILD_MAKEARGS='TARGET=native CONTIKI=../../../contiki'
+        - os: linux
+          compiler: gcc
+          env: BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-simple' BUILD_MAKEARGS='TARGET=minimal-net CONTIKI=../../../contiki'

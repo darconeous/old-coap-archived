@@ -43,14 +43,14 @@ To just build the latest tagged stable release:
 For bleeding-edge:
 
 	$ git checkout master
-	$ git archive origin/master-autoconf | tar xv # Or you should run `./bootstrap.sh`
+	$ git archive origin/autoconf/master | tar xv # Or you should run `./bootstrap.sh`
 	$ ./configure
 	$ make
 	$ sudo make install
 
 ## Getting, building, and installing from an archive ##
 
-	$ curl https://github.com/darconeous/smcp/archive/latest-release.zip > smcp-latest-release.zip
+	$ curl https://github.com/darconeous/smcp/archive/latest-release.zip > latest-release.zip
 	$ unzip latest-release.zip
 	$ cd smcp-latest-release
 	$ ./configure
