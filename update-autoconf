@@ -1,0 +1,52 @@
+#!/bin/sh
+
+die() {
+	echo " *** Fatal error: $*"
+	exit -1
+}
+
+set -x
+
+REF="$1"
+
+[ -n "$REF" ] || die "missing argument (needs a ref)"
+
+BASE="$2"
+
+[ -n "$BASE" ] || BASE="autoconf/master"
+
+[ -d proj ] && { chmod -R 777 proj && rm -fr proj ; }
+
+git clone .git proj || die
+
+cd proj || die
+
+git checkout "${REF}" || die
+
+REV=`git describe --tags --always`
+
+./bootstrap.sh || die
+
+find . -name autom4te.cache -print0 | xargs -0 rm -fr || die
+
+git add . -f || die
+git stash || die
+git checkout "${BASE}" || die
+git rm . -f -r
+git stash pop || die
+
+if git status --porcelain 2>/dev/null | grep -e '^[RMDA]' -e '^?[RDMA]' >/dev/null
+then
+	git commit -m "build-system: Autotools rebuild from $REV
+
+Based-on: `git rev-parse $REV`" || die
+else
+	echo "No changes."
+fi
+
+git push -f origin "${BASE}":refs/heads/__AUTOCONF_HEAD || die
+
+cd .. || die
+
+rm -fr proj || die
+

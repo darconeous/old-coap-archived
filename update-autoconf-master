@@ -1,0 +1,21 @@
+#!/bin/sh
+
+die() {
+	echo fatal error $*
+	exit -1
+}
+
+set -x
+
+./update-autoconf master autoconf/master || die
+
+git branch -f autoconf/master __AUTOCONF_HEAD || die
+
+git branch -D __AUTOCONF_HEAD
+
+[ -n "${NO_PUSH}" ] && exit 0
+
+read -p "Press enter to push." || exit 0
+
+git push origin autoconf/master:autoconf/master || die
+
