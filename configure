@@ -11391,7 +11391,7 @@ AM_BACKSLASH='\'
 
 
 
-SOURCE_VERSION=0.6.5-7-g21e37be
+SOURCE_VERSION=0.6.5-9-ge10ddca
 
 cat >>confdefs.h <<_ACEOF
 #define SOURCE_VERSION "`eval echo "$SOURCE_VERSION"`"

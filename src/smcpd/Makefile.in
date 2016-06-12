@@ -53,7 +53,7 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_smcpd_OBJECTS = main.$(OBJEXT) cgi-node.$(OBJEXT) \
-	system-node.$(OBJEXT)
+	system-node.$(OBJEXT) ud-var-node.$(OBJEXT)
 smcpd_OBJECTS = $(am_smcpd_OBJECTS)
 smcpd_DEPENDENCIES = ../smcp/libsmcp.la $(am__append_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -217,7 +217,7 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
 @HAVE_LIBDL_TRUE@AM_LDFLAGS = -export-dynamic @LOAD_ALL_SYMBOLS_FLAG@
 smcpd_SOURCES = main.c help.h cgi-node.c cgi-node.h system-node.c \
-	system-node.h
+	system-node.h ud-var-node.c ud-var-node.h
 smcpd_LDADD = ../smcp/libsmcp.la $(am__append_1)
 
 # Commented out for now, until we get configuration directory support added.
@@ -315,6 +315,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cgi-node.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/system-node.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ud-var-node.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
