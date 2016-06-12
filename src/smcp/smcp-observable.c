@@ -26,11 +26,13 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "assert-macros.h"
-#include "smcp-logging.h"
-#include "smcp-observable.h"
 #include "smcp-internal.h"
-#include "smcp-transaction.h"
+#include "smcp-logging.h"
 
 #define INVALID_OBSERVER_INDEX		(SMCP_MAX_OBSERVERS)
 
@@ -52,20 +54,23 @@ static struct smcp_observer_s observer_table[SMCP_MAX_OBSERVERS];
 static int8_t
 get_unused_observer_index() {
 	int8_t ret = 0;
-	for(; ret < SMCP_MAX_OBSERVERS; ret++) {
-		if(observer_table[ret].async_response.request_len == 0
-			&& observer_table[ret].next == 0
-			&& observer_table[ret].transaction.active == 0
-		)
+	for (; ret < SMCP_MAX_OBSERVERS; ret++) {
+		if ( observer_table[ret].async_response.request_len == 0
+		  && observer_table[ret].next == 0
+		  && observer_table[ret].transaction.active == 0
+		) {
 			break;
+		}
 	}
-	if(ret==SMCP_MAX_OBSERVERS)
+	if (ret==SMCP_MAX_OBSERVERS) {
 		ret = -1;
+	}
 	return ret;
 }
 
 static void
-free_observer(struct smcp_observer_s *observer) {
+free_observer(struct smcp_observer_s *observer)
+{
 	smcp_observable_t const context = observer->observable;
 	int8_t i = (int8_t)(observer - observer_table);
 
@@ -78,10 +83,11 @@ free_observer(struct smcp_observer_s *observer) {
 
 	smcp_transaction_end(interface, &observer->transaction);
 
-	if((context->first_observer==i+1) && (context->last_observer==i+1)) {
+
+	if ((context->first_observer==i+1) && (context->last_observer==i+1)) {
 		context->first_observer = context->last_observer = 0;
 
-	} else if(context->first_observer==i+1) {
+	} else if (context->first_observer == i+1) {
 		context->first_observer = observer_table[i].next;
 
 	} else {
@@ -100,6 +106,7 @@ free_observer(struct smcp_observer_s *observer) {
 	}
 
 bail:
+
 	smcp_finish_async_response(&observer->async_response);
 	return;
 }
@@ -119,6 +126,7 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 	}
 
 	for (i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
+		assert(observer_table[i].observable == context);
 		if (observer_table[i].key != key) {
 			continue;
 		}
@@ -248,11 +256,15 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 	}
 #endif
 
+
 	if (!context->first_observer) {
 		goto bail;
 	}
 
 	for (i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
+		assert(observer_table[i].observable == context);
+		assert((i != context->last_observer-1) || observer_table[i].next == 0);
+
 		if ((observer_table[i].key != SMCP_OBSERVABLE_BROADCAST_KEY)
 			&& (key != SMCP_OBSERVABLE_BROADCAST_KEY)
 			&& (observer_table[i].key != key)
@@ -297,6 +309,9 @@ smcp_observable_observer_count(smcp_observable_t context, uint8_t key)
 	}
 
 	for (i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
+		assert(observer_table[i].observable == context);
+		assert((i != context->last_observer-1) || observer_table[i].next == 0);
+
 		if ((observer_table[i].key != SMCP_OBSERVABLE_BROADCAST_KEY)
 			&& (key != SMCP_OBSERVABLE_BROADCAST_KEY)
 			&& (observer_table[i].key != key)

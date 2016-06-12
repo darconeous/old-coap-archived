@@ -12,6 +12,7 @@ bin_PROGRAMS = smcpd
 smcpd_SOURCES = main.c help.h
 smcpd_SOURCES += cgi-node.c cgi-node.h
 smcpd_SOURCES += system-node.c system-node.h
+smcpd_SOURCES += ud-var-node.c ud-var-node.h
 smcpd_LDADD = ../smcp/libsmcp.la
 
 if HAVE_GE_RS232

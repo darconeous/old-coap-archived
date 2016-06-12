@@ -45,6 +45,8 @@
 **	   like <http://en.wikipedia.org/wiki/Scapegoat_tree>.
 */
 
+#define _GNU_SOURCE 1
+
 #include "btree.h"
 #include <assert.h>
 
@@ -404,6 +406,7 @@ bail:
 
 // LCOV_EXCL_START
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 

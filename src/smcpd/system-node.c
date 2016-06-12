@@ -32,6 +32,10 @@
 
 #define _BSD_SOURCE
 
+#ifndef ASSERT_MACROS_USE_SYSLOG
+#define ASSERT_MACROS_USE_SYSLOG 1
+#endif
+
 #include <smcp/assert-macros.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -219,13 +223,15 @@ system_node_init(
 
 	self->variable_handler.func = device_func;
 
-	require(smcp_node_init(
+	require(&self->node == smcp_node_init(
 			&self->node,
 			(void*)parent,
 			name
 	), bail);
 
 	((smcp_node_t)&self->node)->request_handler = (void*)&system_node_request_handler;
+
+	self->node.has_link_content = 1;
 
 
 bail:

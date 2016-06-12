@@ -91,23 +91,32 @@ post_response_handler(
 		}
 	}
 
-	if(content && content_length) {
-		printf("%s", content);
+	if ( content != NULL
+	  && content_length >= 0
+	  && (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED)
+	) {
+		printf("%*s", content_length, content);
 		// Only print a newline if the content doesn't already print one.
-		if((content[content_length - 1] != '\n'))
+		if((content[content_length - 1] != '\n')) {
 			printf("\n");
+		}
 	}
 
-	if(!content_length && (statuscode != COAP_RESULT_204_CHANGED) &&
-	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
+	if ( !content_length
+	  && (statuscode != COAP_RESULT_204_CHANGED)
+	  && (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED)
+	) {
 		fprintf(stderr, "post: Result code = %d (%s)\n", statuscode,
 			    (statuscode < 0) ? smcp_status_to_cstr(
 				statuscode) : coap_code_to_cstr(statuscode));
+	}
 
 bail:
-	if(gRet == ERRORCODE_INPROGRESS)
+	if (gRet == ERRORCODE_INPROGRESS) {
 		gRet = 0;
-	if(statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
+	}
+
+	if (statuscode == SMCP_STATUS_TRANSACTION_INVALIDATED) {
 		free(request->content);
 		free(request->url);
 		free(request);

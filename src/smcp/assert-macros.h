@@ -84,7 +84,7 @@
  #else
   #if ASSERT_MACROS_USE_SYSLOG
    #define assert_printf(fmt, ...) \
-    syslog(7, \
+    syslog(LOG_NOTICE, \
 				__FILE__ ":%d: "fmt"\n", \
 				__LINE__, \
 				__VA_ARGS__)
@@ -125,6 +125,7 @@
 
  #define check(c)   check_string(c, # c)
  #define check_noerr(c)   check((c) == 0)
+ #define check_noerr_string(c, s)   check_string((c) == 0, s)
  #define require_quiet(c, l)   do { if(!(c)) goto l; } while(0)
  #define require(c, l)   require_action_string(c, l, {}, # c)
 
@@ -142,7 +143,7 @@
 #define assert(e)  \
     ((void) ((e) ? 0 : __assert (#e, __FILE__, __LINE__)))
 #define __assert(e, file, line) \
-    ((void)assert_printf ("%s:%u: failed assertion `%s'\n", file, line, e), abort())
+    ((void)assert_printf ("%s:%u: failed assertion `%s'", file, line, e), abort())
 #endif // OVERRIDE_ASSERT_H
 
 #endif

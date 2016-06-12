@@ -188,6 +188,14 @@
 #define SMCP_TRANSACTIONS_USE_BTREE				!SMCP_EMBEDDED
 #endif
 
+#ifndef SMCP_ASYNC_RESPONSE_MAX_LENGTH
+#if SMCP_EMBEDDED
+#define SMCP_ASYNC_RESPONSE_MAX_LENGTH		80
+#else
+#define SMCP_ASYNC_RESPONSE_MAX_LENGTH		SMCP_MAX_PACKET_LENGTH
+#endif
+#endif
+
 /*****************************************************************************/
 // MARK: - Debugging
 

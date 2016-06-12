@@ -95,10 +95,6 @@ struct smcp_transaction_s {
 	coap_msg_id_t				msg_id;
 	smcp_sockaddr_t				sockaddr_remote;
 
-#if SMCP_TLS
-	void*						security_context;
-#endif
-
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 	uint32_t					last_observe;
 #endif

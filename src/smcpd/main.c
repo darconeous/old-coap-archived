@@ -37,6 +37,7 @@
 #define HAVE_FGETLN 0
 
 #include <smcp/assert-macros.h>
+#include <smcp/smcp-missing.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,9 +55,7 @@
 
 #include <smcp/smcp.h>
 #include <smcp/smcp-node-router.h>
-//#include <smcp/smcp-pairing.h>
 #include <missing/fgetln.h>
-//#include <smcp/smcp-timer_node.h>
 #include "help.h"
 
 #if HAVE_DLFCN_H
@@ -71,6 +70,7 @@
 
 #include "cgi-node.h"
 #include "system-node.h"
+#include "ud-var-node.h"
 
 #if HAVE_LIBCURL
 #include <smcp/smcp-curl_proxy.h>
@@ -178,17 +178,20 @@ smcpd_modules_update_fdset(
 }
 
 smcp_status_t
-smcpd_modules_process() {
+smcpd_modules_process()
+{
 	smcp_status_t status = 0;
 	int i;
 	for(i=0;i<async_io_module_count && !status;i++) {
-		if(async_io_module[i].process)
+		if(async_io_module[i].process) {
 			status = async_io_module[i].process(async_io_module[i].node);
+		}
 	}
 	return status;
 }
 
-smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* name, const char* argument) {
+smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* name, const char* argument)
+{
 	smcp_node_t ret = NULL;
 
 	typedef smcp_node_t (*init_func_t)(smcp_node_t self, smcp_node_t parent, const char* name, const char* argument);
@@ -202,9 +205,9 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 		smcp_cms_t *timeout
 	);
 
-	init_func_t init_func;
-	process_func_t process_func;
-	update_fdset_func_t update_fdset_func;
+	init_func_t init_func = NULL;
+	process_func_t process_func = NULL;
+	update_fdset_func_t update_fdset_func = NULL;
 
 
 	syslog(LOG_NOTICE,"MAKE t=\"%s\" n=\"%s\" a=\"%s\"",type, name, argument);
@@ -227,6 +230,10 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 		init_func = (init_func_t)&SMCPD_module__cgi_node_init;
 		update_fdset_func = (update_fdset_func_t)&SMCPD_module__cgi_node_update_fdset;
 		process_func = (process_func_t)&SMCPD_module__cgi_node_process;
+	} else if(strcaseequal(type,"ud_var_node")) {
+		init_func = (init_func_t)&SMCPD_module__ud_var_node_init;
+		update_fdset_func = (update_fdset_func_t)&SMCPD_module__ud_var_node_update_fdset;
+		process_func = (process_func_t)&SMCPD_module__ud_var_node_process;
 #if HAVE_DLFCN_H
 	} else if(type) {
 		char symbol_name[100];
@@ -254,28 +261,28 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 #endif
 	}
 
-	if(init_func) {
+	if (init_func) {
 		ret = (*init_func)(
 			NULL,
 			parent,
 			strdup(name),
 			argument?strdup(argument):NULL
 		);
-		if(!ret) {
+		if (ret == NULL) {
 			syslog(LOG_WARNING,"Init method failed for node type \"%s\"",type);
 		}
 	} else {
 		syslog(LOG_NOTICE,"Can't find init method for node type \"%s\"",type);
 	}
 
-	if(ret && (process_func || update_fdset_func)) {
+	if (ret && (process_func || update_fdset_func)) {
 		async_io_module[async_io_module_count].node = ret;
 		async_io_module[async_io_module_count].update_fdset = update_fdset_func;
 		async_io_module[async_io_module_count].process = process_func;
 		async_io_module_count++;
 	}
 
-	check_noerr(init_func);
+	check(ret != NULL);
 
 	return ret;
 }
@@ -346,9 +353,9 @@ read_configuration(smcp_t smcp,const char* filename) {
 	while(!feof(file) && (line=fgetln(file,&line_len))) {
 		char *cmd = get_next_arg(line,&line);
 		line_number++;
-		if(!cmd)
+		if(!cmd) {
 			continue;
-		else if(strcaseequal(cmd,"Port")) {
+		} else if(strcaseequal(cmd,"Port")) {
 			char* arg = get_next_arg(line,&line);
 			if(!arg) {
 				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
@@ -447,7 +454,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 			char* arg3 = get_next_arg(line,&line);
 			//syslog(LOG_DEBUG,"ARG1: \"%s\"",arg);
 			//syslog(LOG_DEBUG,"ARG2: \"%s\"",arg2);
-			if(!arg) {
+			if (!arg) {
 				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
 			}
@@ -458,8 +465,11 @@ read_configuration(smcp_t smcp,const char* filename) {
 				next_node = smcpd_make_node(arg2?arg2:"node",node,arg,arg3);
 			}
 
-			if(!next_node || next_node->parent!=node) {
+			if (!next_node) {
 				syslog(LOG_ERR,"Node creation failed for node \"%s\"",arg);
+				goto bail;
+			} else if (next_node->parent != node) {
+				syslog(LOG_ERR,"BUG: Node parent relationship is busted for \"%s\"",arg);
 				goto bail;
 			} else {
 				syslog(LOG_DEBUG,"Created node \"%s\".",arg);
@@ -498,7 +508,7 @@ syslog_dump_select_info(int loglevel, fd_set *read_fd_set, fd_set *write_fd_set,
 				continue; \
 			} \
 			if (strlen(buffer) != 0) { \
-				strncat(buffer, ", ", sizeof(buffer)); \
+				strlcat(buffer, ", ", sizeof(buffer)); \
 			} \
 			snprintf(buffer+strlen(buffer), sizeof(buffer)-strlen(buffer), "%d", i); \
 		} \
@@ -574,6 +584,14 @@ main(
 
 	SMCP_LIBRARY_VERSION_CHECK();
 
+	if (debug_mode >= 2) {
+		setlogmask(LOG_UPTO(LOG_DEBUG));
+	} else if (debug_mode == 1) {
+		setlogmask(LOG_UPTO(LOG_INFO));
+	} else if (debug_mode == 0) {
+		setlogmask(LOG_UPTO(LOG_NOTICE));
+	}
+
 	syslog(LOG_NOTICE,"Starting smcpd . . .");
 
 #if HAVE_LIBCURL
@@ -617,7 +635,7 @@ main(
 		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_plat_get_port(smcp));
 	}
 
-	while(!gRet) {
+	while (!gRet) {
 		int fds_ready = 0, fd_count = 0;
 		fd_set read_fd_set,write_fd_set,error_fd_set;
 		smcp_cms_t cms_timeout = 60 * MSEC_PER_SEC;
@@ -657,7 +675,7 @@ main(
 
 		smcp_plat_process(smcp);
 
-		if (smcpd_modules_process()!=SMCP_STATUS_OK) {
+		if (smcpd_modules_process() != SMCP_STATUS_OK) {
 			syslog(LOG_ERR,"Module process error.");
 			gRet = ERRORCODE_UNKNOWN;
 		}

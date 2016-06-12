@@ -33,9 +33,7 @@
 
 #include "assert-macros.h"
 #include "smcp-logging.h"
-#include "smcp.h"
 #include "smcp-internal.h"
-#include "smcp-transaction.h"
 
 #if SMCP_AVOID_MALLOC
 #warning Transaction pool should be moved into the SMCP instance.
