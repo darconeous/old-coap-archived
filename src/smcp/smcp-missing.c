@@ -83,8 +83,9 @@ ___smcp_strlcpy(char *dst, const char *src, size_t siz)
 	size_t slen = strlen(src);
 
 	if (siz) {
-		if ((n = MIN(slen, siz - 1)))
+		if ((n = MIN(slen, siz - 1))) {
 			memcpy(dst, src, n);
+		}
 		dst[n] = '\0';
 	}
 	return slen;
@@ -97,8 +98,9 @@ ___smcp_strlcat(char *dst, const char *src, size_t siz)
 {
 	size_t dlen = strlen(dst);
 
-	if (dlen < siz - 1)
+	if (dlen < siz - 1) {
 		return (dlen + strlcpy(dst + dlen, src, siz-dlen));
+	}
 
 	return dlen + strlen(src);
 }

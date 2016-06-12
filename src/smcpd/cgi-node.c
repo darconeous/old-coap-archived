@@ -26,11 +26,18 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include <stdio.h>
 
 #if HAVE_CONFIG_H
 #include <config.h>
+#endif
+
+#ifndef ASSERT_MACROS_USE_SYSLOG
+#define ASSERT_MACROS_USE_SYSLOG 1
 #endif
 
 #include <syslog.h>
@@ -133,25 +140,15 @@ cgi_node_get_associated_request(cgi_node_t node) {
 	cgi_node_request_t ret = NULL;
 	int i;
 
-	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
+	for(i = 0; i < CGI_NODE_MAX_REQUESTS; i++) {
 		cgi_node_request_t request = &node->requests[i];
+
 		if (request->state < CGI_NODE_STATE_FINISHED) {
 			continue;
 		}
-		if (request->async_response.request.header.token_len != smcp_inbound_get_packet()->token_len) {
-			printf("cgi_node_get_associated_request: %d: token_len mismatch\n",i);
-			continue;
-		}
-		if (request->async_response.request.header.code != smcp_inbound_get_packet()->code) {
-			printf("cgi_node_get_associated_request: %d: code mismatch\n",i);
-			continue;
-		}
-		if (0!=memcmp(request->async_response.request.header.token, smcp_inbound_get_packet()->token,smcp_inbound_get_packet()->token_len)) {
-			printf("cgi_node_get_associated_request: %d: token mismatch\n",i);
-			continue;
-		}
-		if (smcp_inbound_is_related_to_async_response(&request->async_response)) {
-			printf("cgi_node_get_associated_request: %d: session mismatch\n",i);
+
+		if (!smcp_inbound_is_related_to_async_response(&request->async_response)) {
+			syslog(LOG_DEBUG, "cgi_node_get_associated_request: %d: session mismatch", i);
 			continue;
 		}
 
@@ -168,13 +165,13 @@ cgi_node_create_request(cgi_node_t node) {
 	int i;
 	int pipe_cmd_stdin[2];
 	int pipe_cmd_stdout[2];
-//	int set = 1;
 
-	for(i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
-		if(node->requests[i].state<=CGI_NODE_STATE_FINISHED) {
+	for (i=0; i < CGI_NODE_MAX_REQUESTS; i++) {
+		if (node->requests[i].state <= CGI_NODE_STATE_FINISHED) {
 			ret = &node->requests[i];
-			if(node->requests[i].state==CGI_NODE_STATE_INACTIVE)
+			if (node->requests[i].state == CGI_NODE_STATE_INACTIVE) {
 				break;
+			}
 		}
 	}
 
@@ -246,22 +243,21 @@ cgi_node_create_request(cgi_node_t node) {
 		setenv("SERVER_ADDR","",1);
 		setenv("SERVER_PORT","",1);
 
-		if(0==strncmp(path,getenv("SCRIPT_NAME"),strlen(getenv("SCRIPT_NAME")))) {
+		if (0 == strncmp(path,getenv("SCRIPT_NAME"),strlen(getenv("SCRIPT_NAME")))) {
 			setenv("PATH_INFO",path+strlen(getenv("SCRIPT_NAME")),1);
 		}
 
-//		fprintf(stderr,"CHILD: About to execute \"%s\" using shell \"%s\"\n",node->cmd,node->shell);
-//		fflush(stderr);
+		syslog(LOG_DEBUG, "cgi-node: About to execute \"%s\" using shell \"%s\"", node->cmd, node->shell);
 
 		execl(node->shell,node->shell,"-c",node->cmd,NULL);
 
-		fprintf(stderr,"CHILD: Failed to execute \"%s\" using shell \"%s\"\n",node->cmd,node->shell);
+		syslog(LOG_ERR, "cgi-node: Failed to execute \"%s\" using shell \"%s\"", node->cmd, node->shell);
 
 		// We should never get here...
 		abort();
 	}
 
-	if(ret->pid<0) {
+	if (ret->pid < 0) {
 		// Oh hell.
 
 		syslog(LOG_ERR,"Unable to fork!");
@@ -296,7 +292,7 @@ cgi_node_async_resend_response(void* context)
 	coap_size_t block_len = (1<<((request->block2&0x7)+4));
 	coap_size_t max_len;
 
-	printf("Resending async response. . .\n");
+	syslog(LOG_INFO, "cgi-node: Resending async response. . .");
 
 	ret = smcp_outbound_begin_async_response(COAP_RESULT_205_CONTENT,&request->async_response);
 	require_noerr(ret,bail);
@@ -336,15 +332,18 @@ bail:
 }
 
 smcp_status_t
-cgi_node_request_pop_bytes_from_stdin(cgi_node_request_t request, int count) {
+cgi_node_request_pop_bytes_from_stdin(cgi_node_request_t request, int count)
+{
 	request->stdin_buffer_len-=count;
 	memmove(request->stdin_buffer,request->stdin_buffer+count,request->stdin_buffer_len);
 	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
-cgi_node_request_pop_bytes_from_stdout(cgi_node_request_t request, int count) {
-	fprintf(stderr,"pushing %d bytes from stdout buffer\n",count);
+cgi_node_request_pop_bytes_from_stdout(cgi_node_request_t request, int count)
+{
+	syslog(LOG_INFO, "cgi-node: pushing %d bytes from stdout buffer", count);
+
 	if((signed)request->stdout_buffer_len>count) {
 		request->stdout_buffer_len-=count;
 		memmove(request->stdout_buffer,request->stdout_buffer+count,request->stdout_buffer_len);
@@ -361,8 +360,7 @@ cgi_node_async_ack_handler(int statuscode, void* context)
 	cgi_node_request_t request = context;
 	cgi_node_t node = (cgi_node_t)smcp_get_current_instance(); // TODO: WTF!!?!!!
 
-	printf("Finished sending async response.\n");
-
+	syslog(LOG_INFO, "cgi-node: Finished sending async response.");
 
 	if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK) {
 		if(request->block1!=BLOCK_OPTION_UNSPECIFIED && 0==(request->block1&(1<<3))) {
@@ -404,8 +402,6 @@ smcp_status_t
 cgi_node_send_next_block(cgi_node_t node,cgi_node_request_t request) {
 	smcp_status_t ret = 0;
 
-		printf(__FILE__":%d\n",__LINE__);
-
 	// If we are currently asynchronous, go ahead and send an asynchronous response.
 	// Otherwise, we don't have much to do: We will just go ahead and send
 	// the rest of the data at the next query.
@@ -443,35 +439,38 @@ smcp_status_t
 cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_node_state_t new_state) {
 	// TODO: Possibly do more later...?
 
-	printf("STATE CHANGE: %d -> %d\n",request->state,new_state);
-
+	syslog(LOG_INFO, "cgi-node: %d -> %d", request->state, new_state);
 
 	if(request->state == new_state) {
 		// Same state, do nothing.
 	} else
 
-	if(request->state == CGI_NODE_STATE_INACTIVE
-		&& new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
+	if ( request->state == CGI_NODE_STATE_INACTIVE
+	  && new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
 	) {
-	} else if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
-		&& new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD
+
+	} else if ( request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
+	         && new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD
 	) {
 		smcp_start_async_response(&request->async_response, 0);
-	} else if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD
-		&& new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK
+
+	} else if ( request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD
+	         && new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK
 	) {
 		cgi_node_send_next_block(node,request);
-	} else if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK
-		&& new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
+
+	} else if ( request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK
+	         && new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
 	) {
-		if(request->transaction) {
+		if (request->transaction) {
 			smcp_transaction_end(smcp_get_current_instance(),request->transaction);
 			request->transaction = NULL;
 		}
-	} else
 
-	if( (request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_REQ || request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ)
-		&& new_state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD
+	} else if ( ( (request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_REQ)
+	           || (request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ)
+	            )
+	         && ( new_state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD)
 	) {
 		if(!request->stdin_buffer_len &&  request->fd_cmd_stdin>=0) {
 			close(request->fd_cmd_stdin);
@@ -516,7 +515,7 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 		}
 	} else {
 		// INVALID STATE TRANSITION!
-		printf("BAD STATE CHANGE: %d -> %d\n",request->state,new_state);
+		syslog(LOG_ERR, "cgi-node: BAD STATE CHANGE: %d -> %d", request->state, new_state);
 		abort();
 	}
 
@@ -541,9 +540,7 @@ cgi_node_request_handler(
 
 	node->interface = smcp_get_current_instance();
 
-	printf(__FILE__":%d\n",__LINE__);
-
-	if(method==COAP_METHOD_GET) {
+	if (method==COAP_METHOD_GET) {
 		ret = 0;
 	}
 
@@ -553,59 +550,58 @@ cgi_node_request_handler(
 		const uint8_t* value;
 		coap_size_t value_len;
 		coap_option_key_t key;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
-			if(key == COAP_OPTION_BLOCK2) {
+		while ((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+			if (key == COAP_OPTION_BLOCK2) {
 				uint8_t i;
 				block2_option = 0;
-				for(i = 0; i < value_len; i++)
+				for (i = 0; i < value_len; i++) {
 					block2_option = (block2_option << 8) + value[i];
+				}
 			}
-			if(key == COAP_OPTION_BLOCK1) {
+			if (key == COAP_OPTION_BLOCK1) {
 				uint8_t i;
 				block1_option = 0;
-				for(i = 0; i < value_len; i++)
+				for (i = 0; i < value_len; i++) {
 					block1_option = (block1_option << 8) + value[i];
+				}
 			}
 		}
 	}
 
 
 	// Make sure this is a supported method.
-	switch(method) {
-		case COAP_METHOD_GET:
-		case COAP_METHOD_PUT:
-		case COAP_METHOD_POST:
-		case COAP_METHOD_DELETE:
-			break;
-		default:
-			ret = SMCP_STATUS_NOT_IMPLEMENTED;
-			goto bail;
-			break;
+	switch (method) {
+	case COAP_METHOD_GET:
+	case COAP_METHOD_PUT:
+	case COAP_METHOD_POST:
+	case COAP_METHOD_DELETE:
+		break;
+	default:
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		goto bail;
+		break;
 	}
 
 	request = cgi_node_get_associated_request(node);
-	printf(__FILE__":%d\n",__LINE__);
 
-	if(!request) {
-		printf(__FILE__":%d\n",__LINE__);
+	if (request == NULL) {
 		// Possibly new request.
 		// Assume new for now, but we may need to do additional checks.
 
 		// We don't support non-zero block indexes on the first packet.
-		require_action((block2_option>>4)==0,bail,ret=SMCP_STATUS_INVALID_ARGUMENT);
+		require_action((block2_option>>4) == 0, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
 		request = cgi_node_create_request(node);
-		require_action(request!=NULL,bail,ret = SMCP_STATUS_FAILURE);
+		require_action(request != NULL, bail, ret = SMCP_STATUS_FAILURE);
 		request->block2 = block2_option;
-
 	}
 
 	require(request,bail);
 
-	if(	request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
-		|| request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK
+	if ( request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
+	  || request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK
 	) {
-		if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK) {
+		if (request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK) {
 			ret = cgi_node_request_change_state(
 				node,
 				request,
@@ -613,13 +609,13 @@ cgi_node_request_handler(
 			);
 		}
 
-		if(smcp_inbound_get_content_len()) {
+		if (smcp_inbound_get_content_len()) {
 			request->stdin_buffer_len += smcp_inbound_get_content_len();
 			request->stdin_buffer = realloc(request->stdin_buffer,request->stdin_buffer_len);
 			// TODO: We should look at the block1 header to make sure it makes sense!
 			// This could be a duplicate or it could be *ahead* of where we are. We
 			// must catch these cases in the future!
-			if(request->stdin_buffer) {
+			if (request->stdin_buffer) {
 				memcpy(
 					request->stdin_buffer+request->stdin_buffer_len - smcp_inbound_get_content_len(),
 					smcp_inbound_get_content_ptr(),
@@ -631,7 +627,7 @@ cgi_node_request_handler(
 			}
 		}
 
-		if(block1_option==0xFFFFFFFF || (0==(block1_option&0x4))) {
+		if ((block1_option == 0xFFFFFFFF) || (0 == (block1_option&0x4))) {
 			ret = cgi_node_request_change_state(
 				node,
 				request,
@@ -644,25 +640,25 @@ cgi_node_request_handler(
 				CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD
 			);
 		}
-	} else if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD) {
+	} else if (request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD) {
 		// We should not get a request at this point in the state machine.
-		if(smcp_inbound_is_dupe()) {
+		if (smcp_inbound_is_dupe()) {
 			smcp_outbound_begin_response(COAP_CODE_EMPTY);
 			smcp_outbound_send();
 			ret = SMCP_STATUS_OK;
 		} else {
 			ret = SMCP_STATUS_FAILURE;
 		}
-	} else if(	request->state==CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_REQ
-				|| request->state==CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK
-				|| request->state==CGI_NODE_STATE_FINISHED
+	} else if ( request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_REQ
+	         || request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK
+	         || request->state == CGI_NODE_STATE_FINISHED
 	) {
 		// Ongoing request. Handle it.
 		uint32_t block2_start = (block2_option>>4) * (1<<((block2_option&0x7)+4));
 		uint32_t block2_stop = block2_start + (1<<((block2_option&0x7)+4));
 
-		if(	request->block2!=BLOCK_OPTION_UNSPECIFIED
-			&& block2_start < (request->block2>>4) * (1<<((request->block2&0x7)+4))
+		if ( request->block2 != BLOCK_OPTION_UNSPECIFIED
+		  && block2_start < (request->block2>>4) * (1<<((request->block2&0x7)+4))
 		) {
 				// Old Dupe?
 				smcp_outbound_drop();
@@ -670,7 +666,7 @@ cgi_node_request_handler(
 				goto bail;
 		}
 
-		if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK) {
+		if (request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK) {
 			// OK, we need to clear out the previous stuff.
 			if(block2_stop != (request->block2>>4) * (1<<((request->block2&0x7)+4))) {
 				// Looks like the sender skipped some blocks.
@@ -684,7 +680,7 @@ cgi_node_request_handler(
 				request,
 				CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_REQ
 			);
-		} else if(block2_option != request->block2) {
+		} else if (block2_option != request->block2) {
 			// TODO: check to make sure this is valid!
 			ret = cgi_node_request_pop_bytes_from_stdout(request,(1<<((request->block2&0x7)+4)));
 			require_noerr(ret,bail);
@@ -694,7 +690,9 @@ cgi_node_request_handler(
 
 		coap_size_t block_len = (1<<((request->block2&0x7)+4));
 
-		if(request->stdout_buffer_len>=block_len || request->fd_cmd_stdout<=-1) {
+		if ( request->stdout_buffer_len >= block_len
+		  || request->fd_cmd_stdout <= -1
+		) {
 			// We have data!
 			coap_size_t max_len;
 
@@ -704,7 +702,9 @@ cgi_node_request_handler(
 //			ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 //			require_noerr(ret,bail);
 
-			if(request->stdout_buffer_len>block_len || request->fd_cmd_stdout>=0) {
+			if ( request->stdout_buffer_len>block_len
+			  || request->fd_cmd_stdout >= 0
+			) {
 				ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
 				require_noerr(ret,bail);
 			}
@@ -720,7 +720,9 @@ cgi_node_request_handler(
 			ret = smcp_outbound_send();
 			require_noerr(ret,bail);
 
-			if(request->fd_cmd_stdout<0 && request->stdout_buffer_len<=block_len) {
+			if ( request->fd_cmd_stdout < 0
+			  && request->stdout_buffer_len <= block_len
+			) {
 				ret = cgi_node_request_change_state(
 					node,
 					request,
@@ -728,8 +730,7 @@ cgi_node_request_handler(
 				);
 			}
 
-		} else
-		if(request->fd_cmd_stdout>=0) {
+		} else if (request->fd_cmd_stdout >= 0) {
 			// Not enough data yet.
 			ret = cgi_node_request_change_state(
 				node,
@@ -737,9 +738,9 @@ cgi_node_request_handler(
 				CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD
 			);
 		}
-	} else if(request->state==CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD) {
+	} else if (request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD) {
 		// We should not get a request at this point in the state machine.
-		if(smcp_inbound_is_dupe()) {
+		if (smcp_inbound_is_dupe()) {
 			smcp_outbound_begin_response(COAP_CODE_EMPTY);
 			smcp_outbound_send();
 			ret = SMCP_STATUS_OK;
@@ -749,7 +750,6 @@ cgi_node_request_handler(
 	}
 
 bail:
-	printf(__FILE__":%d ret=%d %s\n",__LINE__,ret,smcp_status_to_cstr(ret));
 
 	return ret;
 }
@@ -858,26 +858,6 @@ cgi_node_update_fdset(
 	return SMCP_STATUS_OK;
 }
 
-/*
-void
-convert_cms_to_timeval(
-	struct timeval* tv, smcp_cms_t cms
-) {
-	gettimeofday(tv, NULL);
-
-	// Add all whole seconds to tv_sec
-	tv->tv_sec += cms / MSEC_PER_SEC;
-
-	// Remove all whole seconds from cms
-	cms -= ((cms / MSEC_PER_SEC) * MSEC_PER_SEC);
-
-	tv->tv_usec += ((cms % MSEC_PER_SEC) * MSEC_PER_SEC);
-
-	tv->tv_sec += tv->tv_usec / USEC_PER_SEC;
-
-	tv->tv_usec %= USEC_PER_SEC;
-}
-*/
 smcp_status_t
 cgi_node_process(cgi_node_t self) {
 	int i;
@@ -895,9 +875,10 @@ cgi_node_process(cgi_node_t self) {
 	errno = 0;
 	if (select(fd_count, &rd_set, &wr_set, &er_set, &tv) >= 0) {
 
-		for (i=0;i<CGI_NODE_MAX_REQUESTS;i++) {
+		for (i=0; i < CGI_NODE_MAX_REQUESTS; i++) {
 			cgi_node_request_t request = &self->requests[i];
-			if (request->state<=CGI_NODE_STATE_FINISHED) {
+
+			if (request->state <= CGI_NODE_STATE_FINISHED) {
 				//printf("Skipping Request %p, stdin_fd=%d, stdout_fd=%d\n",request,request->fd_cmd_stdin,request->fd_cmd_stdout);
 				continue;
 			}
@@ -936,8 +917,11 @@ cgi_node_process(cgi_node_t self) {
 					memmove(request->stdin_buffer,request->stdin_buffer+bytes_written,request->stdin_buffer_len);
 				}
 			}
-			if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD) {
-				if(request->stdin_buffer_len==0 || request->fd_cmd_stdin<0) {
+
+			if (request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD) {
+				if ( request->stdin_buffer_len == 0
+				  || request->fd_cmd_stdin < 0
+				) {
 					cgi_node_request_change_state(
 						self,
 						request,
@@ -992,7 +976,6 @@ cgi_node_process(cgi_node_t self) {
 		if (fd_count > 0) {
 			printf("...fd_count:%d timeout:%d errno: %d %s\n",fd_count,timeout, errno, strerror(errno));
 		}
-		//usleep(1000);
 	}
 	return SMCP_STATUS_OK;
 }

@@ -147,12 +147,14 @@ smcp_handle_list(
 		smcp_node_t next;
 		const char* node_name = node->name;
 
-		if(!node_name)
+		if (!node_name) {
 			break;
+		}
 
 		if((strlen(node_name) + 4) >
-				(content_break_threshold - strlen(replyContent) - 3))
+				(content_break_threshold - strlen(replyContent) - 3)) {
 			break;
+		}
 
 		strlcat(replyContent, "<", content_break_threshold);
 

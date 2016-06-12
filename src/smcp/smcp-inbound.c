@@ -435,21 +435,27 @@ smcp_inbound_packet_process(
 
 	// Check to make sure we have responded by now. If not, we need to.
 	if (!self->did_respond && (packet->tt==COAP_TRANS_TYPE_CONFIRMABLE)) {
+		smcp_status_t original_ret = ret;
+
+#if SMCP_USE_BSD_SOCKETS
+		int original_errno = errno;
+#endif
+
 		smcp_outbound_reset();
 
 		if (COAP_CODE_IS_REQUEST(packet->code)) {
-			coap_code_t result_code = smcp_convert_status_to_result_code(ret);
+			coap_code_t result_code = smcp_convert_status_to_result_code(original_ret);
 
 			if(self->inbound.is_dupe) {
 				ret = 0;
 			}
 
-			if(ret == SMCP_STATUS_OK) {
-				if(packet->code==COAP_METHOD_GET) {
+			if (ret == SMCP_STATUS_OK) {
+				if (packet->code == COAP_METHOD_GET) {
 					result_code = COAP_RESULT_205_CONTENT;
-				} else if(packet->code==COAP_METHOD_POST || packet->code==COAP_METHOD_PUT) {
+				} else if (packet->code == COAP_METHOD_POST || packet->code == COAP_METHOD_PUT) {
 					result_code = COAP_RESULT_204_CHANGED;
-				} else if(packet->code==COAP_METHOD_DELETE) {
+				} else if (packet->code == COAP_METHOD_DELETE) {
 					result_code = COAP_RESULT_202_DELETED;
 				}
 			}
@@ -460,7 +466,13 @@ smcp_inbound_packet_process(
 
 			// For an ISE, let's give a little more information.
 			if (result_code == COAP_RESULT_500_INTERNAL_SERVER_ERROR) {
-				smcp_outbound_set_var_content_int(ret);
+				smcp_outbound_set_var_content_int(original_ret);
+#if SMCP_USE_BSD_SOCKETS
+				smcp_outbound_append_content(";d=\"", SMCP_CSTR_LEN);
+				errno = original_errno;
+				smcp_outbound_append_content(smcp_status_to_cstr(original_ret), SMCP_CSTR_LEN);
+				smcp_outbound_append_content("\"", SMCP_CSTR_LEN);
+#endif
 			}
 		} else { // !COAP_CODE_IS_REQUEST(packet->code)
 			// This isn't a request, so we send either an ACK,

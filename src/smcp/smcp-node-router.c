@@ -73,11 +73,13 @@ smcp_default_request_handler(
 }
 
 smcp_status_t
-smcp_node_router_handler(void* context) {
+smcp_node_router_handler(void* context)
+{
 	smcp_request_handler_func handler = NULL;
 	smcp_node_route(context, &handler, &context);
-	if(!handler)
+	if(!handler) {
 		return SMCP_STATUS_NOT_IMPLEMENTED;
+	}
 	return (*handler)(context);
 }
 
@@ -95,18 +97,18 @@ smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** contex
 		coap_option_key_t key;
 		const uint8_t* value;
 		coap_size_t value_len;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
-			if(key>COAP_OPTION_URI_PATH) {
+		while ((key = smcp_inbound_next_option(&value, &value_len)) != COAP_OPTION_INVALID) {
+			if (key > COAP_OPTION_URI_PATH) {
 				self->inbound.this_option = prev_option_ptr;
 				self->inbound.last_option_key = prev_key;
 				break;
-			} else if(key==COAP_OPTION_URI_PATH) {
+			} else if (key == COAP_OPTION_URI_PATH) {
 				smcp_node_t next = smcp_node_find(
 					node,
 					(const char*)value,
 					(int)value_len
 				);
-				if(next) {
+				if (next) {
 					node = next;
 				} else {
 					self->inbound.this_option = prev_option_ptr;
@@ -139,10 +141,11 @@ smcp_node_route(smcp_node_t node, smcp_request_handler_func* func, void** contex
 	}
 
 	*func = (void*)node->request_handler;
-	if(node->context)
+	if(node->context) {
 		*context = node->context;
-	else
+	} else {
 		*context = (void*)node;
+	}
 
 bail:
 	return ret;
@@ -205,21 +208,26 @@ smcp_node_ncompare_cstr(
 ) {
 	bt_compare_result_t ret;
 
-	if(lhs->name == rhs)
+	if (lhs->name == rhs) {
 		return 0;
-	if(!lhs->name)
+	}
+	if (!lhs->name) {
 		return 1;
-	if(!rhs)
+	}
+	if (!rhs) {
 		return -1;
+	}
 
 	ret = (bt_compare_result_t)strncmp(lhs->name, rhs, len);
 
 	if(ret == 0) {
 		int lhs_len = (int)strlen(lhs->name);
-		if(lhs_len > len)
+		if(lhs_len > len) {
 			ret = 1;
-		else if(lhs_len < len)
+		}
+		else if(lhs_len < len) {
 			ret = -1;
+		}
 	}
 
 	return ret;
@@ -237,7 +245,7 @@ smcp_node_init(
 
 	ret->request_handler = (void*)&smcp_default_request_handler;
 
-	if(node) {
+	if (node) {
 		require(name, bail);
 		ret->name = name;
 #if SMCP_NODE_ROUTER_USE_BTREE
@@ -269,14 +277,16 @@ smcp_node_delete(smcp_node_t node) {
 
 	DEBUG_PRINTF("%s: %p",__func__,node);
 
-	if(node->parent)
+	if (node->parent) {
 		owner = (void**)&((smcp_node_t)node->parent)->children;
+	}
 
 	// Delete all child objects.
-	while(((smcp_node_t)node)->children)
+	while (((smcp_node_t)node)->children) {
 		smcp_node_delete(((smcp_node_t)node)->children);
+	}
 
-	if(owner) {
+	if (owner) {
 #if SMCP_NODE_ROUTER_USE_BTREE
 		bt_remove(owner,
 			node,

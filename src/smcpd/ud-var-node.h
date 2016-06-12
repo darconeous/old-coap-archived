@@ -1,8 +1,8 @@
-/*!	@file smcp-async.h
+/*	@file ud-var-node.h
+**	@brief Unix-Domain Variable Node Header
 **	@author Robert Quattlebaum <darco@deepdarc.com>
-**	@brief Asynchronous Response Support
 **
-**	Copyright (C) 2015 Robert Quattlebaum
+**	Copyright (C) 2016 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -27,51 +27,36 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef SMCP_smcp_async_h
-#define SMCP_smcp_async_h
 
-#include "smcp.h"
+#ifndef ud_var_node_h
+#define ud_var_node_h
 
-__BEGIN_DECLS
+#include <smcp/smcp.h>
 
-/*!	@addtogroup smcp
-**	@{
-*/
+struct ud_var_node_s;
 
-//struct smcp_session_s;
-//
-/*!	@defgroup smcp_async Asynchronous response support API
-**	@{
-*/
+typedef struct ud_var_node_s* ud_var_node_t;
 
-#define SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK		(1<<0)
+extern smcp_status_t
+SMCPD_module__ud_var_node_process(ud_var_node_t self);
 
-struct smcp_async_response_s {
-	smcp_sockaddr_t sockaddr_local;
-	smcp_sockaddr_t sockaddr_remote;
+extern smcp_status_t
+SMCPD_module__ud_var_node_update_fdset(
+	ud_var_node_t self,
+    fd_set *read_fd_set,
+    fd_set *write_fd_set,
+    fd_set *error_fd_set,
+    int *fd_count,
+	smcp_cms_t *timeout
+);
 
-	coap_size_t request_len;
-	union {
-		struct coap_header_s header;
-		uint8_t bytes[SMCP_ASYNC_RESPONSE_MAX_LENGTH];
-	} request;
-};
-
-typedef struct smcp_async_response_s* smcp_async_response_t;
-
-SMCP_API_EXTERN bool smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x);
-
-SMCP_API_EXTERN smcp_status_t smcp_start_async_response(struct smcp_async_response_s* x,int flags);
-
-SMCP_API_EXTERN smcp_status_t smcp_finish_async_response(struct smcp_async_response_s* x);
-
-SMCP_API_EXTERN smcp_status_t smcp_outbound_begin_async_response(coap_code_t code, struct smcp_async_response_s* x);
-
-/*!	@} */
+extern ud_var_node_t
+SMCPD_module__ud_var_node_init(
+	ud_var_node_t	self,
+	smcp_node_t			parent,
+	const char*			name,
+	const char*			cmd
+);
 
 
-/*!	@} */
-
-__END_DECLS
-
-#endif
+#endif /* ud_var_node_h */

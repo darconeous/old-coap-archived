@@ -113,35 +113,38 @@ resend_test_request(void* context) {
 	status = smcp_outbound_set_uri(test_data->url, 0);
 	require_noerr(status,bail);
 
-	if(test_data->extra==EXT_BLOCK_01) {
+	if (test_data->extra == EXT_BLOCK_01) {
 		struct coap_block_info_s block1_info;
 		uint32_t resource_length = 2000;
-		if(!test_data->has_block1_option) {
-			test_data->block1_option = 2|(1<<3);	// 64 byte block size;
+
+		if (!test_data->has_block1_option) {
+			test_data->block1_option = (2 | (1<<3));	// 64 byte block size;
 		}
 
 		smcp_outbound_add_option_uint(COAP_OPTION_BLOCK1, test_data->block1_option);
 
 		coap_decode_block(&block1_info, test_data->block1_option);
 
-		if(block1_info.block_m) {
+		if (block1_info.block_m) {
 			coap_size_t max_len = 0;
 			uint32_t i;
 			uint32_t block_stop;
 			char* content = NULL;
 			content = smcp_outbound_get_content_ptr(&max_len);
-			if(!content) {
+
+			if (!content) {
 				status = SMCP_STATUS_FAILURE;
 				goto bail;
 			}
 
 			block_stop = block1_info.block_offset+block1_info.block_size;
 
-			for(i=block1_info.block_offset;i<block_stop;i++) {
-				if(!((i+1)%64))
+			for (i = block1_info.block_offset; i < block_stop; i++) {
+				if (!((i + 1) % 64)) {
 					content[i-block1_info.block_offset] = '\n';
-				else
+				} else {
 					content[i-block1_info.block_offset] = '0'+(i%10);
+				}
 			}
 
 			status = smcp_outbound_set_content_len(MIN((coap_code_t)(block_stop-block1_info.block_offset),(coap_code_t)(resource_length-block1_info.block_offset)));

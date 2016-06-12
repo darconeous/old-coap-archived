@@ -160,6 +160,7 @@
 		A6F536F1155F0EC700E0E324 /* libcurl.4.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F536F0155F0EC600E0E324 /* libcurl.4.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
 		A6F536F3155F255000E0E324 /* smcp-outbound.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F2155F255000E0E324 /* smcp-outbound.c */; };
 		A6F536F81561B7A600E0E324 /* smcp-list.c in Sources */ = {isa = PBXBuildFile; fileRef = A6F536F71561B7A600E0E324 /* smcp-list.c */; };
+		A6FB086F1D0CAC78004116B1 /* ud-var-node.c in Sources */ = {isa = PBXBuildFile; fileRef = A6FB086E1D0CAC78004116B1 /* ud-var-node.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -357,6 +358,8 @@
 		A6FB08681D038281004116B1 /* smcp-plat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-plat.h"; sourceTree = "<group>"; usesTabs = 1; };
 		A6FB08691D04EEA2004116B1 /* system-node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "system-node.h"; sourceTree = "<group>"; };
 		A6FB086A1D04EEB3004116B1 /* cgi-node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "cgi-node.h"; sourceTree = "<group>"; };
+		A6FB086D1D0CAC78004116B1 /* ud-var-node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ud-var-node.h"; sourceTree = "<group>"; };
+		A6FB086E1D0CAC78004116B1 /* ud-var-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ud-var-node.c"; sourceTree = "<group>"; };
 		A6FB241C16B7748400BA6C0F /* selftest.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = selftest.sh; path = src/plugtest/selftest.sh; sourceTree = "<group>"; };
 		A6FB241E16B77A7D00BA6C0F /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; name = smcpctl.1; path = docs/smcpctl.1; sourceTree = "<group>"; };
@@ -526,6 +529,8 @@
 				A6FB08691D04EEA2004116B1 /* system-node.h */,
 				A6D0C8C21661CC3C00E9F440 /* cgi-node.c */,
 				A6FB086A1D04EEB3004116B1 /* cgi-node.h */,
+				A6FB086E1D0CAC78004116B1 /* ud-var-node.c */,
+				A6FB086D1D0CAC78004116B1 /* ud-var-node.h */,
 			);
 			name = smcpd;
 			path = src/smcpd;
@@ -902,6 +907,7 @@
 				A63EA6DA1278B13800B24867 /* cmd_get.c in Sources */,
 				A63EA6DB1278B13800B24867 /* cmd_list.c in Sources */,
 				A67FA5CE1BF94019003FE1B3 /* smcp-async.c in Sources */,
+				A6FB086F1D0CAC78004116B1 /* ud-var-node.c in Sources */,
 				A6A4A4051953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A63EA6DD1278B13800B24867 /* cmd_post.c in Sources */,
 				A63EA6DF1278B13800B24867 /* help.c in Sources */,

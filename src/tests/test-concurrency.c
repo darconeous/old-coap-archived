@@ -7,15 +7,19 @@
 **
 */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#define _GNU_SOURCE 1
+
+#include <smcp/assert-macros.h>
 #include <stdio.h>
 #include <pthread.h>
-#include <smcp/assert-macros.h>
 #include <smcp/smcp.h>
 
 #define NUMBER_OF_THREADS			(10)
 #define TRANSACTIONS_PER_THREAD		(10)
-
-//#define VERBOSE_DEBUG		1
 
 #if !VERBOSE_DEBUG
 #define printf(...)		do { } while(0)
@@ -206,9 +210,9 @@ main(void) {
 	}
 
 	while (!is_finished) {
-		if (-smcp_plat_cms_to_timestamp(start_time) > MSEC_PER_SEC*10) {
+		if (-smcp_plat_timestamp_to_cms(start_time) > MSEC_PER_SEC*10) {
 			fprintf(stderr,"TIMEOUT\n");
-			abort();
+			return EXIT_FAILURE;
 		}
 		smcp_plat_process(instance);
 		if (smcp_plat_wait(instance, 1000) == SMCP_STATUS_TIMEOUT) {

@@ -4,7 +4,7 @@ SUBDIRS = src docs
 
 DISTCLEANFILES = config.log config.status Makefile libtool make.out
 
-EXTRA_DIST = bootstrap.sh README.md NEWS.md
+EXTRA_DIST = bootstrap.sh README.md NEWS.md LICENSE etc/Dockerfile etc/build-in-docker.sh etc/run-in-docker.sh
 
 # Metafiles
 EXTRA_DIST += .gitignore .uncrustify.cfg .travis.yml

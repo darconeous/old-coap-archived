@@ -123,14 +123,14 @@ get_response_handler(int statuscode, void* context) {
 		}
 	}
 
-	if((statuscode>0) && content && content_length) {
+	if ((statuscode>0) && content && content_length) {
 		coap_option_key_t key;
 		const uint8_t* value;
 		coap_size_t value_len;
 		bool last_block = true;
 		int32_t observe_value = -1;
 
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+		while ((key = smcp_inbound_next_option(&value, &value_len)) != COAP_OPTION_INVALID) {
 
 			if(key == COAP_OPTION_BLOCK2) {
 				last_block = !(value[value_len-1]&(1<<3));
@@ -174,7 +174,7 @@ resend_get_request(void* context) {
 	status = smcp_outbound_set_uri(url_data, 0);
 	require_noerr(status,bail);
 
-	if(request_accept_type!=COAP_CONTENT_TYPE_UNKNOWN) {
+	if (request_accept_type != COAP_CONTENT_TYPE_UNKNOWN) {
 		status = smcp_outbound_add_option_uint(COAP_OPTION_ACCEPT, request_accept_type);
 		require_noerr(status,bail);
 	}

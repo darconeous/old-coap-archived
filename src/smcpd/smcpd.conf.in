@@ -25,6 +25,11 @@ Port 5683
 <node "cgi-cat" "cgi" "echo Here is what you sent: ; cat">
 </node>
 
-#<node "timer1" timer>
-#</node>
+<node "dev">
+<node "console" "ud_var" "/dev/console">
+</node>
+
+<node "value" "ud_var" "./value">
+</node>
+</node>
 

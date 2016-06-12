@@ -3,6 +3,8 @@
 #include <config.h>
 #endif
 
+#define _GNU_SOURCE 1
+
 #include <smcp/assert-macros.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -534,7 +536,7 @@ smcp_attempted_completion (
 	 to complete.  Otherwise it is the name of a file in the current
 	 directory. */
 	if(start == 0) {
-		matches = completion_matches (text, &smcp_command_generator);
+		matches = rl_completion_matches (text, &smcp_command_generator);
 	} else {
 		if(text[0]=='-') {
 			// Argument Completion.

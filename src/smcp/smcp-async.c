@@ -89,9 +89,13 @@ smcp_start_async_response(struct smcp_async_response_s* x, int flags) {
 	);
 
 	x->request_len = smcp_inbound_get_packet_length()-smcp_inbound_get_content_len();
+	check(x->request_len <= sizeof(x->request));
+	if (x->request_len > sizeof(x->request)) {
+		x->request_len = sizeof(x->request);
+		require_action(coap_verify_packet((const char*)x->request.bytes, x->request_len), bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
+	}
 	memcpy(x->request.bytes,smcp_inbound_get_packet(),x->request_len);
 
-	assert(coap_verify_packet((const char*)x->request.bytes, x->request_len));
 
 	x->sockaddr_remote = *smcp_plat_get_remote_sockaddr();
 	x->sockaddr_local = *smcp_plat_get_local_sockaddr();
@@ -137,7 +141,11 @@ smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
 		return false;
 	}
 
-	if (x->request.header.token_len != smcp_inbound_get_packet()->token_len) {
+	if (0 != memcmp(
+		&x->sockaddr_remote.smcp_addr,
+		&curr_remote->smcp_addr,
+		sizeof(smcp_addr_t)
+	)) {
 		return false;
 	}
 
@@ -145,14 +153,14 @@ smcp_inbound_is_related_to_async_response(struct smcp_async_response_s* x)
 		return false;
 	}
 
-	if (0!=memcmp(x->request.header.token, smcp_inbound_get_packet()->token,smcp_inbound_get_packet()->token_len)) {
+	if (x->request.header.token_len != smcp_inbound_get_packet()->token_len) {
 		return false;
 	}
 
-	if (0 == memcmp(
-		&x->sockaddr_remote.smcp_addr,
-		&curr_remote->smcp_addr,
-		sizeof(smcp_addr_t)
+	if (0 != memcmp(
+	    x->request.header.token,
+		smcp_inbound_get_packet()->token,
+		smcp_inbound_get_packet()->token_len
 	)) {
 		return false;
 	}
