@@ -1,4 +1,4 @@
-/*!	@file smcp-opts.h
+/*!	@file smcp-config.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **	@brief SMCP Build Options
 **
@@ -27,18 +27,30 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_OPS_H__
-#define __SMCP_OPS_H__
+#undef SMCP_EMBEDDED
 
-/*****************************************************************************/
-// MARK: - SMCP Build Parameters
+#undef SMCP_USE_BSD_SOCKETS
 
-//#define SMCP_AVOID_MALLOC		1
-//#define SMCP_AVOID_PRINTF		1
-//#define ASSERT_MACROS_USE_VANILLA_PRINTF 1
-//#define DEBUG 1
-//#define VERBOSE_DEBUG
-//#define SMCP_EMBEDDED 1
-//#define SMCP_USE_BSD_SOCKETS 1
+#undef SMCP_USE_UIP
 
-#endif
+#undef SMCP_CONF_ENABLE_VHOSTS
+
+#undef SMCP_AVOID_MALLOC
+
+#undef SMCP_AVOID_PRINTF
+
+#undef SMCP_MAX_VHOSTS
+
+#undef SMCP_CONF_TRANS_ENABLE_BLOCK2
+
+#undef SMCP_CONF_TRANS_ENABLE_OBSERVING
+
+#undef SMCP_CONF_MAX_OBSERVERS
+
+#undef SMCP_CONF_NODE_ROUTER
+
+#undef SMCP_USE_CASCADE_COUNT
+
+#undef SMCP_BSD_SOCKETS_NET_FAMILY
+
+#undef HAVE_OPENSSL

@@ -94,7 +94,7 @@ static smcp_status_t device_func(
 	smcp_status_t ret = 0;
 	if(path>=SYS_NODE_PATH_COUNT) {
 		ret = SMCP_STATUS_NOT_FOUND;
-	} else if(action==SMCP_VAR_GET_KEY) {
+	} else if (action == SMCP_VAR_GET_KEY) {
 		static const char* path_names[] = {
 			[SYS_NODE_PATH_UPTIME]="uptime",
 #if HAVE_GETLOADAVG
@@ -104,7 +104,7 @@ static smcp_status_t device_func(
 #endif
 		};
 		strcpy(value,path_names[path]);
-	} else if(action==SMCP_VAR_GET_MAX_AGE) {
+	} else if (action == SMCP_VAR_GET_MAX_AGE) {
 		int max_age = 0;
 		switch(path) {
 #if HAVE_GETLOADAVG
@@ -119,11 +119,12 @@ static smcp_status_t device_func(
 				break;
 		}
 		if(max_age) {
+			// TODO: Change this
 			sprintf(value,"%d",max_age);
 		} else {
 			return SMCP_STATUS_FAILURE;
 		}
-	} else if(action==SMCP_VAR_GET_OBSERVABLE) {
+	} else if (action == SMCP_VAR_GET_OBSERVABLE) {
 		static const bool observable[] = {
 			[SYS_NODE_PATH_UPTIME] = 0,
 #if HAVE_GETLOADAVG
@@ -135,7 +136,7 @@ static smcp_status_t device_func(
 		if(!observable[path]) {
 			return SMCP_STATUS_NOT_ALLOWED;
 		}
-	} else if(action==SMCP_VAR_GET_VALUE) {
+	} else if (action == SMCP_VAR_GET_VALUE) {
 		switch(path) {
 #if HAVE_GETLOADAVG
 			case SYS_NODE_PATH_LOADAVG_1:

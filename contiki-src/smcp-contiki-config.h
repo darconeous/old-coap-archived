@@ -1,4 +1,4 @@
-/*!	@file smcp-opts.h
+/*!	@file smcp-contiki-config.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **	@brief SMCP Build Options
 **
@@ -27,18 +27,14 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_OPS_H__
-#define __SMCP_OPS_H__
+#ifndef __SMCP_CONTIKI_CONFIG_H__
+#define __SMCP_CONTIKI_CONFIG_H__
 
 /*****************************************************************************/
 // MARK: - SMCP Build Parameters
 
-//#define SMCP_AVOID_MALLOC		1
-//#define SMCP_AVOID_PRINTF		1
-//#define ASSERT_MACROS_USE_VANILLA_PRINTF 1
-//#define DEBUG 1
-//#define VERBOSE_DEBUG
-//#define SMCP_EMBEDDED 1
-//#define SMCP_USE_BSD_SOCKETS 1
+#define SMCP_EMBEDDED 1
+
+#define SMCP_USE_UIP 1
 
 #endif

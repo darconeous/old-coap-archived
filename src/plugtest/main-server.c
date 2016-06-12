@@ -91,7 +91,6 @@ main(int argc, char * argv[]) {
 #ifdef SMCP_DEBUG_INBOUND_DROP_PERCENT
 	fprintf(stderr,"SMCP_DEBUG_INBOUND_DROP_PERCENT = %.1f%%\n",SMCP_DEBUG_INBOUND_DROP_PERCENT*100.0);
 #endif
-	fprintf(stderr,"SMCP_CONF_MAX_SESSION_COUNT = %d\n",SMCP_CONF_MAX_SESSION_COUNT);
 
 	plugtest_server_init(&plugtest_server,&root_node);
 

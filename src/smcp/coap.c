@@ -183,60 +183,95 @@ coap_size_t coap_insert_option(
 	coap_option_key_t iter_key = 0;
 
 	// Find the insertion point.
-	if(start_of_options==end_of_options) {
+	if (start_of_options == end_of_options) {
 		iter = NULL;
+
 	} else {
 		do {
 			iter = coap_decode_option(iter, &iter_key, NULL, NULL);
-			if(iter_key<=key) {
+
+			if (iter_key <= key) {
 				insertion_point = iter;
 				prev_key = iter_key;
 			}
-			if(iter_key>key)
+
+			if (iter_key > key) {
 				break;
-		} while(iter && iter<end_of_options);
+			}
+		} while(iter && (iter < end_of_options));
 	}
 
-	if(iter && ((iter_key > key) || (iter < end_of_options))) {
+	if ( iter != NULL
+	  && ((iter_key > key) || (iter < end_of_options))
+	) {
 		const uint8_t* next_value=NULL;
 		coap_size_t next_len=0;
 
 		size_diff += len + 1;
-		if(len>=13)
-			size_diff++;
-		if(len>=269)
-			size_diff++;
 
-		if((key-prev_key)>=13)
+		if (len >= 13) {
 			size_diff++;
-		if((key-prev_key)>=269)
-			size_diff++;
-
-		if((insertion_point[0] & 0xF0) == (13<<4)) {
-			size_diff--;
-		} else if((insertion_point[0] & 0xF0) == (14<<4)) {
-			size_diff-=2;
 		}
 
-		if((iter_key-key)>=13)
+		if (len >= 269) {
 			size_diff++;
-		if((iter_key-key)>=269)
+		}
+
+		if ((key - prev_key) >= 13) {
 			size_diff++;
+		}
+
+		if ((key - prev_key) >= 269) {
+			size_diff++;
+		}
+
+		if ((insertion_point[0] & 0xF0) == (13<<4)) {
+			size_diff--;
+		} else if ((insertion_point[0] & 0xF0) == (14<<4)) {
+			size_diff -= 2;
+		}
+
+		if ((iter_key - key) >= 13) {
+			size_diff++;
+		}
+
+		if ((iter_key - key) >= 269) {
+			size_diff++;
+		}
 
 		// Move higher options
-		if(size_diff)
-			memmove(insertion_point+size_diff,insertion_point,end_of_options-insertion_point);
+		if (size_diff) {
+			memmove(
+				insertion_point + size_diff,
+				insertion_point,
+				end_of_options - insertion_point
+			);
+		}
 
-		coap_decode_option(insertion_point+size_diff, NULL, &next_value, &next_len);
+		coap_decode_option(
+			insertion_point + size_diff,
+			NULL,
+			&next_value,
+			&next_len
+		);
 
 		// encode new option
 		iter = coap_encode_option(insertion_point, prev_key, key, value, len);
 
 		// Update fisrt option after
 		coap_encode_option(iter, key, iter_key, next_value, next_len);
+
 	} else {
 		// Trivial case: Just append.
-		size_diff = (coap_size_t)(coap_encode_option(end_of_options, prev_key, key, value, len) - end_of_options);
+		size_diff = (coap_size_t)(
+			coap_encode_option(
+				end_of_options,
+				prev_key,
+				key,
+				value,
+				len
+			) - end_of_options
+		);
 	}
 
 bail:
@@ -668,7 +703,10 @@ coap_dump_header(
 		return;
 	}
 
-	if(packet_size>65535) {
+#if 0
+	// As long as coap_size_t is a uint16_t, then this
+	// check is unnecessary.
+	if (packet_size>65535) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
 			"PACKET CORRUPTED: Packet Too Big: %d\n",
@@ -676,8 +714,9 @@ coap_dump_header(
 		);
 		return;
 	}
+#endif
 
-	if(header->version!=COAP_VERSION) {
+	if (header->version != COAP_VERSION) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
 			"PACKET CORRUPTED: Bad Version (%d)\n",
@@ -686,7 +725,7 @@ coap_dump_header(
 		return;
 	}
 
-	if(header->token_len>8) {
+	if (header->token_len > 8) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
 			"PACKET CORRUPTED: Invalid Token Length (%d)\n",
@@ -695,14 +734,14 @@ coap_dump_header(
 		return;
 	}
 
-	switch(header->tt) {
+	switch (header->tt) {
 		case COAP_TRANS_TYPE_CONFIRMABLE: tt_str = "CON(0)"; break;
 		case COAP_TRANS_TYPE_NONCONFIRMABLE: tt_str = "NON(1)"; break;
 		case COAP_TRANS_TYPE_ACK: tt_str = "ACK(2)"; break;
 		case COAP_TRANS_TYPE_RESET: tt_str = "RES(3)"; break;
 	}
 
-	if(header->code >= COAP_RESULT_100) {
+	if (header->code >= COAP_RESULT_100) {
 		fputs(prefix, outstream);
 		fprintf(outstream,
 			"CoAP/1.0 %d.%02d %s tt=%s msgid=0x%04X\n",
@@ -724,7 +763,7 @@ coap_dump_header(
 		);
 	}
 
-	if(header->token_len) {
+	if (header->token_len) {
 		coap_size_t i;
 		fputs(prefix, outstream);
 		fprintf(outstream, "Token: ");
@@ -734,14 +773,14 @@ coap_dump_header(
 		fprintf(outstream, "\n");
 	}
 
-	for(;option_ptr && (unsigned)(option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
+	for (;option_ptr && (unsigned)(option_ptr-(uint8_t*)header)<packet_size && option_ptr[0]!=0xFF;) {
 		option_ptr = coap_decode_option(option_ptr, &key, &value, &value_len);
-		if(!option_ptr) {
+		if (!option_ptr) {
 			fputs(prefix, outstream);
 			fprintf(outstream,"PACKET CORRUPTED: Bad Options\n");
 			return;
 		}
-		if((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
+		if ((unsigned)(option_ptr-(uint8_t*)header)>packet_size) {
 			fputs(prefix, outstream);
 			fprintf(outstream,"PACKET CORRUPTED: Option value size too big\n");
 			return;
@@ -749,7 +788,8 @@ coap_dump_header(
 		fputs(prefix, outstream);
 		fprintf(outstream, "%s: ",
 			coap_option_key_to_cstr(key, header->code >= COAP_RESULT_100));
-		switch(key) {
+
+		switch (key) {
 		case COAP_OPTION_CASCADE_COUNT:
 		case COAP_OPTION_MAX_AGE:
 		case COAP_OPTION_URI_PORT:

@@ -66,9 +66,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef SMCP_CONFIG_OPTIONS_HEADER
+#define SMCP_CONFIG_OPTIONS_HEADER "smcp-config.h"
+#endif
+
 #include "coap.h"
 
-#include "smcp-opts.h"
+#include SMCP_CONFIG_OPTIONS_HEADER
+
 #include "smcp-defaults.h"
 #include "smcp-helpers.h"
 

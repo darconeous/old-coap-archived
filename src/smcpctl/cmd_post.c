@@ -92,7 +92,6 @@ post_response_handler(
 	}
 
 	if ( content != NULL
-	  && content_length >= 0
 	  && (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED)
 	) {
 		printf("%*s", content_length, content);

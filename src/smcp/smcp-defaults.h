@@ -30,8 +30,6 @@
 #ifndef __SMCP_DEFAULTS_H__
 #define __SMCP_DEFAULTS_H__
 
-#include "coap.h"
-
 /*****************************************************************************/
 // MARK: - SMCP Build Parameters
 
@@ -216,7 +214,7 @@
 #if SMCP_EMBEDDED
 #define SMCP_MAX_OBSERVERS			(2)
 #else
-#define SMCP_MAX_OBSERVERS			(8)
+#define SMCP_MAX_OBSERVERS			(64)
 #endif
 #endif
 
@@ -283,25 +281,6 @@
 
 #ifndef SMCP_TLS
 #define SMCP_TLS							HAVE_OPENSSL
-#endif
-
-/*****************************************************************************/
-// MARK: - Sessions
-
-#ifndef SMCP_CONF_MAX_SESSION_COUNT
-#define SMCP_CONF_MAX_SESSION_COUNT		10
-#endif
-
-#ifndef SMCP_CONF_MAX_SESSION_COUNT
-#if SMCP_DTLS || SMCP_TCP || !SMCP_EMBEDDED
-#define SMCP_CONF_MAX_SESSION_COUNT		10
-#else
-#define SMCP_CONF_MAX_SESSION_COUNT		1
-#endif
-#endif
-
-#ifndef SMCP_SESSIONS_USE_BTREE
-#define SMCP_SESSIONS_USE_BTREE				((SMCP_CONF_MAX_SESSION_COUNT == 1) || !SMCP_EMBEDDED)
 #endif
 
 /*****************************************************************************/

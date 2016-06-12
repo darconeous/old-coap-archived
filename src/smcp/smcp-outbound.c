@@ -257,7 +257,7 @@ smcp_outbound_add_option_(
 		assert_printf("warning: Out of order header: %s",coap_option_key_to_cstr(key, self->is_responding));
 	}
 
-	if (self->outbound.content_ptr!=(char*)self->outbound.packet->token+self->outbound.packet->token_len) {
+	if (self->outbound.content_ptr != (char*)self->outbound.packet->token + self->outbound.packet->token_len) {
 		self->outbound.content_ptr--;	// remove end-of-options marker
 	}
 
