@@ -6,13 +6,8 @@ AC_INIT([smcp],[0.07.00])
 AC_CONFIG_AUX_DIR([m4])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_LIBOBJ_DIR([src/missing/])
-
-AM_INIT_AUTOMAKE()
-LT_INIT()
-
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
-
-m4_ifdef([AX_CODE_COVERAGE], [AX_CODE_COVERAGE], [AC_SUBST([CODE_COVERAGE_RULES])])
+AC_CONFIG_SRCDIR([src/smcp/smcp.c])
+AC_CONFIG_HEADERS([src/config.h src/smcp/smcp-config.h])
 
 SOURCE_VERSION=m4_esyscmd([
 	configver="$PACKAGE_VERSION"
@@ -20,10 +15,20 @@ SOURCE_VERSION=m4_esyscmd([
 	(test -d .git && gitver=`git describe --always` && printf "$configver-g$gitver") ||
 	printf "$configver"
 ])
-AC_DEFINE_UNQUOTED([SOURCE_VERSION], ["`eval echo "$SOURCE_VERSION"`"], [Source version])
 
+
+AM_INIT_AUTOMAKE()
+
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
+AC_GNU_SOURCE
 AC_LIBTOOL_DLOPEN_SELF
 AC_PROG_LIBTOOL
+LT_INIT
+
+AC_DEFINE_UNQUOTED([SOURCE_VERSION], ["`eval echo "$SOURCE_VERSION"`"], [Source version])
+
+m4_ifdef([AX_CODE_COVERAGE], [AX_CODE_COVERAGE], [AC_SUBST([CODE_COVERAGE_RULES])])
 
 AC_CACHE_CHECK([for -rdynamic linker flag],[lt_cv_ld_rdynamic],[
 	lt_cv_ld_rdynamic=no
@@ -81,11 +86,7 @@ if test "$lt_cv_ld_all_load" = yes ; then
 elif test "$lt_cv_ld_rdynamic" = yes ; then
 	LOAD_ALL_SYMBOLS_FLAG='-rdynamic' #' -Wl,--whole-archive'
 fi
-dnl echo LOAD_ALL_SYMBOLS_FLAG = $LOAD_ALL_SYMBOLS_FLAG
 AC_SUBST(LOAD_ALL_SYMBOLS_FLAG)
-
-AC_CONFIG_SRCDIR([src/smcp/smcp.c])
-AC_CONFIG_HEADERS([src/config.h])
 
 AC_ARG_ENABLE(debug, AC_HELP_STRING([--enable-debug],
             [enable compiling with debugging information]), [
@@ -157,11 +158,7 @@ AC_CHECK_FUNCS([rl_set_prompt])
 
 AX_PTHREAD
 
-AX_CHECK_OPENSSL(
-	AC_DEFINE_UNQUOTED([HAVE_OPENSSL],
-	[1],
-	[Set if OpenSSL is present])
-)
+AX_CHECK_OPENSSL([AC_DEFINE_UNQUOTED([HAVE_OPENSSL],[1],[Set if OpenSSL is present])])
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -201,9 +198,27 @@ dnl AC_CACHE_CHECK([for ge_rs232],[smcp_cv_have_ge_rs232],[
 dnl 	smcp_cv_have_ge_rs232=no
 dnl 	test -f "${srcdir}/../ge-rs232/ge-system-node.c" && smcp_cv_have_ge_rs232=yes
 dnl ])
+
 AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
 
-AC_CONFIG_FILES(Makefile src/smcpd/smcpd.conf doxygen.cfg src/Makefile docs/Makefile src/plugtest/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile src/examples/Makefile src/tests/Makefile)
+dnl AH_BOTTOM([
+dnl #include "smcp/smcp-missing.h"
+dnl ])
+
+AC_CONFIG_FILES(
+	Makefile
+	src/smcpd/smcpd.conf
+	doxygen.cfg
+	src/Makefile
+	docs/Makefile
+	src/plugtest/Makefile
+	src/smcp/Makefile
+	src/smcpctl/Makefile
+	src/smcpd/Makefile
+	src/examples/Makefile
+	src/tests/Makefile
+)
+
 AC_OUTPUT
 
 $HAVE_LIBREADLINE ||

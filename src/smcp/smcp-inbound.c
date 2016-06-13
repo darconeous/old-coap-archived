@@ -206,7 +206,7 @@ smcp_inbound_get_path(char* where, uint8_t flags)
 
 #if !SMCP_AVOID_MALLOC
 	if (!where) {
-		where = calloc(1,SMCP_MAX_URI_LENGTH+1);
+		where = calloc(1, SMCP_MAX_URI_LENGTH + 1);
 	}
 #endif
 
@@ -426,6 +426,7 @@ smcp_inbound_packet_process(
 		// Implementation of the following function is further
 		// down in this file.
 		ret = smcp_handle_request();
+
 	} else if (COAP_CODE_IS_RESULT(packet->code)) {
 		// See implementation in `smcp-transaction.c`.
 		ret = smcp_handle_response();

@@ -360,6 +360,8 @@
 		A6FB086A1D04EEB3004116B1 /* cgi-node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "cgi-node.h"; sourceTree = "<group>"; };
 		A6FB086D1D0CAC78004116B1 /* ud-var-node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ud-var-node.h"; sourceTree = "<group>"; };
 		A6FB086E1D0CAC78004116B1 /* ud-var-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "ud-var-node.c"; sourceTree = "<group>"; };
+		A6FB08701D0E1AEC004116B1 /* smcp-config.h.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "smcp-config.h.in"; sourceTree = "<group>"; };
+		A6FB08711D0E23E5004116B1 /* smcp-contiki-config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-contiki-config.h"; sourceTree = "<group>"; };
 		A6FB241C16B7748400BA6C0F /* selftest.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; name = selftest.sh; path = src/plugtest/selftest.sh; sourceTree = "<group>"; };
 		A6FB241E16B77A7D00BA6C0F /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		C6A0FF2C0290799A04C91782 /* smcpctl.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; name = smcpctl.1; path = docs/smcpctl.1; sourceTree = "<group>"; };
@@ -457,6 +459,7 @@
 			children = (
 				A6BE9A3D164CC67D00473330 /* Makefile.am */,
 				A60D0DB312795ADF00C04B8C /* Utils */,
+				A6FB08701D0E1AEC004116B1 /* smcp-config.h.in */,
 				A6770026156AA2BF00592868 /* smcp-opts.h */,
 				A67FA5D51BFA638E003FE1B3 /* smcp-defaults.h */,
 				A63EA6E81278B16D00B24867 /* smcp-internal.h */,
@@ -636,6 +639,7 @@
 				A61C873E1583C79E00AFD8A1 /* sensor-node.h */,
 				A61C87401583C7B900AFD8A1 /* led-node.c */,
 				A61C873F1583C7AA00AFD8A1 /* led-node.h */,
+				A6FB08711D0E23E5004116B1 /* smcp-contiki-config.h */,
 			);
 			path = "contiki-src";
 			sourceTree = "<group>";
@@ -1153,9 +1157,10 @@
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
 					"$(inherited)",
 					"HAVE_PTHREAD=1",
-					"DEBUG=1",
+					"SMCP_CONFIG_OPTIONS_HEADER='\"smcp-opts.h\"'",
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_WARN_ABOUT_MISSING_NEWLINE = YES;
@@ -1182,7 +1187,7 @@
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_PREPROCESSOR_DEFINITIONS = " HAVE_PTHREAD=1 ";
+				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited} HAVE_PTHREAD=1 SMCP_CONFIG_OPTIONS_HEADER='\"smcp-opts.h\"'";
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_WARN_ABOUT_MISSING_NEWLINE = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;

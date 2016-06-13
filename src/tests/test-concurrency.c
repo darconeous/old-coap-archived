@@ -11,8 +11,6 @@
 #include <config.h>
 #endif
 
-#define _GNU_SOURCE 1
-
 #include <smcp/assert-macros.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -24,6 +22,15 @@
 #if !VERBOSE_DEBUG
 #define printf(...)		do { } while(0)
 #endif
+
+char* gMainThreadURL;
+
+struct test_concurrency_thread_s {
+	pthread_t pt;
+	smcp_transaction_t transaction;
+	int remaining;
+	int index;
+};
 
 static smcp_status_t
 request_handler(void* context) {
@@ -57,15 +64,6 @@ request_handler(void* context) {
 	// to our caller.
 	return smcp_outbound_send();
 }
-
-char* gMainThreadURL;
-
-struct test_concurrency_thread_s {
-	pthread_t pt;
-	smcp_transaction_t transaction;
-	int remaining;
-	int index;
-};
 
 smcp_status_t
 test_concurrency_thread_resend(void* context)
@@ -128,7 +126,8 @@ test_concurrency_thread_response(int statuscode, void* context)
 }
 
 void*
-thread_main(void* context) {
+thread_main(void* context)
+{
 	struct test_concurrency_thread_s* obj = (struct test_concurrency_thread_s*)context;
 	smcp_t instance;
 
@@ -148,8 +147,8 @@ thread_main(void* context) {
 
 	printf("%d: Thread Listening on port %d\n",obj->index,smcp_plat_get_port(instance));
 
-	while(obj->remaining > 0) {
-		if(obj->transaction == NULL) {
+	while (obj->remaining > 0) {
+		if (obj->transaction == NULL) {
 			printf("%d: Starting transaction #%d\n",obj->index, TRANSACTIONS_PER_THREAD-obj->remaining+1);
 			obj->transaction = smcp_transaction_init(
 				NULL,
@@ -174,7 +173,8 @@ thread_main(void* context) {
 }
 
 int
-main(void) {
+main(void)
+{
 	smcp_t instance;
 	struct test_concurrency_thread_s threads[NUMBER_OF_THREADS] = { };
 	int i;

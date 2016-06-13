@@ -40,6 +40,7 @@
 #include "smcp.h"
 #include "smcp-internal.h"
 #include "smcp-helpers.h"
+#include "smcp-missing.h"
 #include "smcp-variable_handler.h"
 #include "smcp-logging.h"
 #include "fasthash.h"
@@ -79,18 +80,33 @@ smcp_variable_handler_request_handler(
 	require(node, bail);
 
 	// Look up the key index.
-	if(smcp_inbound_peek_option(NULL,&value_len)==COAP_OPTION_URI_PATH) {
-		if(!value_len) {
+	if (smcp_inbound_peek_option(NULL,&value_len)==COAP_OPTION_URI_PATH) {
+		if(0 == value_len) {
+			// Trailing Slash, we will return the directory contents.
 			needs_prefix = false;
 			smcp_inbound_next_option(NULL,NULL);
-		} else for(key_index=0;key_index<BAD_KEY_INDEX;key_index++) {
-			ret = node->func(node,SMCP_VAR_GET_KEY,key_index,buffer);
-			require_action(ret==0,bail,ret=SMCP_STATUS_NOT_FOUND);
-			if(smcp_inbound_option_strequal(COAP_OPTION_URI_PATH, buffer)) {
-				smcp_inbound_next_option(NULL,NULL);
-				break;
+
+		} else {
+			// Find the index associated with this key.
+			for (key_index = 0; key_index < BAD_KEY_INDEX; key_index++) {
+				ret = node->func(node,SMCP_VAR_GET_KEY,key_index,buffer);
+
+				require_action(ret == 0, bail, ret = SMCP_STATUS_NOT_FOUND);
+
+				if(smcp_inbound_option_strequal(COAP_OPTION_URI_PATH, buffer)) {
+					smcp_inbound_next_option(NULL,NULL);
+					break;
+				}
 			}
 		}
+	} else {
+		// This is the case where we are not actually
+		// in the path of our directory. (The slash is missing)
+
+		// We were previously not handling this case
+		// properly. Better to fail hard than return bad data.
+		ret = smcp_outbound_quick_response(COAP_RESULT_406_NOT_ACCEPTABLE, "Needs trailing slash");
+		goto bail;
 	}
 
 	{
@@ -98,7 +114,7 @@ smcp_variable_handler_request_handler(
 		const uint8_t* value;
 		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			require_action(key!=COAP_OPTION_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
-			if(key==COAP_OPTION_URI_QUERY) {
+			if (key == COAP_OPTION_URI_QUERY) {
 				if(	method == COAP_METHOD_POST
 					&& value_len>=2
 					&& strhasprefix_const((const char*)value,"v=")
@@ -111,15 +127,12 @@ smcp_variable_handler_request_handler(
 //			} else if(key==COAP_OPTION_ETAG) {
 //			} else if(key==COAP_OPTION_IF_MATCH) {
 //			} else if(key==COAP_OPTION_IF_NONE_MATCH) {
+
 			} else if(key==COAP_OPTION_ACCEPT) {
-				reply_content_type = 0;
-				if(value_len==1)
-					reply_content_type = value[0];
-				else {
-					// Unsupported type.
-				}
+				reply_content_type = coap_decode_uint32(value, value_len);
+
 			} else if(COAP_OPTION_IS_CRITICAL(key)) {
-				ret=SMCP_STATUS_BAD_OPTION;
+				ret = SMCP_STATUS_BAD_OPTION;
 				assert_printf("Unrecognized option %d, \"%s\"",
 					key,
 					coap_option_key_to_cstr(key, false)
@@ -130,10 +143,11 @@ smcp_variable_handler_request_handler(
 	}
 
 	// TODO: Implement me!
-	if(method == COAP_METHOD_PUT)
+	if (method == COAP_METHOD_PUT) {
 		method = COAP_METHOD_POST;
+	}
 
-	if(method == COAP_METHOD_POST) {
+	if (method == COAP_METHOD_POST) {
 		require_action(!smcp_inbound_is_dupe(),bail,ret=0);
 
 		require_action(
@@ -141,7 +155,8 @@ smcp_variable_handler_request_handler(
 			bail,
 			ret=SMCP_STATUS_NOT_ALLOWED
 		);
-		if(content_type==SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
+
+		if (content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 			char* key = NULL;
 			char* value = NULL;
 			content_len = 0;
@@ -165,36 +180,67 @@ smcp_variable_handler_request_handler(
 		// Make sure our content is zero terminated.
 		((char*)content_ptr)[content_len] = 0;
 
-		ret = node->func(node,SMCP_VAR_SET_VALUE,key_index,(char*)content_ptr);
-		require_noerr(ret,bail);
+		ret = node->func(node, SMCP_VAR_SET_VALUE, key_index, (char*)content_ptr);
+		require_noerr(ret, bail);
 
 		ret = smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
-		require_noerr(ret,bail);
+		require_noerr(ret, bail);
 
 		ret = smcp_outbound_send();
-		require_noerr(ret,bail);
+		require_noerr(ret, bail);
+
 	} else if(method == COAP_METHOD_GET) {
 
-		if(key_index==BAD_KEY_INDEX) {
+		if (key_index == BAD_KEY_INDEX) {
 			char* content_end_ptr;
+			uint32_t max_age = UINT32_MAX;
+			bool observable = false;
 
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
 			smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 
-			ret = smcp_observable_update(&node->observable, SMCP_OBSERVABLE_BROADCAST_KEY);
-			check_string(ret==0,smcp_status_to_cstr(ret));
+			// Calculate our max age and if we support observing
+			for (key_index=0; key_index < BAD_KEY_INDEX; key_index++) {
+				if ( !observable
+				  && SMCP_STATUS_OK == node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,NULL)
+				) {
+					observable = true;
+				}
+				if (SMCP_STATUS_OK == node->func(node,SMCP_VAR_GET_MAX_AGE,key_index,buffer)) {
+#if HAVE_STRTOL
+					uint32_t tmp = strtol(buffer,NULL,0) & 0xFFFFFF;
+#else
+					uint32_t tmp = atoi(buffer) & 0xFFFFFF;
+#endif
+					if (tmp < max_age) {
+						max_age = tmp;
+					}
+				}
+			}
+
+			if (observable) {
+				ret = smcp_observable_update(&node->observable, SMCP_OBSERVABLE_BROADCAST_KEY);
+				check_string(ret==0,smcp_status_to_cstr(ret));
+			}
+
+			if (max_age != UINT32_MAX) {
+				smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE, max_age);
+			}
 
 			content_ptr = smcp_outbound_get_content_ptr(&content_len);
 			content_end_ptr = content_ptr+content_len;
 
-			for(key_index=0;key_index<BAD_KEY_INDEX;key_index++) {
+			for (key_index=0; key_index < BAD_KEY_INDEX; key_index++) {
 				ret = node->func(node,SMCP_VAR_GET_KEY,key_index,buffer);
-				if(ret) break;
+				if (ret) {
+					break;
+				}
 
-				if(content_ptr+2>=content_end_ptr) {
+				if (content_ptr+2>=content_end_ptr) {
 					// No more room for content.
+					// TODO: Figure out how to handle this case.
 					break;
 				}
 
@@ -233,7 +279,7 @@ smcp_variable_handler_request_handler(
 				}
 
 				// Observation flag
-				if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,NULL)) {
+				if (0 == node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,NULL)) {
 					content_ptr = stpncpy(content_ptr,";obs",MIN(4,(content_end_ptr-content_ptr)-1));
 				}
 
@@ -250,15 +296,15 @@ smcp_variable_handler_request_handler(
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-			if(0==node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,buffer)) {
+			if (0 == node->func(node,SMCP_VAR_GET_OBSERVABLE,key_index,buffer)) {
 				ret = smcp_observable_update(&node->observable, key_index);
 				check_string(ret==0,smcp_status_to_cstr(ret));
 			}
 
-			if(reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
+			if (reply_content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 				uint32_t etag;
 
-				if(0==node->func(node,SMCP_VAR_GET_MAX_AGE,key_index,buffer)) {
+				if (0==node->func(node,SMCP_VAR_GET_MAX_AGE,key_index,buffer)) {
 #if HAVE_STRTOL
 					uint32_t max_age = strtol(buffer,NULL,0)&0xFFFFFF;
 #else
@@ -302,10 +348,7 @@ smcp_variable_handler_request_handler(
 			ret = smcp_outbound_send();
 		}
 	} else {
-		ret = smcp_default_request_handler(
-			(void*)node
-		);
-		check_string(ret == SMCP_STATUS_OK, smcp_status_to_cstr(ret));
+		ret = SMCP_STATUS_NOT_ALLOWED;
 	}
 
 bail:
