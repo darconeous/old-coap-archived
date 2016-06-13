@@ -45,7 +45,8 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
-CONFIG_HEADER = $(top_builddir)/src/config.h
+CONFIG_HEADER = $(top_builddir)/src/config.h \
+	$(top_builddir)/src/smcp/smcp-config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
@@ -58,7 +59,7 @@ smcpctl_DEPENDENCIES = ../smcp/libsmcp.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
-DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src
+DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src -I$(top_builddir)/src/smcp
 depcomp = $(SHELL) $(top_srcdir)/m4/depcomp
 am__depfiles_maybe = depfiles
 am__mv = mv -f
