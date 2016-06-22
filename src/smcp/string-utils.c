@@ -76,3 +76,25 @@ int32_to_dec_cstr(char s[],int32_t n) {
 	}
 	return uint32_to_dec_cstr(s, (uint32_t)n);
 }
+
+bool
+str2bool(const char* value)
+{
+	if ( value[0] == '1'
+	  || value[0] == 't'
+	  || value[0] == 'T'
+	  || value[0] == 'y'
+	  || value[0] == 'T'
+	) {
+		return true;
+	} else if ( value[0] == '0'
+	         || value[0] == 'f'
+	         || value[0] == 'F'
+	         || value[0] == 'n'
+	         || value[0] == 'N'
+	) {
+		return false;
+	}
+
+	return false;
+}

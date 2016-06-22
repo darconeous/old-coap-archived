@@ -390,8 +390,6 @@ send_list_request(
 	int flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE;
 	tid = smcp_get_next_msg_id(smcp);
 	gRet = ERRORCODE_INPROGRESS;
-//	if(!next)
-//		tokenid = tid;
 
 	retries = 0;
 	url_data = url;
@@ -411,10 +409,7 @@ send_list_request(
 		(void*)url_data
 	);
 	status = smcp_transaction_begin(smcp, &transaction, timeout_cms);
-//	if(next)
-//		transaction.token = tokenid;
-//	else
-//		tokenid = transaction.token;
+
 	tid = transaction.msg_id;
 
 	if(status) {
@@ -481,9 +476,9 @@ tool_cmd_list(
 			if(getenv("SMCP_CURRENT_PATH")) {
 				strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
 				url_change(url, argv[i]);
-				if(url[0] && '/'!=url[strlen(url)-1] && !strchr(url,'?')) {
-					strcat(url,"/");
-				}
+				//if(url[0] && '/'!=url[strlen(url)-1] && !strchr(url,'?')) {
+				//	strcat(url,"/");
+				//}
 			} else {
 				strncpy(url, argv[i], sizeof(url));
 			}
@@ -507,8 +502,10 @@ tool_cmd_list(
 	strncpy(original_url,url,SMCP_MAX_URI_LENGTH);
 
 	// Remove query component.
-	if(strchr(original_url,'?'))
+	// TODO: Why?
+	if(strchr(original_url,'?')) {
 		strchr(original_url,'?')[0] = 0;
+	}
 
 	require(send_list_request(smcp, url, NULL, 0), bail);
 

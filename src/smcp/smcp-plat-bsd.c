@@ -733,7 +733,7 @@ bail:
 }
 
 smcp_status_t
-smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
+smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr, int flags)
 {
 	smcp_status_t ret;
 	struct addrinfo hint = {
@@ -743,6 +743,15 @@ smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
 
 	struct addrinfo *results = NULL;
 	struct addrinfo *iter = NULL;
+
+	if ((flags & (SMCP_LOOKUP_HOSTNAME_FLAG_IPV4_ONLY|SMCP_LOOKUP_HOSTNAME_FLAG_IPV6_ONLY)) == (SMCP_LOOKUP_HOSTNAME_FLAG_IPV4_ONLY|SMCP_LOOKUP_HOSTNAME_FLAG_IPV6_ONLY)) {
+		ret = SMCP_STATUS_INVALID_ARGUMENT;
+		goto bail;
+	} else if ((flags & SMCP_LOOKUP_HOSTNAME_FLAG_IPV4_ONLY) == SMCP_LOOKUP_HOSTNAME_FLAG_IPV4_ONLY) {
+		hint.ai_family = AF_INET;
+	} else if ((flags & SMCP_LOOKUP_HOSTNAME_FLAG_IPV6_ONLY) == SMCP_LOOKUP_HOSTNAME_FLAG_IPV6_ONLY) {
+		hint.ai_family = AF_INET6;
+	}
 
 	memset(saddr, 0, sizeof(*saddr));
 	saddr->___smcp_family = SMCP_BSD_SOCKETS_NET_FAMILY;

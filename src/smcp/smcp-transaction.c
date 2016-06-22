@@ -117,10 +117,11 @@ smcp_internal_delete_transaction_(
 ) {
 	DEBUG_PRINTF("smcp_internal_delete_transaction_: %p",handler);
 
-	if(!smcp_get_current_instance())
+	if (!smcp_get_current_instance()) {
 		smcp_set_current_instance(self);
+	}
 
-	check(self==smcp_get_current_instance());
+	check(self == smcp_get_current_instance());
 
 #if !SMCP_TRANSACTIONS_USE_BTREE
 	ll_remove((void**)&self->transactions,(void*)handler);
@@ -285,19 +286,19 @@ smcp_internal_transaction_timeout_(
 		smcp_transaction_new_msg_id(self,handler,smcp_get_next_msg_id(self));
 		handler->expiration = smcp_plat_cms_to_timestamp(SMCP_OBSERVATION_DEFAULT_MAX_AGE);
 
-		if(handler->resendCallback) {
+		if (handler->resendCallback) {
 			// In this case we will be reattempting for a given duration.
 			// The first attempt should happen pretty much immediately.
 			cms = 0;
 
-			if(handler->flags&SMCP_TRANSACTION_DELAY_START) {
+			if (handler->flags & SMCP_TRANSACTION_DELAY_START) {
 				// ...unless this flag is set. Then we need to wait a moment.
 				cms = 10 + (SMCP_FUNC_RANDOM_UINT32() % 290);
 			}
 		}
 
-		if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
-			&& cms>SMCP_OBSERVATION_KEEPALIVE_INTERVAL
+		if ( (handler->flags & SMCP_TRANSACTION_KEEPALIVE)
+		  && (cms > SMCP_OBSERVATION_KEEPALIVE_INTERVAL)
 		) {
 			cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
 		}
@@ -440,7 +441,7 @@ smcp_transaction_begin(
 		// The first attempt should happen pretty much immediately.
 		expiration = 0;
 
-		if(handler->flags&SMCP_TRANSACTION_DELAY_START) {
+		if (handler->flags & SMCP_TRANSACTION_DELAY_START) {
 			// Unless this flag is set. Then we need to wait a moment.
 			expiration = 10 + (SMCP_FUNC_RANDOM_UINT32() % (MSEC_PER_SEC*COAP_DEFAULT_LEASURE));
 		}
@@ -495,19 +496,25 @@ smcp_transaction_end(
 	SMCP_EMBEDDED_SELF_HOOK;
 	DEBUG_PRINTF("smcp_transaction_end: %p",transaction);
 
+	check(transaction->active);
+
+	if (!transaction->active) {
+		return SMCP_STATUS_INVALID_ARGUMENT;
+	}
+
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
-	if(transaction->flags&SMCP_TRANSACTION_OBSERVE) {
+	if (transaction->flags & SMCP_TRANSACTION_OBSERVE) {
 		// If we are an observing transaction, we need to clean up
 		// first by sending one last request without an observe option.
 		// TODO: Implement this!
 	}
 #endif
 
-	if(transaction == self->current_transaction)
+	if (transaction == self->current_transaction) {
 		self->current_transaction = NULL;
+	}
 
-	if(transaction->active) {
-		transaction->active = 0; // Maybe we should remove this line? May be hiding bad behavior.
+	if (transaction->active) {
 #if SMCP_TRANSACTIONS_USE_BTREE
 		bt_remove(
 			(void**)&self->transactions,
@@ -521,7 +528,7 @@ smcp_transaction_end(
 		smcp_internal_delete_transaction_(transaction,self);
 #endif
 	}
-	return 0;
+	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
@@ -626,34 +633,55 @@ smcp_handle_response() {
 				handler->context
 			);
 
+			check_noerr(ret);
+
 			// If self->current_transaction is NULL at this point,
 			// then that means that the transaction has been
 			// finalized and we shouldn't continue.
-			if(!self->current_transaction) {
+			if (!self->current_transaction) {
 				handler = NULL;
 				goto bail;
 			}
 
 			// TODO: Explain why this is necessary
-			if(msg_id!=handler->msg_id) {
+			if (msg_id != handler->msg_id) {
 				handler = NULL;
 				goto bail;
-			}
-
-			if(self->inbound.has_observe_option) {
-				handler->waiting_for_async_response = true;
 			}
 
 			handler->attemptCount = 0;
 			handler->timer.cancel = NULL;
 
+#if SMCP_CONF_TRANS_ENABLE_BLOCK2
+			if ( !ret
+			  && (self->inbound.block2_value&(1<<3))
+			  && (handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE)
+			) {
+				DEBUG_PRINTF("Inbound: Preparing to request next block...");
+				handler->waiting_for_async_response = false;
+				handler->next_block2 = self->inbound.block2_value + (1<<4);
+				smcp_transaction_new_msg_id(self, handler, smcp_get_next_msg_id(self));
+				smcp_invalidate_timer(self, &handler->timer);
+				smcp_schedule_timer(
+					self,
+					&handler->timer,
+					0
+				);
+				goto bail;
+			} else
+#endif
+			if (self->inbound.has_observe_option) {
+				handler->waiting_for_async_response = true;
+			}
+
 			smcp_invalidate_timer(self, &handler->timer);
 
 			if(!cms) {
-				if(self->inbound.has_observe_option)
+				if(self->inbound.has_observe_option) {
 					cms = CMS_DISTANT_FUTURE;
-				else
+				} else {
 					cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
+				}
 			}
 
 			handler->expiration = smcp_plat_cms_to_timestamp(cms);
@@ -669,6 +697,7 @@ smcp_handle_response() {
 				&handler->timer,
 				cms
 			);
+
 		} else
 #endif // #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 		{
@@ -713,10 +742,11 @@ smcp_handle_response() {
 					smcp_invalidate_timer(self, &handler->timer);
 
 					if(!cms) {
-						if(self->inbound.has_observe_option)
+						if(self->inbound.has_observe_option) {
 							cms = CMS_DISTANT_FUTURE;
-						else
+						} else {
 							cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
+						}
 					}
 
 					handler->expiration = smcp_plat_cms_to_timestamp(cms);
@@ -736,8 +766,9 @@ smcp_handle_response() {
 #endif // #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 				{
 					handler->resendCallback = NULL;
-					if(!(handler->flags&SMCP_TRANSACTION_NO_AUTO_END))
+					if (!(handler->flags&SMCP_TRANSACTION_NO_AUTO_END)) {
 						smcp_transaction_end(self, handler);
+					}
 					handler = NULL;
 				}
 			}

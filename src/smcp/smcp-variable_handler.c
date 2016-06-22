@@ -1,4 +1,4 @@
-/*	@file smcp_variable_handler.c
+/*	@file smcp-variable_handler.c
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
 **	Copyright (C) 2011,2012 Robert Quattlebaum
@@ -44,7 +44,6 @@
 #include "smcp-variable_handler.h"
 #include "smcp-logging.h"
 #include "fasthash.h"
-#include "smcp-node-router.h"
 
 #include "smcp-missing.h" // For strhasprefix_const()
 
@@ -129,7 +128,7 @@ smcp_variable_handler_request_handler(
 //			} else if(key==COAP_OPTION_IF_NONE_MATCH) {
 
 			} else if(key==COAP_OPTION_ACCEPT) {
-				reply_content_type = coap_decode_uint32(value, value_len);
+				reply_content_type = (coap_content_type_t)coap_decode_uint32(value, (uint8_t)value_len);
 
 			} else if(COAP_OPTION_IS_CRITICAL(key)) {
 				ret = SMCP_STATUS_BAD_OPTION;

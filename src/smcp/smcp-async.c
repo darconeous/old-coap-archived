@@ -31,10 +31,6 @@
 #include <config.h>
 #endif
 
-//#define ASSERT_MACROS_USE_VANILLA_PRINTF 1
-//#define VERBOSE_DEBUG 1
-//#define DEBUG 1
-
 #include "assert-macros.h"
 #include "smcp.h"
 #include "smcp-internal.h"
@@ -89,26 +85,28 @@ smcp_start_async_response(struct smcp_async_response_s* x, int flags) {
 	);
 
 	x->request_len = smcp_inbound_get_packet_length()-smcp_inbound_get_content_len();
+
 	check(x->request_len <= sizeof(x->request));
+
 	if (x->request_len > sizeof(x->request)) {
 		x->request_len = sizeof(x->request);
 		require_action(coap_verify_packet((const char*)x->request.bytes, x->request_len), bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 	}
-	memcpy(x->request.bytes,smcp_inbound_get_packet(),x->request_len);
 
+	memcpy(x->request.bytes, smcp_inbound_get_packet(), x->request_len);
 
 	x->sockaddr_remote = *smcp_plat_get_remote_sockaddr();
 	x->sockaddr_local = *smcp_plat_get_local_sockaddr();
 
-	if(	!(flags & SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK)
-		&& self->inbound.packet->tt==COAP_TRANS_TYPE_CONFIRMABLE
+	if ( !(flags & SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK)
+	  && self->inbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE
 	) {
 		// Fake inbound packets are created to tickle
 		// content out of nodes by the pairing system.
 		// Since we are asynchronous, this clearly isn't
 		// going to work. Support for this will have to
 		// come in the future.
-		require_action(!self->inbound.is_fake,bail,ret = SMCP_STATUS_NOT_IMPLEMENTED);
+		require_action(!self->inbound.is_fake, bail, ret = SMCP_STATUS_NOT_IMPLEMENTED);
 
 		ret = smcp_outbound_begin_response(COAP_CODE_EMPTY);
 		require_noerr(ret, bail);

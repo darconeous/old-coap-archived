@@ -185,7 +185,11 @@ SMCP_API_EXTERN int smcp_plat_update_pollfds(
 	int maxfds
 );
 
-SMCP_INTERNAL_EXTERN smcp_status_t smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* sockaddr);
+#define SMCP_LOOKUP_HOSTNAME_FLAG_DEFAULT			0
+#define SMCP_LOOKUP_HOSTNAME_FLAG_IPV6_ONLY			(1<<0)
+#define SMCP_LOOKUP_HOSTNAME_FLAG_IPV4_ONLY			(1<<1)
+
+SMCP_INTERNAL_EXTERN smcp_status_t smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* sockaddr, int flags);
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_plat_outbound_start(smcp_t self, uint8_t** data_ptr, coap_size_t *data_len);
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_plat_outbound_finish(smcp_t self, const uint8_t* data_ptr, coap_size_t data_len, int flags);
 

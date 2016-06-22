@@ -1,7 +1,8 @@
-/*!	@file smcp-variable_handler.h
+/*	@file pairing-node.h
+**	@brief Pairing Management Node
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Copyright (C) 2011,2012 Robert Quattlebaum
+**	Copyright (C) 2016 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -26,55 +27,36 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef __SMCP_variable_handler_H__
-#define __SMCP_variable_handler_H__ 1
 
-#include "smcp.h"
-#include "smcp-observable.h"
+#ifndef pairing_node_h
+#define pairing_node_h
 
-__BEGIN_DECLS
+#include <smcp/smcp.h>
 
-/*!	@addtogroup smcp-extras
-**	@{
-*/
+struct pairing_node_s;
 
-/*!	@defgroup smcp-variable_handler Variable Node
-**	@{
-*/
+typedef struct pairing_node_s* pairing_node_t;
 
-struct smcp_variable_handler_s;
-typedef struct smcp_variable_handler_s *smcp_variable_handler_t;
+extern smcp_status_t
+SMCPD_module__pairing_node_process(pairing_node_t self);
 
-enum {
-	SMCP_VAR_GET_KEY,
-	SMCP_VAR_CHECK_KEY,
-	SMCP_VAR_SET_VALUE,
-	SMCP_VAR_GET_VALUE,
-	SMCP_VAR_GET_LF_TITLE,
-	SMCP_VAR_GET_MAX_AGE,
-	SMCP_VAR_GET_ETAG,
-	SMCP_VAR_GET_OBSERVABLE,
-};
-
-typedef smcp_status_t (*smcp_variable_handler_func)(
-	smcp_variable_handler_t node,
-	uint8_t action,
-	uint8_t i,
-	char* value
+extern smcp_status_t
+SMCPD_module__pairing_node_update_fdset(
+	pairing_node_t self,
+    fd_set *read_fd_set,
+    fd_set *write_fd_set,
+    fd_set *error_fd_set,
+    int *fd_count,
+	smcp_cms_t *timeout
 );
 
-struct smcp_variable_handler_s {
-	smcp_variable_handler_func func;
-	struct smcp_observable_s observable;
-};
-
-SMCP_API_EXTERN smcp_status_t smcp_variable_handler_request_handler(
-	smcp_variable_handler_t		node
+extern pairing_node_t
+SMCPD_module__pairing_node_init(
+	pairing_node_t	self,
+	smcp_node_t			parent,
+	const char*			name,
+	const char*			cmd
 );
 
-/*!	@} */
-/*!	@} */
 
-__END_DECLS
-
-#endif //__SMCP_TIMER_NODE_H__
+#endif /* pairing_node_h */

@@ -57,6 +57,10 @@ fasthash_finish(struct fasthash_state_s* state) {
 		fasthash_feed_block(state, state->next);
 		state->bytes = 0;
 	}
+
+	// One last shuffle
+	fasthash_feed_block(state, 1103515245);
+
 	return state->hash;
 }
 

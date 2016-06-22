@@ -71,24 +71,24 @@ smcp_session_type_from_uri_scheme(const char* uri_scheme)
 	smcp_session_type_t ret = SMCP_SESSION_TYPE_NIL;
 
 #if SMCP_DTLS
-	if (strequal_const(uri_scheme, "coaps")) {
+	if (strequal_const(uri_scheme, COAP_URI_SCHEME_COAPS)) {
 		ret = SMCP_SESSION_TYPE_DTLS;
 	} else
 #endif
 
 #if SMCP_TCP
-	if (strequal_const(uri_scheme, "coap+tcp")) {
+	if (strequal_const(uri_scheme, COAP_URI_SCHEME_COAP_TCP)) {
 		ret = SMCP_SESSION_TYPE_TCP;
 	} else
 #endif
 
 #if SMCP_TLS
-	if (strequal_const(uri_scheme, "coaps+tcp")) {
+	if (strequal_const(uri_scheme, COAP_URI_SCHEME_COAPS_TCP)) {
 		ret = SMCP_SESSION_TYPE_TLS;
 	} else
 #endif
 
-	if (strequal_const(uri_scheme, "coap")) {
+	if (strequal_const(uri_scheme, COAP_URI_SCHEME_COAP)) {
 		ret = SMCP_SESSION_TYPE_UDP;
 	}
 	return ret;

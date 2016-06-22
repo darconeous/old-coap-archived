@@ -35,7 +35,7 @@
 
 static int gRet;
 static sig_t previous_sigint_handler;
-
+static bool delete_show_headers;
 
 /*
    static arg_list_item_t option_list[] = {
@@ -55,55 +55,58 @@ delete_response_handler(
 	int			statuscode,
 	void*		context
 ) {
-	char* content = (char*)smcp_inbound_get_content_ptr();
-	coap_size_t content_length = smcp_inbound_get_content_len();
+	if (statuscode >= 0) {
+		char* content = (char*)smcp_inbound_get_content_ptr();
+		coap_size_t content_length = smcp_inbound_get_content_len();
 
-	if(statuscode>=0) {
 		if(content_length>(smcp_inbound_get_packet_length()-4)) {
 			fprintf(stderr, "INTERNAL ERROR: CONTENT_LENGTH LARGER THAN PACKET_LENGTH-4! (content_length=%u, packet_length=%u)\n",content_length,smcp_inbound_get_packet_length());
 			gRet = ERRORCODE_UNKNOWN;
 			goto bail;
 		}
 
-//		if((statuscode >= 0) && post_show_headers) {
-//			coap_dump_header(
-//				stdout,
-//				NULL,
-//				smcp_inbound_get_packet(),
-//				smcp_inbound_get_packet_length()
-//			);
-//		}
+		if (delete_show_headers) {
+			coap_dump_header(
+				stdout,
+				NULL,
+				smcp_inbound_get_packet(),
+				smcp_inbound_get_packet_length()
+			);
+		}
 
 		if(!coap_verify_packet((void*)smcp_inbound_get_packet(), smcp_inbound_get_packet_length())) {
 			fprintf(stderr, "INTERNAL ERROR: CALLBACK GIVEN INVALID PACKET!\n");
 			gRet = ERRORCODE_UNKNOWN;
 			goto bail;
 		}
+
+
+		if (statuscode != COAP_RESULT_202_DELETED) {
+			fprintf(stderr, "delete: Result code = %d (%s)\n", statuscode,
+					(statuscode < 0) ? smcp_status_to_cstr(
+					statuscode) : coap_code_to_cstr(statuscode));
+		}
+
+		if(content && content_length) {
+			char contentBuffer[500];
+
+			content_length =
+				((content_length > sizeof(contentBuffer) -
+					2) ? sizeof(contentBuffer) - 2 : content_length);
+			memcpy(contentBuffer, content, content_length);
+			contentBuffer[content_length] = 0;
+
+			if(content_length && (contentBuffer[content_length - 1] == '\n'))
+				contentBuffer[--content_length] = 0;
+
+			printf("%s\n", contentBuffer);
+		}
 	}
 
-
-	if((statuscode != COAP_RESULT_202_DELETED) &&
-	        (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED))
-		fprintf(stderr, "delete: Result code = %d (%s)\n", statuscode,
-			    (statuscode < 0) ? smcp_status_to_cstr(
-				statuscode) : coap_code_to_cstr(statuscode));
-	if(content && content_length) {
-		char contentBuffer[500];
-
-		content_length =
-		    ((content_length > sizeof(contentBuffer) -
-		        2) ? sizeof(contentBuffer) - 2 : content_length);
-		memcpy(contentBuffer, content, content_length);
-		contentBuffer[content_length] = 0;
-
-		if(content_length && (contentBuffer[content_length - 1] == '\n'))
-			contentBuffer[--content_length] = 0;
-
-		printf("%s\n", contentBuffer);
-	}
 bail:
-	if(gRet == ERRORCODE_INPROGRESS)
+	if (gRet == ERRORCODE_INPROGRESS) {
 		gRet = 0;
+	}
 	return SMCP_STATUS_OK;
 }
 
@@ -164,10 +167,11 @@ tool_cmd_delete(
 
 	gRet = ERRORCODE_UNKNOWN;
 
-	if(getenv("SMCP_CURRENT_PATH"))
+	if (getenv("SMCP_CURRENT_PATH")) {
 		strncpy(url, getenv("SMCP_CURRENT_PATH"), sizeof(url));
+	}
 
-	if(argc == 2) {
+	if (argc == 2) {
 		url_change(url, argv[1]);
 	} else {
 		fprintf(stderr, "Bad args.\n");
@@ -180,7 +184,7 @@ tool_cmd_delete(
 	gRet = ERRORCODE_INPROGRESS;
 
 	while(ERRORCODE_INPROGRESS == gRet) {
-		smcp_plat_wait(smcp,1000);
+		smcp_plat_wait(smcp, 1000);
 		smcp_plat_process(smcp);
 	}
 

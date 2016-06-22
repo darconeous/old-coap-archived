@@ -109,7 +109,9 @@ struct smcp_s {
 	uint8_t					is_responding:1,
 							did_respond:1,
 							is_processing_message:1,
+#if SMCP_USE_CASCADE_COUNT
 							has_cascade_count:1,
+#endif
 							force_current_outbound_code:1;
 
 	coap_msg_id_t			last_msg_id;
@@ -153,6 +155,8 @@ struct smcp_s {
 
 	struct smcp_dupe_info_s dupe_info;
 
+	const char* proxy_url;
+
 #if SMCP_CONF_ENABLE_VHOSTS
 	struct smcp_vhost_s		vhost[SMCP_MAX_VHOSTS];
 	uint8_t					vhost_count;
@@ -161,8 +165,6 @@ struct smcp_s {
 #if SMCP_USE_CASCADE_COUNT
 	uint8_t					cascade_count;
 #endif
-
-	const char* proxy_url;
 };
 
 

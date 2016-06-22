@@ -39,6 +39,8 @@
 #include <smcp/assert-macros.h>
 #include <smcp/smcp-missing.h>
 
+#include <smcp/smcp-internal.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -71,6 +73,7 @@
 #include "cgi-node.h"
 #include "system-node.h"
 #include "ud-var-node.h"
+#include "pairing-node.h"
 
 #if HAVE_LIBCURL
 #include <smcp/smcp-curl_proxy.h>
@@ -210,12 +213,10 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 	update_fdset_func_t update_fdset_func = NULL;
 
 
-	syslog(LOG_NOTICE,"MAKE t=\"%s\" n=\"%s\" a=\"%s\"",type, name, argument);
+	syslog(LOG_INFO,"MAKE t=\"%s\" n=\"%s\" a=\"%s\"",type, name, argument);
 
 	if(!type || strcaseequal(type,"node")) {
 		init_func = (init_func_t)&smcp_node_init;
-//	} else if(strcaseequal(type,"timer")) {
-//		init_func = &smcp_timer_node_init;
 #if HAVE_LIBCURL
 	} else if(strcaseequal(type,"curl_proxy")) {
 		init_func = (init_func_t)&smcp_curl_proxy_node_init;
@@ -234,6 +235,10 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 		init_func = (init_func_t)&SMCPD_module__ud_var_node_init;
 		update_fdset_func = (update_fdset_func_t)&SMCPD_module__ud_var_node_update_fdset;
 		process_func = (process_func_t)&SMCPD_module__ud_var_node_process;
+	} else if(strcaseequal(type,"pairing_node")) {
+		init_func = (init_func_t)&SMCPD_module__pairing_node_init;
+		update_fdset_func = (update_fdset_func_t)&SMCPD_module__pairing_node_update_fdset;
+		process_func = (process_func_t)&SMCPD_module__pairing_node_process;
 #if HAVE_DLFCN_H
 	} else if(type) {
 		char symbol_name[100];
@@ -440,20 +445,24 @@ read_configuration(smcp_t smcp,const char* filename) {
 		} else if(strcaseequal(cmd,"<node")) {
 			// Fix trailing '>'
 			int linelen = strlinelen(line);
-			//syslog(LOG_DEBUG,"LINE-BEFORE: \"%s\"",line);
+			bool oneline = false;
+
 			while(isspace(line[linelen-1])) line[--linelen]=0;
-			if(line[linelen-1]=='>') {
-				line[--linelen]=0;
+			if (line[linelen-1]=='>') {
+				line[--linelen] = 0;
+				if (line[linelen-1] == '/') {
+					oneline = true;
+					line[--linelen] = 0;
+				}
 			} else {
 				syslog(LOG_ERR,"%s:%d: Missing '>'",filename,line_number);
 				goto bail;
 			}
-			//syslog(LOG_DEBUG,"LINE-AFTER: \"%s\"",line);
+
 			char* arg = get_next_arg(line,&line);
 			char* arg2 = get_next_arg(line,&line);
 			char* arg3 = get_next_arg(line,&line);
-			//syslog(LOG_DEBUG,"ARG1: \"%s\"",arg);
-			//syslog(LOG_DEBUG,"ARG2: \"%s\"",arg2);
+
 			if (!arg) {
 				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
@@ -472,8 +481,10 @@ read_configuration(smcp_t smcp,const char* filename) {
 				syslog(LOG_ERR,"BUG: Node parent relationship is busted for \"%s\"",arg);
 				goto bail;
 			} else {
-				syslog(LOG_DEBUG,"Created node \"%s\".",arg);
-				node = next_node;
+				syslog(LOG_DEBUG,"Created node \"%s\".", arg);
+				if (!oneline) {
+					node = next_node;
+				}
 			}
 		} else if(strcaseequal(cmd,"</node>")) {
 			if(!node->parent) {
@@ -487,7 +498,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 	}
 
 	if(node->parent) {
-		syslog(LOG_ERR,"Unmatched \"<node>\".");
+		syslog(LOG_ERR,"Unmatched \"<node>\" \"%s\".", node->name);
 		goto bail;
 	}
 
@@ -541,8 +552,9 @@ main(
 
 	srandom(time(NULL));
 
-	if(argc && argv[0][0])
+	if (argc && argv[0][0]) {
 		gProcessName = basename(argv[0]);
+	}
 
 	BEGIN_LONG_ARGUMENTS(gRet)
 	HANDLE_LONG_ARGUMENT("port") port = strtol(argv[++i], NULL, 0);
@@ -620,6 +632,8 @@ main(
 		}
 	}
 
+	smcp_set_current_instance(smcp);
+
 	// Set up the root node.
 	smcp_node_init(&root_node,NULL,NULL);
 
@@ -658,6 +672,10 @@ main(
 		FD_SET(smcp_plat_get_fd(smcp),&error_fd_set);
 
 		//syslog_dump_select_info(LOG_INFO, &read_fd_set,&write_fd_set,&error_fd_set, fd_count, cms_timeout);
+
+		if (cms_timeout < 0) {
+			cms_timeout = 0;
+		}
 
 		timeout.tv_sec = cms_timeout / MSEC_PER_SEC;
 		timeout.tv_usec = (cms_timeout % MSEC_PER_SEC) * USEC_PER_MSEC;
