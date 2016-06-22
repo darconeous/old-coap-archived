@@ -87,7 +87,7 @@ ud_var_node_get_content(
 
 	check_string(lseek_ret >= 0, strerror(errno));
 
-	ret = read(self->fd, buffer_ptr, buffer_len);
+	ret = (coap_ssize_t)read(self->fd, buffer_ptr, buffer_len);
 
 	require_string(ret >= 0, bail, strerror(errno));
 
@@ -109,7 +109,7 @@ ud_var_node_calc_etag(
 		buffer_len -= 255;
 		buffer_ptr += 255;
 	}
-	fasthash_feed(&state, (const uint8_t*)buffer_ptr, buffer_len);
+	fasthash_feed(&state, (const uint8_t*)buffer_ptr, (uint8_t)buffer_len);
 
 	return fasthash_finish_uint32(&state);
 }
@@ -121,11 +121,9 @@ ud_var_node_request_handler(
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	smcp_method_t method = smcp_inbound_get_code();
 	coap_content_type_t accept_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
-	coap_content_type_t content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 	uint8_t buffer[256];
 	coap_ssize_t buffer_len = 0;
 	int write_fd = -1;
-	off_t lseek_ret;
 	uint32_t value_etag;
 
 	buffer_len = ud_var_node_get_content(self, (char*)buffer, sizeof(buffer));
@@ -138,10 +136,10 @@ ud_var_node_request_handler(
 		coap_option_key_t key;
 		while ((key = smcp_inbound_next_option(&value, &value_len)) != COAP_OPTION_INVALID) {
 			if (key == COAP_OPTION_ACCEPT) {
-				accept_type = coap_decode_uint32(value, value_len);
+				accept_type = (coap_content_type_t)coap_decode_uint32(value, (uint8_t)value_len);
 
 			} else if (key == COAP_OPTION_CONTENT_TYPE) {
-				accept_type = coap_decode_uint32(value, value_len);
+				accept_type = (coap_content_type_t)coap_decode_uint32(value, (uint8_t)value_len);
 
 			} else {
 				require_action(key != COAP_OPTION_URI_PATH, bail, ret = SMCP_STATUS_NOT_FOUND);
@@ -164,6 +162,7 @@ ud_var_node_request_handler(
 			ret = SMCP_STATUS_DUPE;
 			goto bail;
 		}
+		method = COAP_METHOD_PUT;
 		break;
 
 	default:
@@ -275,7 +274,6 @@ ud_var_node_init(
 	const char* name,
 	const char* path
 ) {
-	int i;
 	int fd = -1;
 
 	require(path != NULL, bail);
@@ -300,7 +298,7 @@ ud_var_node_init(
 
 	// TODO: Figure out how to set these from the configuration.
 	self->refresh_period = 30*MSEC_PER_SEC;
-	self->poll_period = 1*MSEC_PER_SEC;
+	self->poll_period = MSEC_PER_SEC/30;
 
 	fd = -1;
 
@@ -320,9 +318,7 @@ ud_var_node_update_fdset(
     int *fd_count,
 	smcp_cms_t *timeout
 ) {
-	int i;
-
-	syslog(LOG_DEBUG, "ud_var_node_update_fdset: %d observers", smcp_observable_observer_count(&self->observable, 0));
+//	syslog(LOG_DEBUG, "ud_var_node_update_fdset: %d observers", smcp_observable_observer_count(&self->observable, 0));
 
 	if (smcp_observable_observer_count(&self->observable, 0)) {
 
@@ -358,11 +354,9 @@ ud_var_node_update_fdset(
 
 smcp_status_t
 ud_var_node_process(ud_var_node_t self) {
-	int i;
 	bool trigger_it = false;
-	struct timeval tv = {0,0};
 
-	syslog(LOG_DEBUG, "ud_var_node_process: %d observers", smcp_observable_observer_count(&self->observable, 0));
+//	syslog(LOG_DEBUG, "ud_var_node_process: %d observers", smcp_observable_observer_count(&self->observable, 0));
 
 	if (smcp_observable_observer_count(&self->observable, 0)) {
 		smcp_cms_t next_refresh = smcp_plat_timestamp_to_cms(self->next_refresh);

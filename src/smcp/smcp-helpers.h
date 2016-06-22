@@ -78,13 +78,6 @@ __BEGIN_DECLS
 typedef long time_t;
 #endif
 
-//#if !HAVE_TIMEVAL && !defined(timeval) && !defined(__timeval_defined)
-//typedef int32_t suseconds_t;
-//struct timeval {
-//	time_t		tv_sec;
-//	suseconds_t tv_usec;
-//};
-//#endif
 __END_DECLS
 
 #endif

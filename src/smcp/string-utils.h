@@ -35,6 +35,7 @@
 #define SMCP_string_utils_h
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
 #if defined(__cplusplus)
@@ -52,6 +53,8 @@ __BEGIN_DECLS
 char * uint32_to_hex_cstr(char *str, uint32_t v);
 char * uint32_to_dec_cstr(char s[], uint32_t n);
 char * int32_to_dec_cstr(char s[], int32_t n);
+
+bool str2bool(const char* str);
 
 __END_DECLS
 

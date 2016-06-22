@@ -346,7 +346,7 @@ bail:
 }
 
 smcp_status_t
-smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr)
+smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr, int flags)
 {
 	smcp_status_t ret;
 	memset(saddr, 0, sizeof(*saddr));

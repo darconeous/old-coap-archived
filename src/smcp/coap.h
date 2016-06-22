@@ -61,6 +61,11 @@
 //! IPv6 Mesh-Local multicast address for CoAP all-devices.
 #define COAP_MULTICAST_IP6_ML_ALLDEVICES	"FF03::FD"
 
+#define COAP_URI_SCHEME_COAP				"coap"
+#define COAP_URI_SCHEME_COAPS				"coaps"
+#define COAP_URI_SCHEME_COAP_TCP			"coap+tcp"
+#define COAP_URI_SCHEME_COAPS_TCP			"coaps+tcp"
+
 // General limits.
 #define COAP_MAX_MESSAGE_SIZE				(1280-40)
 #define COAP_MAX_TOKEN_SIZE					(8)
@@ -134,9 +139,7 @@ enum {
 	COAP_RESULT_404_NOT_FOUND = HTTP_TO_COAP_CODE(404),
 	COAP_RESULT_405_METHOD_NOT_ALLOWED = HTTP_TO_COAP_CODE(405),
 	COAP_RESULT_406_NOT_ACCEPTABLE = HTTP_TO_COAP_CODE(406),
-	COAP_RESULT_408_REQUEST_INCOMPLETE = HTTP_TO_COAP_CODE(408),
 	COAP_RESULT_412_PRECONDITION_FAILED = HTTP_TO_COAP_CODE(412),
-	COAP_RESULT_413_REQUEST_ENTITY_TOO_LARGE = HTTP_TO_COAP_CODE(413),
 	COAP_RESULT_415_UNSUPPORTED_MEDIA_TYPE = HTTP_TO_COAP_CODE(415),
 
 	COAP_RESULT_500_INTERNAL_SERVER_ERROR = HTTP_TO_COAP_CODE(500),
@@ -145,6 +148,18 @@ enum {
 	COAP_RESULT_503_SERVICE_UNAVAILABLE = HTTP_TO_COAP_CODE(503),
 	COAP_RESULT_504_GATEWAY_TIMEOUT = HTTP_TO_COAP_CODE(504),
 	COAP_RESULT_505_PROXYING_NOT_SUPPORTED = HTTP_TO_COAP_CODE(505),
+
+	// https://tools.ietf.org/html/draft-ietf-core-block-20#section-2.9
+	COAP_RESULT_231_CONTINUE = HTTP_TO_COAP_CODE(231),
+	COAP_RESULT_408_REQUEST_ENTITY_INCOMPLETE = HTTP_TO_COAP_CODE(408),
+	COAP_RESULT_413_REQUEST_ENTITY_TOO_LARGE = HTTP_TO_COAP_CODE(413),
+
+	// https://tools.ietf.org/html/draft-bormann-core-coap-sig-01
+	COAP_CODE_701_CSM = HTTP_TO_COAP_CODE(701),
+	COAP_CODE_702_PING = HTTP_TO_COAP_CODE(702),
+	COAP_CODE_703_PONG = HTTP_TO_COAP_CODE(703),
+	COAP_CODE_704_RELEASE = HTTP_TO_COAP_CODE(704),
+	COAP_CODE_705_ABORT = HTTP_TO_COAP_CODE(705),
 };
 
 #define COAP_CODE_IS_REQUEST(code)	(((code)) > 0 && ((code) < COAP_RESULT_100))
@@ -214,12 +229,43 @@ typedef enum {
 	COAP_OPTION_SIZE				= 28,	/* draft-ietf-core-block-10 */
 	COAP_OPTION_PROXY_URI			= 35,
 
+	COAP_OPTION_SIZE2				= 28,	/* draft-ietf-core-block-20 */
+	COAP_OPTION_SIZE1				= 60,	/* draft-ietf-core-block-20 */
+
 	//////////////////////////////////////////////////////////////////////
 	// Experimental after this point. Experimentals start at 65000.
 
 	COAP_OPTION_CASCADE_COUNT = 65100 + 1,    //!< Used for preventing pairing loops.
 	COAP_OPTION_AUTHENTICATE = 65100 + 2,
 
+
+
+	// https://tools.ietf.org/html/draft-bormann-core-coap-sig-01
+
+//     +---------------+------------+---------------------+-----------+
+//     | Option Number | Applies to | Option Name         | Reference |
+//     +---------------+------------+---------------------+-----------+
+//     | 1             | CSM        | Server-Name         | [RFCthis] |
+//     |               |            |                     |           |
+//     | 2             | CSM        | Max-Message-Size    | [RFCthis] |
+//     |               |            |                     |           |
+//     | 2             | Ping, Pong | Custody             | [RFCthis] |
+//     |               |            |                     |           |
+//     | 2             | Release    | Bad-Server-Name     | [RFCthis] |
+//     |               |            |                     |           |
+//     | 4             | Release    | Alternative-Address | [RFCthis] |
+//     |               |            |                     |           |
+//     | 6             | Release    | Hold-Off            | [RFCthis] |
+//     |               |            |                     |           |
+//     | 2             | Abort      | Bad-CSM-Option      | [RFCthis] |
+//     +---------------+------------+---------------------+-----------+
+	COAP_OPTION_CSM_SERVER_NAME = 1,
+	COAP_OPTION_CSM_MAX_MESSAGE_SIZE = 2,
+	COAP_OPTION_PING_CUSTODY = 2,
+	COAP_OPTION_RELEASE_BAD_SERVER_NAME = 2,
+	COAP_OPTION_RELEASE_ALTERNATIVE_ADDRESS = 4,
+	COAP_OPTION_RELEASE_HOLD_OFF = 6,
+	COAP_OPTION_RELEASE_BAD_CSM_OPTION = 2,
 } coap_option_key_t;
 
 

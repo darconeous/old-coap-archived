@@ -456,8 +456,9 @@ smcp_directory_generator(
 				stdout = real_stdout;
 				free(cmdline);
 			} else {
-				if(strequal_const(prefix, ".well-known"))
-					fprintf(temp_file,"core/\n");
+				if(strequal_const(prefix, ".well-known")) {
+					fprintf(temp_file,"core\n");
+				}
 			}
 		} else {
 			asprintf(&cmdline, "list --filename-only --timeout 1000 \"%s\"",prefix);

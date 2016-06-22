@@ -231,8 +231,9 @@ smcp_outbound_set_token(const uint8_t *token,uint8_t token_length) {
 		*self->outbound.content_ptr++ = 0xFF;
 	}
 
-	if(token_length)
+	if (token_length > 0) {
 		memcpy(self->outbound.packet->token,token,token_length);
+	}
 
 bail:
 	return ret;
@@ -244,10 +245,11 @@ smcp_outbound_add_option_(
 ) {
 	smcp_t const self = smcp_get_current_instance();
 
-	if(len == SMCP_CSTR_LEN)
+	if (len == SMCP_CSTR_LEN) {
 		len = (coap_size_t)strlen(value);
+	}
 
-	if(	smcp_outbound_get_space_remaining() < len + 8 ) {
+	if (smcp_outbound_get_space_remaining() < len + 8 ) {
 		// We ran out of room!
 		return SMCP_STATUS_MESSAGE_TOO_BIG;
 	}
@@ -393,7 +395,7 @@ smcp_set_remote_sockaddr_from_host_and_port(const char* addr_str,uint16_t toport
 		addr_str = SMCP_COAP_MULTICAST_ALLDEVICES_ADDR;
 	}
 
-	ret = smcp_plat_lookup_hostname(addr_str, &saddr);
+	ret = smcp_plat_lookup_hostname(addr_str, &saddr, SMCP_LOOKUP_HOSTNAME_FLAG_DEFAULT);
 	require_noerr(ret, bail);
 
 	saddr.smcp_port = htons(toport);

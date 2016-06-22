@@ -105,6 +105,16 @@ SMCP_API_EXTERN int smcp_observable_observer_count(
 	uint8_t key	//!< [IN] Key for this resource (must be same as used in update)
 );
 
+//!	Removes observers for a given resource and key
+/*!
+**	You may use SMCP_OBSERVABLE_BROADCAST_KEY for the key to clear
+**	all observers associated with this context.
+*/
+SMCP_API_EXTERN int smcp_observable_clear(
+	smcp_observable_t context, //!< [IN] Pointer to observable context
+	uint8_t key	//!< [IN] Key for this resource (must be same as used in update)
+);
+
 /*!	@} */
 /*!	@} */
 

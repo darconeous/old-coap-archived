@@ -92,7 +92,7 @@ post_response_handler(
 	}
 
 	if ( content != NULL
-	  && (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED)
+	  && (statuscode > 0)
 	) {
 		printf("%*s", content_length, content);
 		// Only print a newline if the content doesn't already print one.

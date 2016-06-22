@@ -223,24 +223,29 @@ plugtest_obs_handler(
 ) {
 	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
 	smcp_method_t method = smcp_inbound_get_code();
+	uint32_t now = (uint32_t)time(NULL);
 
-	if(method==COAP_METHOD_GET) {
+	if (method == COAP_METHOD_GET) {
 		char* content = NULL;
 		coap_size_t max_len = 0;
 
 		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
 		require_noerr(ret, bail);
 
+		ret = smcp_outbound_add_option_uint(COAP_OPTION_ETAG, now);
+		require_noerr(ret, bail);
+
 		ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 		require_noerr(ret, bail);
 
-		if(!smcp_timer_is_scheduled(smcp_get_current_instance(), &self->obs_timer))
+		if (!smcp_timer_is_scheduled(smcp_get_current_instance(), &self->obs_timer)) {
 			plugtest_obs_timer_callback(smcp_get_current_instance(),self);
+		}
 
-		ret = smcp_observable_update(&self->observable,PLUGTEST_OBS_KEY);
+		ret = smcp_observable_update(&self->observable, PLUGTEST_OBS_KEY);
 		check_noerr(ret);
 
-		ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE,10);
+		ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE, 10);
 		require_noerr(ret, bail);
 
 		content = smcp_outbound_get_content_ptr(&max_len);
@@ -249,7 +254,7 @@ plugtest_obs_handler(
 		require_action(max_len>11, bail, ret = SMCP_STATUS_MESSAGE_TOO_BIG);
 
 		ret = smcp_outbound_set_content_len(
-			(coap_size_t)strlen(uint32_to_dec_cstr(content, (uint32_t)time(NULL)))
+			(coap_size_t)strlen(uint32_to_dec_cstr(content, now))
 		);
 		require_noerr(ret, bail);
 

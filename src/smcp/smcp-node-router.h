@@ -146,7 +146,6 @@ SMCP_API_EXTERN smcp_node_t smcp_node_init(
 
 SMCP_API_EXTERN void smcp_node_delete(smcp_node_t node);
 
-
 SMCP_API_EXTERN smcp_status_t smcp_node_get_path(
 	smcp_node_t node,
 	char* path,			//!< [OUT] Pointer to where the path will be written.

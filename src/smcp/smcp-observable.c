@@ -36,6 +36,10 @@
 
 #define INVALID_OBSERVER_INDEX		(SMCP_MAX_OBSERVERS)
 
+#if SMCP_MAX_OBSERVERS > 127
+#error "SMCP_MAX_OBSERVERS must be set below 127"
+#endif
+
 #define SHOULD_CONFIRM_EVENT_FOR_OBSERVER(obs)		(!((obs)->seq&0x7))
 
 struct smcp_observer_s {
@@ -155,7 +159,10 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 		}
 
 		require_noerr_action(
-			ret = smcp_start_async_response(&observer_table[i].async_response,SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK),
+			ret = smcp_start_async_response(
+				&observer_table[i].async_response,
+				SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK
+			),
 			bail,
 			free_observer(&observer_table[i])
 		);
@@ -177,7 +184,7 @@ static smcp_status_t
 event_response_handler(int statuscode, struct smcp_observer_s* observer)
 {
 	if (statuscode == SMCP_STATUS_TIMEOUT) {
-		if(SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)) {
+		if (SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)) {
 			statuscode = SMCP_STATUS_RESET;
 		} else {
 			statuscode = SMCP_STATUS_OK;
@@ -319,6 +326,41 @@ smcp_observable_observer_count(smcp_observable_t context, uint8_t key)
 			continue;
 		}
 		count++;
+	}
+
+bail:
+	return count;
+}
+
+int
+smcp_observable_clear(
+	smcp_observable_t context,
+	uint8_t key
+) {
+	int count = 0;
+	int i;
+
+	if (!context->first_observer) {
+		goto bail;
+	}
+
+restart:
+
+	for (i = context->first_observer-1; i >= 0; i = observer_table[i].next - 1) {
+		assert(observer_table[i].observable == context);
+		assert((i != context->last_observer-1) || observer_table[i].next == 0);
+
+		if ((observer_table[i].key != SMCP_OBSERVABLE_BROADCAST_KEY)
+			&& (key != SMCP_OBSERVABLE_BROADCAST_KEY)
+			&& (observer_table[i].key != key)
+		) {
+			continue;
+		}
+		count++;
+		free_observer(&observer_table[i]);
+
+		// Since we mutated the list, start from the top.
+		goto restart;
 	}
 
 bail:
