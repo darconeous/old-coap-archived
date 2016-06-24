@@ -175,10 +175,6 @@ SMCP_API_EXTERN int smcp_node_find_next_with_path(
 	smcp_node_t* next
 );
 
-SMCP_API_EXTERN smcp_status_t smcp_default_request_handler(
-	smcp_node_t		node
-);
-
 SMCP_API_EXTERN smcp_status_t smcp_handle_list(smcp_node_t node);
 
 /*!	@} */

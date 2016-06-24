@@ -531,45 +531,28 @@ smcp_transaction_end(
 	return SMCP_STATUS_OK;
 }
 
-smcp_status_t
-smcp_handle_response() {
-	smcp_status_t ret = 0;
+
+static smcp_transaction_t
+lookup_transaction_(const struct coap_header_s* packet)
+{
 	smcp_t const self = smcp_get_current_instance();
 	smcp_transaction_t handler = NULL;
-	coap_msg_id_t msg_id = smcp_inbound_get_msg_id();
+	coap_msg_id_t token = 0;
 
-#if VERBOSE_DEBUG
-	DEBUG_PRINTF(
-		"smcp(%p): Incoming response! msgid=0x%02X",
-		self,
-		smcp_inbound_get_msg_id()
-	);
-#if SMCP_TRANSACTIONS_USE_BTREE
-	DEBUG_PRINTF("%p: Total Pending Transactions: %d", self,
-		(int)bt_count((void**)&self->transactions));
-#else
-	DEBUG_PRINTF("%p: Total Pending Transactions: %d", self,
-		(int)ll_count((void**)&self->transactions));
-#endif
-#endif // VERBOSE_DEBUG
+	if(self->inbound.packet->token_len == sizeof(coap_msg_id_t)) {
+		memcpy(&token,self->inbound.packet->token,sizeof(token));
+	}
 
-	{
-		coap_msg_id_t token = 0;
-		if(self->inbound.packet->token_len == sizeof(coap_msg_id_t)) {
-			memcpy(&token,self->inbound.packet->token,sizeof(token));
+	handler = smcp_transaction_find_via_msg_id(self, packet->msg_id);
+
+	if (NULL == handler) {
+		if (self->inbound.packet->tt < COAP_TRANS_TYPE_ACK) {
+			handler = smcp_transaction_find_via_token(self,token);
 		}
-
-		handler = smcp_transaction_find_via_msg_id(self,msg_id);
-
-		if (NULL == handler) {
-			if (self->inbound.packet->tt < COAP_TRANS_TYPE_ACK) {
-				handler = smcp_transaction_find_via_token(self,token);
-			}
-		} else if (smcp_inbound_get_packet()->code != COAP_CODE_EMPTY
-			&& token != handler->token
-		) {
-			handler = NULL;
-		}
+	} else if (smcp_inbound_get_packet()->code != COAP_CODE_EMPTY
+		&& token != handler->token
+	) {
+		handler = NULL;
 	}
 
 	if ( handler
@@ -582,6 +565,134 @@ smcp_handle_response() {
 		// Message-ID or token matched, but the address didn't. Fail.
 		handler = NULL;
 	}
+
+	return handler;
+}
+
+void
+smcp_outbound_packet_error(
+	smcp_t	self,
+	const struct coap_header_s* outbound_packet_header,
+	smcp_status_t outbound_packet_error
+) {
+	smcp_transaction_t handler;
+	smcp_status_t status;
+	coap_msg_id_t msg_id = smcp_inbound_get_msg_id();
+
+	smcp_set_current_instance(self);
+
+	check(outbound_packet_error < 0);
+
+	if (outbound_packet_error >= 0) {
+		outbound_packet_error = SMCP_STATUS_FAILURE;
+	}
+
+	handler = lookup_transaction_(outbound_packet_header);
+
+	require(handler != NULL, bail);
+
+	smcp_response_handler_func callback = handler->callback;
+
+	if ( !(handler->flags & SMCP_TRANSACTION_ALWAYS_INVALIDATE)
+	  && !(handler->flags & SMCP_TRANSACTION_OBSERVE)
+	) {
+		handler->callback = NULL;
+	}
+
+	status = (*callback)(
+		outbound_packet_error,
+		handler->context
+	);
+
+	check_noerr(status);
+
+	// If self->current_transaction is NULL at this point,
+	// then that means that the transaction has been
+	// finalized and we shouldn't continue.
+	if (self->current_transaction != handler) {
+		goto bail;
+	}
+
+	// TODO: Explain why this is necessary
+	// Can't remember what I was thinking at the time.
+	// I think this is to head off additional processing
+	// if the handler ended up manipulating the transaction.
+	if (msg_id != handler->msg_id) {
+		goto bail;
+	}
+
+	handler->attemptCount = 0;
+	handler->waiting_for_async_response = false;
+
+#if SMCP_CONF_TRANS_ENABLE_OBSERVING
+	if ( status == SMCP_STATUS_OK
+	  && (handler->flags & SMCP_TRANSACTION_OBSERVE)
+	) {
+		smcp_cms_t cms = self->inbound.max_age * MSEC_PER_SEC;
+
+#if SMCP_CONF_TRANS_ENABLE_BLOCK2
+		handler->next_block2 = 0;
+#endif // SMCP_CONF_TRANS_ENABLE_BLOCK2
+
+		smcp_invalidate_timer(self, &handler->timer);
+
+		if (0 == cms) {
+			if (self->inbound.has_observe_option) {
+				cms = CMS_DISTANT_FUTURE;
+			} else {
+				cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
+			}
+		}
+
+		handler->expiration = smcp_plat_cms_to_timestamp(cms);
+
+		if ( (handler->flags & SMCP_TRANSACTION_KEEPALIVE)
+		  && (cms > SMCP_OBSERVATION_KEEPALIVE_INTERVAL)
+		) {
+			cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
+		}
+
+		smcp_schedule_timer(
+			self,
+			&handler->timer,
+			cms
+		);
+	} else
+#endif // #if SMCP_CONF_TRANS_ENABLE_OBSERVING
+	{
+		handler->resendCallback = NULL;
+		if (!(handler->flags & SMCP_TRANSACTION_NO_AUTO_END)) {
+			smcp_transaction_end(self, handler);
+		}
+	}
+
+bail:
+	return;
+}
+
+smcp_status_t
+smcp_handle_response() {
+	smcp_status_t ret = 0;
+	smcp_t const self = smcp_get_current_instance();
+	smcp_transaction_t handler = NULL;
+	coap_msg_id_t msg_id = smcp_inbound_get_msg_id();
+
+#if VERBOSE_DEBUG
+	DEBUG_PRINTF(
+		"smcp(%p): Incoming response! msgid=0x%02X",
+		self,
+		msg_id
+	);
+#if SMCP_TRANSACTIONS_USE_BTREE
+	DEBUG_PRINTF("%p: Total Pending Transactions: %d", self,
+		(int)bt_count((void**)&self->transactions));
+#else
+	DEBUG_PRINTF("%p: Total Pending Transactions: %d", self,
+		(int)ll_count((void**)&self->transactions));
+#endif
+#endif // VERBOSE_DEBUG
+
+	handler = lookup_transaction_(self->inbound.packet);
 
 	self->current_transaction = handler;
 
@@ -597,11 +708,11 @@ smcp_handle_response() {
 		} else {
 			DEBUG_PRINTF("Inbound: Unknown ack or reset, ignoring. . .");
 		}
-	} else if(	(	self->inbound.packet->tt == COAP_TRANS_TYPE_ACK
-			|| self->inbound.packet->tt == COAP_TRANS_TYPE_NONCONFIRMABLE
-		)
-		&& self->inbound.packet->code == COAP_CODE_EMPTY
-		&& (handler->sent_code<COAP_RESULT_100)
+	} else if ( ( (self->inbound.packet->tt == COAP_TRANS_TYPE_ACK)
+	           || (self->inbound.packet->tt == COAP_TRANS_TYPE_NONCONFIRMABLE)
+	          )
+	         && (self->inbound.packet->code == COAP_CODE_EMPTY)
+	         && (handler->sent_code < COAP_RESULT_100)
 	) {
 		DEBUG_PRINTF("Inbound: Empty ACK, Async response expected.");
 		handler->waiting_for_async_response = true;
@@ -614,11 +725,11 @@ smcp_handle_response() {
 
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 		if((handler->flags & SMCP_TRANSACTION_OBSERVE) && self->inbound.has_observe_option) {
-			smcp_cms_t cms = self->inbound.max_age*MSEC_PER_SEC;
+			smcp_cms_t cms = self->inbound.max_age * MSEC_PER_SEC;
 
-			if(	self->inbound.has_observe_option
-				&& (self->inbound.observe_value<=handler->last_observe)
-				&& ((handler->last_observe-self->inbound.observe_value)>0x7FFFFF)
+			if ( self->inbound.has_observe_option
+			  && (self->inbound.observe_value <= handler->last_observe)
+			  && ((handler->last_observe - self->inbound.observe_value) > 0x7FFFFF)
 			) {
 				DEBUG_PRINTF("Inbound: Skipping older inbound observation. (%d<=%d)",self->inbound.observe_value,handler->last_observe);
 				// We've already seen this one. Skip it.
@@ -644,6 +755,9 @@ smcp_handle_response() {
 			}
 
 			// TODO: Explain why this is necessary
+			// Can't remember what I was thinking at the time.
+			// I think this is to head off additional processing
+			// if the handler ended up manipulating the transaction.
 			if (msg_id != handler->msg_id) {
 				handler = NULL;
 				goto bail;
@@ -703,22 +817,42 @@ smcp_handle_response() {
 		{
 			smcp_response_handler_func callback = handler->callback;
 
-			if(!(handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE) && !(handler->flags&SMCP_TRANSACTION_OBSERVE)) {
+			if ( !(handler->flags & SMCP_TRANSACTION_ALWAYS_INVALIDATE)
+			  && !(handler->flags & SMCP_TRANSACTION_OBSERVE)
+			) {
 				handler->callback = NULL;
 			}
+
 			ret = (*callback)(
 				(self->inbound.packet->tt==COAP_TRANS_TYPE_RESET)?SMCP_STATUS_RESET:self->inbound.packet->code,
 				handler->context
 			);
 
-			if(self->current_transaction != handler) {
+			check_noerr(ret);
+
+			// If self->current_transaction is NULL at this point,
+			// then that means that the transaction has been
+			// finalized and we shouldn't continue.
+
+			if (self->current_transaction != handler) {
+				handler = NULL;
+				goto bail;
+			}
+
+			// TODO: Explain why this is necessary
+			// Can't remember what I was thinking at the time.
+			// I think this is to head off additional processing
+			// if the handler ended up manipulating the transaction.
+			if (msg_id != handler->msg_id) {
 				handler = NULL;
 				goto bail;
 			}
 
 			handler->attemptCount = 0;
 			handler->waiting_for_async_response = false;
-			if(handler->active && msg_id==handler->msg_id) {
+			if ( handler->active
+			  && msg_id == handler->msg_id
+			) {
 #if SMCP_CONF_TRANS_ENABLE_BLOCK2
 				if(!ret && (self->inbound.block2_value&(1<<3)) && (handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE)) {
 					DEBUG_PRINTF("Inbound: Preparing to request next block...");
@@ -776,7 +910,10 @@ smcp_handle_response() {
 	}
 
 bail:
-	if(ret && handler && !(handler->flags&SMCP_TRANSACTION_NO_AUTO_END)) {
+	if ( (ret != SMCP_STATUS_OK)
+	  && (handler != NULL)
+	  && !(handler->flags & SMCP_TRANSACTION_NO_AUTO_END)
+	) {
 		smcp_transaction_end(self, handler);
 	}
 	return ret;

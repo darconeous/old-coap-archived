@@ -93,17 +93,13 @@ pairing_mgr_from_pairing(smcp_pairing_t pairing) {
 	return (smcp_pairing_mgr_t)((uint8_t*)&pairing[-pairing->index]-sizeof(struct smcp_observable_s));
 }
 
-// Commits all stable pairings to nonvolatile memory
-static smcp_status_t
+static void
 smcp_pairing_mgr_commit_stable(
 	smcp_pairing_mgr_t self
 ) {
-	return SMCP_STATUS_OK;
-}
-
-void smcp_pairing_mgr_refresh(
-	smcp_pairing_mgr_t self
-) {
+	if (self->commit_stable_pairings != NULL) {
+		(*self->commit_stable_pairings)(self->context, self);
+	}
 }
 
 bool
@@ -187,6 +183,47 @@ smcp_pairing_set_content_type(smcp_pairing_t self, coap_content_type_t x)
 	}
 
 	return SMCP_STATUS_OK;
+}
+
+
+
+
+
+smcp_pairing_type_t
+smcp_pairing_get_type(smcp_pairing_t self)
+{
+	return self->type;
+}
+
+smcp_status_t
+smcp_pairing_set_type(smcp_pairing_t self, smcp_pairing_type_t x)
+{
+	smcp_pairing_mgr_t mgr = pairing_mgr_from_pairing(self);
+
+	if (x != self->type) {
+		// Only pull is currently supported
+		if (x != SMCP_PAIRING_TYPE_PULL) {
+			return SMCP_STATUS_NOT_IMPLEMENTED;
+		}
+
+		if (self->enabled) {
+			// TODO: Handle the transition from self->type to x.
+		}
+
+		self->type = x;
+
+		if (self->stable) {
+			smcp_pairing_mgr_commit_stable(mgr);
+		}
+	}
+
+	return SMCP_STATUS_OK;
+}
+
+uint8_t
+smcp_pairing_get_id(smcp_pairing_t self)
+{
+	return self->index;
 }
 
 const char*
@@ -320,7 +357,10 @@ smcp_paring_variable_handler(
 	smcp_status_t ret = SMCP_STATUS_OK;
 	smcp_pairing_t pairing = (smcp_pairing_t)node;
 
-	require_action(i < I_COUNT, bail, ret = SMCP_STATUS_NOT_FOUND);
+	if (i >= I_COUNT) {
+		ret = SMCP_STATUS_NOT_FOUND;
+		goto bail;
+	}
 
 	if (action == SMCP_VAR_GET_KEY) {
 		strcpy(value, names[i]);
@@ -400,29 +440,49 @@ smcp_pairing_t
 smcp_pairing_mgr_new_pairing(
 	smcp_pairing_mgr_t self,
 	const char* local_path_arg,
-	const char* remote_url
+	const char* remote_url,
+	uint8_t i
 ) {
 	smcp_pairing_t ret = NULL;
-	int i;
-
+	uint8_t j;
 	assert(self != NULL);
 	assert(local_path_arg != NULL);
 	assert(remote_url != NULL);
 
-	for (i = 0; i < SMCP_CONF_MAX_PAIRINGS; i++) {
-		if (!self->pairing_table[i].in_use) {
-			break;
+	// Find a free slot, using the given `i` as an
+	// initial suggestion.
+	if ( (i >= SMCP_CONF_MAX_PAIRINGS)
+	  || self->pairing_table[i].in_use
+	) {
+		for (i = 0; i < SMCP_CONF_MAX_PAIRINGS; i++) {
+			if (!self->pairing_table[i].in_use) {
+				break;
+			}
 		}
 	}
 
 	require(i < SMCP_CONF_MAX_PAIRINGS, bail);
 
+	// Check for duplicates.
+	for (j = 0; j < SMCP_CONF_MAX_PAIRINGS; j++) {
+		if (!self->pairing_table[j].in_use) {
+			break;
+		}
+		if ( (0 == strcmp(local_path_arg, self->pairing_table[j].local_path))
+		  && (0 == strcmp(remote_url, self->pairing_table[j].remote_url))
+		) {
+			// A pairing already exists for this local path and remote url.
+			goto bail;
+		}
+	}
+
 	ret = &self->pairing_table[i];
 
-	ret->index = (uint8_t)i;
+	ret->index = i;
 	ret->in_use = true;
 	ret->enabled = false;
 	ret->stable = false;
+	ret->type = SMCP_PAIRING_TYPE_PULL;
 	ret->content_type = COAP_CONTENT_TYPE_UNKNOWN;
 	ret->var_handler.func = smcp_paring_variable_handler;
 
@@ -554,7 +614,7 @@ smcp_pairing_mgr_pairing_next(
 		}
 	}
 
-	if (prev < &self->pairing_table[SMCP_CONF_MAX_PAIRINGS]) {
+	if (prev >= &self->pairing_table[SMCP_CONF_MAX_PAIRINGS]) {
 		prev = NULL;
 	}
 
@@ -655,7 +715,8 @@ request_handler_new_pairing_(
 	pairing = smcp_pairing_mgr_new_pairing(
 		self,
 		local_path,
-		remote_url
+		remote_url,
+		0
 	);
 
 	if (!pairing) {

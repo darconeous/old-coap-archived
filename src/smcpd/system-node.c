@@ -44,10 +44,12 @@
 #include <smcp/smcp-node-router.h>
 #include <time.h>
 #include <errno.h>
+#include <unistd.h>
 #include "system-node.h"
 
 enum {
 	SYS_NODE_PATH_UPTIME=0,
+	SYS_NODE_PATH_PID,
 
 #if HAVE_GETLOADAVG
 	SYS_NODE_PATH_LOADAVG_1,
@@ -97,6 +99,7 @@ static smcp_status_t device_func(
 	} else if (action == SMCP_VAR_GET_KEY) {
 		static const char* path_names[] = {
 			[SYS_NODE_PATH_UPTIME]="uptime",
+			[SYS_NODE_PATH_PID]="pid",
 #if HAVE_GETLOADAVG
 			[SYS_NODE_PATH_LOADAVG_1]="loadavg-1",
 			[SYS_NODE_PATH_LOADAVG_5]="loadavg-5",
@@ -122,7 +125,7 @@ static smcp_status_t device_func(
 			// TODO: Change this
 			sprintf(value,"%d",max_age);
 		} else {
-			return SMCP_STATUS_FAILURE;
+			return SMCP_STATUS_NOT_ALLOWED;
 		}
 	} else if (action == SMCP_VAR_GET_OBSERVABLE) {
 		static const bool observable[] = {
@@ -176,6 +179,20 @@ static smcp_status_t device_func(
 					ret = SMCP_STATUS_FAILURE
 				);
 				break;
+
+			case SYS_NODE_PATH_PID:
+				require_action(
+					(size_t)snprintf(
+						value,
+						SMCP_VARIABLE_MAX_VALUE_LENGTH,
+						"%d",
+						(int)getpid()
+					) <= SMCP_VARIABLE_MAX_VALUE_LENGTH,
+					bail,
+					ret = SMCP_STATUS_FAILURE
+				);
+				break;
+
 
 			default:
 				ret = SMCP_STATUS_NOT_ALLOWED;

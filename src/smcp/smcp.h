@@ -157,7 +157,7 @@ typedef smcp_callback_func smcp_inbound_resend_func;
 // amount of stack space by simply removing the first argument
 // from many functions. In order to make things as maintainable
 // as possible, these macros do all of the work for us.
-#define SMCP_EMBEDDED_SELF_HOOK 	smcp_t const self = smcp_get_current_instance();(void)self
+#define SMCP_EMBEDDED_SELF_HOOK		smcp_t const self = smcp_get_current_instance();(void)self
 #define smcp_init(self)		smcp_init()
 #define smcp_release(self)		smcp_release()
 #define smcp_get_next_msg_id(self)		smcp_get_next_msg_id()
@@ -317,6 +317,31 @@ SMCP_API_EXTERN smcp_status_t smcp_inbound_packet_process(
 	char*	packet,
 	coap_size_t	packet_length,
 	int flags
+);
+
+//!	Handles asynchronous errors on outbound packets.
+/*!	This is useful for reporting any ICMP errors
+**	received back to SMCP so that they can be properly
+**	handled.
+**
+**	Before calling this function, you *MUST* at least call the
+**	function `smcp_plat_set_remote_sockaddr()`, to set the address
+**	of the intended destination of the packet. You can also call
+**	the following function if the default values are not appropriate:
+**
+**	* `smcp_plat_set_local_sockaddr()`: If not called, uses a
+**    reasonable platform-specific value.
+**
+**	`packet` does not need to contain the entire contents
+**	of the packet that generated the error. Whatever bits
+**	of the packet that are given in the ICMP message will do.
+**
+**	If you are using BSD sockets you don't need to use this function.
+*/
+SMCP_API_EXTERN void smcp_outbound_packet_error(
+	smcp_t	self,
+	const struct coap_header_s* outbound_packet_header,
+	smcp_status_t outbound_packet_error
 );
 
 /*!	@} */

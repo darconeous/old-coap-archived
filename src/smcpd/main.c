@@ -292,7 +292,8 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 	return ret;
 }
 
-static char* get_next_arg(char *buf, char **rest) {
+char*
+get_next_arg(char *buf, char **rest) {
 	char* ret = NULL;
 
 	while(*buf && isspace(*buf)) buf++;
@@ -400,48 +401,6 @@ read_configuration(smcp_t smcp,const char* filename) {
 				goto bail;
 			}
 			smcp_set_proxy_url(smcp,arg);
-		} else if(strcaseequal(cmd,"Pair")) {
-			char* src_arg = get_next_arg(line,&line);
-			char* dest_arg = get_next_arg(line,&line);
-/*
-			if(!src_arg) {
-				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
-				goto bail;
-			}
-			if(!dest_arg) {
-				dest_arg = src_arg;
-				src_arg = ".";
-			}
-			if(url_is_absolute(src_arg)) {
-				syslog(LOG_ERR,"%s:%d: Source path cannot contain an absolute URL: \"%s\"",filename,line_number,src_arg);
-				goto bail;
-			}
-			char dest_path[2000];
-			char src_path[2000];
-			smcp_node_get_path(
-				node,
-				dest_path,
-				sizeof(dest_path)
-			);
-			memcpy(src_path,dest_path,sizeof(dest_path));
-
-			url_change(dest_path,dest_arg);
-			url_change(src_path,src_arg);
-
-			syslog(LOG_INFO,"%s:%d: Pairing \"%s\" -> \"%s\"",filename,line_number,src_path,dest_path);
-
-			status = smcp_pair_with_uri(
-				smcp,
-				src_path,
-				dest_path,
-				SMCP_PAIRING_FLAG_RELIABILITY_PART,
-				NULL
-			);
-			if(status) {
-				syslog(LOG_ERR,"%s:%d: Unable to add pairing, error %d \"%s\"",filename,line_number,status,smcp_status_to_cstr(status));
-				goto bail;
-			}
-*/
 		} else if(strcaseequal(cmd,"<node")) {
 			// Fix trailing '>'
 			int linelen = strlinelen(line);
@@ -476,7 +435,6 @@ read_configuration(smcp_t smcp,const char* filename) {
 
 			if (!next_node) {
 				syslog(LOG_ERR,"Node creation failed for node \"%s\"",arg);
-				goto bail;
 			} else if (next_node->parent != node) {
 				syslog(LOG_ERR,"BUG: Node parent relationship is busted for \"%s\"",arg);
 				goto bail;
@@ -698,7 +656,7 @@ main(
 			gRet = ERRORCODE_UNKNOWN;
 		}
 
-		if(gRet == ERRORCODE_SIGHUP) {
+		if (gRet == ERRORCODE_SIGHUP) {
 			gRet = 0;
 			read_configuration(smcp,config_file);
 		}
@@ -706,14 +664,16 @@ main(
 
 bail:
 
-	if(gRet == ERRORCODE_QUIT)
+	if (gRet == ERRORCODE_QUIT) {
 		gRet = 0;
+	}
 
-	if(smcp) {
+	if (smcp) {
 		syslog(LOG_NOTICE,"Stopping smcpd . . .");
 
-		if(gPIDFilename)
+		if (gPIDFilename) {
 			unlink(gPIDFilename);
+		}
 
 		smcp_release(smcp);
 

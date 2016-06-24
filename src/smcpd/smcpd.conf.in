@@ -10,9 +10,9 @@ Port 5683
 <node "cgi-cat" "cgi" "echo Here is what you sent: ; cat" />
 <node "cgi-test" "cgi" "for i in 0 1 2 3 4 5 6 7 8; do echo \'|-------------------------------\'$i\'-----------------------------|\' ; done" />
 
-<node ".p" "pairing" "pairing.txt" />
+<node ".p" "pairing" "./pairing.txt" />
 
 <node "dev">
 <node "console" "ud_var" "/dev/console" />
-<node "value" "ud_var" "/Users/darco/Projects/smcp/value" />
+#<node "value" "ud_var" "/Users/darco/Projects/smcp/value" />
 </node>

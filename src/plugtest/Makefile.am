@@ -17,5 +17,5 @@ smcp_plugtest_client_LDADD = ../smcp/libsmcp.la
 
 TESTS = selftest.sh
 
-EXTRA_DIST = selftest.sh
+EXTRA_DIST = selftest.sh README.md
 DISTCLEANFILES = .deps Makefile

@@ -48,6 +48,8 @@ static int gRet = 0;
 static smcp_t gSMCPInstance;
 static bool istty = true;
 
+char*get_next_arg(char *buf, char **rest);
+
 static arg_list_item_t option_list[] = {
 	{ 'h', "help",	NULL, "Print Help"				},
 	{ 'v', "version", NULL, "Print Version Information" },
@@ -241,7 +243,8 @@ bail:
 	return ret;
 }
 
-static char* get_next_arg(char *buf, char **rest) {
+char*
+get_next_arg(char *buf, char **rest) {
 	char* ret = NULL;
 
 	while(*buf && isspace(*buf)) buf++;
