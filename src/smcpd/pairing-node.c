@@ -44,6 +44,7 @@
 #include <smcp/smcp.h>
 #include <smcp/smcp-node-router.h>
 #include <smcp/smcp-pairing.h>
+#include <smcp/smcp-missing.h>
 
 #include "pairing-node.h"
 
@@ -52,22 +53,59 @@
 #include <stdlib.h>
 #include <time.h>
 #include <errno.h>
-//#include <unistd.h>
-//#include <signal.h>
-//#include <sys/wait.h>
-//#include <sys/stat.h>
-//#include <fcntl.h>
-//#include <poll.h>
-//#include <smcp/fasthash.h>
+#include <missing/fgetln.h>
 
 struct pairing_node_s {
 	struct smcp_node_s node;
 	struct smcp_pairing_mgr_s pairing_mgr;
 };
 
+extern char* get_next_arg(char *buf, char **rest);
+#define strcaseequal(x,y)	(strcasecmp(x,y)==0)
+
 void
-pairing_node_dealloc(pairing_node_t x) {
-	free(x);
+pairing_node_commit_stable(const char* path, smcp_pairing_mgr_t mgr)
+{
+	FILE* file = fopen(path, "w");
+	smcp_pairing_t iter = smcp_pairing_mgr_pairing_begin(mgr);
+    time_t current_time = time(NULL);
+
+	require(file != NULL, bail);
+
+	fprintf(file, "# Stable Pairings Storage\n");
+	fprintf(file, "# Automatically generated at %s\n", ctime(&current_time));
+
+	for (; iter != NULL; iter = smcp_pairing_mgr_pairing_next(mgr, iter)) {
+		if (!smcp_pairing_get_stable(iter)) {
+			continue;
+		}
+		fprintf(
+			file,
+			"Pairing %d \"%s\" \"%s\" %d %d\n",
+			smcp_pairing_get_id(iter),
+			smcp_pairing_get_local_path(iter),
+			smcp_pairing_get_remote_url(iter),
+			smcp_pairing_get_enabled(iter),
+			smcp_pairing_get_content_type(iter)
+		);
+	}
+
+bail:
+	if (file) {
+		fclose(file);
+	}
+}
+
+void
+pairing_node_dealloc(pairing_node_t self) {
+
+	if (self->pairing_mgr.context) {
+		free(self->pairing_mgr.context);
+	}
+
+	// TODO: Tear down pairing manager properly!
+
+	free(self);
 }
 
 pairing_node_t
@@ -84,9 +122,11 @@ pairing_node_init(
 	const char* name,
 	const char* path
 ) {
+	FILE* file = fopen(path, "r");
+	char* line = NULL;
+	size_t line_len = 0;
 
 	require(name != NULL, bail);
-
 
 	require(self || (self = pairing_node_alloc()), bail);
 	require(smcp_node_init(
@@ -96,16 +136,60 @@ pairing_node_init(
 	), bail);
 
 	self->node.has_link_content = 1;
+//	self->node.is_observable = 1;
 
 	smcp_pairing_mgr_init(&self->pairing_mgr, smcp_get_current_instance());
 
 	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_pairing_mgr_request_handler;
 	((smcp_node_t)&self->node)->context = (void*)&self->pairing_mgr;
 
-//	self->node.is_observable = 1;
 
+	require(file != NULL,bail);
+
+	while(!feof(file) && (line=fgetln(file,&line_len))) {
+		char *cmd = get_next_arg(line, &line);
+		if(!cmd) {
+			continue;
+		} else if(strcaseequal(cmd,"Pairing")) {
+			char* pairing_id_str = get_next_arg(line, &line);
+			char* pairing_local_path_str = get_next_arg(line, &line);
+			char* pairing_remote_url_str = get_next_arg(line, &line);
+			char* pairing_enabled_str = get_next_arg(line, &line);
+			char* pairing_content_type_str = get_next_arg(line, &line);
+			if ( (pairing_id_str == NULL)
+			  || (pairing_local_path_str == NULL)
+			  || (pairing_remote_url_str == NULL)
+			  || (pairing_enabled_str == NULL)
+			  || (pairing_content_type_str == NULL)
+			) {
+				break;
+			}
+			smcp_pairing_t pairing = smcp_pairing_mgr_new_pairing(
+				&self->pairing_mgr,
+				pairing_local_path_str,
+				pairing_remote_url_str,
+				(uint8_t)atoi(pairing_id_str)
+			);
+
+			smcp_pairing_set_content_type(pairing, (coap_content_type_t)atoi(pairing_content_type_str));
+
+			if (atoi(pairing_enabled_str) != 0) {
+				smcp_pairing_set_enabled(pairing, true);
+			}
+
+			smcp_pairing_set_stable(pairing, true);
+		}
+	}
 
 bail:
+	if (path && (path[0] != 0)) {
+		self->pairing_mgr.commit_stable_pairings = (void*)&pairing_node_commit_stable;
+		self->pairing_mgr.context = strdup(path);
+	}
+
+	if (file) {
+		fclose(file);
+	}
 
 	return self;
 }

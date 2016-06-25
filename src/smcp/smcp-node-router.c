@@ -62,14 +62,14 @@ static struct smcp_node_s smcp_node_pool[SMCP_CONF_MAX_ALLOCED_NODES];
 
 // MARK: -
 
-smcp_status_t
+static smcp_status_t
 smcp_default_request_handler(
    smcp_node_t node
 ) {
    if(smcp_inbound_get_code() == COAP_METHOD_GET) {
 	   return smcp_handle_list(node);
    }
-   return SMCP_STATUS_NOT_ALLOWED;
+   return SMCP_STATUS_NOT_FOUND;
 }
 
 smcp_status_t

@@ -260,8 +260,9 @@ coap_msg_id_t
 smcp_get_next_msg_id(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
 
-	if(!self->last_msg_id)
+	if (0 == self->last_msg_id) {
 		self->last_msg_id = (uint16_t)SMCP_FUNC_RANDOM_UINT32();
+	}
 
 #if DEBUG
 	// Sequential in debug mode.

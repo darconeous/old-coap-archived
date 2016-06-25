@@ -40,7 +40,7 @@
 #error "SMCP_MAX_OBSERVERS must be set below 127"
 #endif
 
-#define SHOULD_CONFIRM_EVENT_FOR_OBSERVER(obs)		(!((obs)->seq&0x7))
+#define SHOULD_CONFIRM_EVENT_FOR_OBSERVER(obs)		should_confirm_event_for_observer(obs)
 
 struct smcp_observer_s {
 	/**** All of this is private. Don't touch. ****/
@@ -48,12 +48,18 @@ struct smcp_observer_s {
 	struct smcp_observable_s *observable;
 	int8_t next;	// always n+1, zero is end of list
 	uint8_t key;
+	bool on_hold;
 	uint32_t seq;
 	struct smcp_async_response_s async_response;
 	struct smcp_transaction_s transaction;
 };
 
 static struct smcp_observer_s observer_table[SMCP_MAX_OBSERVERS];
+
+static bool
+should_confirm_event_for_observer(const struct smcp_observer_s* obs) {
+	return obs->on_hold || !((obs)->seq&0x7);
+}
 
 static int8_t
 get_unused_observer_index() {
@@ -156,6 +162,7 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 			observer_table[i].key = key;
 			observer_table[i].seq = 0;
 			observer_table[i].observable = context;
+			observer_table[i].on_hold = false;
 		}
 
 		require_noerr_action(
@@ -281,10 +288,16 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 
 		observer_table[i].seq++;
 
+		// We need to get a response
 		if (observer_table[i].transaction.active) {
-			smcp_transaction_new_msg_id(interface, &observer_table[i].transaction, smcp_get_next_msg_id(interface));
+			if (!observer_table[i].on_hold) {
+				smcp_transaction_new_msg_id(interface, &observer_table[i].transaction, smcp_get_next_msg_id(interface));
+			}
 			smcp_transaction_tickle(interface, &observer_table[i].transaction);
 		} else {
+			bool should_confirm = SHOULD_CONFIRM_EVENT_FOR_OBSERVER(&observer_table[i]);
+			observer_table[i].on_hold |= should_confirm;
+
 			smcp_transaction_init(
 				&observer_table[i].transaction,
 				0, // Flags
@@ -296,7 +309,7 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 			ret = smcp_transaction_begin(
 				interface,
 				&observer_table[i].transaction,
-				SHOULD_CONFIRM_EVENT_FOR_OBSERVER(&observer_table[i])?SMCP_OBSERVER_CON_EVENT_EXPIRATION:SMCP_OBSERVER_NON_EVENT_EXPIRATION
+				should_confirm?SMCP_OBSERVER_CON_EVENT_EXPIRATION:SMCP_OBSERVER_NON_EVENT_EXPIRATION
 			);
 		}
 	}

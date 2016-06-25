@@ -45,6 +45,8 @@ typedef struct {
 	coap_transaction_type_t outbound_tt;
 	coap_code_t expected_code;
 
+	coap_content_type_t outbound_content_type;
+
 	coap_code_t inbound_code;
 	smcp_status_t error;
 	coap_size_t inbound_content_len;
@@ -52,6 +54,7 @@ typedef struct {
 	int inbound_dupe_packets;
 	int outbound_attempts;
 
+	uint16_t msg_id;
 	uint32_t block1_option;
 	uint32_t block2_option;
 
@@ -62,17 +65,21 @@ typedef struct {
 	smcp_timestamp_t stop_time;
 
 	enum {
-		EXT_NONE,
-		EXT_BLOCK_01,
-		EXT_BLOCK_02,
+		EXT_NONE      = 0,
+		EXT_BLOCK_01  = 1,
+		EXT_BLOCK_02  = 2,
+		EXT_OBS_01    = 4,
 	} extra;
+
+	smcp_transaction_t transaction;
+	char response[1024*20];
 } test_data_s;
 
 void
 dump_test_results(const test_data_s *test_data) {
 	printf("\tURL: %s\n",test_data->url);
 	if(test_data->inbound_code)
-		printf("\tinbound_code: %s (%d)\n", coap_code_to_cstr(test_data->inbound_code),test_data->inbound_code);
+		printf("\tinbound_code: %s (%d)\n", coap_code_to_cstr(test_data->inbound_code), COAP_TO_HTTP_CODE(test_data->inbound_code));
 
 	if(test_data->error || test_data->failed) {
 		if(test_data->error)
@@ -93,13 +100,20 @@ dump_test_results(const test_data_s *test_data) {
 		coap_decode_block(&block_info, test_data->block2_option);
 		printf("\tblock2: %d/%d/%d\n", block_info.block_offset,block_info.block_m,block_info.block_size);
 	}
+	printf("\tlast_msg_id: 0x%04X\n", (int)test_data->msg_id);
 	printf("\tinbound_content_len: %d\n", (int)test_data->inbound_content_len);
-	if(test_data->inbound_packets!=1)
+	if(test_data->inbound_packets!=1) {
 		printf("\tinbound_packets: %d\n", test_data->inbound_packets);
-	if(test_data->inbound_dupe_packets!=0)
+	}
+	if(test_data->inbound_dupe_packets!=0) {
 		printf("\tinbound_dupes: %d\n", test_data->inbound_dupe_packets);
-	if(test_data->outbound_attempts!=1)
+	}
+	if(test_data->outbound_attempts!=1) {
 		printf("\toutbound_attempts: %d\n", test_data->outbound_attempts);
+	}
+	if(test_data->response[0]!=0) {
+		printf("\tresponse: \"%s\"\n", test_data->response);
+	}
 }
 
 smcp_status_t
@@ -113,46 +127,62 @@ resend_test_request(void* context) {
 	status = smcp_outbound_set_uri(test_data->url, 0);
 	require_noerr(status,bail);
 
-	if (test_data->extra == EXT_BLOCK_01) {
+	if (test_data->outbound_content_type != COAP_CONTENT_TYPE_UNKNOWN) {
+		status = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, test_data->outbound_content_type);
+		require_noerr(status,bail);
+	}
+
+	if (test_data->extra & EXT_BLOCK_01) {
 		struct coap_block_info_s block1_info;
-		uint32_t resource_length = 2000;
+		uint32_t resource_length = 200;
+		uint32_t block_stop;
 
-		if (!test_data->has_block1_option) {
-			test_data->block1_option = (2 | (1<<3));	// 64 byte block size;
-		}
+		coap_decode_block(&block1_info, test_data->block1_option + (1<<4));
 
-		smcp_outbound_add_option_uint(COAP_OPTION_BLOCK1, test_data->block1_option);
+		block_stop = block1_info.block_offset+block1_info.block_size;
 
-		coap_decode_block(&block1_info, test_data->block1_option);
-
-		if (block1_info.block_m) {
-			coap_size_t max_len = 0;
-			uint32_t i;
-			uint32_t block_stop;
-			char* content = NULL;
-			content = smcp_outbound_get_content_ptr(&max_len);
-
-			if (!content) {
-				status = SMCP_STATUS_FAILURE;
-				goto bail;
+		if (block1_info.block_offset < resource_length) {
+			if (block_stop >= resource_length) {
+				test_data->block1_option &= ~(1<<3);
+			} else {
+				test_data->block1_option |= (1<<3);
 			}
 
-			block_stop = block1_info.block_offset+block1_info.block_size;
+			if (test_data->has_block1_option) {
+				test_data->block1_option += (1<<4);
+			}
 
-			for (i = block1_info.block_offset; i < block_stop; i++) {
-				if (!((i + 1) % 64)) {
-					content[i-block1_info.block_offset] = '\n';
-				} else {
-					content[i-block1_info.block_offset] = '0'+(i%10);
+			smcp_outbound_add_option_uint(COAP_OPTION_BLOCK1, test_data->block1_option);
+
+			if (block1_info.block_m) {
+				coap_size_t max_len = 0;
+				uint32_t i;
+				uint32_t block_stop;
+				char* content = NULL;
+				content = smcp_outbound_get_content_ptr(&max_len);
+
+				if (!content) {
+					status = SMCP_STATUS_FAILURE;
+					goto bail;
 				}
-			}
 
-			status = smcp_outbound_set_content_len(MIN((coap_code_t)(block_stop-block1_info.block_offset),(coap_code_t)(resource_length-block1_info.block_offset)));
-			require_noerr(status,bail);
+				block_stop = block1_info.block_offset+block1_info.block_size;
+
+				for (i = block1_info.block_offset; i < block_stop; i++) {
+					if (!((i + 1) % 64)) {
+						content[i-block1_info.block_offset] = '\n';
+					} else {
+						content[i-block1_info.block_offset] = '0'+(i%10);
+					}
+				}
+
+				status = smcp_outbound_set_content_len(MIN((coap_code_t)(block_stop-block1_info.block_offset),(coap_code_t)(resource_length-block1_info.block_offset)));
+				require_noerr(status,bail);
+			}
 		}
 	}
 
-	if(test_data->extra==EXT_BLOCK_02) {
+	if(test_data->extra & EXT_BLOCK_02) {
 		smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2, 1);	// 32 byte block size.
 	}
 
@@ -176,39 +206,71 @@ bail:
 static smcp_status_t
 response_test_handler(int statuscode, void* context) {
 	test_data_s * const test_data = context;
+	smcp_t interface = smcp_get_current_instance();
+	bool has_observe_option = false;
 	smcp_status_t status = 0;
 	if(!test_data->finished) {
-		if(statuscode<0) {
+		if (statuscode < 0) {
 			test_data->finished = true;
-			if(statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED)
+			if (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED) {
 				test_data->error = statuscode;
+			}
 		} else {
 			const uint8_t* value;
 			coap_size_t value_len;
 			coap_option_key_t key;
-			while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
-				if(key == COAP_OPTION_BLOCK1) {
+			test_data->msg_id = smcp_inbound_get_packet()->msg_id;
+
+			if (smcp_inbound_is_dupe()) {
+				test_data->inbound_dupe_packets++;
+			} else {
+				test_data->inbound_packets++;
+			}
+
+			while ((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+				if (key == COAP_OPTION_BLOCK1) {
 					uint8_t i;
 					test_data->block1_option = 0;
 					test_data->has_block1_option = 1;
-					for(i = 0; i < value_len; i++)
-						test_data->block1_option = (test_data->block1_option << 8) + value[i];
+					test_data->block1_option = coap_decode_uint32(value,value_len);
+					if ( statuscode == COAP_RESULT_231_CONTINUE) {
+						smcp_transaction_new_msg_id(interface, test_data->transaction, smcp_get_next_msg_id(interface));
+						smcp_transaction_tickle(interface, test_data->transaction);
+					}
 				}
-				if(key == COAP_OPTION_BLOCK2) {
+				if (key == COAP_OPTION_BLOCK2) {
 					uint8_t i;
 					test_data->block2_option = 0;
 					test_data->has_block2_option = 1;
-					for(i = 0; i < value_len; i++)
-						test_data->block2_option = (test_data->block2_option << 8) + value[i];
+					test_data->block2_option = coap_decode_uint32(value,value_len);
+					if (!(test_data->block2_option & (1<<3))) {
+						test_data->finished = true;
+					}
+				}
+				if (key == COAP_OPTION_OBSERVE) {
+					if (test_data->inbound_packets > 2) {
+						test_data->finished = true;
+					}
+					has_observe_option = true;
+					printf("\tobs-response: \"%s\"\n", smcp_inbound_get_content_ptr());
 				}
 			}
 
-			test_data->inbound_content_len+=smcp_inbound_get_content_len();
+			if ( !has_observe_option
+			  && !test_data->has_block2_option
+			  && statuscode != COAP_RESULT_231_CONTINUE
+			) {
+				test_data->finished = true;
+			}
+
+			test_data->inbound_content_len += smcp_inbound_get_content_len();
 			test_data->inbound_code = (coap_code_t)statuscode;
-			if(smcp_inbound_is_dupe())
-				test_data->inbound_dupe_packets++;
-			else
-				test_data->inbound_packets++;
+
+			if (test_data->has_block2_option) {
+				strncat(test_data->response, smcp_inbound_get_content_ptr(), smcp_inbound_get_content_len());
+			} else {
+				strncpy(test_data->response, smcp_inbound_get_content_ptr(), smcp_inbound_get_content_len());
+			}
 		}
 	}
 	return status;
@@ -217,38 +279,51 @@ response_test_handler(int statuscode, void* context) {
 bool
 test_simple(smcp_t smcp, test_data_s *test_data, const char* url, const char* rel, coap_code_t outbound_code,coap_transaction_type_t outbound_tt,coap_code_t expected_code, int extra)
 {
+	smcp_cms_t timeout = 15*MSEC_PER_SEC;
 	smcp_status_t status;
 	smcp_transaction_t transaction = NULL;
+	int t_flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE | SMCP_TRANSACTION_NO_AUTO_END;
+	smcp_timestamp_t expiry = smcp_plat_cms_to_timestamp(timeout+MSEC_PER_SEC);
 	memset(test_data,0,sizeof(*test_data));
 	test_data->outbound_code = outbound_code;
 	test_data->outbound_tt = outbound_tt;
 	test_data->expected_code = expected_code;
 	test_data->extra = extra;
+	test_data->outbound_content_type = COAP_CONTENT_TYPE_UNKNOWN;
+	if (extra & EXT_BLOCK_01) {
+		test_data->outbound_content_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
+		test_data->block1_option = (2 | (1<<3));	// 64 byte block size;
+	}
 	if(strlen(url) && (url[strlen(url)-1] == '/')) {
 		snprintf(test_data->url,sizeof(test_data->url), "%s%s",url,rel);
 	} else {
 		snprintf(test_data->url,sizeof(test_data->url), "%s/%s",url,rel);
 	}
 
+	if (extra & EXT_OBS_01) {
+		t_flags = SMCP_TRANSACTION_OBSERVE;
+	}
+
 	test_data->start_time = smcp_plat_cms_to_timestamp(0);
 	transaction = smcp_transaction_init(
 		transaction,
-		SMCP_TRANSACTION_ALWAYS_INVALIDATE, // Flags
+		t_flags,
 		(void*)&resend_test_request,
 		(void*)&response_test_handler,
 		(void*)test_data
 	);
+	test_data->transaction = transaction;
 
 	status = smcp_transaction_begin(
 		smcp,
 		transaction,
-		30*MSEC_PER_SEC
+		timeout
 	);
 
 	require_noerr(status, bail);
 
-	while(!test_data->finished) {
-		status = smcp_plat_wait(smcp,30*MSEC_PER_SEC);
+	while(!test_data->finished && (smcp_plat_timestamp_to_cms(expiry)>0)) {
+		status = smcp_plat_wait(smcp, smcp_plat_timestamp_to_cms(expiry));
 		require((status==SMCP_STATUS_OK) || (status==SMCP_STATUS_TIMEOUT), bail);
 
 		status = smcp_plat_process(smcp);
@@ -258,11 +333,20 @@ test_simple(smcp_t smcp, test_data_s *test_data, const char* url, const char* re
 	test_data->stop_time = smcp_plat_cms_to_timestamp(0);
 
 	test_data->failed = true;
-	require(test_data->inbound_code == test_data->expected_code,bail);
 
+	require(smcp_plat_timestamp_to_cms(expiry)>0, bail);
+	require(test_data->inbound_code == test_data->expected_code,bail);
+	if (expected_code == COAP_CODE_EMPTY) {
+		require(test_data->error == SMCP_STATUS_RESET, bail);
+	} else {
+		require(test_data->error == SMCP_STATUS_OK, bail);
+	}
 	test_data->failed = false;
 
 bail:
+	if (transaction) {
+		smcp_transaction_end(smcp, transaction);
+	}
 	return (status == SMCP_STATUS_OK) && !test_data->failed;
 }
 
@@ -406,7 +490,7 @@ test_TD_COAP_CORE_09(smcp_t smcp, const char* url, test_data_s *test_data)
 }
 
 bool
-test_TD_COAP_CORE_12(smcp_t smcp, const char* url, test_data_s *test_data)
+test_TD_COAP_CORE_13(smcp_t smcp, const char* url, test_data_s *test_data)
 {
 	return test_simple(
 		smcp,
@@ -422,7 +506,7 @@ test_TD_COAP_CORE_12(smcp_t smcp, const char* url, test_data_s *test_data)
 
 
 bool
-test_TD_COAP_CORE_13(smcp_t smcp, const char* url, test_data_s *test_data)
+test_TD_COAP_CORE_14(smcp_t smcp, const char* url, test_data_s *test_data)
 {
 	return test_simple(
 		smcp,
@@ -437,7 +521,7 @@ test_TD_COAP_CORE_13(smcp_t smcp, const char* url, test_data_s *test_data)
 }
 
 bool
-test_TD_COAP_CORE_16(smcp_t smcp, const char* url, test_data_s *test_data)
+test_TD_COAP_CORE_17(smcp_t smcp, const char* url, test_data_s *test_data)
 {
 	return test_simple(
 		smcp,
@@ -450,6 +534,22 @@ test_TD_COAP_CORE_16(smcp_t smcp, const char* url, test_data_s *test_data)
 		EXT_NONE
 	);
 }
+
+bool
+test_TD_COAP_CORE_31(smcp_t smcp, const char* url, test_data_s *test_data)
+{
+	return test_simple(
+		smcp,
+		test_data,
+		url,
+		NULL,
+		COAP_CODE_EMPTY,
+		COAP_TRANS_TYPE_CONFIRMABLE,
+		COAP_CODE_EMPTY,
+		EXT_NONE
+	);
+}
+
 
 bool
 test_TD_COAP_LINK_01(smcp_t smcp, const char* url, test_data_s *test_data)
@@ -511,6 +611,50 @@ test_TD_COAP_BLOCK_03(smcp_t smcp, const char* url, test_data_s *test_data)
 	);
 }
 
+bool
+test_TD_COAP_BLOCK_04(smcp_t smcp, const char* url, test_data_s *test_data)
+{
+	return test_simple(
+		smcp,
+		test_data,
+		url,
+		"large-create",
+		COAP_METHOD_POST,
+		COAP_TRANS_TYPE_CONFIRMABLE,
+		COAP_RESULT_201_CREATED,
+		EXT_BLOCK_01
+	);
+}
+
+bool
+test_TD_COAP_BLOCK_05(smcp_t smcp, const char* url, test_data_s *test_data)
+{
+	return test_simple(
+		smcp,
+		test_data,
+		url,
+		"large-post",
+		COAP_METHOD_POST,
+		COAP_TRANS_TYPE_CONFIRMABLE,
+		COAP_RESULT_204_CHANGED,
+		EXT_BLOCK_01
+	);
+}
+
+bool
+test_TD_COAP_OBS_01(smcp_t smcp, const char* url, test_data_s *test_data)
+{
+	return test_simple(
+		smcp,
+		test_data,
+		url,
+		"obs",
+		COAP_METHOD_GET,
+		COAP_TRANS_TYPE_CONFIRMABLE,
+		COAP_RESULT_205_CONTENT,
+		EXT_OBS_01
+	);
+}
 
 
 int
@@ -518,6 +662,7 @@ main(int argc, char * argv[]) {
 	smcp_t smcp;
 	const char* url = "coap://localhost/";
 	int errorcount = 0;
+	int round_count = 1;
 	int round = 0;
 	test_data_s test_data;
 
@@ -532,18 +677,25 @@ main(int argc, char * argv[]) {
 //	url = "coap://coap.me/";
 //	url = "coap://vs0.inf.ethz.ch/";
 
-	if(argc>1) url = argv[1];
-	if(!smcp) {
+	if (argc > 1) url = argv[1];
+	if (!smcp) {
 		fprintf(stderr,"Unable to allocate smcp instance\n");
 		exit(-1);
 	}
 
-	printf("Client using port %d.\n", smcp_plat_get_port(smcp));
+	if (argc > 2) {
+		round_count = atoi(argv[2]);
+	}
+
+	printf("Client using port %d. Will test %d rounds.\n", smcp_plat_get_port(smcp), round_count);
 
 #define do_test(x)	do { printf("%s: Testing...\n",#x); if(test_ ## x(smcp,url,&test_data)) { dump_test_results(&test_data); printf("\tresult = OK\n"); } else { dump_test_results(&test_data); printf("\tresult = FAIL\n"); errorcount++; } } while(0)
 
-	for(round = 0;round<10 && errorcount==0;round++) {
+#define do_test_expect_fail(x)	do { printf("%s: Testing...\n",#x); if(test_ ## x(smcp,url,&test_data)) { dump_test_results(&test_data); printf("\tresult = OK (Unexpected)\n"); } else { dump_test_results(&test_data); printf("\tresult = FAIL (Expected)\n"); } } while(0)
+
+	for(round = 0;round<round_count && errorcount==0;round++) {
 		printf("\n## Round %d...\n",round+1);
+
 		do_test(TD_COAP_CORE_01);
 		do_test(TD_COAP_CORE_02);
 		do_test(TD_COAP_CORE_03);
@@ -554,15 +706,26 @@ main(int argc, char * argv[]) {
 		do_test(TD_COAP_CORE_08);
 		do_test(TD_COAP_CORE_09);
 
-		do_test(TD_COAP_CORE_12);
 		do_test(TD_COAP_CORE_13);
-		do_test(TD_COAP_CORE_16);
+		do_test(TD_COAP_CORE_14);
+		do_test(TD_COAP_CORE_17);
+		do_test(TD_COAP_CORE_31);
 
 		do_test(TD_COAP_LINK_01);
 
 		do_test(TD_COAP_BLOCK_01);
 		do_test(TD_COAP_BLOCK_02);
-		//do_test(TD_COAP_BLOCK_03);
+
+		do_test_expect_fail(TD_COAP_BLOCK_03);
+		do_test_expect_fail(TD_COAP_BLOCK_04);
+		do_test_expect_fail(TD_COAP_BLOCK_05);
+		do_test(TD_COAP_OBS_01);
+	}
+
+	if (errorcount == 0) {
+		printf("\nPASS\n");
+	} else {
+		printf("\nFAIL\n");
 	}
 
 	return errorcount;

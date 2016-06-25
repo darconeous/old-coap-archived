@@ -67,7 +67,7 @@ __BEGIN_DECLS
 **
 **	This system is convenient because it provides a way to implement
 **	generic, highly-flexible machine-to-machine communication with very
-**	little additional code. 
+**	little additional code.
 */
 
 #if SMCP_CONF_MAX_PAIRINGS > 0
@@ -78,12 +78,18 @@ typedef struct smcp_pairing_mgr_s *smcp_pairing_mgr_t;
 struct smcp_pairing_s;
 typedef struct smcp_pairing_s *smcp_pairing_t;
 
-enum {
-	SMCP_PAIRING_RELIABILITY_NONE,
-	SMCP_PAIRING_RELIABILITY_ASAP,
-	SMCP_PAIRING_RELIABILITY_PART,
-	SMCP_PAIRING_RELIABILITY_FULL,
-};
+typedef enum {
+	SMCP_PAIRING_TYPE_NONE = 0,
+
+	//! Observed remote resource POSTs to a local resource.
+	SMCP_PAIRING_TYPE_PULL = 1,
+
+	//! Observed local resource POSTs to a remote resource.
+	SMCP_PAIRING_TYPE_PUSH = 2,
+
+	//! Remote and local resources are kept in sync.
+	SMCP_PAIRING_TYPE_SYNC = 3,
+} smcp_pairing_type_t;
 
 struct smcp_pairing_s {
 	struct smcp_variable_handler_s var_handler;
@@ -92,7 +98,7 @@ struct smcp_pairing_s {
 	bool stable:1;
 	bool enabled:1;
 	bool in_use:1;
-	unsigned rel:2;
+	unsigned type:2;
 
 	smcp_status_t last_code;
 	int fire_count;
@@ -115,7 +121,12 @@ struct smcp_pairing_mgr_s {
 	struct smcp_pairing_s pairing_table[SMCP_CONF_MAX_PAIRINGS];
 	smcp_t smcp_instance;
 
-	smcp_pairing_t pairings;
+	// This function pointer should commit all stable
+	// pairings to non-volatile memory, preserving their
+	// `id` numbers. When the app starts up, it should retrieve
+	// those pairings and recreate them.
+	void (*commit_stable_pairings)(void* context, smcp_pairing_mgr_t mgr);
+	void *context;
 };
 
 SMCP_API_EXTERN smcp_pairing_mgr_t smcp_pairing_mgr_init(
@@ -130,11 +141,8 @@ SMCP_API_EXTERN smcp_status_t smcp_pairing_mgr_request_handler(
 SMCP_API_EXTERN smcp_pairing_t smcp_pairing_mgr_new_pairing(
 	smcp_pairing_mgr_t self,
 	const char* local_path,
-	const char* remote_url
-);
-
-SMCP_API_EXTERN void smcp_pairing_mgr_refresh(
-	smcp_pairing_mgr_t self
+	const char* remote_url,
+	uint8_t requested_id
 );
 
 SMCP_API_EXTERN smcp_pairing_t smcp_pairing_mgr_pairing_begin(
@@ -146,16 +154,26 @@ SMCP_API_EXTERN smcp_pairing_t smcp_pairing_mgr_pairing_next(
 	smcp_pairing_t prev
 );
 
+SMCP_API_EXTERN uint8_t smcp_pairing_get_id(smcp_pairing_t self);
+
 SMCP_API_EXTERN bool smcp_pairing_get_stable(smcp_pairing_t self);
+
 SMCP_API_EXTERN smcp_status_t smcp_pairing_set_stable(smcp_pairing_t self, bool x);
 
 SMCP_API_EXTERN bool smcp_pairing_get_enabled(smcp_pairing_t self);
+
 SMCP_API_EXTERN smcp_status_t smcp_pairing_set_enabled(smcp_pairing_t self, bool x);
 
+SMCP_API_EXTERN smcp_pairing_type_t smcp_pairing_get_type(smcp_pairing_t self);
+
+SMCP_API_EXTERN smcp_status_t smcp_pairing_set_type(smcp_pairing_t self, smcp_pairing_type_t x);
+
 SMCP_API_EXTERN coap_content_type_t smcp_pairing_get_content_type(smcp_pairing_t self);
+
 SMCP_API_EXTERN smcp_status_t smcp_pairing_set_content_type(smcp_pairing_t self, coap_content_type_t x);
 
 SMCP_API_EXTERN const char* smcp_pairing_get_local_path(smcp_pairing_t self);
+
 SMCP_API_EXTERN const char* smcp_pairing_get_remote_url(smcp_pairing_t self);
 
 SMCP_API_EXTERN void smcp_pairing_mgr_delete(

@@ -306,6 +306,21 @@ coap_decode_block(struct coap_block_info_s* block_info, uint32_t block)
 	block_info->block_m = !!(block&(1<<3));
 }
 
+/*
+uint32_t
+coap_encode_block(const struct coap_block_info_s* block_info)
+{
+	uint32_t ret = 0;
+	if (block_info->block_m) {
+		ret |= (1<<3);
+	}
+	(block_info->block_size-4)
+	block_info->block_size = (uint16_t)(1<<((block&0x7)+4));
+	block_info->block_offset = (block>>4) * block_info->block_size;
+	block_info->block_m = !!(block&(1<<3));
+}
+*/
+
 bool
 coap_verify_packet(const char* packet,coap_size_t packet_size) {
 	const struct coap_header_s* const header = (const void*)packet;
@@ -625,6 +640,7 @@ http_code_to_cstr(int x) {
 	case COAP_METHOD_PUT: return "PUT"; break;
 	case COAP_METHOD_DELETE: return "DELETE"; break;
 #ifndef __SDCC
+	case 231:
 	case HTTP_RESULT_CODE_CONTINUE: return "CONTINUE"; break;
 	case HTTP_RESULT_CODE_OK: return "OK"; break;
 	case HTTP_RESULT_CODE_CONTENT: return "CONTENT"; break;

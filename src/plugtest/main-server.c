@@ -48,8 +48,11 @@ main(int argc, char * argv[]) {
 
 	SMCP_LIBRARY_VERSION_CHECK();
 
-	smcp = smcp_create();
+	if (argc > 1) {
+		port = atoi(argv[1]);
+	}
 
+	smcp = smcp_create();
 
 	// Set up the root node.
 	smcp_node_init(&root_node,NULL,NULL);

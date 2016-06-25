@@ -736,14 +736,19 @@ smcp_outbound_send() {
 	coap_size_t header_len = (coap_size_t)(smcp_outbound_get_content_ptr(NULL)-(char*)self->outbound.packet);
 
 	// Remove the start-of-payload marker if we have no payload.
-	if (!smcp_get_current_instance()->outbound.content_len) {
+	if (!self->outbound.content_len) {
 		header_len--;
+	}
+
+	if (self->outbound.packet->code == COAP_CODE_EMPTY) {
+		self->outbound.content_len = 0;
+		header_len = sizeof(struct coap_header_s);
 	}
 
 #if DEBUG
 	{
-		DEBUG_PRINTF("Outbound packet size: %d, %d remaining",header_len+smcp_get_current_instance()->outbound.content_len, smcp_outbound_get_space_remaining());
-		assert(header_len+smcp_get_current_instance()->outbound.content_len<=self->outbound.max_packet_len);
+		DEBUG_PRINTF("Outbound packet size: %d, %d remaining",header_len+self->outbound.content_len, smcp_outbound_get_space_remaining());
+		assert(header_len+self->outbound.content_len<=self->outbound.max_packet_len);
 
 		assert(coap_verify_packet((char*)self->outbound.packet,header_len+smcp_get_current_instance()->outbound.content_len));
 	}
