@@ -58,6 +58,8 @@
 struct pairing_node_s {
 	struct smcp_node_s node;
 	struct smcp_pairing_mgr_s pairing_mgr;
+	smcp_timestamp_t next_observer_refresh;
+	smcp_t interface;
 };
 
 extern char* get_next_arg(char *buf, char **rest);
@@ -137,12 +139,14 @@ pairing_node_init(
 
 	self->node.has_link_content = 1;
 //	self->node.is_observable = 1;
+	self->interface = smcp_get_current_instance();
 
-	smcp_pairing_mgr_init(&self->pairing_mgr, smcp_get_current_instance());
+	smcp_pairing_mgr_init(&self->pairing_mgr, self->interface);
 
 	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_pairing_mgr_request_handler;
 	((smcp_node_t)&self->node)->context = (void*)&self->pairing_mgr;
 
+	self->next_observer_refresh = smcp_plat_cms_to_timestamp(MSEC_PER_SEC*60*10);
 
 	require(file != NULL,bail);
 
@@ -203,12 +207,19 @@ pairing_node_update_fdset(
     int *fd_count,
 	smcp_cms_t *timeout
 ) {
+	if (timeout) {
+		*timeout = smcp_plat_timestamp_to_cms(self->next_observer_refresh);
+	}
 	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
 pairing_node_process(pairing_node_t self)
 {
+	if (smcp_plat_timestamp_to_cms(self->next_observer_refresh) < 0) {
+		self->next_observer_refresh = smcp_plat_cms_to_timestamp(MSEC_PER_SEC*60*10);
+		smcp_refresh_observers(self->interface);
+	}
 	return SMCP_STATUS_OK;
 }
 

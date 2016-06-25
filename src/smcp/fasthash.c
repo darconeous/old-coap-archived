@@ -24,8 +24,6 @@ fasthash_feed_block(struct fasthash_state_s* state, uint32_t blk) {
 
 	// Mix up the hash state using a linear congruential generator.
 	state->hash = state->hash * 1664525 + 1013904223;
-
-	state->hash ^= blk * 1103515245;
 }
 
 void
