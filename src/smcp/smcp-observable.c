@@ -93,7 +93,6 @@ free_observer(struct smcp_observer_s *observer)
 
 	smcp_transaction_end(interface, &observer->transaction);
 
-
 	if ((context->first_observer==i+1) && (context->last_observer==i+1)) {
 		context->first_observer = context->last_observer = 0;
 
@@ -116,7 +115,8 @@ free_observer(struct smcp_observer_s *observer)
 	}
 
 bail:
-
+	observer->observable = NULL;
+	observer->next = 0;
 	smcp_finish_async_response(&observer->async_response);
 	return;
 }
@@ -190,6 +190,10 @@ bail:
 static smcp_status_t
 event_response_handler(int statuscode, struct smcp_observer_s* observer)
 {
+	if (statuscode >= 0) {
+		observer->on_hold = false;
+	}
+
 	if (statuscode == SMCP_STATUS_TIMEOUT) {
 		if (SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)) {
 			statuscode = SMCP_STATUS_RESET;
@@ -257,6 +261,76 @@ bail:
 	return status;
 }
 
+static smcp_status_t
+trigger_observer(smcp_t interface, struct smcp_observer_s* observer, bool force_con)
+{
+	smcp_status_t ret = SMCP_STATUS_OK;
+	observer->seq++;
+
+	// We need to get a response
+	if (observer->transaction.active) {
+		if (!observer->on_hold) {
+			smcp_transaction_new_msg_id(interface, &observer->transaction, smcp_get_next_msg_id(interface));
+		}
+		smcp_transaction_tickle(interface, &observer->transaction);
+	} else {
+		bool should_confirm = force_con || SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer);
+		observer->on_hold |= should_confirm;
+
+		smcp_transaction_init(
+			&observer->transaction,
+			0, // Flags
+			(void*)&retry_sending_event,
+			(void*)&event_response_handler,
+			(void*)observer
+		);
+
+		ret = smcp_transaction_begin(
+			interface,
+			&observer->transaction,
+			should_confirm?SMCP_OBSERVER_CON_EVENT_EXPIRATION:SMCP_OBSERVER_NON_EVENT_EXPIRATION
+		);
+	}
+
+	return ret;
+}
+
+int
+smcp_count_observers(smcp_t interface)
+{
+	int ret = 0;
+	int8_t i = 0;
+	for (; i < SMCP_MAX_OBSERVERS; i++) {
+		struct smcp_observer_s* observer = &observer_table[i];
+		if ( (observer->next != 0)
+		  && (observer->observable != NULL)
+#if !SMCP_EMBEDDED
+		  && (observer->observable->interface == interface)
+#endif
+		) {
+			ret++;
+		}
+	}
+	return ret;
+}
+
+void
+smcp_refresh_observers(smcp_t interface)
+{
+	int8_t i = 0;
+	for (; i < SMCP_MAX_OBSERVERS; i++) {
+		struct smcp_observer_s* observer = &observer_table[i];
+		if ( (observer->next != 0)
+		  && (observer->observable != NULL)
+#if !SMCP_EMBEDDED
+		  && (observer->observable->interface == interface)
+#endif
+		) {
+			trigger_observer(interface, observer, true);
+		}
+	}
+}
+
 smcp_status_t
 smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 {
@@ -268,6 +342,8 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 	if (!interface) {
 		goto bail;
 	}
+#else
+	smcp_t const interface = smcp_get_current_instance();
 #endif
 
 
@@ -285,33 +361,7 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 		) {
 			continue;
 		}
-
-		observer_table[i].seq++;
-
-		// We need to get a response
-		if (observer_table[i].transaction.active) {
-			if (!observer_table[i].on_hold) {
-				smcp_transaction_new_msg_id(interface, &observer_table[i].transaction, smcp_get_next_msg_id(interface));
-			}
-			smcp_transaction_tickle(interface, &observer_table[i].transaction);
-		} else {
-			bool should_confirm = SHOULD_CONFIRM_EVENT_FOR_OBSERVER(&observer_table[i]);
-			observer_table[i].on_hold |= should_confirm;
-
-			smcp_transaction_init(
-				&observer_table[i].transaction,
-				0, // Flags
-				(void*)&retry_sending_event,
-				(void*)&event_response_handler,
-				(void*)&observer_table[i]
-			);
-
-			ret = smcp_transaction_begin(
-				interface,
-				&observer_table[i].transaction,
-				should_confirm?SMCP_OBSERVER_CON_EVENT_EXPIRATION:SMCP_OBSERVER_NON_EVENT_EXPIRATION
-			);
-		}
+		ret = trigger_observer(interface, &observer_table[i], false);
 	}
 
 bail:
