@@ -229,7 +229,7 @@ smcp_plugtest_server_LDADD = ../smcp/libsmcp.la
 smcp_plugtest_client_SOURCES = main-client.c
 smcp_plugtest_client_LDADD = ../smcp/libsmcp.la
 TESTS = selftest.sh
-EXTRA_DIST = selftest.sh
+EXTRA_DIST = selftest.sh README.md
 DISTCLEANFILES = .deps Makefile
 all: all-am
 
