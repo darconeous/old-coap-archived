@@ -59,6 +59,7 @@
 		A63EA7011278B16D00B24867 /* url-helpers.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6F71278B16D00B24867 /* url-helpers.c */; };
 		A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EB2881278CBB100B24867 /* cmd_repeat.c */; };
 		A64F2AF9166EB236001D9878 /* smcp-transaction.c in Sources */ = {isa = PBXBuildFile; fileRef = A64F2AF8166EB236001D9878 /* smcp-transaction.c */; };
+		A654A1601D2238370050C7BD /* TODO.md in Sources */ = {isa = PBXBuildFile; fileRef = A654A15F1D2238370050C7BD /* TODO.md */; };
 		A669AAE319B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
 		A669AAE419B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
 		A669AAE519B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
@@ -344,6 +345,7 @@
 		A64F2AFB166EB265001D9878 /* smcp-transaction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-transaction.h"; sourceTree = "<group>"; usesTabs = 1; };
 		A65258361528F45300E389EC /* cmd_monitor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_monitor.c; path = src/smcpctl/cmd_monitor.c; sourceTree = "<group>"; };
 		A65258391528F47C00E389EC /* cmd_monitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = cmd_monitor.h; path = src/smcpctl/cmd_monitor.h; sourceTree = "<group>"; };
+		A654A15F1D2238370050C7BD /* TODO.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = TODO.md; sourceTree = "<group>"; };
 		A669AADE19AE815700274532 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A669AADF19AE815700274532 /* test-concurrency.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "test-concurrency.c"; sourceTree = "<group>"; };
 		A669AAE019B1232E00274532 /* getline.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = getline.c; sourceTree = "<group>"; };
@@ -788,6 +790,7 @@
 				A60BF11B158D425F00D39B5C /* COPYING */,
 				A60BF11C158D425F00D39B5C /* README.md */,
 				A6DC100916CEADAE00DD2180 /* NEWS.md */,
+				A654A15F1D2238370050C7BD /* TODO.md */,
 			);
 			name = Documentation;
 			sourceTree = "<group>";
@@ -1006,6 +1009,7 @@
 				A63EA6FE1278B16D00B24867 /* smcp-timer.c in Sources */,
 				A63EA7001278B16D00B24867 /* smcp.c in Sources */,
 				A63EA7011278B16D00B24867 /* url-helpers.c in Sources */,
+				A654A1601D2238370050C7BD /* TODO.md in Sources */,
 				A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */,
 				A60E4FE619B6745000D876DD /* smcp-session.c in Sources */,
 				A6FB08741D0FBBEB004116B1 /* smcp-pairing.c in Sources */,

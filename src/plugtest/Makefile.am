@@ -1,5 +1,4 @@
 AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
-#AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 
 @CODE_COVERAGE_RULES@
 
@@ -16,6 +15,8 @@ smcp_plugtest_client_SOURCES = main-client.c
 smcp_plugtest_client_LDADD = ../smcp/libsmcp.la
 
 TESTS = selftest.sh
+
+TESTS_ENVIRONMENT = builddir='$(builddir)'
 
 EXTRA_DIST = selftest.sh README.md
 DISTCLEANFILES = .deps Makefile

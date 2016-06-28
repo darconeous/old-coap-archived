@@ -229,20 +229,18 @@ response_test_handler(int statuscode, void* context) {
 
 			while ((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 				if (key == COAP_OPTION_BLOCK1) {
-					uint8_t i;
 					test_data->block1_option = 0;
 					test_data->has_block1_option = 1;
-					test_data->block1_option = coap_decode_uint32(value,value_len);
+					test_data->block1_option = coap_decode_uint32(value,(uint8_t)value_len);
 					if ( statuscode == COAP_RESULT_231_CONTINUE) {
 						smcp_transaction_new_msg_id(interface, test_data->transaction, smcp_get_next_msg_id(interface));
 						smcp_transaction_tickle(interface, test_data->transaction);
 					}
 				}
 				if (key == COAP_OPTION_BLOCK2) {
-					uint8_t i;
 					test_data->block2_option = 0;
 					test_data->has_block2_option = 1;
-					test_data->block2_option = coap_decode_uint32(value,value_len);
+					test_data->block2_option = coap_decode_uint32(value,(uint8_t)value_len);
 					if (!(test_data->block2_option & (1<<3))) {
 						test_data->finished = true;
 					}

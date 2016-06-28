@@ -29,7 +29,7 @@
 #ifndef __SMCP_PAIRING_H__
 #define __SMCP_PAIRING_H__ 1
 
-#include "smcp-opts.h"
+#include "smcp-config.h"
 #include "smcp-observable.h"
 #include "smcp-async.h"
 #include "smcp-variable_handler.h"
@@ -72,6 +72,8 @@ __BEGIN_DECLS
 
 #if SMCP_CONF_MAX_PAIRINGS > 0
 
+#define COAP_RESOURCE_TYPE_PAIRING_MANAGER		"pairing-manager"
+
 struct smcp_pairing_mgr_s;
 typedef struct smcp_pairing_mgr_s *smcp_pairing_mgr_t;
 
@@ -85,9 +87,11 @@ typedef enum {
 	SMCP_PAIRING_TYPE_PULL = 1,
 
 	//! Observed local resource POSTs to a remote resource.
+	/*! Not yet implemented. */
 	SMCP_PAIRING_TYPE_PUSH = 2,
 
 	//! Remote and local resources are kept in sync.
+	/*! Not yet implemented. */
 	SMCP_PAIRING_TYPE_SYNC = 3,
 } smcp_pairing_type_t;
 

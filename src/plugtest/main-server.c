@@ -34,9 +34,35 @@
 #include <smcp/assert-macros.h>
 
 #include <smcp/smcp.h>
-#include <smcp/smcp-opts.h>
 #include <smcp/smcp-node-router.h>
+#include <signal.h>
 #include "plugtest-server.h"
+
+bool gIsDone = false;
+static sig_t gPreviousHandlerForSIGINT;
+static sig_t gPreviousHandlerForSIGTERM;
+
+static void
+signal_SIGINT(int sig) {
+	gIsDone = true;
+	fprintf(stderr, "Caught SIGINT!\n");
+	signal(SIGINT, gPreviousHandlerForSIGINT);
+	gPreviousHandlerForSIGINT = NULL;
+}
+
+static void
+signal_SIGTERM(int sig) {
+	gIsDone = true;
+	fprintf(stderr, "Caught SIGTERM!\n");
+	signal(SIGTERM, gPreviousHandlerForSIGTERM);
+	gPreviousHandlerForSIGTERM = NULL;
+}
+
+static void
+signal_SIGHUP(int sig) {
+	gIsDone = true;
+	fprintf(stderr, "Caught SIGHUP!\n");
+}
 
 int
 main(int argc, char * argv[]) {
@@ -51,6 +77,10 @@ main(int argc, char * argv[]) {
 	if (argc > 1) {
 		port = atoi(argv[1]);
 	}
+
+	gPreviousHandlerForSIGINT = signal(SIGINT, &signal_SIGINT);
+	gPreviousHandlerForSIGTERM = signal(SIGINT, &signal_SIGTERM);
+	signal(SIGHUP, &signal_SIGHUP);
 
 	smcp = smcp_create();
 
@@ -102,7 +132,7 @@ main(int argc, char * argv[]) {
 		if (status != SMCP_STATUS_OK) {
 			port++;
 		}
-	} while(status != SMCP_STATUS_OK && port != 0);
+	} while (status != SMCP_STATUS_OK && port != 0 && !gIsDone);
 
 	if (status) {
 		fprintf(stderr,"\nFailed to bind to port.\n");
@@ -111,8 +141,8 @@ main(int argc, char * argv[]) {
 	fprintf(stderr,"\nPlugtest server listening on port %d.\n", port);
 
 
-	while(1) {
-		smcp_plat_wait(smcp,30*MSEC_PER_SEC);
+	while (!gIsDone) {
+		smcp_plat_wait(smcp, CMS_DISTANT_FUTURE);
 		smcp_plat_process(smcp);
 	}
 
