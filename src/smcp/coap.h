@@ -270,12 +270,19 @@ typedef enum {
 
 
 enum {
-	COAP_CONTENT_TYPE_TEXT_PLAIN=0,
-	COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT=40,   //!< draft-shelby-core-link-format
-	COAP_CONTENT_TYPE_APPLICATION_XML=41,
-	COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM=42,
-	COAP_CONTENT_TYPE_APPLICATION_EXI=47,
-	COAP_CONTENT_TYPE_APPLICATION_JSON=50,
+	COAP_CONTENT_TYPE_TEXT_PLAIN = 0,
+	COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT = 40,   //!< draft-shelby-core-link-format
+	COAP_CONTENT_TYPE_APPLICATION_XML = 41,
+	COAP_CONTENT_TYPE_APPLICATION_OCTET_STREAM = 42,
+	COAP_CONTENT_TYPE_APPLICATION_EXI = 47,
+	COAP_CONTENT_TYPE_APPLICATION_JSON = 50,
+
+	//! application/cbor rfc7049
+	COAP_CONTENT_TYPE_APPLICATION_CBOR = 60,
+
+	//! application/coap-group+json rfc7252
+	COAP_CONTENT_TYPE_COAP_GROUP_JSON =256,
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Unofficial after this point
@@ -301,6 +308,8 @@ enum {
 };
 
 typedef uint16_t coap_content_type_t;
+
+#define COAP_RESOURCE_TYPE_COAP_GP		"core.gp"
 
 struct coap_header_s {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__

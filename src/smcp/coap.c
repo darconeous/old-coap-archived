@@ -31,7 +31,6 @@
 #endif
 
 #include "assert-macros.h"
-#include "smcp-opts.h"
 #include "smcp-logging.h"
 #include "smcp-helpers.h"
 #include "smcp-internal.h"

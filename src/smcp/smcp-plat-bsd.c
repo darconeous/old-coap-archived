@@ -73,50 +73,107 @@
 static smcp_status_t
 smcp_internal_join_multicast_group(smcp_t self, const char* group)
 {
-	smcp_status_t ret = SMCP_STATUS_ERRNO;
+	int ret;
+	int btrue = 1;
+	int count = 0;
+	struct hostent *tmp;
+	int i;
 
-	if (self->plat.mcfd == -1) {
-		self->plat.mcfd = socket(SMCP_BSD_SOCKETS_NET_FAMILY, SOCK_DGRAM, 0);
-		require(self->plat.mcfd >= 0, bail);
-	}
+	if (self->plat.mcfd_v4 == -1) {
+		self->plat.mcfd_v4 = socket(AF_INET, SOCK_DGRAM, 0);
+		check(self->plat.mcfd_v4 >= 0);
 
-	struct hostent *tmp = gethostbyname2(group, SMCP_BSD_SOCKETS_NET_FAMILY);
-
-	require(!h_errno && tmp, bail);
-	require(tmp->h_length > 1, bail);
-
-#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-	{
-		struct ipv6_mreq imreq;
-		int btrue = 1;
-		memset(&imreq, 0, sizeof(imreq));
-		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, tmp->h_addr_list[0], 16);
-
-		require(0 ==
-			setsockopt(self->plat.mcfd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
+		if (self->plat.mcfd_v4 >= 0) {
+			ret = setsockopt(
+				self->plat.mcfd_v4,
+				IPPROTO_IP,
+				IP_MULTICAST_LOOP,
 				&btrue,
-				sizeof(btrue)), bail);
-
-		// Do a precautionary leave group, to clear any stake kernel data.
-		setsockopt(self->plat.mcfd,
-			IPPROTO_IPV6,
-			IPV6_LEAVE_GROUP,
-			&imreq,
-			sizeof(imreq));
-
-		require_quiet(0 ==
-			setsockopt(self->plat.mcfd, IPPROTO_IPV6, IPV6_JOIN_GROUP, &imreq,
-				sizeof(imreq)), bail);
+				sizeof(btrue)
+			);
+			check(ret >= 0);
+		}
 	}
-	ret = SMCP_STATUS_OK;
-#else
-#warning TODO: Implement joining the multicast group for this network family!
-	ret = SMCP_STATUS_NOT_IMPLEMENTED;
+
+	if (self->plat.mcfd_v4 != -1) {
+		tmp = gethostbyname2(group, AF_INET);
+
+		for (i = 0; tmp && tmp->h_addr_list[i] != NULL; i++) {
+			struct ip_mreq group_mreq = {};
+			memcpy(&group_mreq.imr_multiaddr.s_addr, tmp->h_addr_list[0], 4);
+
+			ret = setsockopt(
+				self->plat.mcfd_v4,
+				IPPROTO_IP,
+				IP_ADD_MEMBERSHIP,
+				(char *)&group_mreq,
+				sizeof(group_mreq)
+			);
+			if (ret >= 0) {
+				DEBUG_PRINTF("Joined multicast group %s",inet_ntoa(group_mreq.imr_multiaddr));
+				count++;
+			} else {
+				int prev_errno = errno;
+				DEBUG_PRINTF("Unable to join multicast group %s, \"%s\"",inet_ntoa(group_mreq.imr_multiaddr), strerror(prev_errno));
+			}
+		}
+	}
+
+#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
+	if (self->plat.mcfd == -1) {
+		self->plat.mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
+		check(self->plat.mcfd >= 0);
+
+		if (self->plat.mcfd >=0) {
+			setsockopt(
+				self->plat.mcfd,
+				IPPROTO_IPV6,
+				IPV6_MULTICAST_LOOP,
+				&btrue,
+				sizeof(btrue)
+			);
+		}
+	}
+
+	if (self->plat.mcfd != -1) {
+		tmp = gethostbyname2(group, AF_INET6);
+
+		require(!h_errno && tmp, bail);
+		require(tmp->h_length > 1, bail);
+
+		for (i = 0; tmp && tmp->h_addr_list[i] != NULL; i++) {
+			struct ipv6_mreq imreq;
+			memset(&imreq, 0, sizeof(imreq));
+			memcpy(&imreq.ipv6mr_multiaddr.s6_addr, tmp->h_addr_list[0], 16);
+
+			ret = setsockopt(
+				self->plat.mcfd,
+				IPPROTO_IPV6,
+				IPV6_JOIN_GROUP,
+				&imreq,
+				sizeof(imreq)
+			);
+			if (ret >= 0) {
+				char addr_str[50] = "???";
+				inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
+				DEBUG_PRINTF("Joined multicast group %s", addr_str);
+				count++;
+			} else {
+				char addr_str[50] = "???";
+				int prev_errno = errno;
+				inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
+				DEBUG_PRINTF("Unable to join multicast group %s, \"%s\"",addr_str, strerror(prev_errno));
+			}
+		}
+	}
 #endif
 
 bail:
+	if (count != 0) {
+		return SMCP_STATUS_OK;
+	}
 
-	return ret;
+	return SMCP_STATUS_ERRNO;
 }
 
 smcp_t
@@ -124,6 +181,7 @@ smcp_plat_init(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
 
 	self->plat.mcfd = -1;
+	self->plat.mcfd_v4 = -1;
 	self->plat.fd_udp = -1;
 #if SMCP_DTLS
 	self->plat.fd_dtls = -1;
@@ -132,6 +190,8 @@ smcp_plat_init(smcp_t self) {
 #if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
 	smcp_internal_join_multicast_group(self, COAP_MULTICAST_IP6_LL_ALLDEVICES);
 #endif
+
+	smcp_internal_join_multicast_group(self, COAP_MULTICAST_IP4_ALLDEVICES);
 
 	return self;
 }
@@ -150,6 +210,10 @@ smcp_plat_finalize(smcp_t self) {
 #endif
 	if(self->plat.mcfd>=0) {
 		close(self->plat.mcfd);
+	}
+
+	if(self->plat.mcfd_v4>=0) {
+		close(self->plat.mcfd_v4);
 	}
 }
 
@@ -267,6 +331,7 @@ smcp_plat_bind_to_sockaddr(
 	case SMCP_SESSION_TYPE_UDP:
 		self->plat.fd_udp = fd;
 		break;
+
 #if SMCP_DTLS
 	case SMCP_SESSION_TYPE_DTLS:
 		self->plat.fd_dtls = fd;
@@ -406,6 +471,12 @@ sendtofrom(
 )
 {
 	ssize_t ret = -1;
+
+	if (SMCP_IS_ADDR_MULTICAST(&((smcp_sockaddr_t*)saddr_from)->smcp_addr)) {
+		saddr_from = NULL;
+		socklen_from = 0;
+	}
+
 	if ((socklen_from == 0)
 		|| (saddr_from == NULL)
 		|| (saddr_from->sa_family != saddr_to->sa_family)

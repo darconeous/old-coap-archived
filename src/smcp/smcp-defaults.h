@@ -1,4 +1,4 @@
-/*!	@file smcp-opts.h
+/*!	@file smcp-defaults.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **	@brief SMCP Default Build Options
 **

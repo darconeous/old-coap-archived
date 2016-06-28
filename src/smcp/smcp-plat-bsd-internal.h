@@ -85,6 +85,7 @@
 
 struct smcp_plat_s {
 	int						mcfd;	//!< For multicast
+	int						mcfd_v4;	//!< For multicast
 
 	int						fd_udp;
 	int						fd_dtls;

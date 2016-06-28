@@ -40,5 +40,7 @@
 //#define VERBOSE_DEBUG
 //#define SMCP_EMBEDDED 1
 //#define SMCP_USE_BSD_SOCKETS 1
+//#define SMCP_BSD_SOCKETS_NET_FAMILY		AF_INET
+
 
 #endif
