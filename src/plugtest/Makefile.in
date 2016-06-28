@@ -229,6 +229,7 @@ smcp_plugtest_server_LDADD = ../smcp/libsmcp.la
 smcp_plugtest_client_SOURCES = main-client.c
 smcp_plugtest_client_LDADD = ../smcp/libsmcp.la
 TESTS = selftest.sh
+TESTS_ENVIRONMENT = builddir='$(builddir)'
 EXTRA_DIST = selftest.sh README.md
 DISTCLEANFILES = .deps Makefile
 all: all-am
@@ -652,7 +653,6 @@ uninstall-am: uninstall-binPROGRAMS
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am uninstall-binPROGRAMS
 
-#AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 
 @CODE_COVERAGE_RULES@
 
