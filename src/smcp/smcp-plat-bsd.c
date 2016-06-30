@@ -69,12 +69,111 @@
 #endif
 #endif
 
+smcp_status_t
+smcp_plat_multicast_join(smcp_t self, smcp_addr_t *group, int interface)
+{
+	int ret;
+
+	if (NULL == group) {
+		return SMCP_STATUS_INVALID_ARGUMENT;
+	}
+
+#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
+	if (self->plat.mcfd == -1) {
+		self->plat.mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
+		check(self->plat.mcfd >= 0);
+
+		if (self->plat.mcfd >=0 ) {
+			int btrue = 1;
+			setsockopt(
+				self->plat.mcfd,
+				IPPROTO_IPV6,
+				IPV6_MULTICAST_LOOP,
+				&btrue,
+				sizeof(btrue)
+			);
+		}
+	}
+
+	if (self->plat.mcfd != -1) {
+		struct ipv6_mreq imreq;
+		memset(&imreq, 0, sizeof(imreq));
+		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, group, 16);
+		imreq.ipv6mr_interface = interface;
+
+		ret = setsockopt(
+			self->plat.mcfd,
+			IPPROTO_IPV6,
+			IPV6_JOIN_GROUP,
+			&imreq,
+			sizeof(imreq)
+		);
+		if (ret >= 0) {
+			char addr_str[50] = "???";
+			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
+			DEBUG_PRINTF("Joined multicast group %s", addr_str);
+			return SMCP_STATUS_OK;
+		} else {
+			char addr_str[50] = "???";
+			int prev_errno = errno;
+			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
+			DEBUG_PRINTF("Unable to join multicast group %s, \"%s\"",addr_str, strerror(prev_errno));
+			errno = prev_errno;
+			return SMCP_STATUS_ERRNO;
+		}
+	}
+#endif
+
+	return SMCP_STATUS_FAILURE;
+}
+
+smcp_status_t
+smcp_plat_multicast_leave(smcp_t self, smcp_addr_t *group, int interface)
+{
+	int ret;
+
+	if (NULL == group) {
+		return SMCP_STATUS_INVALID_ARGUMENT;
+	}
+
+#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
+
+	if (self->plat.mcfd != -1) {
+		struct ipv6_mreq imreq;
+		memset(&imreq, 0, sizeof(imreq));
+		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, group, 16);
+		imreq.ipv6mr_interface = interface;
+
+		ret = setsockopt(
+			self->plat.mcfd,
+			IPPROTO_IPV6,
+			IPV6_LEAVE_GROUP,
+			&imreq,
+			sizeof(imreq)
+		);
+		if (ret >= 0) {
+			char addr_str[50] = "???";
+			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
+			DEBUG_PRINTF("Left multicast group %s", addr_str);
+			return SMCP_STATUS_OK;
+		} else {
+			char addr_str[50] = "???";
+			int prev_errno = errno;
+			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
+			DEBUG_PRINTF("Unable to leave multicast group %s, \"%s\"",addr_str, strerror(prev_errno));
+			errno = prev_errno;
+			return SMCP_STATUS_ERRNO;
+		}
+	}
+#endif
+
+	return SMCP_STATUS_FAILURE;
+}
 
 static smcp_status_t
 smcp_internal_join_multicast_group(smcp_t self, const char* group)
 {
 	int ret;
-	int btrue = 1;
 	int count = 0;
 	struct hostent *tmp;
 	int i;
@@ -84,6 +183,7 @@ smcp_internal_join_multicast_group(smcp_t self, const char* group)
 		check(self->plat.mcfd_v4 >= 0);
 
 		if (self->plat.mcfd_v4 >= 0) {
+			int btrue = 1;
 			ret = setsockopt(
 				self->plat.mcfd_v4,
 				IPPROTO_IP,
@@ -125,6 +225,7 @@ smcp_internal_join_multicast_group(smcp_t self, const char* group)
 		check(self->plat.mcfd >= 0);
 
 		if (self->plat.mcfd >=0) {
+			int btrue = 1;
 			setsockopt(
 				self->plat.mcfd,
 				IPPROTO_IPV6,
@@ -142,27 +243,8 @@ smcp_internal_join_multicast_group(smcp_t self, const char* group)
 		require(tmp->h_length > 1, bail);
 
 		for (i = 0; tmp && tmp->h_addr_list[i] != NULL; i++) {
-			struct ipv6_mreq imreq;
-			memset(&imreq, 0, sizeof(imreq));
-			memcpy(&imreq.ipv6mr_multiaddr.s6_addr, tmp->h_addr_list[0], 16);
-
-			ret = setsockopt(
-				self->plat.mcfd,
-				IPPROTO_IPV6,
-				IPV6_JOIN_GROUP,
-				&imreq,
-				sizeof(imreq)
-			);
-			if (ret >= 0) {
-				char addr_str[50] = "???";
-				inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
-				DEBUG_PRINTF("Joined multicast group %s", addr_str);
+			if (SMCP_STATUS_OK == smcp_plat_multicast_join(self, (smcp_addr_t*)tmp->h_addr_list, 0)) {
 				count++;
-			} else {
-				char addr_str[50] = "???";
-				int prev_errno = errno;
-				inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
-				DEBUG_PRINTF("Unable to join multicast group %s, \"%s\"",addr_str, strerror(prev_errno));
 			}
 		}
 	}

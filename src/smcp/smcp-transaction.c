@@ -35,9 +35,9 @@
 #include "smcp-logging.h"
 #include "smcp-internal.h"
 
-#if SMCP_AVOID_MALLOC
+#if SMCP_AVOID_MALLOC && SMCP_TRANSACTION_POOL_SIZE
 #warning Transaction pool should be moved into the SMCP instance.
-static struct smcp_transaction_s smcp_transaction_pool[SMCP_CONF_MAX_TRANSACTIONS];
+static struct smcp_transaction_s smcp_transaction_pool[SMCP_TRANSACTION_POOL_SIZE];
 #endif // SMCP_AVOID_MALLOC
 
 #if SMCP_TRANSACTIONS_USE_BTREE
@@ -141,9 +141,11 @@ smcp_internal_delete_transaction_(
 	}
 
 #if SMCP_AVOID_MALLOC
+#if SMCP_TRANSACTION_POOL_SIZE
 	if (handler->should_dealloc) {
 		handler->callback = NULL;
 	}
+#endif
 #else
 	if (handler->should_dealloc) {
 		free(handler);
@@ -243,10 +245,18 @@ smcp_internal_transaction_timeout_(
 			status = handler->resendCallback(context);
 
 			if (status == SMCP_STATUS_OK) {
-				cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount));
+				if (SMCP_IS_ADDR_MULTICAST(&handler->sockaddr_remote.smcp_addr)) {
+					if (SMCP_TRANSACTION_MAX_MCAST_ATTEMPTS > handler->attemptCount) {
+						handler->attemptCount++;
+						cms = 5 + (SMCP_FUNC_RANDOM_UINT32() % (SMCP_MULTICAST_RETRANSMIT_TIMEOUT_MS-5));
+					}
 
-				if (SMCP_TRANSACTION_MAX_ATTEMPTS != handler->attemptCount) {
-					handler->attemptCount++;
+				} else {
+					cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount));
+
+					if (SMCP_TRANSACTION_MAX_ATTEMPTS > handler->attemptCount) {
+						handler->attemptCount++;
+					}
 				}
 
 			} else if (status == SMCP_STATUS_WAIT_FOR_DNS) {
@@ -271,7 +281,7 @@ smcp_internal_transaction_timeout_(
 			cms
 		);
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
-	} else if((handler->flags&SMCP_TRANSACTION_OBSERVE)) {
+	} else if((handler->flags & SMCP_TRANSACTION_OBSERVE) != 0) {
 		// We have expired and we are observing someone. In this case we
 		// need to restart the observing process.
 
@@ -311,7 +321,7 @@ smcp_internal_transaction_timeout_(
 #endif
 	}
 
-	if(status) {
+	if (status) {
 		smcp_response_handler_func callback = handler->callback;
 
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
@@ -322,17 +332,23 @@ smcp_internal_transaction_timeout_(
 		}
 #endif
 
-		if(!(handler->flags&SMCP_TRANSACTION_ALWAYS_INVALIDATE) && !(handler->flags&SMCP_TRANSACTION_NO_AUTO_END))
+		if ( !(handler->flags & SMCP_TRANSACTION_ALWAYS_INVALIDATE)
+		  && !(handler->flags & SMCP_TRANSACTION_NO_AUTO_END)
+		) {
 			handler->callback = NULL;
+		}
 
-		if(callback)
-			(*callback)(status,context);
+		if (callback) {
+			(*callback)(status, context);
+		}
 
-		if(handler != self->current_transaction)
+		if (handler != self->current_transaction) {
 			return;
+		}
 
-		if(!(handler->flags&SMCP_TRANSACTION_NO_AUTO_END))
+		if (!(handler->flags & SMCP_TRANSACTION_NO_AUTO_END)) {
 			smcp_transaction_end(self, handler);
+		}
 	}
 
 	self->current_transaction = NULL;
@@ -349,8 +365,9 @@ smcp_transaction_init(
 ) {
 	if(!handler) {
 #if SMCP_AVOID_MALLOC
+#if SMCP_TRANSACTION_POOL_SIZE
 		uint8_t i;
-		for (i = 0; i < SMCP_CONF_MAX_TRANSACTIONS; i++) {
+		for (i = 0; i < SMCP_TRANSACTION_POOL_SIZE; i++) {
 			handler = &smcp_transaction_pool[i];
 
 			if (!handler->callback) {
@@ -359,12 +376,16 @@ smcp_transaction_init(
 
 			handler = NULL;
 		}
-#else
-		handler = (smcp_transaction_t)calloc(sizeof(*handler), 1);
-#endif
 		if (handler) {
 			handler->should_dealloc = 1;
 		}
+#endif
+#else
+		handler = (smcp_transaction_t)calloc(sizeof(*handler), 1);
+		if (handler) {
+			handler->should_dealloc = 1;
+		}
+#endif
 	} else {
 		memset(handler,0,sizeof(*handler));
 	}

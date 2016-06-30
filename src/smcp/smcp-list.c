@@ -71,10 +71,10 @@ smcp_handle_list(
 	// The path "/.well-known/core" is a special case. If we get here,
 	// we know that it isn't being handled explicitly, so we just
 	// show the root listing as a reasonable default.
-	if(!node->parent) {
-		if(smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH,".well-known")) {
+	if (!node->parent) {
+		if (smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH, ".well-known")) {
 			smcp_inbound_next_option(NULL, NULL);
-			if(smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH,"core")) {
+			if (smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH, "core")) {
 				smcp_inbound_next_option(NULL, NULL);
 				prefix = "";
 			} else {
@@ -84,7 +84,7 @@ smcp_handle_list(
 		}
 	}
 
-	if(smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH,"")) {
+	if (smcp_inbound_option_strequal_const(COAP_OPTION_URI_PATH,"")) {
 		// Eat the trailing '/'.
 		smcp_inbound_next_option(NULL, NULL);
 		if(prefix[0]) prefix = NULL;
@@ -95,21 +95,26 @@ smcp_handle_list(
 		coap_option_key_t key;
 		const uint8_t* value;
 		coap_size_t value_len;
-		while((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
-			require_action(key!=COAP_OPTION_URI_PATH,bail,ret=SMCP_STATUS_NOT_FOUND);
-			if(key == COAP_OPTION_URI_QUERY) {
+		while ((key = smcp_inbound_next_option(&value, &value_len)) != COAP_OPTION_INVALID) {
+			require_action(key != COAP_OPTION_URI_PATH, bail, ret = SMCP_STATUS_NOT_FOUND);
+
+			if (key == COAP_OPTION_URI_QUERY) {
 				// Skip URI query components for now.
-			} else if(key == COAP_OPTION_ACCEPT) {
-				if ((value_len != 1) || (*value != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)) {
+			} else if (key == COAP_OPTION_ACCEPT) {
+				if ( (value_len != 1)
+				  || (*value != COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT)
+				) {
 					// We only support application/link-format
+					// TODO: Consider supporting json
 					smcp_outbound_quick_response(COAP_RESULT_415_UNSUPPORTED_MEDIA_TYPE, NULL);
 					ret = SMCP_STATUS_OK;
 					goto bail;
 				}
 			} else {
-				if(COAP_OPTION_IS_CRITICAL(key)) {
-					ret=SMCP_STATUS_BAD_OPTION;
-					assert_printf("Unrecognized option %d, \"%s\"",
+				if (COAP_OPTION_IS_CRITICAL(key)) {
+					ret = SMCP_STATUS_BAD_OPTION;
+					assert_printf(
+						"Unrecognized option %d, \"%s\"",
 						key,
 						coap_option_key_to_cstr(key, false)
 					);

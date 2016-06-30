@@ -74,12 +74,14 @@ libsmcp_la_SOURCES += \
 	smcp-list.c \
 	smcp-variable_handler.c smcp-variable_handler.h \
 	smcp-pairing.c smcp-pairing.h \
+	smcp-group.c smcp-group.h \
 	$(NULL)
 
 pkginclude_HEADERS += \
 	smcp-node-router.h \
 	smcp-variable_handler.h \
 	smcp-pairing.h \
+	smcp-group.h \
 	$(NULL)
 
 EXTRA_DIST = smcp-config.h.in smcp-plat-bsd-internal.h smcp-plat-uip-internal.h smcp-plat-uip.c smcp-plat-uip.h

@@ -293,7 +293,7 @@ cgi_node_async_resend_response(void* context)
 {
 	smcp_status_t ret = 0;
 	cgi_node_request_t request = context;
-	coap_size_t block_len = (1<<((request->block2&0x7)+4));
+	coap_size_t block_len = (coap_size_t)(1<<((request->block2&0x7)+4));
 	coap_size_t max_len;
 
 	syslog(LOG_INFO, "cgi-node: Resending async response. . .");
@@ -304,17 +304,23 @@ cgi_node_async_resend_response(void* context)
 //	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 //	require_noerr(ret,bail);
 
-	if(request->block1!=BLOCK_OPTION_UNSPECIFIED) {
+	if (request->block1!=BLOCK_OPTION_UNSPECIFIED) {
 		ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK1,request->block1);
 		require_noerr(ret,bail);
 	}
 
-	if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK) {
-		if(request->stdout_buffer_len>block_len || request->fd_cmd_stdout>=0 || ((request->block2>>4)!=0)) {
-			if(request->stdout_buffer_len>block_len || request->fd_cmd_stdout>=0)
+	if (request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK) {
+		if ( request->stdout_buffer_len > block_len
+		  || request->fd_cmd_stdout >= 0
+		  || ((request->block2>>4)!=0)
+		) {
+			if ( request->stdout_buffer_len > block_len
+			  || request->fd_cmd_stdout >= 0
+			) {
 				request->block2 |= (1<<3);
-			else
+			} else {
 				request->block2 &= ~(1<<3);
+			}
 			ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
 			require_noerr(ret,bail);
 		}
@@ -324,7 +330,7 @@ cgi_node_async_resend_response(void* context)
 
 		memcpy(content,request->stdout_buffer,MIN(request->stdout_buffer_len,block_len));
 
-		ret = smcp_outbound_set_content_len(MIN(request->stdout_buffer_len,block_len));
+		ret = smcp_outbound_set_content_len((coap_size_t)MIN(request->stdout_buffer_len,block_len));
 		require_noerr(ret,bail);
 	}
 
@@ -692,7 +698,7 @@ cgi_node_request_handler(
 
 		request->block2 = block2_option;
 
-		coap_size_t block_len = (1<<((request->block2&0x7)+4));
+		coap_size_t block_len = (coap_size_t)(1<<((request->block2&0x7)+4));
 
 		if ( request->stdout_buffer_len >= block_len
 		  || request->fd_cmd_stdout <= -1
@@ -718,7 +724,7 @@ cgi_node_request_handler(
 
 			memcpy(content,request->stdout_buffer,MIN(request->stdout_buffer_len,block_len));
 
-			ret = smcp_outbound_set_content_len(MIN(request->stdout_buffer_len,block_len));
+			ret = smcp_outbound_set_content_len((coap_size_t)MIN(request->stdout_buffer_len,block_len));
 			require_noerr(ret,bail);
 
 			ret = smcp_outbound_send();

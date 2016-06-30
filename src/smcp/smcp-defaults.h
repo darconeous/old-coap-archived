@@ -131,27 +131,37 @@
 #define SMCP_CONF_USE_DNS						1
 #endif
 
-//!	@define SMCP_CONF_MAX_TRANSACTIONS
-/*!	Maximum number of simultaneous active transactions
+//!	@define SMCP_TRANSACTION_POOL_SIZE
+/*!	Maximum number of general-purpose active transactions
 **
-**	Only relevant when SMCP_AVOID_MALLOC is set.
+**	NOTE: Only relevant when SMCP_AVOID_MALLOC is set.
+**
+**	You can have more than this value if you statically
+**	allocate the transactions. Dynamic allocation is
+**	disabled if this value is set to zero and SMCP_AVOID_MALLOC
+**	is set.
+**
 */
-#ifndef SMCP_CONF_MAX_TRANSACTIONS
-#define SMCP_CONF_MAX_TRANSACTIONS				4
+#ifndef SMCP_TRANSACTION_POOL_SIZE
+#define SMCP_TRANSACTION_POOL_SIZE				0
 #endif
 
 //!	@define SMCP_CONF_MAX_TIMEOUT
 /*! The maximum timeout (in seconds) returned form `smcp_get_timeout()`
 */
 #ifndef SMCP_CONF_MAX_TIMEOUT
-#define SMCP_CONF_MAX_TIMEOUT					30
+#define SMCP_CONF_MAX_TIMEOUT					3600
 #endif
 
 //! @define SMCP_CONF_DUPE_BUFFER_SIZE
 /*! Number of previous packets to keep track of for duplicate detection.
 */
 #ifndef SMCP_CONF_DUPE_BUFFER_SIZE
-#define SMCP_CONF_DUPE_BUFFER_SIZE				(16)
+#if SMCP_EMBEDDED
+#define SMCP_CONF_DUPE_BUFFER_SIZE				16
+#else
+#define SMCP_CONF_DUPE_BUFFER_SIZE				64
+#endif
 #endif
 
 //! @define SMCP_CONF_ENABLE_VHOSTS
@@ -165,7 +175,11 @@
 /*! The maximum number of supported vhosts.
 */
 #ifndef SMCP_MAX_VHOSTS
+#if SMCP_EMBEDDED
 #define SMCP_MAX_VHOSTS							3
+#else
+#define SMCP_MAX_VHOSTS							16
+#endif
 #endif
 
 #ifndef SMCP_CONF_TRANS_ENABLE_BLOCK2
@@ -184,6 +198,14 @@
 */
 #ifndef SMCP_TRANSACTIONS_USE_BTREE
 #define SMCP_TRANSACTIONS_USE_BTREE				!SMCP_EMBEDDED
+#endif
+
+#ifndef SMCP_TRANSACTION_MAX_MCAST_ATTEMPTS
+#define SMCP_TRANSACTION_MAX_MCAST_ATTEMPTS 3
+#endif
+
+#ifndef SMCP_MULTICAST_RETRANSMIT_TIMEOUT_MS
+#define SMCP_MULTICAST_RETRANSMIT_TIMEOUT_MS 30
 #endif
 
 #ifndef SMCP_ASYNC_RESPONSE_MAX_LENGTH
@@ -241,12 +263,20 @@
 #define SMCP_CONF_NODE_ROUTER		!SMCP_EMBEDDED
 #endif
 
-#ifndef SMCP_PAIRINGS_USE_BTREE
-#define SMCP_PAIRINGS_USE_BTREE					SMCP_TRANSACTIONS_USE_BTREE
+#ifndef SMCP_CONF_MAX_PAIRINGS
+#if SMCP_EMBEDDED
+#define SMCP_CONF_MAX_PAIRINGS				2
+#else
+#define SMCP_CONF_MAX_PAIRINGS				16
+#endif
 #endif
 
-#ifndef SMCP_CONF_MAX_PAIRINGS
-#define SMCP_CONF_MAX_PAIRINGS				8
+#ifndef SMCP_CONF_MAX_GROUPS
+#if SMCP_EMBEDDED
+#define SMCP_CONF_MAX_GROUPS				2
+#else
+#define SMCP_CONF_MAX_GROUPS				16
+#endif
 #endif
 
 #ifndef SMCP_NODE_ROUTER_USE_BTREE
@@ -284,11 +314,11 @@
 #endif
 
 #ifndef SMCP_DTLS
-#define SMCP_DTLS							HAVE_OPENSSL
+#define SMCP_DTLS							0
 #endif
 
 #ifndef SMCP_TLS
-#define SMCP_TLS							HAVE_OPENSSL
+#define SMCP_TLS							0
 #endif
 
 /*****************************************************************************/

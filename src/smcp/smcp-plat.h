@@ -167,6 +167,9 @@ SMCP_API_EXTERN void smcp_plat_set_remote_sockaddr(const smcp_sockaddr_t* addr);
 SMCP_API_EXTERN void smcp_plat_set_local_sockaddr(const smcp_sockaddr_t* addr);
 SMCP_API_EXTERN void smcp_plat_set_session_type(smcp_session_type_t type);
 
+SMCP_API_EXTERN smcp_status_t smcp_plat_multicast_join(smcp_t self, smcp_addr_t *group, int interface);
+SMCP_API_EXTERN smcp_status_t smcp_plat_multicast_leave(smcp_t self, smcp_addr_t *group, int interface);
+
 //!	Gets a pointer to the sockaddr of the remote machine for the current packet.
 SMCP_API_EXTERN const smcp_sockaddr_t* smcp_plat_get_remote_sockaddr(void);
 

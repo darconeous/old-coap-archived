@@ -110,7 +110,7 @@ main(int argc, char * argv[]) {
 	fprintf(stderr,"SMCP_AVOID_PRINTF = %d\n",SMCP_AVOID_PRINTF);
 	fprintf(stderr,"SMCP_AVOID_MALLOC = %d\n",SMCP_AVOID_MALLOC);
 	fprintf(stderr,"SMCP_CONF_USE_DNS = %d\n",SMCP_CONF_USE_DNS);
-	fprintf(stderr,"SMCP_CONF_MAX_TRANSACTIONS = %d\n",SMCP_CONF_MAX_TRANSACTIONS);
+	fprintf(stderr,"SMCP_TRANSACTION_POOL_SIZE = %d\n",SMCP_TRANSACTION_POOL_SIZE);
 	fprintf(stderr,"SMCP_CONF_MAX_ALLOCED_NODES = %d\n",SMCP_CONF_MAX_ALLOCED_NODES);
 	fprintf(stderr,"SMCP_CONF_MAX_TIMEOUT = %d\n",SMCP_CONF_MAX_TIMEOUT);
 	fprintf(stderr,"SMCP_CONF_DUPE_BUFFER_SIZE = %d\n",SMCP_CONF_DUPE_BUFFER_SIZE);

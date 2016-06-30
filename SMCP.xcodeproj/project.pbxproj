@@ -60,6 +60,13 @@
 		A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EB2881278CBB100B24867 /* cmd_repeat.c */; };
 		A64F2AF9166EB236001D9878 /* smcp-transaction.c in Sources */ = {isa = PBXBuildFile; fileRef = A64F2AF8166EB236001D9878 /* smcp-transaction.c */; };
 		A654A1601D2238370050C7BD /* TODO.md in Sources */ = {isa = PBXBuildFile; fileRef = A654A15F1D2238370050C7BD /* TODO.md */; };
+		A654A1631D25D6290050C7BD /* smcp-group.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1621D25D6290050C7BD /* smcp-group.c */; };
+		A654A1641D25E25E0050C7BD /* smcp-group.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1621D25D6290050C7BD /* smcp-group.c */; };
+		A654A1651D25E25F0050C7BD /* smcp-group.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1621D25D6290050C7BD /* smcp-group.c */; };
+		A654A1661D25E2600050C7BD /* smcp-group.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1621D25D6290050C7BD /* smcp-group.c */; };
+		A654A1671D25E2600050C7BD /* smcp-group.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1621D25D6290050C7BD /* smcp-group.c */; };
+		A654A1681D25E2610050C7BD /* smcp-group.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1621D25D6290050C7BD /* smcp-group.c */; };
+		A654A16C1D25EDBD0050C7BD /* group-node.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1691D25EDB40050C7BD /* group-node.c */; };
 		A669AAE319B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
 		A669AAE419B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
 		A669AAE519B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
@@ -346,6 +353,10 @@
 		A65258361528F45300E389EC /* cmd_monitor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_monitor.c; path = src/smcpctl/cmd_monitor.c; sourceTree = "<group>"; };
 		A65258391528F47C00E389EC /* cmd_monitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = cmd_monitor.h; path = src/smcpctl/cmd_monitor.h; sourceTree = "<group>"; };
 		A654A15F1D2238370050C7BD /* TODO.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = TODO.md; sourceTree = "<group>"; };
+		A654A1611D244A1F0050C7BD /* smcp-group.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-group.h"; sourceTree = "<group>"; };
+		A654A1621D25D6290050C7BD /* smcp-group.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-group.c"; sourceTree = "<group>"; };
+		A654A1691D25EDB40050C7BD /* group-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "group-node.c"; sourceTree = "<group>"; };
+		A654A16A1D25EDB40050C7BD /* group-node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "group-node.h"; sourceTree = "<group>"; };
 		A669AADE19AE815700274532 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A669AADF19AE815700274532 /* test-concurrency.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "test-concurrency.c"; sourceTree = "<group>"; };
 		A669AAE019B1232E00274532 /* getline.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = getline.c; sourceTree = "<group>"; };
@@ -598,6 +609,8 @@
 				A6FB086D1D0CAC78004116B1 /* ud-var-node.h */,
 				A67A685B1D18F3BC0045F611 /* pairing-node.c */,
 				A67A685C1D18F3BC0045F611 /* pairing-node.h */,
+				A654A1691D25EDB40050C7BD /* group-node.c */,
+				A654A16A1D25EDB40050C7BD /* group-node.h */,
 			);
 			name = smcpd;
 			path = src/smcpd;
@@ -769,6 +782,8 @@
 				A63EA6F31278B16D00B24867 /* smcp-variable_handler.h */,
 				A6FB08721D0FBBEB004116B1 /* smcp-pairing.c */,
 				A6FB08731D0FBBEB004116B1 /* smcp-pairing.h */,
+				A654A1611D244A1F0050C7BD /* smcp-group.h */,
+				A654A1621D25D6290050C7BD /* smcp-group.c */,
 			);
 			name = Extras;
 			sourceTree = "<group>";
@@ -1003,6 +1018,7 @@
 				A63EA6DF1278B13800B24867 /* help.c in Sources */,
 				A63EA6E01278B13800B24867 /* main.c in Sources */,
 				A6C04B0018AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
+				A654A1631D25D6290050C7BD /* smcp-group.c in Sources */,
 				A63EA6F91278B16D00B24867 /* btree.c in Sources */,
 				A63EA6FA1278B16D00B24867 /* coap.c in Sources */,
 				A63EA6FB1278B16D00B24867 /* smcp-node-router.c in Sources */,
@@ -1032,6 +1048,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A6A4A4081953AF0C001CD98A /* smcp-dupe.c in Sources */,
+				A654A1681D25E2610050C7BD /* smcp-group.c in Sources */,
 				A6181DE216B4637700655F4F /* btree.c in Sources */,
 				A6181DE316B4637700655F4F /* url-helpers.c in Sources */,
 				A669AAE619B1249100274532 /* smcp-missing.c in Sources */,
@@ -1104,12 +1121,14 @@
 				A67A686E1D18FA600045F611 /* url-helpers.c in Sources */,
 				A67A68701D18FA600045F611 /* smcp-session.c in Sources */,
 				A67A68711D18FA600045F611 /* smcp-pairing.c in Sources */,
+				A654A16C1D25EDBD0050C7BD /* group-node.c in Sources */,
 				A67A68731D18FA600045F611 /* smcp-outbound.c in Sources */,
 				A67A68871D18FAA80045F611 /* system-node.c in Sources */,
 				A67A68741D18FA600045F611 /* smcp-list.c in Sources */,
 				A67A68751D18FA600045F611 /* smcp-plat-bsd.c in Sources */,
 				A67A68761D18FA600045F611 /* smcp-transaction.c in Sources */,
 				A67A68771D18FA600045F611 /* fasthash.c in Sources */,
+				A654A1641D25E25E0050C7BD /* smcp-group.c in Sources */,
 				A67A68781D18FA600045F611 /* smcp-variable_handler.c in Sources */,
 				A67A68791D18FA600045F611 /* string-utils.c in Sources */,
 				A67A687A1D18FA600045F611 /* smcp-observable.c in Sources */,
@@ -1123,6 +1142,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A6A4A4091953AF0C001CD98A /* smcp-dupe.c in Sources */,
+				A654A1671D25E2600050C7BD /* smcp-group.c in Sources */,
 				A690624C16B6E43B00A98B2C /* btree.c in Sources */,
 				A690624D16B6E43B00A98B2C /* url-helpers.c in Sources */,
 				A669AAE719B1249100274532 /* smcp-missing.c in Sources */,
@@ -1150,6 +1170,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A6A4A40A1953AF0C001CD98A /* smcp-dupe.c in Sources */,
+				A654A1661D25E2600050C7BD /* smcp-group.c in Sources */,
 				A690626516B6E44000A98B2C /* btree.c in Sources */,
 				A690626616B6E44000A98B2C /* url-helpers.c in Sources */,
 				A669AAE819B1249100274532 /* smcp-missing.c in Sources */,
@@ -1177,6 +1198,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A6A4A40B1953AF0C001CD98A /* smcp-dupe.c in Sources */,
+				A654A1651D25E25F0050C7BD /* smcp-group.c in Sources */,
 				A690628B16B6EA6E00A98B2C /* btree.c in Sources */,
 				A690628C16B6EA6E00A98B2C /* url-helpers.c in Sources */,
 				A669AAE919B1249100274532 /* smcp-missing.c in Sources */,

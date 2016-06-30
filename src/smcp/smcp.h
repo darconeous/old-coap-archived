@@ -123,6 +123,7 @@ enum {
 	SMCP_STATUS_SESSION_ERROR       = -29,
 	SMCP_STATUS_SESSION_CLOSED      = -30,
 	SMCP_STATUS_OUT_OF_SESSIONS     = -31,
+	SMCP_STATUS_UNSUPPORTED_MEDIA_TYPE = -32,
 };
 
 typedef int smcp_status_t;
@@ -375,6 +376,9 @@ SMCP_API_EXTERN bool smcp_inbound_is_dupe(void);
 
 //! Returns true if the inbound packet is fake (to trigger updates for observers)
 SMCP_API_EXTERN bool smcp_inbound_is_fake(void);
+
+//! Returns true if the inbound packet is a multicast packet
+SMCP_API_EXTERN bool smcp_inbound_is_multicast(void);
 
 //! Returns true if SMCP thinks the inbound packet originated from the local machine.
 SMCP_API_EXTERN bool smcp_inbound_origin_is_local(void);

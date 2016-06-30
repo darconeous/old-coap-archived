@@ -57,6 +57,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <smcp/fasthash.h>
+#include <smcp/url-helpers.h>
 
 #ifndef UD_VAR_NODE_MAX_REQUESTS
 #define UD_VAR_NODE_MAX_REQUESTS		(20)
@@ -153,16 +154,7 @@ ud_var_node_request_handler(
 	switch (method) {
 	case COAP_METHOD_GET:
 	case COAP_METHOD_PUT:
-		break;
-
 	case COAP_METHOD_POST:
-		// We should not get a request at this point in the state machine.
-		if (smcp_inbound_is_dupe()) {
-			smcp_outbound_drop();
-			ret = SMCP_STATUS_DUPE;
-			goto bail;
-		}
-		method = COAP_METHOD_PUT;
 		break;
 
 	default:
@@ -177,12 +169,13 @@ ud_var_node_request_handler(
 		break;
 
 	default:
-		ret = smcp_outbound_quick_response(HTTP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type");
-		check_noerr(ret);
+		ret = SMCP_STATUS_UNSUPPORTED_MEDIA_TYPE;
 		goto bail;
 	}
 
-	if (COAP_METHOD_PUT == method) {
+	if ( (COAP_METHOD_PUT == method)
+	  || (COAP_METHOD_POST == method && !smcp_inbound_is_dupe())
+	) {
 		const char* content_ptr = smcp_inbound_get_content_ptr();
 		coap_size_t content_len = smcp_inbound_get_content_len();
 		ssize_t bytes_written = 0;
@@ -205,7 +198,16 @@ ud_var_node_request_handler(
 		value_etag = ud_var_node_calc_etag((const char*)buffer, buffer_len);
 	}
 
-	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+
+	if (COAP_METHOD_GET == method) {
+		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+	} else {
+		if (smcp_inbound_is_multicast() || smcp_inbound_is_fake()) {
+			ret = SMCP_STATUS_OK;
+			goto bail;
+		}
+		ret = smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
+	}
 
 	require_noerr(ret, bail);
 
@@ -217,10 +219,6 @@ ud_var_node_request_handler(
 
 	check_noerr_string(ret, smcp_status_to_cstr(ret));
 
-	ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE, (self->refresh_period)/MSEC_PER_SEC + 1);
-
-	require_noerr(ret, bail);
-
 	ret = smcp_outbound_add_option_uint(
 		COAP_OPTION_CONTENT_TYPE,
 		accept_type
@@ -228,12 +226,34 @@ ud_var_node_request_handler(
 
 	require_noerr(ret, bail);
 
-	if (SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED == accept_type) {
-		ret = smcp_outbound_append_content("v=", SMCP_CSTR_LEN);
-		require_noerr(ret, bail);
-	}
+	ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE, (self->refresh_period)/MSEC_PER_SEC + 1);
 
-	ret = smcp_outbound_append_content((char*)buffer, (coap_size_t)buffer_len);
+	require_noerr(ret, bail);
+
+	if (SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED == accept_type) {
+		char* out_content_ptr;
+		coap_size_t out_content_max_len;
+		int len_encoded;
+
+		out_content_ptr = smcp_outbound_get_content_ptr(&out_content_max_len);
+
+		require(out_content_ptr != NULL, bail);
+
+		*out_content_ptr++ = 'v';
+		*out_content_ptr++ = '=';
+		out_content_max_len -= 2;
+
+		buffer[buffer_len] = 0;
+		len_encoded = url_encode_cstr(out_content_ptr, (char*)buffer, out_content_max_len);
+
+		out_content_ptr += len_encoded;
+		out_content_max_len -= len_encoded;
+
+		ret = smcp_outbound_set_content_len((coap_size_t)(len_encoded + 2));
+	} else {
+
+		ret = smcp_outbound_append_content((char*)buffer, (coap_size_t)buffer_len);
+	}
 
 	require_noerr(ret, bail);
 

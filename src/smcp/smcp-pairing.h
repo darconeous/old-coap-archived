@@ -29,7 +29,7 @@
 #ifndef __SMCP_PAIRING_H__
 #define __SMCP_PAIRING_H__ 1
 
-#include "smcp-config.h"
+#include "smcp.h"
 #include "smcp-observable.h"
 #include "smcp-async.h"
 #include "smcp-variable_handler.h"
