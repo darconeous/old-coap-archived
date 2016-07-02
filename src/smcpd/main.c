@@ -74,6 +74,7 @@
 #include "system-node.h"
 #include "ud-var-node.h"
 #include "pairing-node.h"
+#include "group-node.h"
 
 #if HAVE_LIBCURL
 #include <smcp/smcp-curl_proxy.h>
@@ -110,7 +111,7 @@ static arg_list_item_t option_list[] = {
 	{ 0 }
 };
 
-static smcp_t smcp;
+static smcp_t gSMCPInstance;
 static struct smcp_node_s root_node;
 static int gRet;
 
@@ -223,22 +224,26 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 		update_fdset_func = (update_fdset_func_t)&smcp_curl_proxy_node_update_fdset;
 		process_func = (process_func_t)&smcp_curl_proxy_node_process;
 #endif
-	} else if(strcaseequal(type,"system_node")) {
+	} else if(strcaseequal(type,"system_node") || strcaseequal(type,"system")) {
 		init_func = (init_func_t)&SMCPD_module__system_node_init;
 		update_fdset_func = (update_fdset_func_t)&SMCPD_module__system_node_update_fdset;
 		process_func = (process_func_t)&SMCPD_module__system_node_process;
-	} else if(strcaseequal(type,"cgi_node")) {
+	} else if(strcaseequal(type,"cgi_node") || strcaseequal(type,"cgi")) {
 		init_func = (init_func_t)&SMCPD_module__cgi_node_init;
 		update_fdset_func = (update_fdset_func_t)&SMCPD_module__cgi_node_update_fdset;
 		process_func = (process_func_t)&SMCPD_module__cgi_node_process;
-	} else if(strcaseequal(type,"ud_var_node")) {
+	} else if(strcaseequal(type,"ud_var_node") || strcaseequal(type,"ud_var")) {
 		init_func = (init_func_t)&SMCPD_module__ud_var_node_init;
 		update_fdset_func = (update_fdset_func_t)&SMCPD_module__ud_var_node_update_fdset;
 		process_func = (process_func_t)&SMCPD_module__ud_var_node_process;
-	} else if(strcaseequal(type,"pairing_node")) {
+	} else if(strcaseequal(type,"pairing_node") || strcaseequal(type,"pairing")) {
 		init_func = (init_func_t)&SMCPD_module__pairing_node_init;
 		update_fdset_func = (update_fdset_func_t)&SMCPD_module__pairing_node_update_fdset;
 		process_func = (process_func_t)&SMCPD_module__pairing_node_process;
+	} else if(strcaseequal(type,"group_node") || strcaseequal(type,"group")) {
+		init_func = (init_func_t)&SMCPD_module__group_node_init;
+		update_fdset_func = (update_fdset_func_t)&SMCPD_module__group_node_update_fdset;
+		process_func = (process_func_t)&SMCPD_module__group_node_process;
 #if HAVE_DLFCN_H
 	} else if(type) {
 		char symbol_name[100];
@@ -352,7 +357,6 @@ read_configuration(smcp_t smcp,const char* filename) {
 	size_t line_len = 0;
 	smcp_node_t node = &root_node;
 	int line_number = 0;
-	smcp_status_t status = 0;
 
 	require(file!=NULL,bail);
 
@@ -368,7 +372,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 				goto bail;
 			}
 
-			if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, atoi(arg)) != SMCP_STATUS_OK) {
+			if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, (uint16_t)atoi(arg)) != SMCP_STATUS_OK) {
 				syslog(LOG_ERR,"Unable to bind to port! \"%s\" (%d)",strerror(errno),errno);
 			}
 
@@ -499,7 +503,7 @@ main(
 	int argc, char * argv[]
 ) {
 	int i, debug_mode = 0;
-	int port = 0;
+	uint16_t port = 0;
 	const char* config_file = ETC_PREFIX "smcp.conf";
 
 	openlog(basename(argv[0]),LOG_PERROR|LOG_PID|LOG_CONS,LOG_DAEMON);
@@ -515,7 +519,7 @@ main(
 	}
 
 	BEGIN_LONG_ARGUMENTS(gRet)
-	HANDLE_LONG_ARGUMENT("port") port = strtol(argv[++i], NULL, 0);
+	HANDLE_LONG_ARGUMENT("port") port = (uint16_t)strtol(argv[++i], NULL, 0);
 	HANDLE_LONG_ARGUMENT("config") config_file = argv[++i];
 	HANDLE_LONG_ARGUMENT("debug") debug_mode++;
 
@@ -529,7 +533,7 @@ main(
 		goto bail;
 	}
 	BEGIN_SHORT_ARGUMENTS(gRet)
-	HANDLE_SHORT_ARGUMENT('p') port = strtol(argv[++i], NULL, 0);
+	HANDLE_SHORT_ARGUMENT('p') port = (uint16_t)strtol(argv[++i], NULL, 0);
 	HANDLE_SHORT_ARGUMENT('d') debug_mode++;
 	HANDLE_SHORT_ARGUMENT('c') config_file = argv[++i];
 	HANDLE_SHORT_ARGUMENT2('h', '?') {
@@ -568,43 +572,43 @@ main(
 	syslog(LOG_NOTICE,"Built with libcurl support.");
 #endif
 
-	smcp = smcp_create();
+	gSMCPInstance = smcp_create();
 
-	if(!smcp) {
+	if (!gSMCPInstance) {
 		syslog(LOG_CRIT,"Unable to initialize SMCP instance.");
 		gRet = ERRORCODE_UNKNOWN;
 		goto bail;
 	}
 
 	if (port) {
-		if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, port) != SMCP_STATUS_OK) {
+		if (smcp_plat_bind_to_port(gSMCPInstance, SMCP_SESSION_TYPE_UDP, port) != SMCP_STATUS_OK) {
 			fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
 			goto bail;
 		}
 	}
 
-	if (smcp_plat_get_port(smcp) == 0) {
-		if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, COAP_DEFAULT_PORT) != SMCP_STATUS_OK) {
+	if (smcp_plat_get_port(gSMCPInstance) == 0) {
+		if (smcp_plat_bind_to_port(gSMCPInstance, SMCP_SESSION_TYPE_UDP, COAP_DEFAULT_PORT) != SMCP_STATUS_OK) {
 			fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
 			goto bail;
 		}
 	}
 
-	smcp_set_current_instance(smcp);
+	smcp_set_current_instance(gSMCPInstance);
 
 	// Set up the root node.
 	smcp_node_init(&root_node,NULL,NULL);
 
 	// Set up the node router.
-	smcp_set_default_request_handler(smcp, &smcp_node_router_handler, &root_node);
+	smcp_set_default_request_handler(gSMCPInstance, &smcp_node_router_handler, &root_node);
 
-	smcp_set_proxy_url(smcp,getenv("COAP_PROXY_URL"));
+	smcp_set_proxy_url(gSMCPInstance, getenv("COAP_PROXY_URL"));
 
-	if(0!=read_configuration(smcp,config_file)) {
+	if (0 != read_configuration(gSMCPInstance,config_file)) {
 		syslog(LOG_NOTICE,"Error processing configuration file!");
 		gRet = ERRORCODE_BADCONFIG;
 	} else {
-		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_plat_get_port(smcp));
+		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_plat_get_port(gSMCPInstance));
 	}
 
 	while (!gRet) {
@@ -624,10 +628,10 @@ main(
 			&cms_timeout
 		);
 
-		cms_timeout = MIN(smcp_get_timeout(smcp),cms_timeout);
-		fd_count = MAX(smcp_plat_get_fd(smcp)+1,fd_count);
-		FD_SET(smcp_plat_get_fd(smcp),&read_fd_set);
-		FD_SET(smcp_plat_get_fd(smcp),&error_fd_set);
+		cms_timeout = MIN(smcp_get_timeout(gSMCPInstance),cms_timeout);
+		fd_count = MAX(smcp_plat_get_fd(gSMCPInstance)+1,fd_count);
+		FD_SET(smcp_plat_get_fd(gSMCPInstance),&read_fd_set);
+		FD_SET(smcp_plat_get_fd(gSMCPInstance),&error_fd_set);
 
 		//syslog_dump_select_info(LOG_INFO, &read_fd_set,&write_fd_set,&error_fd_set, fd_count, cms_timeout);
 
@@ -649,7 +653,7 @@ main(
 			break;
 		}
 
-		smcp_plat_process(smcp);
+		smcp_plat_process(gSMCPInstance);
 
 		if (smcpd_modules_process() != SMCP_STATUS_OK) {
 			syslog(LOG_ERR,"Module process error.");
@@ -658,7 +662,7 @@ main(
 
 		if (gRet == ERRORCODE_SIGHUP) {
 			gRet = 0;
-			read_configuration(smcp,config_file);
+			read_configuration(gSMCPInstance, config_file);
 		}
 	}
 
@@ -668,14 +672,14 @@ bail:
 		gRet = 0;
 	}
 
-	if (smcp) {
+	if (gSMCPInstance) {
 		syslog(LOG_NOTICE,"Stopping smcpd . . .");
 
 		if (gPIDFilename) {
 			unlink(gPIDFilename);
 		}
 
-		smcp_release(smcp);
+		smcp_release(gSMCPInstance);
 
 		syslog(LOG_NOTICE,"Stopped.");
 	}

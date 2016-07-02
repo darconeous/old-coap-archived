@@ -131,7 +131,11 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 	context->interface = interface;
 #endif
 
-	if (interface->inbound.packet == NULL || interface->inbound.is_fake || interface->inbound.is_dupe) {
+	if ( interface->inbound.packet == NULL
+	  || interface->inbound.is_fake
+	  || interface->inbound.is_dupe
+	  || (smcp_inbound_get_code() != COAP_METHOD_GET)
+	) {
 		goto bail;
 	}
 

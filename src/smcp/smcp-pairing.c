@@ -83,7 +83,9 @@ smcp_pairing_mgr_init(
 ) {
 	memset(self, 0, sizeof(*self));
 
+#if !SMCP_EMBEDDED
 	self->smcp_instance = smcp_instance;
+#endif
 
 	return self;
 }
@@ -153,7 +155,6 @@ smcp_pairing_set_enabled(smcp_pairing_t self, bool x)
 				mgr->smcp_instance,
 				&self->transaction
 			);
-			smcp_observable_clear(&self->var_handler.observable, SMCP_OBSERVABLE_BROADCAST_KEY);
 		}
 		smcp_observable_trigger(&self->var_handler.observable, I_ENABLED, 0);
 	}

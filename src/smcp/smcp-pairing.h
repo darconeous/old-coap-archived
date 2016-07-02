@@ -29,7 +29,7 @@
 #ifndef __SMCP_PAIRING_H__
 #define __SMCP_PAIRING_H__ 1
 
-#include "smcp-config.h"
+#include "smcp.h"
 #include "smcp-observable.h"
 #include "smcp-async.h"
 #include "smcp-variable_handler.h"
@@ -70,7 +70,7 @@ __BEGIN_DECLS
 **	little additional code.
 */
 
-#if SMCP_CONF_MAX_PAIRINGS > 0
+#if SMCP_CONF_MAX_PAIRINGS
 
 #define COAP_RESOURCE_TYPE_PAIRING_MANAGER		"pairing-manager"
 
@@ -123,7 +123,10 @@ struct smcp_pairing_s {
 struct smcp_pairing_mgr_s {
 	struct smcp_observable_s observable;
 	struct smcp_pairing_s pairing_table[SMCP_CONF_MAX_PAIRINGS];
+
+#if !SMCP_EMBEDDED
 	smcp_t smcp_instance;
+#endif
 
 	// This function pointer should commit all stable
 	// pairings to non-volatile memory, preserving their
@@ -192,4 +195,4 @@ SMCP_API_EXTERN void smcp_pairing_mgr_delete(
 
 __END_DECLS
 
-#endif //__SMCP_TIMER_NODE_H__
+#endif //__SMCP_PAIRING_H__

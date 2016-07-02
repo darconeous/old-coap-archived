@@ -146,40 +146,45 @@ smcp_variable_handler_request_handler(
 	}
 
 	if (method == COAP_METHOD_POST) {
-		require_action(!smcp_inbound_is_dupe(),bail,ret=0);
-
 		require_action(
-			key_index!=BAD_KEY_INDEX,
+			key_index != BAD_KEY_INDEX,
 			bail,
-			ret=SMCP_STATUS_NOT_ALLOWED
+			ret = SMCP_STATUS_NOT_ALLOWED
 		);
 
-		if (content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
-			char* key = NULL;
-			char* value = NULL;
-			content_len = 0;
-			while(
-				url_form_next_value(
-					(char**)&content_ptr,
-					&key,
-					&value
-				)
-				&& key
-				&& value
-			) {
-				if(strequal_const(key, "v")) {
-					content_ptr = value;
-					content_len = (coap_size_t)strlen(value);
-					break;
+		if (!smcp_inbound_is_dupe()) {
+			if (content_type == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
+				char* key = NULL;
+				char* value = NULL;
+				content_len = 0;
+				while(
+					url_form_next_value(
+						(char**)&content_ptr,
+						&key,
+						&value
+					)
+					&& key
+					&& value
+				) {
+					if(strequal_const(key, "v")) {
+						content_ptr = value;
+						content_len = (coap_size_t)strlen(value);
+						break;
+					}
 				}
 			}
+
+			// Make sure our content is zero terminated.
+			((char*)content_ptr)[content_len] = 0;
+
+			ret = node->func(node, SMCP_VAR_SET_VALUE, key_index, (char*)content_ptr);
+			require_noerr(ret, bail);
 		}
 
-		// Make sure our content is zero terminated.
-		((char*)content_ptr)[content_len] = 0;
-
-		ret = node->func(node, SMCP_VAR_SET_VALUE, key_index, (char*)content_ptr);
-		require_noerr(ret, bail);
+		// Don't send responses to multicast posts or puts
+		if (smcp_inbound_is_multicast()) {
+			goto bail;
+		}
 
 		ret = smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
 		require_noerr(ret, bail);
@@ -187,7 +192,7 @@ smcp_variable_handler_request_handler(
 		ret = smcp_outbound_send();
 		require_noerr(ret, bail);
 
-	} else if(method == COAP_METHOD_GET) {
+	} else if (method == COAP_METHOD_GET) {
 
 		if (key_index == BAD_KEY_INDEX) {
 			char* content_end_ptr;
@@ -195,9 +200,7 @@ smcp_variable_handler_request_handler(
 			bool observable = false;
 
 			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
-			require_noerr(ret,bail);
-
-			smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+			require_noerr(ret, bail);
 
 			// Calculate our max age and if we support observing
 			for (key_index=0; key_index < BAD_KEY_INDEX; key_index++) {
@@ -223,8 +226,15 @@ smcp_variable_handler_request_handler(
 				check_string(ret==0,smcp_status_to_cstr(ret));
 			}
 
+			ret = smcp_outbound_add_option_uint(
+				COAP_OPTION_CONTENT_TYPE,
+				COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT
+			);
+			require_noerr(ret, bail);
+
 			if (max_age != UINT32_MAX) {
-				smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE, max_age);
+				ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE, max_age);
+				require_noerr(ret, bail);
 			}
 
 			content_ptr = smcp_outbound_get_content_ptr(&content_len);
@@ -236,14 +246,14 @@ smcp_variable_handler_request_handler(
 					break;
 				}
 
-				if (content_ptr+2>=content_end_ptr) {
+				if (content_ptr + 2 >= content_end_ptr) {
 					// No more room for content.
 					// TODO: Figure out how to handle this case.
 					break;
 				}
 
 				*content_ptr++ = '<';
-				if(needs_prefix) {
+				if (needs_prefix) {
 					content_ptr += url_encode_cstr(content_ptr, prefix_name, (content_end_ptr-content_ptr)-1);
 					content_ptr = stpncpy(content_ptr,"/",MIN(1,(content_end_ptr-content_ptr)-1));
 				}
@@ -252,7 +262,7 @@ smcp_variable_handler_request_handler(
 
 				ret = node->func(node,SMCP_VAR_GET_VALUE,key_index,buffer);
 
-				if(content_ptr+4>=content_end_ptr) {
+				if (content_ptr + 4 >= content_end_ptr) {
 					// No more room for content.
 					break;
 				}
@@ -265,12 +275,12 @@ smcp_variable_handler_request_handler(
 
 				ret = node->func(node,SMCP_VAR_GET_LF_TITLE,key_index,buffer);
 
-				if(content_ptr+8>=content_end_ptr) {
+				if (content_ptr + 8 >= content_end_ptr) {
 					// No more room for content.
 					break;
 				}
 
-				if(!ret) {
+				if (!ret) {
 					strcpy(content_ptr,";title=");
 					content_ptr += 7;
 					content_ptr += quoted_cstr(content_ptr, buffer, (content_end_ptr-content_ptr)-1);

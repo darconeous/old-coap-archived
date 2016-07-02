@@ -95,6 +95,11 @@ smcp_inbound_is_fake() {
 	return smcp_get_current_instance()->inbound.is_fake;
 }
 
+bool
+smcp_inbound_is_multicast() {
+	return smcp_get_current_instance()->inbound.was_sent_to_multicast;
+}
+
 // MARK: -
 // MARK: Option Parsing
 
@@ -315,6 +320,8 @@ smcp_inbound_packet_process(
 	self->inbound.content_type = COAP_CONTENT_TYPE_UNKNOWN;
 
 	self->current_transaction = NULL;
+
+	self->inbound.was_sent_to_multicast = SMCP_IS_ADDR_MULTICAST(&smcp_plat_get_local_sockaddr()->smcp_addr);
 
 #if SMCP_USE_CASCADE_COUNT
 	self->cascade_count = SMCP_MAX_CASCADE_COUNT;

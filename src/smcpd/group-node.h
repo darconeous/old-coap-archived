@@ -1,8 +1,8 @@
-/*!	@file smcp-config.h
+/*	@file group-node.h
+**	@brief Group Management Node
 **	@author Robert Quattlebaum <darco@deepdarc.com>
-**	@brief SMCP Build Options
 **
-**	Copyright (C) 2011,2012 Robert Quattlebaum
+**	Copyright (C) 2016 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
@@ -27,28 +27,36 @@
 **	SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#undef SMCP_EMBEDDED
 
-#undef SMCP_USE_BSD_SOCKETS
+#ifndef group_node_h
+#define group_node_h
 
-#undef SMCP_USE_UIP
+#include <smcp/smcp.h>
 
-#undef SMCP_CONF_ENABLE_VHOSTS
+struct group_node_s;
 
-#undef SMCP_AVOID_MALLOC
+typedef struct group_node_s* group_node_t;
 
-#undef SMCP_AVOID_PRINTF
+extern smcp_status_t
+SMCPD_module__group_node_process(group_node_t self);
 
-#undef SMCP_MAX_VHOSTS
+extern smcp_status_t
+SMCPD_module__group_node_update_fdset(
+	group_node_t self,
+    fd_set *read_fd_set,
+    fd_set *write_fd_set,
+    fd_set *error_fd_set,
+    int *fd_count,
+	smcp_cms_t *timeout
+);
 
-#undef SMCP_CONF_TRANS_ENABLE_BLOCK2
+extern group_node_t
+SMCPD_module__group_node_init(
+	group_node_t	self,
+	smcp_node_t			parent,
+	const char*			name,
+	const char*			cmd
+);
 
-#undef SMCP_CONF_TRANS_ENABLE_OBSERVING
 
-#undef SMCP_CONF_MAX_OBSERVERS
-
-#undef SMCP_CONF_NODE_ROUTER
-
-#undef SMCP_USE_CASCADE_COUNT
-
-#undef SMCP_BSD_SOCKETS_NET_FAMILY
+#endif /* group_node_h */
