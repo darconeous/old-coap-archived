@@ -757,6 +757,8 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_debug
+enable_embedded
+with_address_family
 enable_libcurl
 enable_libreadline
 with_openssl
@@ -1401,6 +1403,7 @@ Optional Features:
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-debug          enable compiling with debugging information
+  --enable-embedded       enable embedded mode (instance is singleton)
   --disable-libcurl  Do not use libcurl
   --disable-libreadline  Do not use libreadline
   --disable-libdl  Do not use libdl
@@ -1413,6 +1416,8 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
+  --with-address-family=inet|inet6
+                          Specify address family (inet6 is the default)
   --with-openssl=DIR      root of the OpenSSL directory
 
 Some influential environment variables:
@@ -2294,7 +2299,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 ac_config_headers="$ac_config_headers src/config.h src/smcp/smcp-config.h"
 
 
-SOURCE_VERSION=0.6.5-19-gad007df
+SOURCE_VERSION=0.6.5-26-g03547ca
 
 
 am__api_version='1.11'
@@ -12068,6 +12073,33 @@ if test "${enable_debug+set}" = set; then :
 fi
 
 
+# Check whether --enable-embedded was given.
+if test "${enable_embedded+set}" = set; then :
+  enableval=$enable_embedded;
+    if test "${enableval}" = "yes"
+	then SMCP_EMBEDDED=1
+	     SMCP_USE_BSD_SOCKETS=1
+    fi
+
+fi
+
+
+
+# Check whether --with-address-family was given.
+if test "${with_address_family+set}" = set; then :
+  withval=$with_address_family;
+    if test "${withval}" = "inet"
+	then SMCP_BSD_SOCKETS_NET_FAMILY=AF_INET
+	     SMCP_USE_BSD_SOCKETS=1
+    elif test "${withval}" = "inet6"
+	then SMCP_BSD_SOCKETS_NET_FAMILY=AF_INET6
+	     SMCP_USE_BSD_SOCKETS=1
+	else as_fn_error $? "\"Unknown family '${withval}'\"" "$LINENO" 5
+    fi
+
+fi
+
+
 # Checks for programs.
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -13952,6 +13984,91 @@ else
 fi
 
 
+
+if test "${SMCP_EMBEDDED+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_EMBEDDED $SMCP_EMBEDDED
+_ACEOF
+
+fi
+if test "${SMCP_USE_BSD_SOCKETS+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_USE_BSD_SOCKETS $SMCP_USE_BSD_SOCKETS
+_ACEOF
+
+fi
+if test "${SMCP_USE_UIP+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_USE_UIP $SMCP_USE_UIP
+_ACEOF
+
+fi
+if test "${SMCP_BSD_SOCKETS_NET_FAMILY+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_BSD_SOCKETS_NET_FAMILY $SMCP_BSD_SOCKETS_NET_FAMILY
+_ACEOF
+
+fi
+if test "${SMCP_AVOID_MALLOC+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_AVOID_MALLOC $SMCP_AVOID_MALLOC
+_ACEOF
+
+fi
+if test "${SMCP_AVOID_PRINTF+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_AVOID_PRINTF $SMCP_AVOID_PRINTF
+_ACEOF
+
+fi
+if test "${SMCP_MAX_VHOSTS+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_MAX_VHOSTS $SMCP_MAX_VHOSTS
+_ACEOF
+
+fi
+if test "${SMCP_CONF_TRANS_ENABLE_BLOCK2+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_CONF_TRANS_ENABLE_BLOCK2 $SMCP_CONF_TRANS_ENABLE_BLOCK2
+_ACEOF
+
+fi
+if test "${SMCP_CONF_TRANS_ENABLE_OBSERVING+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_CONF_TRANS_ENABLE_OBSERVING $SMCP_CONF_TRANS_ENABLE_OBSERVING
+_ACEOF
+
+fi
+if test "${SMCP_MAX_OBSERVERS+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_MAX_OBSERVERS $SMCP_MAX_OBSERVERS
+_ACEOF
+
+fi
+if test "${SMCP_CONF_NODE_ROUTER+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_CONF_NODE_ROUTER $SMCP_CONF_NODE_ROUTER
+_ACEOF
+
+fi
+if test "${SMCP_USE_CASCADE_COUNT+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_USE_CASCADE_COUNT $SMCP_USE_CASCADE_COUNT
+_ACEOF
+
+fi
 
 ac_config_files="$ac_config_files Makefile src/smcpd/smcpd.conf doxygen.cfg src/Makefile docs/Makefile src/plugtest/Makefile src/smcp/Makefile src/smcpctl/Makefile src/smcpd/Makefile src/examples/Makefile src/tests/Makefile"
 

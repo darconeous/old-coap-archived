@@ -247,8 +247,8 @@ DISTCLEANFILES = config.log config.status Makefile libtool make.out
 
 # Make sure the contiki bits make it into the archive.
 EXTRA_DIST = bootstrap.sh README.md NEWS.md LICENSE etc/Dockerfile \
-	etc/build-in-docker.sh etc/run-in-docker.sh TODO.md .gitignore \
-	.uncrustify.cfg .travis.yml \
+	etc/build-in-docker.sh etc/run-in-docker.sh TODO.md \
+	CONTRIBUTING.md .gitignore .uncrustify.cfg .travis.yml \
 	contiki-src/examples/smcp-simple/.gitignore \
 	contiki-src/examples/smcp-simple/Makefile \
 	contiki-src/examples/smcp-simple/smcp-simple.c \

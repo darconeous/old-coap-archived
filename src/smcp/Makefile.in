@@ -97,7 +97,7 @@ am__libsmcp_la_SOURCES_DIST = smcp.c smcp-timer.c coap.c coap.h \
 	smcp-defaults.h assert-macros.h smcp-node-router.c \
 	smcp-node-router.h smcp-list.c smcp-variable_handler.c \
 	smcp-variable_handler.h smcp-pairing.c smcp-pairing.h \
-	smcp-curl_proxy.c
+	smcp-group.c smcp-group.h smcp-curl_proxy.c
 @HAVE_LIBCURL_TRUE@am__objects_1 = libsmcp_la-smcp-curl_proxy.lo
 am_libsmcp_la_OBJECTS = libsmcp_la-smcp.lo libsmcp_la-smcp-timer.lo \
 	libsmcp_la-coap.lo libsmcp_la-smcp-outbound.lo \
@@ -109,7 +109,7 @@ am_libsmcp_la_OBJECTS = libsmcp_la-smcp.lo libsmcp_la-smcp-timer.lo \
 	libsmcp_la-fasthash.lo libsmcp_la-string-utils.lo \
 	libsmcp_la-smcp-node-router.lo libsmcp_la-smcp-list.lo \
 	libsmcp_la-smcp-variable_handler.lo libsmcp_la-smcp-pairing.lo \
-	$(am__objects_1)
+	libsmcp_la-smcp-group.lo $(am__objects_1)
 libsmcp_la_OBJECTS = $(am_libsmcp_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -157,7 +157,8 @@ am__pkginclude_HEADERS_DIST = smcp-timer.h smcp.h smcp-transaction.h \
 	smcp-helpers.h smcp-session.h smcp-async.h smcp-defaults.h \
 	smcp-plat.h smcp-plat-bsd.h \
 	$(top_builddir)/src/smcp/smcp-config.h smcp-node-router.h \
-	smcp-variable_handler.h smcp-pairing.h smcp-curl_proxy.h
+	smcp-variable_handler.h smcp-pairing.h smcp-group.h \
+	smcp-curl_proxy.h
 HEADERS = $(pkginclude_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -305,15 +306,15 @@ libsmcp_la_SOURCES = smcp.c smcp-timer.c coap.c coap.h smcp-outbound.c \
 	smcp-dupe.h string-utils.h smcp-missing.h smcp-async.h \
 	smcp-defaults.h assert-macros.h $(NULL) smcp-node-router.c \
 	smcp-node-router.h smcp-list.c smcp-variable_handler.c \
-	smcp-variable_handler.h smcp-pairing.c smcp-pairing.h $(NULL) \
-	$(am__append_1)
+	smcp-variable_handler.h smcp-pairing.c smcp-pairing.h \
+	smcp-group.c smcp-group.h $(NULL) $(am__append_1)
 pkginclude_HEADERS = smcp-timer.h smcp.h smcp-transaction.h \
 	smcp-opts.h smcp-observable.h btree.h coap.h ll.h \
 	smcp-helpers.h smcp-session.h smcp-async.h smcp-defaults.h \
 	smcp-plat.h smcp-plat-bsd.h \
 	$(top_builddir)/src/smcp/smcp-config.h $(NULL) \
 	smcp-node-router.h smcp-variable_handler.h smcp-pairing.h \
-	$(NULL) $(am__append_2)
+	smcp-group.h $(NULL) $(am__append_2)
 EXTRA_DIST = smcp-config.h.in smcp-plat-bsd-internal.h smcp-plat-uip-internal.h smcp-plat-uip.c smcp-plat-uip.h
 libsmcp_la_LIBADD = $(LIBOBJS) $(ALLOCA) $(PTHREAD_LIBS) $(OPENSSL_LIBS)
 libsmcp_la_CFLAGS = $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(OPENSSL_AM_CPPFLAGS)
@@ -430,6 +431,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-async.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-curl_proxy.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-dupe.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-group.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-inbound.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-list.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-missing.Plo@am__quote@
@@ -609,6 +611,13 @@ libsmcp_la-smcp-pairing.lo: smcp-pairing.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-pairing.c' object='libsmcp_la-smcp-pairing.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-pairing.lo `test -f 'smcp-pairing.c' || echo '$(srcdir)/'`smcp-pairing.c
+
+libsmcp_la-smcp-group.lo: smcp-group.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-group.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-group.Tpo -c -o libsmcp_la-smcp-group.lo `test -f 'smcp-group.c' || echo '$(srcdir)/'`smcp-group.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-group.Tpo $(DEPDIR)/libsmcp_la-smcp-group.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-group.c' object='libsmcp_la-smcp-group.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-group.lo `test -f 'smcp-group.c' || echo '$(srcdir)/'`smcp-group.c
 
 libsmcp_la-smcp-curl_proxy.lo: smcp-curl_proxy.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-curl_proxy.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-curl_proxy.Tpo -c -o libsmcp_la-smcp-curl_proxy.lo `test -f 'smcp-curl_proxy.c' || echo '$(srcdir)/'`smcp-curl_proxy.c
