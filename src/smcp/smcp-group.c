@@ -126,6 +126,11 @@ smcp_group_set_enabled(smcp_group_t self, bool x)
 {
 	smcp_status_t status = SMCP_STATUS_OK;
 	smcp_group_mgr_t mgr = group_mgr_from_group(self);
+#if SMCP_EMBEDDED
+	smcp_t const smcp_instance = smcp_get_current_instance();
+#else
+	smcp_t const smcp_instance = mgr->smcp_instance;
+#endif
 
 	if (x != self->enabled) {
 		self->enabled = x;
@@ -135,9 +140,9 @@ smcp_group_set_enabled(smcp_group_t self, bool x)
 		}
 
 		if (self->enabled) {
-			status = smcp_plat_multicast_join(mgr->smcp_instance, &self->addr, 0);
+			status = smcp_plat_multicast_join(smcp_instance, &self->addr, 0);
 		} else {
-			status = smcp_plat_multicast_leave(mgr->smcp_instance, &self->addr, 0);
+			status = smcp_plat_multicast_leave(smcp_instance, &self->addr, 0);
 		}
 		smcp_observable_trigger(&self->var_handler.observable, I_ENABLED, 0);
 	}

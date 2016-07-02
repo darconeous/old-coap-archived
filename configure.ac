@@ -102,6 +102,26 @@ AC_ARG_ENABLE(debug, AC_HELP_STRING([--enable-debug],
     fi
 ])
 
+AC_ARG_ENABLE(embedded, AC_HELP_STRING([--enable-embedded],
+            [enable embedded mode (instance is singleton)]), [
+    if test "${enableval}" = "yes"
+	then SMCP_EMBEDDED=1
+	     SMCP_USE_BSD_SOCKETS=1
+    fi
+])
+
+AC_ARG_WITH(address-family, AC_HELP_STRING([--with-address-family=[inet|inet6]],
+            [Specify address family (inet6 is the default)]), [
+    if test "${withval}" = "inet"
+	then SMCP_BSD_SOCKETS_NET_FAMILY=AF_INET
+	     SMCP_USE_BSD_SOCKETS=1
+    elif test "${withval}" = "inet6"
+	then SMCP_BSD_SOCKETS_NET_FAMILY=AF_INET6
+	     SMCP_USE_BSD_SOCKETS=1
+	else AC_MSG_ERROR(["Unknown family '${withval}'"])
+    fi
+])
+
 # Checks for programs.
 AC_PROG_CC
 
@@ -204,6 +224,43 @@ AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
 dnl AH_BOTTOM([
 dnl #include "smcp/smcp-missing.h"
 dnl ])
+
+if test "${SMCP_EMBEDDED+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_EMBEDDED], [$SMCP_EMBEDDED], [.])
+fi
+if test "${SMCP_USE_BSD_SOCKETS+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_USE_BSD_SOCKETS], [$SMCP_USE_BSD_SOCKETS], [.])
+fi
+if test "${SMCP_USE_UIP+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_USE_UIP], [$SMCP_USE_UIP], [.])
+fi
+if test "${SMCP_BSD_SOCKETS_NET_FAMILY+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_BSD_SOCKETS_NET_FAMILY], [$SMCP_BSD_SOCKETS_NET_FAMILY], [.])
+fi
+if test "${SMCP_AVOID_MALLOC+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_AVOID_MALLOC], [$SMCP_AVOID_MALLOC], [.])
+fi
+if test "${SMCP_AVOID_PRINTF+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_AVOID_PRINTF], [$SMCP_AVOID_PRINTF], [.])
+fi
+if test "${SMCP_MAX_VHOSTS+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_MAX_VHOSTS], [$SMCP_MAX_VHOSTS], [.])
+fi
+if test "${SMCP_CONF_TRANS_ENABLE_BLOCK2+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_CONF_TRANS_ENABLE_BLOCK2], [$SMCP_CONF_TRANS_ENABLE_BLOCK2], [.])
+fi
+if test "${SMCP_CONF_TRANS_ENABLE_OBSERVING+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_CONF_TRANS_ENABLE_OBSERVING], [$SMCP_CONF_TRANS_ENABLE_OBSERVING], [.])
+fi
+if test "${SMCP_MAX_OBSERVERS+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_MAX_OBSERVERS], [$SMCP_MAX_OBSERVERS], [.])
+fi
+if test "${SMCP_CONF_NODE_ROUTER+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_CONF_NODE_ROUTER], [$SMCP_CONF_NODE_ROUTER], [.])
+fi
+if test "${SMCP_USE_CASCADE_COUNT+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_USE_CASCADE_COUNT], [$SMCP_USE_CASCADE_COUNT], [.])
+fi
 
 AC_CONFIG_FILES(
 	Makefile

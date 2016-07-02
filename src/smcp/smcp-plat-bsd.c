@@ -897,6 +897,10 @@ smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr, int flag
 	struct addrinfo *results = NULL;
 	struct addrinfo *iter = NULL;
 
+#if SMCP_BSD_SOCKETS_NET_FAMILY != AF_INET6
+	hint.ai_family = SMCP_BSD_SOCKETS_NET_FAMILY;
+#endif
+
 	if ((flags & (SMCP_LOOKUP_HOSTNAME_FLAG_IPV4_ONLY|SMCP_LOOKUP_HOSTNAME_FLAG_IPV6_ONLY)) == (SMCP_LOOKUP_HOSTNAME_FLAG_IPV4_ONLY|SMCP_LOOKUP_HOSTNAME_FLAG_IPV6_ONLY)) {
 		ret = SMCP_STATUS_INVALID_ARGUMENT;
 		goto bail;

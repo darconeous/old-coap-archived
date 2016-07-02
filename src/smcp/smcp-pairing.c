@@ -83,7 +83,9 @@ smcp_pairing_mgr_init(
 ) {
 	memset(self, 0, sizeof(*self));
 
+#if !SMCP_EMBEDDED
 	self->smcp_instance = smcp_instance;
+#endif
 
 	return self;
 }
