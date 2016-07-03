@@ -67,6 +67,7 @@
 		A654A1671D25E2600050C7BD /* smcp-group.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1621D25D6290050C7BD /* smcp-group.c */; };
 		A654A1681D25E2610050C7BD /* smcp-group.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1621D25D6290050C7BD /* smcp-group.c */; };
 		A654A16C1D25EDBD0050C7BD /* group-node.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1691D25EDB40050C7BD /* group-node.c */; };
+		A654A16E1D28B2700050C7BD /* CONTRIBUTING.md in Sources */ = {isa = PBXBuildFile; fileRef = A654A16D1D28B2700050C7BD /* CONTRIBUTING.md */; };
 		A669AAE319B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
 		A669AAE419B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
 		A669AAE519B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
@@ -291,7 +292,7 @@
 		A6030647164595E500B0AA6C /* fls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fls.h; sourceTree = "<group>"; };
 		A60397D016D68B9900E996FC /* Makefile */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.make; path = Makefile; sourceTree = "<group>"; };
 		A603999D16D68B9B00E996FC /* smcp-complex.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "smcp-complex.c"; sourceTree = "<group>"; };
-		A60BF11B158D425F00D39B5C /* COPYING */ = {isa = PBXFileReference; lastKnownFileType = text; path = COPYING; sourceTree = "<group>"; };
+		A60BF11B158D425F00D39B5C /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		A60BF11C158D425F00D39B5C /* README.md */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		A60E4FE419B6744100D876DD /* smcp-session.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-session.h"; sourceTree = "<group>"; usesTabs = 1; };
 		A60E4FE519B6745000D876DD /* smcp-session.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-session.c"; sourceTree = "<group>"; usesTabs = 1; };
@@ -357,6 +358,7 @@
 		A654A1621D25D6290050C7BD /* smcp-group.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-group.c"; sourceTree = "<group>"; };
 		A654A1691D25EDB40050C7BD /* group-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "group-node.c"; sourceTree = "<group>"; };
 		A654A16A1D25EDB40050C7BD /* group-node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "group-node.h"; sourceTree = "<group>"; };
+		A654A16D1D28B2700050C7BD /* CONTRIBUTING.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = CONTRIBUTING.md; sourceTree = "<group>"; };
 		A669AADE19AE815700274532 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A669AADF19AE815700274532 /* test-concurrency.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "test-concurrency.c"; sourceTree = "<group>"; };
 		A669AAE019B1232E00274532 /* getline.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = getline.c; sourceTree = "<group>"; };
@@ -802,8 +804,9 @@
 				A6BE9A3E164CC86B00473330 /* smcpctl.1 */,
 				A6BE9A40164CC87F00473330 /* Makefile.am */,
 				C6A0FF2C0290799A04C91782 /* smcpctl.1 */,
-				A60BF11B158D425F00D39B5C /* COPYING */,
+				A60BF11B158D425F00D39B5C /* LICENSE */,
 				A60BF11C158D425F00D39B5C /* README.md */,
+				A654A16D1D28B2700050C7BD /* CONTRIBUTING.md */,
 				A6DC100916CEADAE00DD2180 /* NEWS.md */,
 				A654A15F1D2238370050C7BD /* TODO.md */,
 			);
@@ -1013,6 +1016,7 @@
 				A63EA6DB1278B13800B24867 /* cmd_list.c in Sources */,
 				A67FA5CE1BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A6FB086F1D0CAC78004116B1 /* ud-var-node.c in Sources */,
+				A654A16E1D28B2700050C7BD /* CONTRIBUTING.md in Sources */,
 				A6A4A4051953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A63EA6DD1278B13800B24867 /* cmd_post.c in Sources */,
 				A63EA6DF1278B13800B24867 /* help.c in Sources */,

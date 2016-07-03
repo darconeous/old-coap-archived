@@ -5,7 +5,8 @@ First, thanks for considering contributing to SMCP!
 
 In general, there are three types of direct contributions to the project:
 
-1.  [Indirect Contributions](#indirect-contributions) (Bug Reports and Feature Requests)
+1.  [Indirect Contributions](#indirect-contributions) (Bug Reports and
+    Feature Requests)
 2.  [Trivial Direct Contributions](#trivial-direct-contributions)
 3.  [Substantial Direct Contributions](#substantial-direct-contributions)
 
@@ -42,9 +43,10 @@ it is a convenient way to track and provide attribution for such fixes
 in release notes.
 
 If this policy is unacceptable, please do not file a pull request for
-trivial changes and instead [file a
-issue](https://github.com/darconeous/smcp/issues) so that one of the
-official developers address the problem instead.
+trivial changes and instead [file a issue][1] so that one of the official
+developers address the problem instead.
+
+[1]: https://github.com/darconeous/smcp/issues
 
 ## Substantial Direct Contributions ##
 

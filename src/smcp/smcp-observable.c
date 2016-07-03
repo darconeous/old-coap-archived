@@ -48,7 +48,7 @@ struct smcp_observer_s {
 	struct smcp_observable_s *observable;
 	int8_t next;	// always n+1, zero is end of list
 	uint8_t key;
-	bool on_hold;
+	bool on_hold;   // Set when we are waiting for a response to a CON
 	uint32_t seq;
 	struct smcp_async_response_s async_response;
 	struct smcp_transaction_s transaction;

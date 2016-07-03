@@ -44,6 +44,12 @@ __BEGIN_DECLS
 **	@{
 */
 
+//!	Don't immediately send an empty coap message.
+/*!	Normally, when you call smcp_outbound_begin_async_response(),
+**	an empty message is sent to the requester to indicate
+**	that they don't need to send any retries. This flag
+**	tells the function to not attempt to send this empty message.
+*/
 #define SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK		(1<<0)
 
 struct smcp_async_response_s {
