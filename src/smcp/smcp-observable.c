@@ -207,7 +207,11 @@ event_response_handler(int statuscode, struct smcp_observer_s* observer)
 	}
 
 	if (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED) {
-		if(statuscode && ((statuscode < COAP_RESULT_200) || (statuscode >= COAP_RESULT_400))) {
+		if ( (statuscode != 0)
+		  && ( (statuscode <  COAP_RESULT_200)
+		    || (statuscode >= COAP_RESULT_400)
+		  )
+		) {
 			statuscode = SMCP_STATUS_RESET;
 		}
 	}
@@ -233,8 +237,8 @@ retry_sending_event(struct smcp_observer_s* observer)
 	require_noerr(status,bail);
 
 	self->outbound.packet->tt = SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)
-		?COAP_TRANS_TYPE_CONFIRMABLE
-		:COAP_TRANS_TYPE_NONCONFIRMABLE;
+		? COAP_TRANS_TYPE_CONFIRMABLE
+		: COAP_TRANS_TYPE_NONCONFIRMABLE;
 
 	self->inbound.has_observe_option = true;
 	self->is_responding = true;
@@ -271,11 +275,20 @@ trigger_observer(smcp_t interface, struct smcp_observer_s* observer, bool force_
 	smcp_status_t ret = SMCP_STATUS_OK;
 	observer->seq++;
 
-	// We need to get a response
+	// If we are about to need confirmation, then
+	// clear out the previous transaction so we can
+	// continue;
+	if (!observer->on_hold && SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)) {
+		smcp_transaction_end(interface, &observer->transaction);
+	}
+
 	if (observer->transaction.active) {
+		// The transaction is still active, so just tickle it.
+
 		if (!observer->on_hold) {
 			smcp_transaction_new_msg_id(interface, &observer->transaction, smcp_get_next_msg_id(interface));
 		}
+
 		smcp_transaction_tickle(interface, &observer->transaction);
 	} else {
 		bool should_confirm = force_con || SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer);
