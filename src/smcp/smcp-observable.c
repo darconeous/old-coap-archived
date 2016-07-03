@@ -48,7 +48,7 @@ struct smcp_observer_s {
 	struct smcp_observable_s *observable;
 	int8_t next;	// always n+1, zero is end of list
 	uint8_t key;
-	bool on_hold;
+	bool on_hold;   // Set when we are waiting for a response to a CON
 	uint32_t seq;
 	struct smcp_async_response_s async_response;
 	struct smcp_transaction_s transaction;
@@ -179,7 +179,7 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 		);
 
 		require_noerr_action(
-			ret = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE,observer_table[i].seq),
+			ret = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE, observer_table[i].seq),
 			bail,
 			free_observer(&observer_table[i])
 		);
@@ -207,7 +207,11 @@ event_response_handler(int statuscode, struct smcp_observer_s* observer)
 	}
 
 	if (statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED) {
-		if(statuscode && ((statuscode < COAP_RESULT_200) || (statuscode >= COAP_RESULT_400))) {
+		if ( (statuscode != 0)
+		  && ( (statuscode <  COAP_RESULT_200)
+		    || (statuscode >= COAP_RESULT_400)
+		  )
+		) {
 			statuscode = SMCP_STATUS_RESET;
 		}
 	}
@@ -233,8 +237,8 @@ retry_sending_event(struct smcp_observer_s* observer)
 	require_noerr(status,bail);
 
 	self->outbound.packet->tt = SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)
-		?COAP_TRANS_TYPE_CONFIRMABLE
-		:COAP_TRANS_TYPE_NONCONFIRMABLE;
+		? COAP_TRANS_TYPE_CONFIRMABLE
+		: COAP_TRANS_TYPE_NONCONFIRMABLE;
 
 	self->inbound.has_observe_option = true;
 	self->is_responding = true;
@@ -271,11 +275,20 @@ trigger_observer(smcp_t interface, struct smcp_observer_s* observer, bool force_
 	smcp_status_t ret = SMCP_STATUS_OK;
 	observer->seq++;
 
-	// We need to get a response
+	// If we are about to need confirmation, then
+	// clear out the previous transaction so we can
+	// continue;
+	if (!observer->on_hold && SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer)) {
+		smcp_transaction_end(interface, &observer->transaction);
+	}
+
 	if (observer->transaction.active) {
+		// The transaction is still active, so just tickle it.
+
 		if (!observer->on_hold) {
 			smcp_transaction_new_msg_id(interface, &observer->transaction, smcp_get_next_msg_id(interface));
 		}
+
 		smcp_transaction_tickle(interface, &observer->transaction);
 	} else {
 		bool should_confirm = force_con || SHOULD_CONFIRM_EVENT_FOR_OBSERVER(observer);

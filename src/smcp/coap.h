@@ -74,15 +74,36 @@
 #define COAP_DEFAULT_MAX_AGE				(60)
 
 // The following constants are defined by
-// <http://tools.ietf.org/html/draft-ietf-core-coap-13#section-4.8>
-#define COAP_ACK_TIMEOUT		(1.5f)	//!^ Seconds (spec says to set to `2`)
-#define COAP_ACK_RANDOM_FACTOR	(1.5f)
-#define COAP_MAX_RETRANSMIT     (5)		//!^ Attempts (spec says to set to `4`)
-#define COAP_NSTART				(1)
-#define COAP_DEFAULT_LEASURE    (5)		//!^ Seconds
-#define COAP_PROBING_RATE       (1)		//!^ Bytes/Second
+// <https://tools.ietf.org/html/rfc7252#section-4.8>
+// But are adjusted here based on personal experience.
 
+#ifndef COAP_ACK_TIMEOUT
+#define COAP_ACK_TIMEOUT		(1.0f)	//!^ Seconds (spec says to set to `2`)
+#endif
+
+#ifndef COAP_ACK_RANDOM_FACTOR
+#define COAP_ACK_RANDOM_FACTOR	(1.5f)
+#endif
+
+#ifndef COAP_MAX_RETRANSMIT
+#define COAP_MAX_RETRANSMIT     (5)		//!^ Attempts (spec says to set to `4`)
+#endif
+
+#ifndef COAP_NSTART
+#define COAP_NSTART				(1)
+#endif
+
+#ifndef COAP_DEFAULT_LEASURE
+#define COAP_DEFAULT_LEASURE    (5)		//!^ Seconds
+#endif
+
+#ifndef COAP_PROBING_RATE
+#define COAP_PROBING_RATE       (1)		//!^ Bytes/Second
+#endif
+
+#ifndef COAP_MAX_LATENCY
 #define COAP_MAX_LATENCY		(100)	//!^ Seconds
+#endif
 
 // Derived constants
 #define COAP_MAX_TRANSMIT_SPAN	(COAP_ACK_TIMEOUT * ((1<<COAP_MAX_RETRANSMIT) - 1) * COAP_ACK_RANDOM_FACTOR)

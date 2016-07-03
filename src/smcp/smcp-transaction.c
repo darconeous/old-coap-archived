@@ -387,7 +387,7 @@ smcp_transaction_init(
 		}
 #endif
 	} else {
-		memset(handler,0,sizeof(*handler));
+		memset(handler, 0, sizeof(*handler));
 	}
 
 	require(handler!=NULL, bail);
@@ -406,7 +406,7 @@ smcp_transaction_tickle(
 	smcp_t self,
 	smcp_transaction_t handler
 ) {
-	//SMCP_EMBEDDED_SELF_HOOK;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	smcp_invalidate_timer(self, &handler->timer);
 
@@ -440,7 +440,7 @@ smcp_transaction_begin(
 	ll_remove((void**)&self->transactions,(void*)handler);
 #endif
 
-	if (expiration<0) {
+	if (expiration <= 0) {
 		expiration = (smcp_cms_t)(COAP_EXCHANGE_LIFETIME*MSEC_PER_SEC);
 	}
 
@@ -457,7 +457,7 @@ smcp_transaction_begin(
 	handler->active = 1;
 	handler->expiration = smcp_plat_cms_to_timestamp(expiration);
 
-	if(handler->resendCallback) {
+	if (handler->resendCallback) {
 		// In this case we will be reattempting for a given duration.
 		// The first attempt should happen pretty much immediately.
 		expiration = 0;
@@ -468,8 +468,8 @@ smcp_transaction_begin(
 		}
 	}
 
-	if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
-		&& expiration>SMCP_OBSERVATION_KEEPALIVE_INTERVAL
+	if ( (handler->flags & SMCP_TRANSACTION_KEEPALIVE)
+	  && (expiration > SMCP_OBSERVATION_KEEPALIVE_INTERVAL)
 	) {
 		expiration = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
 	}
