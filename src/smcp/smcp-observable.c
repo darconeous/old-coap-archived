@@ -179,7 +179,7 @@ smcp_observable_update(smcp_observable_t context, uint8_t key) {
 		);
 
 		require_noerr_action(
-			ret = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE,observer_table[i].seq),
+			ret = smcp_outbound_add_option_uint(COAP_OPTION_OBSERVE, observer_table[i].seq),
 			bail,
 			free_observer(&observer_table[i])
 		);
