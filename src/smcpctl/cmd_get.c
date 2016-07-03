@@ -37,6 +37,7 @@ static arg_list_item_t option_list[] = {
 	{ 0, "size-request", NULL, "(writeme)" },
 	{ 0, "ignore-first", NULL, "(writeme)" },
 	{ 0, "observe-once", NULL, "(writeme)" },
+	{ 0  , "timestamp",  NULL, "Prepend a timestamp to the content" },
 	{ 0  , "timeout",  "seconds", "Change timeout period (Default: 30 Seconds)" },
 	{ 'a', "accept", "mime-type/coap-number", "hint to the server the content-type you want" },
 	{ 0 }
@@ -52,6 +53,7 @@ static smcp_cms_t get_timeout;
 static bool observe_ignore_first;
 static bool observe_once;
 static coap_transaction_type_t get_tt;
+static bool print_timestamp;
 static void
 signal_interrupt(int sig) {
 	gRet = ERRORCODE_INTERRUPT;
@@ -123,31 +125,45 @@ get_response_handler(int statuscode, void* context) {
 		}
 	}
 
-	if ((statuscode>0) && content && content_length) {
+	if ( (statuscode > 0)
+	  && content
+	  && content_length
+	) {
 		coap_option_key_t key;
 		const uint8_t* value;
 		coap_size_t value_len;
+		bool first_block = true;
 		bool last_block = true;
 		int32_t observe_value = -1;
 
 		while ((key = smcp_inbound_next_option(&value, &value_len)) != COAP_OPTION_INVALID) {
 
-			if(key == COAP_OPTION_BLOCK2) {
-				last_block = !(value[value_len-1]&(1<<3));
-			} else if(key == COAP_OPTION_OBSERVE) {
-				if(value_len)
-					observe_value = value[0];
-				else observe_value = 0;
+			if (key == COAP_OPTION_BLOCK2) {
+				struct coap_block_info_s block_info;
+				coap_decode_block(&block_info, coap_decode_uint32(value, value_len));
+
+				last_block = !block_info.block_m;
+				first_block = (block_info.block_offset == 0);
+			} else if (key == COAP_OPTION_OBSERVE) {
+				observe_value = coap_decode_uint32(value, value_len);
 			}
 
 		}
 
+		if (first_block && print_timestamp) {
+			time_t current_time = time(NULL);
+			printf("[%.*s] ", 24, ctime(&current_time));
+		}
+
 		fwrite(content, content_length, 1, stdout);
 
-		if(last_block) {
+		if (last_block) {
 			// Only print a newline if the content doesn't already print one.
-			if(content_length && (content[content_length - 1] != '\n'))
+			if ( (content_length > 0)
+			  && (content[content_length - 1] != '\n')
+			) {
 				printf("\n");
+			}
 		}
 
 		fflush(stdout);
@@ -155,7 +171,7 @@ get_response_handler(int statuscode, void* context) {
 		last_observe_value = observe_value;
 	}
 
-	if(observe_once) {
+	if (observe_once) {
 		gRet = 0;
 		goto bail;
 	}
@@ -206,10 +222,13 @@ send_get_request(
 	retries = 0;
 	url_data = url;
 
-	if(get_observe)
+	if(get_observe) {
 		flags |= SMCP_TRANSACTION_OBSERVE;
-	if(get_keep_alive)
+	}
+
+	if(get_keep_alive) {
 		flags |= SMCP_TRANSACTION_KEEPALIVE;
+	}
 
 	smcp_transaction_end(smcp,&transaction);
 	smcp_transaction_init(
@@ -278,6 +297,7 @@ tool_cmd_get(
 	HANDLE_LONG_ARGUMENT("no-keep-alive") get_keep_alive = false;
 	HANDLE_LONG_ARGUMENT("once") observe_once = true;
 	HANDLE_LONG_ARGUMENT("ignore-first") observe_ignore_first = true;
+	HANDLE_LONG_ARGUMENT("timestamp") print_timestamp = true;
 	HANDLE_LONG_ARGUMENT("accept") {
 		i++;
 		if(!argv[i]) {
