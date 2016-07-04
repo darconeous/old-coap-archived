@@ -97,7 +97,9 @@ smcp_outbound_reset()
 	);
 	smcp_get_current_instance()->is_responding = false;
 	smcp_get_current_instance()->did_respond = false;
-	smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
+	if (!smcp_get_current_instance()->is_processing_message) {
+		smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
+	}
 }
 
 smcp_status_t
@@ -118,6 +120,7 @@ smcp_outbound_begin(
 	if (!self->is_processing_message) {
 		smcp_plat_set_remote_sockaddr(NULL);
 		smcp_plat_set_local_sockaddr(NULL);
+		smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
 	}
 
 	self->outbound.max_packet_len = SMCP_MAX_PACKET_LENGTH;
@@ -418,8 +421,6 @@ smcp_outbound_set_uri(
 	SMCP_NON_RECURSIVE char* uri_copy;
 
 	memset((void*)&components, 0, sizeof(components));
-	toport = COAP_DEFAULT_PORT;
-	smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
 	uri_copy = NULL;
 
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);

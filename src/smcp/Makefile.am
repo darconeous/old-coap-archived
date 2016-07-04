@@ -1,5 +1,3 @@
-AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
-#AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 
 AUTOMAKE_OPTIONS = subdir-objects
 
@@ -9,6 +7,7 @@ lib_LTLIBRARIES = libsmcp.la
 
 AM_LIBS = $(CODE_COVERAGE_LDFLAGS)
 AM_CFLAGS = $(CFLAGS) $(CODE_COVERAGE_CFLAGS)
+AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
 
 libsmcp_la_SOURCES = \
 	smcp.c \

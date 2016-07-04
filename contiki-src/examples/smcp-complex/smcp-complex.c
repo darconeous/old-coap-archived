@@ -1,5 +1,5 @@
 
-#include <smcp/assert-macros.h>
+#include "smcp/assert-macros.h"
 
 #include "smcp-task.h"
 #include "watchdog.h"

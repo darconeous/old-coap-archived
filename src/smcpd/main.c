@@ -36,7 +36,7 @@
 
 #define HAVE_FGETLN 0
 
-#include <smcp/assert-macros.h>
+#include "smcp/assert-macros.h"
 
 #include <smcp/smcp-internal.h>
 #include <smcp/smcp-missing.h>

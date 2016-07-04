@@ -3,7 +3,7 @@
 #include <config.h>
 #endif
 
-#include <smcp/assert-macros.h>
+#include "smcp/assert-macros.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -687,8 +687,8 @@ main(
 				"[options] <sub-command> [args]");
 
 		if((0 !=
-		        strncmp(argv[i], "smcp:",
-					5)) && (0 != strncmp(argv[i], "coap:", 5))) {
+		        strncmp(argv[i], "coaps:",
+					6)) && (0 != strncmp(argv[i], "coap:", 5))) {
 			gRet = exec_command(gSMCPInstance, argc - i, argv + i);
 #if HAVE_LIBREADLINE
 			if(gRet || (0 != strcmp(argv[i], "cd")))

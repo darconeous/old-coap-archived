@@ -214,16 +214,7 @@ AC_CHECK_FUNCS([alloca memcmp memset strtol strdup strndup strlcpy strlcat stpnc
 
 AC_REPLACE_FUNCS([getline])
 
-dnl AC_CACHE_CHECK([for ge_rs232],[smcp_cv_have_ge_rs232],[
-dnl 	smcp_cv_have_ge_rs232=no
-dnl 	test -f "${srcdir}/../ge-rs232/ge-system-node.c" && smcp_cv_have_ge_rs232=yes
-dnl ])
-
 AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
-
-dnl AH_BOTTOM([
-dnl #include "smcp/smcp-missing.h"
-dnl ])
 
 if test "${SMCP_EMBEDDED+set}" = "set"
 then AC_DEFINE_UNQUOTED([SMCP_EMBEDDED], [$SMCP_EMBEDDED], [.])
