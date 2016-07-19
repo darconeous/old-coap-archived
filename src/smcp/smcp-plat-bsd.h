@@ -1,7 +1,7 @@
 /*	@file smcp-plat-bsd.h
 **	@author Robert Quattlebaum <darco@deepdarc.com>
 **
-**	Copyright (C) 2014 Robert Quattlebaum
+**	Copyright (C) 2016 Robert Quattlebaum
 **
 **	Permission is hereby granted, free of charge, to any person
 **	obtaining a copy of this software and associated
