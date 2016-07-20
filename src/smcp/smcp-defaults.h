@@ -45,8 +45,8 @@
 #endif
 #endif
 
-#ifndef SMCP_MULTITHREAD
-#define SMCP_MULTITHREAD		!SMCP_EMBEDDED
+#ifndef SMCP_THREAD_SAFE
+#define SMCP_THREAD_SAFE		!SMCP_EMBEDDED
 #endif
 
 #ifndef SMCP_USE_BSD_SOCKETS
@@ -315,10 +315,6 @@
 
 #ifndef SMCP_DTLS
 #define SMCP_DTLS							0
-#endif
-
-#ifndef SMCP_TLS
-#define SMCP_TLS							0
 #endif
 
 /*****************************************************************************/

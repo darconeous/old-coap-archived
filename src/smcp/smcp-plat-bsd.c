@@ -111,13 +111,13 @@ smcp_plat_multicast_join(smcp_t self, smcp_addr_t *group, int interface)
 		if (ret >= 0) {
 			char addr_str[50] = "???";
 			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
-			DEBUG_PRINTF("Joined multicast group %s", addr_str);
+			DEBUG_PRINTF("Joined multicast group [%s]", addr_str);
 			return SMCP_STATUS_OK;
 		} else {
 			char addr_str[50] = "???";
 			int prev_errno = errno;
 			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
-			DEBUG_PRINTF("Unable to join multicast group %s, \"%s\"",addr_str, strerror(prev_errno));
+			DEBUG_PRINTF("Unable to join multicast group [%s], \"%s\"",addr_str, strerror(prev_errno));
 			errno = prev_errno;
 			return SMCP_STATUS_ERRNO;
 		}
@@ -173,10 +173,19 @@ smcp_plat_multicast_leave(smcp_t self, smcp_addr_t *group, int interface)
 static smcp_status_t
 smcp_internal_join_multicast_group(smcp_t self, const char* group)
 {
-	int ret;
+	int ret = 0;
 	int count = 0;
 	struct hostent *tmp;
 	int i;
+	bool is_raw_ipv4_addr = false;
+	bool is_raw_ipv6_addr = false;
+	struct in6_addr addr;
+
+	if (inet_pton(AF_INET, group, &addr) > 0) {
+		is_raw_ipv4_addr = true;
+	} else if (inet_pton(AF_INET6, group, &addr) > 0) {
+		is_raw_ipv6_addr = true;
+	}
 
 	if (self->plat.mcfd_v4 == -1) {
 		self->plat.mcfd_v4 = socket(AF_INET, SOCK_DGRAM, 0);
@@ -195,13 +204,26 @@ smcp_internal_join_multicast_group(smcp_t self, const char* group)
 		}
 	}
 
-	if (self->plat.mcfd_v4 != -1) {
-		tmp = gethostbyname2(group, AF_INET);
+	if ((self->plat.mcfd_v4 != -1) && !is_raw_ipv6_addr) {
+		struct ip_mreq group_mreq = {};
 
-		for (i = 0; tmp && tmp->h_addr_list[i] != NULL; i++) {
-			struct ip_mreq group_mreq = {};
-			memcpy(&group_mreq.imr_multiaddr.s_addr, tmp->h_addr_list[0], 4);
+		ret = inet_pton(AF_INET, group, &group_mreq.imr_multiaddr.s_addr);
 
+		if (ret <= 0) {
+			tmp = gethostbyname2(group, AF_INET);
+
+			for (i = 0; tmp && tmp->h_addr_list[i] != NULL; i++) {
+				memcpy(&group_mreq.imr_multiaddr.s_addr, tmp->h_addr_list[0], 4);
+
+				ret = setsockopt(
+					self->plat.mcfd_v4,
+					IPPROTO_IP,
+					IP_ADD_MEMBERSHIP,
+					(char *)&group_mreq,
+					sizeof(group_mreq)
+				);
+			}
+		} else {
 			ret = setsockopt(
 				self->plat.mcfd_v4,
 				IPPROTO_IP,
@@ -209,13 +231,14 @@ smcp_internal_join_multicast_group(smcp_t self, const char* group)
 				(char *)&group_mreq,
 				sizeof(group_mreq)
 			);
-			if (ret >= 0) {
-				DEBUG_PRINTF("Joined multicast group %s",inet_ntoa(group_mreq.imr_multiaddr));
-				count++;
-			} else {
-				int prev_errno = errno;
-				DEBUG_PRINTF("Unable to join multicast group %s, \"%s\"",inet_ntoa(group_mreq.imr_multiaddr), strerror(prev_errno));
-			}
+		}
+
+		if (ret >= 0) {
+			DEBUG_PRINTF("Joined multicast group %s (%s)",group,inet_ntoa(group_mreq.imr_multiaddr));
+			count++;
+		} else {
+			int prev_errno = errno;
+			DEBUG_PRINTF("Unable to join multicast group %s (%s), \"%s\"",group,inet_ntoa(group_mreq.imr_multiaddr), strerror(prev_errno));
 		}
 	}
 
@@ -236,15 +259,23 @@ smcp_internal_join_multicast_group(smcp_t self, const char* group)
 		}
 	}
 
-	if (self->plat.mcfd != -1) {
-		tmp = gethostbyname2(group, AF_INET6);
+	if ((self->plat.mcfd != -1) && !is_raw_ipv4_addr) {
+		ret = inet_pton(AF_INET6, group, &addr);
 
-		require(!h_errno && tmp, bail);
-		require(tmp->h_length > 1, bail);
-
-		for (i = 0; tmp && tmp->h_addr_list[i] != NULL; i++) {
-			if (SMCP_STATUS_OK == smcp_plat_multicast_join(self, (smcp_addr_t*)tmp->h_addr_list, 0)) {
+		if (ret > 0) {
+			if (SMCP_STATUS_OK == smcp_plat_multicast_join(self, &addr, 0)) {
 				count++;
+			}
+		} else {
+			tmp = gethostbyname2(group, AF_INET6);
+
+			require(!h_errno && tmp, bail);
+			require(tmp->h_length > 1, bail);
+
+			for (i = 0; tmp && tmp->h_addr_list[i] != NULL; i++) {
+				if (SMCP_STATUS_OK == smcp_plat_multicast_join(self, (smcp_addr_t*)tmp->h_addr_list, 0)) {
+					count++;
+				}
 			}
 		}
 	}
@@ -403,7 +434,7 @@ smcp_plat_bind_to_sockaddr(
 #if defined(IPV6_V6ONLY) && SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
 	{
 		int value = 0; /* explicitly allow ipv4 traffic too (required on bsd and some debian installations) */
-		if (setsockopt(self->plat.fd_udp, IPPROTO_IPV6, IPV6_V6ONLY, &value, sizeof(value)) < 0)
+		if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &value, sizeof(value)) < 0)
 		{
 			DEBUG_PRINTF("Setting IPV6_V6ONLY=0 on socket failed (%s)",strerror(errno));
 		}
