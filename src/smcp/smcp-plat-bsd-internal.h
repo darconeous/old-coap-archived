@@ -90,6 +90,8 @@ struct smcp_plat_s {
 	int						fd_udp;
 	int						fd_dtls;
 
+    uint8_t                 reuse_addr;
+
 	smcp_sockaddr_t			sockaddr_local;
 	smcp_sockaddr_t			sockaddr_remote;
 	smcp_session_type_t     session_type;
