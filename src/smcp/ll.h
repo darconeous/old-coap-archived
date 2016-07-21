@@ -142,7 +142,7 @@ ll_insert(
 
 	item_->next = location_;
 	item_->prev = location_->prev;
-	location_->prev = item;
+	location_->prev = item_;
 	if(item_->prev)
 		item_->prev->next = item_;
 
