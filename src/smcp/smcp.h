@@ -555,6 +555,10 @@ __END_DECLS
 
 #endif
 
+#if SMCP_DTLS
+#include "smcp-plat-ssl.h"
+#endif
+
 #include "smcp-async.h"
 #include "smcp-transaction.h"
 #include "smcp-observable.h"

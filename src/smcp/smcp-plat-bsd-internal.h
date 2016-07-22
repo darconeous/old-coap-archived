@@ -37,6 +37,15 @@
 #define __APPLE_USE_RFC_3542 1
 
 #include "smcp.h"
+
+#if SMCP_DTLS
+#if SMCP_DTLS_OPENSSL
+#include "smcp-plat-openssl.h"
+#else // if SMCP_DTLS_OPENSSL
+#error "SMCP_DTLS is set, but SMCP_DTLS_OPENSSL isn't set."
+#endif // else SMCP_DTLS_OPENSSL
+#endif // if SMCP_DTLS
+
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -88,7 +97,14 @@ struct smcp_plat_s {
 	int						mcfd_v4;	//!< For multicast
 
 	int						fd_udp;
+
+#if SMCP_DTLS
 	int						fd_dtls;
+	void*					context_dtls;
+	struct smcp_plat_ssl_s  ssl;
+#endif
+
+	void*					current_session;
 
 	smcp_sockaddr_t			sockaddr_local;
 	smcp_sockaddr_t			sockaddr_remote;
@@ -103,5 +119,12 @@ struct smcp_plat_s {
 	char					outbound_packet_bytes[SMCP_MAX_PACKET_LENGTH+1];
 };
 
+
+SMCP_INTERNAL_EXTERN ssize_t sendtofrom(
+	int fd,
+	const void *data, size_t len, int flags,
+	const struct sockaddr * saddr_to, socklen_t socklen_to,
+	const struct sockaddr * saddr_from, socklen_t socklen_from
+);
 
 #endif

@@ -68,6 +68,16 @@
 		A654A1681D25E2610050C7BD /* smcp-group.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1621D25D6290050C7BD /* smcp-group.c */; };
 		A654A16C1D25EDBD0050C7BD /* group-node.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1691D25EDB40050C7BD /* group-node.c */; };
 		A654A16E1D28B2700050C7BD /* CONTRIBUTING.md in Sources */ = {isa = PBXBuildFile; fileRef = A654A16D1D28B2700050C7BD /* CONTRIBUTING.md */; };
+		A654A1711D2B25490050C7BD /* smcp-plat-openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */; };
+		A654A1721D2B25490050C7BD /* smcp-plat-openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */; };
+		A654A1731D2B25490050C7BD /* smcp-plat-openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */; };
+		A654A1741D2B25490050C7BD /* smcp-plat-openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */; };
+		A654A1751D2B25490050C7BD /* smcp-plat-openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */; };
+		A654A1761D2B25490050C7BD /* smcp-plat-openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */; };
+		A654A1771D2B25490050C7BD /* smcp-plat-openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */; };
+		A654A1781D2B25490050C7BD /* smcp-plat-openssl.c in Sources */ = {isa = PBXBuildFile; fileRef = A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */; };
+		A654A17C1D3D8C700050C7BD /* libcrypto.0.9.8.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A654A17A1D3D8C700050C7BD /* libcrypto.0.9.8.dylib */; };
+		A654A17D1D3D8C700050C7BD /* libssl.0.9.8.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = A654A17B1D3D8C700050C7BD /* libssl.0.9.8.dylib */; };
 		A669AAE319B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
 		A669AAE419B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
 		A669AAE519B1249100274532 /* smcp-missing.c in Sources */ = {isa = PBXBuildFile; fileRef = A669AAE219B1249100274532 /* smcp-missing.c */; };
@@ -359,6 +369,11 @@
 		A654A1691D25EDB40050C7BD /* group-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "group-node.c"; sourceTree = "<group>"; };
 		A654A16A1D25EDB40050C7BD /* group-node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "group-node.h"; sourceTree = "<group>"; };
 		A654A16D1D28B2700050C7BD /* CONTRIBUTING.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = CONTRIBUTING.md; sourceTree = "<group>"; };
+		A654A16F1D2B25170050C7BD /* smcp-plat-ssl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "smcp-plat-ssl.h"; sourceTree = "<group>"; };
+		A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-plat-openssl.c"; sourceTree = "<group>"; };
+		A654A1791D2C29E80050C7BD /* smcp-plat-openssl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-plat-openssl.h"; sourceTree = "<group>"; };
+		A654A17A1D3D8C700050C7BD /* libcrypto.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libcrypto.0.9.8.dylib; path = ../../../../usr/lib/libcrypto.0.9.8.dylib; sourceTree = "<group>"; };
+		A654A17B1D3D8C700050C7BD /* libssl.0.9.8.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libssl.0.9.8.dylib; path = ../../../../usr/lib/libssl.0.9.8.dylib; sourceTree = "<group>"; };
 		A669AADE19AE815700274532 /* Makefile.am */ = {isa = PBXFileReference; lastKnownFileType = text; path = Makefile.am; sourceTree = "<group>"; };
 		A669AADF19AE815700274532 /* test-concurrency.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "test-concurrency.c"; sourceTree = "<group>"; };
 		A669AAE019B1232E00274532 /* getline.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = getline.c; sourceTree = "<group>"; };
@@ -460,6 +475,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A654A17C1D3D8C700050C7BD /* libcrypto.0.9.8.dylib in Frameworks */,
+				A654A17D1D3D8C700050C7BD /* libssl.0.9.8.dylib in Frameworks */,
 				A67A687E1D18FA600045F611 /* libcurl.4.dylib in Frameworks */,
 				A67A687F1D18FA600045F611 /* libreadline.dylib in Frameworks */,
 			);
@@ -506,6 +523,8 @@
 		08FB7794FE84155DC02AAC07 /* SHAP */ = {
 			isa = PBXGroup;
 			children = (
+				A654A17A1D3D8C700050C7BD /* libcrypto.0.9.8.dylib */,
+				A654A17B1D3D8C700050C7BD /* libssl.0.9.8.dylib */,
 				A690627E16B6E5FA00A98B2C /* doxygen.cfg.in */,
 				A6181DDB16B462C700655F4F /* examples */,
 				A6F35897168A54D300F72DF3 /* Plugtest Client */,
@@ -547,8 +566,11 @@
 				A60E4FE419B6744100D876DD /* smcp-session.h */,
 				A60E4FE519B6745000D876DD /* smcp-session.c */,
 				A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */,
-				A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */,
 				A68E13DD1912E48C008F5A0A /* smcp-plat-bsd-internal.h */,
+				A69D2C9E190B0CF1003CE26C /* smcp-plat-bsd.h */,
+				A654A16F1D2B25170050C7BD /* smcp-plat-ssl.h */,
+				A654A1701D2B25490050C7BD /* smcp-plat-openssl.c */,
+				A654A1791D2C29E80050C7BD /* smcp-plat-openssl.h */,
 				A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */,
 				A69D2C9D190B0CBA003CE26C /* smcp-plat-uip.h */,
 				A68E13DE1912E575008F5A0A /* smcp-plat-uip-internal.h */,
@@ -1019,6 +1041,7 @@
 				A654A16E1D28B2700050C7BD /* CONTRIBUTING.md in Sources */,
 				A6A4A4051953AF0C001CD98A /* smcp-dupe.c in Sources */,
 				A63EA6DD1278B13800B24867 /* cmd_post.c in Sources */,
+				A654A1711D2B25490050C7BD /* smcp-plat-openssl.c in Sources */,
 				A63EA6DF1278B13800B24867 /* help.c in Sources */,
 				A63EA6E01278B13800B24867 /* main.c in Sources */,
 				A6C04B0018AC175700DCE0CC /* smcp-plat-uip.c in Sources */,
@@ -1063,6 +1086,7 @@
 				A6181DE716B4637700655F4F /* smcp-outbound.c in Sources */,
 				A67FA5D11BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A6181DE816B4637700655F4F /* coap.c in Sources */,
+				A654A1741D2B25490050C7BD /* smcp-plat-openssl.c in Sources */,
 				A669AAEE19B124F500274532 /* string-utils.c in Sources */,
 				A6181DEA16B4637700655F4F /* smcp-node-router.c in Sources */,
 				A6C04B0B18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
@@ -1101,6 +1125,7 @@
 				A6181DF816B4662200655F4F /* main-server.c in Sources */,
 				A60E4FE719B6745000D876DD /* smcp-session.c in Sources */,
 				A6181DF916B4662700655F4F /* plugtest-server.c in Sources */,
+				A654A1721D2B25490050C7BD /* smcp-plat-openssl.c in Sources */,
 				A613E80416C065FE00C5711D /* smcp-inbound.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1137,6 +1162,7 @@
 				A67A68791D18FA600045F611 /* string-utils.c in Sources */,
 				A67A687A1D18FA600045F611 /* smcp-observable.c in Sources */,
 				A67A687B1D18FA600045F611 /* smcp-curl_proxy.c in Sources */,
+				A654A1781D2B25490050C7BD /* smcp-plat-openssl.c in Sources */,
 				A67A687C1D18FA600045F611 /* smcp-inbound.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1157,6 +1183,7 @@
 				A690625116B6E43B00A98B2C /* smcp-outbound.c in Sources */,
 				A67FA5D21BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A690625216B6E43B00A98B2C /* coap.c in Sources */,
+				A654A1751D2B25490050C7BD /* smcp-plat-openssl.c in Sources */,
 				A669AAEF19B124F500274532 /* string-utils.c in Sources */,
 				A690625416B6E43B00A98B2C /* smcp-node-router.c in Sources */,
 				A6C04B0C18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
@@ -1185,6 +1212,7 @@
 				A690626A16B6E44000A98B2C /* smcp-outbound.c in Sources */,
 				A67FA5D31BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A690626B16B6E44000A98B2C /* coap.c in Sources */,
+				A654A1761D2B25490050C7BD /* smcp-plat-openssl.c in Sources */,
 				A669AAF019B124F500274532 /* string-utils.c in Sources */,
 				A690626D16B6E44000A98B2C /* smcp-node-router.c in Sources */,
 				A6C04B0D18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
@@ -1213,6 +1241,7 @@
 				A690629016B6EA6E00A98B2C /* smcp-outbound.c in Sources */,
 				A67FA5D41BF94019003FE1B3 /* smcp-async.c in Sources */,
 				A690629116B6EA6E00A98B2C /* coap.c in Sources */,
+				A654A1771D2B25490050C7BD /* smcp-plat-openssl.c in Sources */,
 				A669AAF119B124F500274532 /* string-utils.c in Sources */,
 				A690629316B6EA6E00A98B2C /* smcp-node-router.c in Sources */,
 				A6C04B0E18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
@@ -1252,6 +1281,7 @@
 				A669AAED19B124F500274532 /* string-utils.c in Sources */,
 				A6F35953168A5CED00F72DF3 /* smcp-outbound.c in Sources */,
 				A6F35954168A5CED00F72DF3 /* coap.c in Sources */,
+				A654A1731D2B25490050C7BD /* smcp-plat-openssl.c in Sources */,
 				A6FB08761D0FBBEB004116B1 /* smcp-pairing.c in Sources */,
 				A6C04B0A18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */,
 				A60E4FE819B6745000D876DD /* smcp-session.c in Sources */,
@@ -1280,6 +1310,11 @@
 					"VERBOSE_DEBUG=1",
 				);
 				INSTALL_PATH = /usr/local/bin;
+				OTHER_LDFLAGS = (
+					"${inherited}",
+					"-lcrypto",
+					"-lssl",
+				);
 				PRODUCT_NAME = smcpctl;
 			};
 			name = Debug;
@@ -1296,6 +1331,11 @@
 					"HAVE_LIBREADLINE=1",
 				);
 				INSTALL_PATH = /usr/local/bin;
+				OTHER_LDFLAGS = (
+					"${inherited}",
+					"-lcrypto",
+					"-lssl",
+				);
 				PRODUCT_NAME = smcpctl;
 			};
 			name = Release;
@@ -1328,8 +1368,14 @@
 				HEADER_SEARCH_PATHS = (
 					"${inherited}",
 					src,
+					"${OPENSSL_DIR}/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"${inherited}",
+					"${OPENSSL_DIR}/lib",
 				);
 				ONLY_ACTIVE_ARCH = YES;
+				OPENSSL_DIR = /Users/darco/homebrew/Cellar/openssl/1.0.2h_1;
 				SDKROOT = "";
 			};
 			name = Debug;
@@ -1355,7 +1401,13 @@
 				HEADER_SEARCH_PATHS = (
 					"${inherited}",
 					src,
+					"${OPENSSL_DIR}/include",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"${inherited}",
+					"${OPENSSL_DIR}/lib",
+				);
+				OPENSSL_DIR = /Users/darco/homebrew/Cellar/openssl/1.0.2h_1;
 				SDKROOT = "";
 			};
 			name = Release;

@@ -17,6 +17,8 @@ smcpd_SOURCES += pairing-node.c pairing-node.h
 smcpd_SOURCES += group-node.c group-node.h
 smcpd_LDADD = ../smcp/libsmcp.la
 
+smcpd_CPPFLAGS = $(AM_CPPFLAGS) $(OPENSSL_INCLUDES)
+
 if HAVE_GE_RS232
 smcpd_LDADD += ge-rs232.o ge-system-node.o
 

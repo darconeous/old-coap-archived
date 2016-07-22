@@ -17,6 +17,10 @@
 #include <libgen.h>
 #include <time.h>
 
+#if SMCP_DTLS_OPENSSL
+#include <openssl/ssl.h>
+#endif
+
 #if !HAVE_FGETLN
 #include <missing/fgetln.h>
 #endif
@@ -56,6 +60,9 @@ static arg_list_item_t option_list[] = {
 	{ 'd', "debug", NULL, "Enable debugging mode"	},
 	{ 'p', "port",	"port", "Port number"				},
 	{ 'f', NULL,	"filename", "Read commands from file" },
+#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+	{ 0, NULL,	"ssl-*", "SSL Configuration commands (see docs)" },
+#endif
 	{ 0 }
 };
 
@@ -598,14 +605,86 @@ print_version() {
 
 int
 main(
-	int argc, char * argv[]
+	int argc, char * argv[], char * envp[]
 ) {
 	int i, debug_mode = 0;
 	uint16_t port = 61616;
+	uint16_t ssl_port = 61617;
+	int ssl_ret;
+
+#if SMCP_DTLS
+#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+	SSL_CTX* ssl_ctx = NULL;
+
+	SSL_CONF_CTX* ssl_conf_ctx = SSL_CONF_CTX_new();
+#if HAVE_OPENSSL_DTLS_METHOD
+	ssl_ctx = SSL_CTX_new(DTLS_method());
+#else
+	ssl_ctx = SSL_CTX_new(DTLSv1_method());
+#endif
+	SSL_CONF_CTX_set_ssl_ctx(ssl_conf_ctx, ssl_ctx);
+	SSL_CONF_CTX_set_flags(ssl_conf_ctx, SSL_CONF_FLAG_CLIENT|SSL_CONF_FLAG_CERTIFICATE|SSL_CONF_FLAG_SHOW_ERRORS);
+#ifdef SSL_CONF_FLAG_REQUIRE_PRIVATE
+	SSL_CONF_CTX_set_flags(ssl_conf_ctx, SSL_CONF_FLAG_REQUIRE_PRIVATE);
+#endif
+	SSL_CONF_CTX_set_flags(ssl_conf_ctx, SSL_CONF_FLAG_FILE);
+	SSL_CONF_CTX_set1_prefix(ssl_conf_ctx, "SMCPCTL_SSL_");
+
+	for (i = 0; envp[i]; i++) {
+		char key[256] = {};
+		char* value = key;
+		strlcpy(key, envp[i], sizeof(key));
+		strsep(&value, "=");
+
+		ssl_ret = SSL_CONF_cmd(ssl_conf_ctx, key, value);
+		switch(ssl_ret) {
+		case 1:
+		case 2:
+#if DEBUG
+			fprintf(stderr, "%s: OpenSSL => %s\n", argv[0], envp[i]);
+#endif
+			break;
+		case -2:
+			// Skippit.
+			break;
+		default:
+			fprintf(stderr, "%s: error: OpenSSL did not like %s\n", argv[0], envp[i]);
+			break;
+		}
+	}
+
+	SSL_CONF_CTX_clear_flags(ssl_conf_ctx, SSL_CONF_FLAG_FILE);
+	SSL_CONF_CTX_set_flags(ssl_conf_ctx, SSL_CONF_FLAG_CMDLINE);
+	SSL_CONF_CTX_set1_prefix(ssl_conf_ctx, "--ssl-");
+
+#else
+	void* ssl_ctx = NULL;
+#endif
+#endif
 
 	srandom(time(NULL));
 
 	BEGIN_LONG_ARGUMENTS(gRet)
+#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+	// Handle OpenSSL configuration options on the command line
+    else if ((ssl_ret = SSL_CONF_cmd(ssl_conf_ctx, argv[i], argv[i+1])) != -2) {
+		if (ssl_ret == 2) {
+			i++;
+		} else if (ssl_ret == 0) {
+			fprintf(stderr,
+				"%s: error: Argument rejected: %s\n",
+				argv[0],
+				argv[i]);
+			return ERRORCODE_BADARG;
+		} else if (ssl_ret < 0) {
+			fprintf(stderr,
+				"%s: error: OpenSSL runtime error for: %s\n",
+				argv[0],
+				argv[i]);
+			return ERRORCODE_BADARG;
+		}
+	}
+#endif
 	HANDLE_LONG_ARGUMENT("port") port = (uint16_t)strtol(argv[++i], NULL, 0);
 	HANDLE_LONG_ARGUMENT("debug") debug_mode++;
 
@@ -676,6 +755,26 @@ main(
 		}
 	}
 
+#if SMCP_DTLS
+#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+#if HAVE_OPENSSL_SSL_CONF_FINISH
+	SSL_CONF_finish(ssl_conf_ctx);
+#endif
+	SSL_CONF_CTX_free(ssl_conf_ctx);
+	ssl_conf_ctx = NULL;
+#endif
+	if (smcp_plat_ssl_set_context(gSMCPInstance, (void*)ssl_ctx) == SMCP_STATUS_OK) {
+		if (smcp_plat_bind_to_port(gSMCPInstance, SMCP_SESSION_TYPE_DTLS, ssl_port) != SMCP_STATUS_OK) {
+			if(smcp_plat_bind_to_port(gSMCPInstance, SMCP_SESSION_TYPE_DTLS, 0) != SMCP_STATUS_OK) {
+				fprintf(stderr,"%s: ERROR: Unable to bind to ssl port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
+			}
+			ssl_port = 0;
+		}
+	} else {
+		fprintf(stderr,"%s: ERROR: Unable to set ssl context!\n",argv[0]);
+	}
+#endif
+
 	setenv("SMCP_CURRENT_PATH", "coap://localhost/", 0);
 
 	smcp_set_proxy_url(gSMCPInstance, getenv("COAP_PROXY_URL"));
@@ -700,7 +799,10 @@ main(
 	}
 
 	if(istty) {
-		fprintf(stderr,"Listening on port %d.\n",smcp_plat_get_port(gSMCPInstance));
+		fprintf(stderr,"coap on port %d.\n",smcp_plat_get_port(gSMCPInstance));
+#if SMCP_DTLS
+		fprintf(stderr,"coaps on port %d.\n", ssl_port);
+#endif
 #if !HAVE_LIBREADLINE
 		print_arg_list_help(option_list,
 			argv[0],

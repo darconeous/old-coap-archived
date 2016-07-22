@@ -25,6 +25,8 @@ libsmcp_la_SOURCES = \
 
 libsmcp_la_SOURCES += \
 	smcp-plat-bsd.c \
+	smcp-plat-openssl.c \
+	smcp-plat-openssl.h \
 	$(NULL)
 
 libsmcp_la_SOURCES += \
@@ -64,6 +66,7 @@ pkginclude_HEADERS = \
 	smcp-defaults.h \
 	smcp-plat.h \
 	smcp-plat-bsd.h \
+	smcp-plat-ssl.h \
 	$(top_builddir)/src/smcp/smcp-config.h \
 	$(NULL)
 
@@ -85,8 +88,11 @@ pkginclude_HEADERS += \
 
 EXTRA_DIST = smcp-config.h.in smcp-plat-bsd-internal.h smcp-plat-uip-internal.h smcp-plat-uip.c smcp-plat-uip.h
 
+libsmcp_la_CFLAGS = $(AM_CFLAGS) $(PTHREAD_CFLAGS)
 libsmcp_la_LIBADD = $(LIBOBJS) $(ALLOCA) $(PTHREAD_LIBS) $(OPENSSL_LIBS)
-libsmcp_la_CFLAGS = $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(OPENSSL_AM_CPPFLAGS)
+libsmcp_la_CPPFLAGS = $(AM_CPPFLAGS) $(OPENSSL_INCLUDES)
+libsmcp_la_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
+
 
 if HAVE_LIBCURL
 libsmcp_la_SOURCES += smcp-curl_proxy.c
