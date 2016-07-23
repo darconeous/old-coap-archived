@@ -697,6 +697,7 @@ smcp_handle_response() {
 	smcp_t const self = smcp_get_current_instance();
 	smcp_transaction_t handler = NULL;
 	coap_msg_id_t msg_id = smcp_inbound_get_msg_id();
+	bool request_was_multicast = false;
 
 #if VERBOSE_DEBUG
 	DEBUG_PRINTF(
@@ -719,7 +720,7 @@ smcp_handle_response() {
 
 	if (handler == NULL) {
 		// This is an unknown response. If the packet
-		// if confirmable, send a reset. If not, don't bother.
+		// is confirmable, send a reset. If not, don't bother.
 		if(self->inbound.packet->tt <= COAP_TRANS_TYPE_NONCONFIRMABLE) {
 			DEBUG_PRINTF("Inbound: Unknown Response, sending reset. . .");
 
@@ -739,6 +740,7 @@ smcp_handle_response() {
 		handler->waiting_for_async_response = true;
 	} else if(handler->callback) {
 		msg_id = handler->msg_id;
+		request_was_multicast = SMCP_IS_ADDR_MULTICAST(&handler->sockaddr_remote.smcp_addr);
 
 		DEBUG_PRINTF("Inbound: Transaction handling response.");
 
@@ -809,8 +811,6 @@ smcp_handle_response() {
 				handler->waiting_for_async_response = true;
 			}
 
-			smcp_invalidate_timer(self, &handler->timer);
-
 			if(!cms) {
 				if(self->inbound.has_observe_option) {
 					cms = CMS_DISTANT_FUTURE;
@@ -840,7 +840,10 @@ smcp_handle_response() {
 
 			if ( !(handler->flags & SMCP_TRANSACTION_ALWAYS_INVALIDATE)
 			  && !(handler->flags & SMCP_TRANSACTION_OBSERVE)
+			  && !(handler->flags & SMCP_TRANSACTION_NO_AUTO_END)
+			  && !request_was_multicast
 			) {
+				// TODO: Add a flag instead of setting this to NULL.
 				handler->callback = NULL;
 			}
 
@@ -888,7 +891,7 @@ smcp_handle_response() {
 				} else
 #endif // SMCP_CONF_TRANS_ENABLE_BLOCK2
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
-				if (!ret && (handler->flags&SMCP_TRANSACTION_OBSERVE)) {
+				if (!ret && (handler->flags & SMCP_TRANSACTION_OBSERVE)) {
 					smcp_cms_t cms = self->inbound.max_age*1000;
 #if SMCP_CONF_TRANS_ENABLE_BLOCK2
 					handler->next_block2 = 0;
@@ -896,8 +899,8 @@ smcp_handle_response() {
 
 					smcp_invalidate_timer(self, &handler->timer);
 
-					if(!cms) {
-						if(self->inbound.has_observe_option) {
+					if (!cms) {
+						if (self->inbound.has_observe_option) {
 							cms = CMS_DISTANT_FUTURE;
 						} else {
 							cms = SMCP_OBSERVATION_DEFAULT_MAX_AGE;
@@ -920,8 +923,11 @@ smcp_handle_response() {
 				} else
 #endif // #if SMCP_CONF_TRANS_ENABLE_OBSERVING
 				{
-					handler->resendCallback = NULL;
-					if (!(handler->flags&SMCP_TRANSACTION_NO_AUTO_END)) {
+					if (!request_was_multicast) {
+						// TODO: Add a flag instead of setting this to NULL.
+						handler->resendCallback = NULL;
+					}
+					if (!(handler->flags & SMCP_TRANSACTION_NO_AUTO_END)) {
 						smcp_transaction_end(self, handler);
 					}
 					handler = NULL;
