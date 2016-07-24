@@ -117,10 +117,25 @@ struct smcp_transaction_s {
 typedef struct smcp_transaction_s* smcp_transaction_t;
 
 enum {
+	//! Always call callback with SMCP_STATUS_INVALIDATE when invalidating the transaction.
+	/*! In a normal unicast transaction, there is always
+	 *  exactly one call to the `callback` function, so
+	 *  it is not ambiguous if the transaction has been
+	 *  invalidated or not. However, certain transactions
+	 *  can have multiple calls to `callback`, so it can
+	 *  be ambiguous if the transaction has been invalidated
+	 *  or not. When this flag is present, the transaction
+	 *  callback will ALWAYS be called with a status of
+	 *  `SMCP_STATUS_INVALIDATE` when the transaction is
+	 *  invalidated. */
 	SMCP_TRANSACTION_ALWAYS_INVALIDATE = (1 << 0),
+
 	SMCP_TRANSACTION_OBSERVE = (1 << 1),
+
 	SMCP_TRANSACTION_KEEPALIVE = (1 << 2),		//!< Send keep-alive packets when observing
+
 	SMCP_TRANSACTION_NO_AUTO_END = (1 << 3),
+
 	SMCP_TRANSACTION_DELAY_START = (1 << 8),
 };
 
