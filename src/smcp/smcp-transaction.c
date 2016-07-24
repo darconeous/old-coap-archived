@@ -245,10 +245,16 @@ smcp_internal_transaction_timeout_(
 			status = handler->resendCallback(context);
 
 			if (status == SMCP_STATUS_OK) {
+				smcp_cms_t retransmit_time = calc_retransmit_timeout(handler->attemptCount);
+
 				if (SMCP_IS_ADDR_MULTICAST(&handler->sockaddr_remote.smcp_addr)) {
+
 					if (SMCP_TRANSACTION_MAX_MCAST_ATTEMPTS > handler->attemptCount) {
+						//Adds random time
+						retransmit_time += 5 + (SMCP_FUNC_RANDOM_UINT32() % (SMCP_MULTICAST_RETRANSMIT_TIMEOUT_MS-5));
+
+						cms = MIN(cms,retransmit_time);
 						handler->attemptCount++;
-						cms = 5 + (SMCP_FUNC_RANDOM_UINT32() % (SMCP_MULTICAST_RETRANSMIT_TIMEOUT_MS-5));
 					}
 
 				} else {
@@ -872,7 +878,9 @@ smcp_handle_response() {
 				goto bail;
 			}
 
-			handler->attemptCount = 0;
+			if(!request_was_multicast){ //Only clears attempts if request is not multicast,
+				handler->attemptCount = 0;
+			}
 			handler->waiting_for_async_response = false;
 			if ( handler->active
 			  && msg_id == handler->msg_id
