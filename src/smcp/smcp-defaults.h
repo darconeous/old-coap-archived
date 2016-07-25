@@ -200,12 +200,24 @@
 #define SMCP_TRANSACTIONS_USE_BTREE				!SMCP_EMBEDDED
 #endif
 
-#ifndef SMCP_TRANSACTION_MAX_MCAST_ATTEMPTS
-#define SMCP_TRANSACTION_MAX_MCAST_ATTEMPTS 3
+//! @define SMCP_TRANSACTION_BURST_COUNT
+/*!	Number of retransmit attempts during a burst. */
+#ifndef SMCP_TRANSACTION_BURST_COUNT
+#define SMCP_TRANSACTION_BURST_COUNT 3
 #endif
 
-#ifndef SMCP_MULTICAST_RETRANSMIT_TIMEOUT_MS
-#define SMCP_MULTICAST_RETRANSMIT_TIMEOUT_MS 30
+//! @define SMCP_TRANSACTION_BURST_TIMEOUT_MAX
+/*!	Maximum time (in milliseconds) between burst packet
+**	retransmits when using the burst retransmit strategy. */
+#ifndef SMCP_TRANSACTION_BURST_TIMEOUT_MAX
+#define SMCP_TRANSACTION_BURST_TIMEOUT_MAX 50
+#endif
+
+//! @define SMCP_TRANSACTION_BURST_TIMEOUT_MIN
+/*!	Minimum time (in milliseconds) between burst packet
+**	retransmits when using the burst retransmit strategy. */
+#ifndef SMCP_TRANSACTION_BURST_TIMEOUT_MIN
+#define SMCP_TRANSACTION_BURST_TIMEOUT_MIN 20
 #endif
 
 #ifndef SMCP_ASYNC_RESPONSE_MAX_LENGTH
