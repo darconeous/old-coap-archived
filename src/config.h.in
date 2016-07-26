@@ -45,6 +45,18 @@
 /* Set if OpenSSL is present */
 #undef HAVE_OPENSSL
 
+/* Set if OpenSSL has DTLSv1_method() */
+#undef HAVE_OPENSSL_DTLSV1_METHOD
+
+/* Set if OpenSSL has DTLS_method() */
+#undef HAVE_OPENSSL_DTLS_METHOD
+
+/* Set if OpenSSL has SSL_CONF_CTX_new() */
+#undef HAVE_OPENSSL_SSL_CONF_CTX_NEW
+
+/* Set if OpenSSL has SSL_CONF_finish() */
+#undef HAVE_OPENSSL_SSL_CONF_FINISH
+
 /* Define if you have POSIX threads libraries and header files. */
 #undef HAVE_PTHREAD
 
@@ -160,6 +172,12 @@
 
 /* . */
 #undef SMCP_CONF_TRANS_ENABLE_OBSERVING
+
+/* . */
+#undef SMCP_DTLS
+
+/* . */
+#undef SMCP_DTLS_OPENSSL
 
 /* . */
 #undef SMCP_EMBEDDED

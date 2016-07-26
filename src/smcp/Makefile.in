@@ -90,14 +90,15 @@ libsmcp_la_DEPENDENCIES = $(LIBOBJS) $(am__DEPENDENCIES_1) \
 am__libsmcp_la_SOURCES_DIST = smcp.c smcp-timer.c coap.c coap.h \
 	smcp-outbound.c smcp-inbound.c smcp-observable.c \
 	smcp-transaction.c smcp-dupe.c smcp-missing.c smcp-session.c \
-	smcp-async.c smcp-plat-bsd.c btree.c btree.h ll.h \
-	url-helpers.c fasthash.c string-utils.c smcp-helpers.h \
-	smcp-internal.h smcp-logging.h url-helpers.h fasthash.h \
-	smcp-dupe.h string-utils.h smcp-missing.h smcp-async.h \
-	smcp-defaults.h assert-macros.h smcp-node-router.c \
-	smcp-node-router.h smcp-list.c smcp-variable_handler.c \
-	smcp-variable_handler.h smcp-pairing.c smcp-pairing.h \
-	smcp-group.c smcp-group.h smcp-curl_proxy.c
+	smcp-async.c smcp-plat-bsd.c smcp-plat-openssl.c \
+	smcp-plat-openssl.h btree.c btree.h ll.h url-helpers.c \
+	fasthash.c string-utils.c smcp-helpers.h smcp-internal.h \
+	smcp-logging.h url-helpers.h fasthash.h smcp-dupe.h \
+	string-utils.h smcp-missing.h smcp-async.h smcp-defaults.h \
+	assert-macros.h smcp-node-router.c smcp-node-router.h \
+	smcp-list.c smcp-variable_handler.c smcp-variable_handler.h \
+	smcp-pairing.c smcp-pairing.h smcp-group.c smcp-group.h \
+	smcp-curl_proxy.c
 @HAVE_LIBCURL_TRUE@am__objects_1 = libsmcp_la-smcp-curl_proxy.lo
 am_libsmcp_la_OBJECTS = libsmcp_la-smcp.lo libsmcp_la-smcp-timer.lo \
 	libsmcp_la-coap.lo libsmcp_la-smcp-outbound.lo \
@@ -105,18 +106,19 @@ am_libsmcp_la_OBJECTS = libsmcp_la-smcp.lo libsmcp_la-smcp-timer.lo \
 	libsmcp_la-smcp-transaction.lo libsmcp_la-smcp-dupe.lo \
 	libsmcp_la-smcp-missing.lo libsmcp_la-smcp-session.lo \
 	libsmcp_la-smcp-async.lo libsmcp_la-smcp-plat-bsd.lo \
-	libsmcp_la-btree.lo libsmcp_la-url-helpers.lo \
-	libsmcp_la-fasthash.lo libsmcp_la-string-utils.lo \
-	libsmcp_la-smcp-node-router.lo libsmcp_la-smcp-list.lo \
-	libsmcp_la-smcp-variable_handler.lo libsmcp_la-smcp-pairing.lo \
-	libsmcp_la-smcp-group.lo $(am__objects_1)
+	libsmcp_la-smcp-plat-openssl.lo libsmcp_la-btree.lo \
+	libsmcp_la-url-helpers.lo libsmcp_la-fasthash.lo \
+	libsmcp_la-string-utils.lo libsmcp_la-smcp-node-router.lo \
+	libsmcp_la-smcp-list.lo libsmcp_la-smcp-variable_handler.lo \
+	libsmcp_la-smcp-pairing.lo libsmcp_la-smcp-group.lo \
+	$(am__objects_1)
 libsmcp_la_OBJECTS = $(am_libsmcp_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 libsmcp_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libsmcp_la_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+	$(CFLAGS) $(libsmcp_la_LDFLAGS) $(LDFLAGS) -o $@
 PROGRAMS = $(noinst_PROGRAMS)
 am_btreetest_OBJECTS = btreetest-btree.$(OBJEXT)
 btreetest_OBJECTS = $(am_btreetest_OBJECTS)
@@ -155,7 +157,7 @@ DIST_SOURCES = $(am__libsmcp_la_SOURCES_DIST) $(btreetest_SOURCES)
 am__pkginclude_HEADERS_DIST = smcp-timer.h smcp.h smcp-transaction.h \
 	smcp-opts.h smcp-observable.h btree.h coap.h ll.h \
 	smcp-helpers.h smcp-session.h smcp-async.h smcp-defaults.h \
-	smcp-plat.h smcp-plat-bsd.h \
+	smcp-plat.h smcp-plat-bsd.h smcp-plat-ssl.h \
 	$(top_builddir)/src/smcp/smcp-config.h smcp-node-router.h \
 	smcp-variable_handler.h smcp-pairing.h smcp-group.h \
 	smcp-curl_proxy.h
@@ -289,35 +291,37 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
-#AM_CFLAGS = @CFLAGS@ @WARN_CFLAGS@
 AUTOMAKE_OPTIONS = subdir-objects
 lib_LTLIBRARIES = libsmcp.la
 AM_LIBS = $(CODE_COVERAGE_LDFLAGS)
 AM_CFLAGS = $(CFLAGS) $(CODE_COVERAGE_CFLAGS)
+AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
 
 # Extras
 libsmcp_la_SOURCES = smcp.c smcp-timer.c coap.c coap.h smcp-outbound.c \
 	smcp-inbound.c smcp-observable.c smcp-transaction.c \
 	smcp-dupe.c smcp-missing.c smcp-session.c smcp-async.c $(NULL) \
-	smcp-plat-bsd.c $(NULL) btree.c btree.h ll.h url-helpers.c \
-	fasthash.c string-utils.c $(NULL) smcp-helpers.h \
-	smcp-internal.h smcp-logging.h url-helpers.h fasthash.h \
-	smcp-dupe.h string-utils.h smcp-missing.h smcp-async.h \
-	smcp-defaults.h assert-macros.h $(NULL) smcp-node-router.c \
-	smcp-node-router.h smcp-list.c smcp-variable_handler.c \
-	smcp-variable_handler.h smcp-pairing.c smcp-pairing.h \
-	smcp-group.c smcp-group.h $(NULL) $(am__append_1)
+	smcp-plat-bsd.c smcp-plat-openssl.c smcp-plat-openssl.h \
+	$(NULL) btree.c btree.h ll.h url-helpers.c fasthash.c \
+	string-utils.c $(NULL) smcp-helpers.h smcp-internal.h \
+	smcp-logging.h url-helpers.h fasthash.h smcp-dupe.h \
+	string-utils.h smcp-missing.h smcp-async.h smcp-defaults.h \
+	assert-macros.h $(NULL) smcp-node-router.c smcp-node-router.h \
+	smcp-list.c smcp-variable_handler.c smcp-variable_handler.h \
+	smcp-pairing.c smcp-pairing.h smcp-group.c smcp-group.h \
+	$(NULL) $(am__append_1)
 pkginclude_HEADERS = smcp-timer.h smcp.h smcp-transaction.h \
 	smcp-opts.h smcp-observable.h btree.h coap.h ll.h \
 	smcp-helpers.h smcp-session.h smcp-async.h smcp-defaults.h \
-	smcp-plat.h smcp-plat-bsd.h \
+	smcp-plat.h smcp-plat-bsd.h smcp-plat-ssl.h \
 	$(top_builddir)/src/smcp/smcp-config.h $(NULL) \
 	smcp-node-router.h smcp-variable_handler.h smcp-pairing.h \
 	smcp-group.h $(NULL) $(am__append_2)
 EXTRA_DIST = smcp-config.h.in smcp-plat-bsd-internal.h smcp-plat-uip-internal.h smcp-plat-uip.c smcp-plat-uip.h
+libsmcp_la_CFLAGS = $(AM_CFLAGS) $(PTHREAD_CFLAGS)
 libsmcp_la_LIBADD = $(LIBOBJS) $(ALLOCA) $(PTHREAD_LIBS) $(OPENSSL_LIBS)
-libsmcp_la_CFLAGS = $(AM_CFLAGS) $(PTHREAD_CFLAGS) $(OPENSSL_AM_CPPFLAGS)
+libsmcp_la_CPPFLAGS = $(AM_CPPFLAGS) $(OPENSSL_INCLUDES)
+libsmcp_la_LDFLAGS = $(AM_LDFLAGS) $(OPENSSL_LDFLAGS)
 btreetest_SOURCES = btree.c
 btreetest_CFLAGS = $(AM_CFLAGS) -DBTREE_SELF_TEST=1
 DISTCLEANFILES = .deps Makefile
@@ -440,6 +444,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-outbound.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-pairing.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-plat-bsd.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-plat-openssl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-session.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-timer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libsmcp_la-smcp-transaction.Plo@am__quote@
@@ -473,158 +478,165 @@ distclean-compile:
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 libsmcp_la-smcp.lo: smcp.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp.Tpo -c -o libsmcp_la-smcp.lo `test -f 'smcp.c' || echo '$(srcdir)/'`smcp.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp.Tpo -c -o libsmcp_la-smcp.lo `test -f 'smcp.c' || echo '$(srcdir)/'`smcp.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp.Tpo $(DEPDIR)/libsmcp_la-smcp.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp.c' object='libsmcp_la-smcp.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp.lo `test -f 'smcp.c' || echo '$(srcdir)/'`smcp.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp.lo `test -f 'smcp.c' || echo '$(srcdir)/'`smcp.c
 
 libsmcp_la-smcp-timer.lo: smcp-timer.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-timer.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-timer.Tpo -c -o libsmcp_la-smcp-timer.lo `test -f 'smcp-timer.c' || echo '$(srcdir)/'`smcp-timer.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-timer.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-timer.Tpo -c -o libsmcp_la-smcp-timer.lo `test -f 'smcp-timer.c' || echo '$(srcdir)/'`smcp-timer.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-timer.Tpo $(DEPDIR)/libsmcp_la-smcp-timer.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-timer.c' object='libsmcp_la-smcp-timer.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-timer.lo `test -f 'smcp-timer.c' || echo '$(srcdir)/'`smcp-timer.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-timer.lo `test -f 'smcp-timer.c' || echo '$(srcdir)/'`smcp-timer.c
 
 libsmcp_la-coap.lo: coap.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-coap.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-coap.Tpo -c -o libsmcp_la-coap.lo `test -f 'coap.c' || echo '$(srcdir)/'`coap.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-coap.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-coap.Tpo -c -o libsmcp_la-coap.lo `test -f 'coap.c' || echo '$(srcdir)/'`coap.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-coap.Tpo $(DEPDIR)/libsmcp_la-coap.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='coap.c' object='libsmcp_la-coap.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-coap.lo `test -f 'coap.c' || echo '$(srcdir)/'`coap.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-coap.lo `test -f 'coap.c' || echo '$(srcdir)/'`coap.c
 
 libsmcp_la-smcp-outbound.lo: smcp-outbound.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-outbound.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-outbound.Tpo -c -o libsmcp_la-smcp-outbound.lo `test -f 'smcp-outbound.c' || echo '$(srcdir)/'`smcp-outbound.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-outbound.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-outbound.Tpo -c -o libsmcp_la-smcp-outbound.lo `test -f 'smcp-outbound.c' || echo '$(srcdir)/'`smcp-outbound.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-outbound.Tpo $(DEPDIR)/libsmcp_la-smcp-outbound.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-outbound.c' object='libsmcp_la-smcp-outbound.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-outbound.lo `test -f 'smcp-outbound.c' || echo '$(srcdir)/'`smcp-outbound.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-outbound.lo `test -f 'smcp-outbound.c' || echo '$(srcdir)/'`smcp-outbound.c
 
 libsmcp_la-smcp-inbound.lo: smcp-inbound.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-inbound.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-inbound.Tpo -c -o libsmcp_la-smcp-inbound.lo `test -f 'smcp-inbound.c' || echo '$(srcdir)/'`smcp-inbound.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-inbound.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-inbound.Tpo -c -o libsmcp_la-smcp-inbound.lo `test -f 'smcp-inbound.c' || echo '$(srcdir)/'`smcp-inbound.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-inbound.Tpo $(DEPDIR)/libsmcp_la-smcp-inbound.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-inbound.c' object='libsmcp_la-smcp-inbound.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-inbound.lo `test -f 'smcp-inbound.c' || echo '$(srcdir)/'`smcp-inbound.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-inbound.lo `test -f 'smcp-inbound.c' || echo '$(srcdir)/'`smcp-inbound.c
 
 libsmcp_la-smcp-observable.lo: smcp-observable.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-observable.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-observable.Tpo -c -o libsmcp_la-smcp-observable.lo `test -f 'smcp-observable.c' || echo '$(srcdir)/'`smcp-observable.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-observable.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-observable.Tpo -c -o libsmcp_la-smcp-observable.lo `test -f 'smcp-observable.c' || echo '$(srcdir)/'`smcp-observable.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-observable.Tpo $(DEPDIR)/libsmcp_la-smcp-observable.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-observable.c' object='libsmcp_la-smcp-observable.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-observable.lo `test -f 'smcp-observable.c' || echo '$(srcdir)/'`smcp-observable.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-observable.lo `test -f 'smcp-observable.c' || echo '$(srcdir)/'`smcp-observable.c
 
 libsmcp_la-smcp-transaction.lo: smcp-transaction.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-transaction.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-transaction.Tpo -c -o libsmcp_la-smcp-transaction.lo `test -f 'smcp-transaction.c' || echo '$(srcdir)/'`smcp-transaction.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-transaction.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-transaction.Tpo -c -o libsmcp_la-smcp-transaction.lo `test -f 'smcp-transaction.c' || echo '$(srcdir)/'`smcp-transaction.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-transaction.Tpo $(DEPDIR)/libsmcp_la-smcp-transaction.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-transaction.c' object='libsmcp_la-smcp-transaction.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-transaction.lo `test -f 'smcp-transaction.c' || echo '$(srcdir)/'`smcp-transaction.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-transaction.lo `test -f 'smcp-transaction.c' || echo '$(srcdir)/'`smcp-transaction.c
 
 libsmcp_la-smcp-dupe.lo: smcp-dupe.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-dupe.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-dupe.Tpo -c -o libsmcp_la-smcp-dupe.lo `test -f 'smcp-dupe.c' || echo '$(srcdir)/'`smcp-dupe.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-dupe.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-dupe.Tpo -c -o libsmcp_la-smcp-dupe.lo `test -f 'smcp-dupe.c' || echo '$(srcdir)/'`smcp-dupe.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-dupe.Tpo $(DEPDIR)/libsmcp_la-smcp-dupe.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-dupe.c' object='libsmcp_la-smcp-dupe.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-dupe.lo `test -f 'smcp-dupe.c' || echo '$(srcdir)/'`smcp-dupe.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-dupe.lo `test -f 'smcp-dupe.c' || echo '$(srcdir)/'`smcp-dupe.c
 
 libsmcp_la-smcp-missing.lo: smcp-missing.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-missing.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-missing.Tpo -c -o libsmcp_la-smcp-missing.lo `test -f 'smcp-missing.c' || echo '$(srcdir)/'`smcp-missing.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-missing.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-missing.Tpo -c -o libsmcp_la-smcp-missing.lo `test -f 'smcp-missing.c' || echo '$(srcdir)/'`smcp-missing.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-missing.Tpo $(DEPDIR)/libsmcp_la-smcp-missing.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-missing.c' object='libsmcp_la-smcp-missing.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-missing.lo `test -f 'smcp-missing.c' || echo '$(srcdir)/'`smcp-missing.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-missing.lo `test -f 'smcp-missing.c' || echo '$(srcdir)/'`smcp-missing.c
 
 libsmcp_la-smcp-session.lo: smcp-session.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-session.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-session.Tpo -c -o libsmcp_la-smcp-session.lo `test -f 'smcp-session.c' || echo '$(srcdir)/'`smcp-session.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-session.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-session.Tpo -c -o libsmcp_la-smcp-session.lo `test -f 'smcp-session.c' || echo '$(srcdir)/'`smcp-session.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-session.Tpo $(DEPDIR)/libsmcp_la-smcp-session.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-session.c' object='libsmcp_la-smcp-session.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-session.lo `test -f 'smcp-session.c' || echo '$(srcdir)/'`smcp-session.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-session.lo `test -f 'smcp-session.c' || echo '$(srcdir)/'`smcp-session.c
 
 libsmcp_la-smcp-async.lo: smcp-async.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-async.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-async.Tpo -c -o libsmcp_la-smcp-async.lo `test -f 'smcp-async.c' || echo '$(srcdir)/'`smcp-async.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-async.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-async.Tpo -c -o libsmcp_la-smcp-async.lo `test -f 'smcp-async.c' || echo '$(srcdir)/'`smcp-async.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-async.Tpo $(DEPDIR)/libsmcp_la-smcp-async.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-async.c' object='libsmcp_la-smcp-async.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-async.lo `test -f 'smcp-async.c' || echo '$(srcdir)/'`smcp-async.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-async.lo `test -f 'smcp-async.c' || echo '$(srcdir)/'`smcp-async.c
 
 libsmcp_la-smcp-plat-bsd.lo: smcp-plat-bsd.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-plat-bsd.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-plat-bsd.Tpo -c -o libsmcp_la-smcp-plat-bsd.lo `test -f 'smcp-plat-bsd.c' || echo '$(srcdir)/'`smcp-plat-bsd.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-plat-bsd.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-plat-bsd.Tpo -c -o libsmcp_la-smcp-plat-bsd.lo `test -f 'smcp-plat-bsd.c' || echo '$(srcdir)/'`smcp-plat-bsd.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-plat-bsd.Tpo $(DEPDIR)/libsmcp_la-smcp-plat-bsd.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-plat-bsd.c' object='libsmcp_la-smcp-plat-bsd.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-plat-bsd.lo `test -f 'smcp-plat-bsd.c' || echo '$(srcdir)/'`smcp-plat-bsd.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-plat-bsd.lo `test -f 'smcp-plat-bsd.c' || echo '$(srcdir)/'`smcp-plat-bsd.c
+
+libsmcp_la-smcp-plat-openssl.lo: smcp-plat-openssl.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-plat-openssl.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-plat-openssl.Tpo -c -o libsmcp_la-smcp-plat-openssl.lo `test -f 'smcp-plat-openssl.c' || echo '$(srcdir)/'`smcp-plat-openssl.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-plat-openssl.Tpo $(DEPDIR)/libsmcp_la-smcp-plat-openssl.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-plat-openssl.c' object='libsmcp_la-smcp-plat-openssl.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-plat-openssl.lo `test -f 'smcp-plat-openssl.c' || echo '$(srcdir)/'`smcp-plat-openssl.c
 
 libsmcp_la-btree.lo: btree.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-btree.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-btree.Tpo -c -o libsmcp_la-btree.lo `test -f 'btree.c' || echo '$(srcdir)/'`btree.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-btree.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-btree.Tpo -c -o libsmcp_la-btree.lo `test -f 'btree.c' || echo '$(srcdir)/'`btree.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-btree.Tpo $(DEPDIR)/libsmcp_la-btree.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='btree.c' object='libsmcp_la-btree.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-btree.lo `test -f 'btree.c' || echo '$(srcdir)/'`btree.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-btree.lo `test -f 'btree.c' || echo '$(srcdir)/'`btree.c
 
 libsmcp_la-url-helpers.lo: url-helpers.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-url-helpers.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-url-helpers.Tpo -c -o libsmcp_la-url-helpers.lo `test -f 'url-helpers.c' || echo '$(srcdir)/'`url-helpers.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-url-helpers.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-url-helpers.Tpo -c -o libsmcp_la-url-helpers.lo `test -f 'url-helpers.c' || echo '$(srcdir)/'`url-helpers.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-url-helpers.Tpo $(DEPDIR)/libsmcp_la-url-helpers.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='url-helpers.c' object='libsmcp_la-url-helpers.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-url-helpers.lo `test -f 'url-helpers.c' || echo '$(srcdir)/'`url-helpers.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-url-helpers.lo `test -f 'url-helpers.c' || echo '$(srcdir)/'`url-helpers.c
 
 libsmcp_la-fasthash.lo: fasthash.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-fasthash.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-fasthash.Tpo -c -o libsmcp_la-fasthash.lo `test -f 'fasthash.c' || echo '$(srcdir)/'`fasthash.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-fasthash.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-fasthash.Tpo -c -o libsmcp_la-fasthash.lo `test -f 'fasthash.c' || echo '$(srcdir)/'`fasthash.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-fasthash.Tpo $(DEPDIR)/libsmcp_la-fasthash.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='fasthash.c' object='libsmcp_la-fasthash.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-fasthash.lo `test -f 'fasthash.c' || echo '$(srcdir)/'`fasthash.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-fasthash.lo `test -f 'fasthash.c' || echo '$(srcdir)/'`fasthash.c
 
 libsmcp_la-string-utils.lo: string-utils.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-string-utils.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-string-utils.Tpo -c -o libsmcp_la-string-utils.lo `test -f 'string-utils.c' || echo '$(srcdir)/'`string-utils.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-string-utils.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-string-utils.Tpo -c -o libsmcp_la-string-utils.lo `test -f 'string-utils.c' || echo '$(srcdir)/'`string-utils.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-string-utils.Tpo $(DEPDIR)/libsmcp_la-string-utils.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='string-utils.c' object='libsmcp_la-string-utils.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-string-utils.lo `test -f 'string-utils.c' || echo '$(srcdir)/'`string-utils.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-string-utils.lo `test -f 'string-utils.c' || echo '$(srcdir)/'`string-utils.c
 
 libsmcp_la-smcp-node-router.lo: smcp-node-router.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-node-router.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-node-router.Tpo -c -o libsmcp_la-smcp-node-router.lo `test -f 'smcp-node-router.c' || echo '$(srcdir)/'`smcp-node-router.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-node-router.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-node-router.Tpo -c -o libsmcp_la-smcp-node-router.lo `test -f 'smcp-node-router.c' || echo '$(srcdir)/'`smcp-node-router.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-node-router.Tpo $(DEPDIR)/libsmcp_la-smcp-node-router.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-node-router.c' object='libsmcp_la-smcp-node-router.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-node-router.lo `test -f 'smcp-node-router.c' || echo '$(srcdir)/'`smcp-node-router.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-node-router.lo `test -f 'smcp-node-router.c' || echo '$(srcdir)/'`smcp-node-router.c
 
 libsmcp_la-smcp-list.lo: smcp-list.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-list.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-list.Tpo -c -o libsmcp_la-smcp-list.lo `test -f 'smcp-list.c' || echo '$(srcdir)/'`smcp-list.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-list.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-list.Tpo -c -o libsmcp_la-smcp-list.lo `test -f 'smcp-list.c' || echo '$(srcdir)/'`smcp-list.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-list.Tpo $(DEPDIR)/libsmcp_la-smcp-list.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-list.c' object='libsmcp_la-smcp-list.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-list.lo `test -f 'smcp-list.c' || echo '$(srcdir)/'`smcp-list.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-list.lo `test -f 'smcp-list.c' || echo '$(srcdir)/'`smcp-list.c
 
 libsmcp_la-smcp-variable_handler.lo: smcp-variable_handler.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-variable_handler.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-variable_handler.Tpo -c -o libsmcp_la-smcp-variable_handler.lo `test -f 'smcp-variable_handler.c' || echo '$(srcdir)/'`smcp-variable_handler.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-variable_handler.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-variable_handler.Tpo -c -o libsmcp_la-smcp-variable_handler.lo `test -f 'smcp-variable_handler.c' || echo '$(srcdir)/'`smcp-variable_handler.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-variable_handler.Tpo $(DEPDIR)/libsmcp_la-smcp-variable_handler.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-variable_handler.c' object='libsmcp_la-smcp-variable_handler.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-variable_handler.lo `test -f 'smcp-variable_handler.c' || echo '$(srcdir)/'`smcp-variable_handler.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-variable_handler.lo `test -f 'smcp-variable_handler.c' || echo '$(srcdir)/'`smcp-variable_handler.c
 
 libsmcp_la-smcp-pairing.lo: smcp-pairing.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-pairing.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-pairing.Tpo -c -o libsmcp_la-smcp-pairing.lo `test -f 'smcp-pairing.c' || echo '$(srcdir)/'`smcp-pairing.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-pairing.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-pairing.Tpo -c -o libsmcp_la-smcp-pairing.lo `test -f 'smcp-pairing.c' || echo '$(srcdir)/'`smcp-pairing.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-pairing.Tpo $(DEPDIR)/libsmcp_la-smcp-pairing.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-pairing.c' object='libsmcp_la-smcp-pairing.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-pairing.lo `test -f 'smcp-pairing.c' || echo '$(srcdir)/'`smcp-pairing.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-pairing.lo `test -f 'smcp-pairing.c' || echo '$(srcdir)/'`smcp-pairing.c
 
 libsmcp_la-smcp-group.lo: smcp-group.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-group.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-group.Tpo -c -o libsmcp_la-smcp-group.lo `test -f 'smcp-group.c' || echo '$(srcdir)/'`smcp-group.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-group.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-group.Tpo -c -o libsmcp_la-smcp-group.lo `test -f 'smcp-group.c' || echo '$(srcdir)/'`smcp-group.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-group.Tpo $(DEPDIR)/libsmcp_la-smcp-group.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-group.c' object='libsmcp_la-smcp-group.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-group.lo `test -f 'smcp-group.c' || echo '$(srcdir)/'`smcp-group.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-group.lo `test -f 'smcp-group.c' || echo '$(srcdir)/'`smcp-group.c
 
 libsmcp_la-smcp-curl_proxy.lo: smcp-curl_proxy.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-curl_proxy.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-curl_proxy.Tpo -c -o libsmcp_la-smcp-curl_proxy.lo `test -f 'smcp-curl_proxy.c' || echo '$(srcdir)/'`smcp-curl_proxy.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -MT libsmcp_la-smcp-curl_proxy.lo -MD -MP -MF $(DEPDIR)/libsmcp_la-smcp-curl_proxy.Tpo -c -o libsmcp_la-smcp-curl_proxy.lo `test -f 'smcp-curl_proxy.c' || echo '$(srcdir)/'`smcp-curl_proxy.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libsmcp_la-smcp-curl_proxy.Tpo $(DEPDIR)/libsmcp_la-smcp-curl_proxy.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='smcp-curl_proxy.c' object='libsmcp_la-smcp-curl_proxy.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-curl_proxy.lo `test -f 'smcp-curl_proxy.c' || echo '$(srcdir)/'`smcp-curl_proxy.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libsmcp_la_CPPFLAGS) $(CPPFLAGS) $(libsmcp_la_CFLAGS) $(CFLAGS) -c -o libsmcp_la-smcp-curl_proxy.lo `test -f 'smcp-curl_proxy.c' || echo '$(srcdir)/'`smcp-curl_proxy.c
 
 btreetest-btree.o: btree.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(btreetest_CFLAGS) $(CFLAGS) -MT btreetest-btree.o -MD -MP -MF $(DEPDIR)/btreetest-btree.Tpo -c -o btreetest-btree.o `test -f 'btree.c' || echo '$(srcdir)/'`btree.c

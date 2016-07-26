@@ -761,6 +761,7 @@ enable_embedded
 with_address_family
 enable_libcurl
 enable_libreadline
+enable_dtls
 with_openssl
 enable_libdl
 '
@@ -1406,6 +1407,7 @@ Optional Features:
   --enable-embedded       enable embedded mode (instance is singleton)
   --disable-libcurl  Do not use libcurl
   --disable-libreadline  Do not use libreadline
+  --enable-dtls    Enable experimental DTLS support
   --disable-libdl  Do not use libdl
 
 Optional Packages:
@@ -2299,7 +2301,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 ac_config_headers="$ac_config_headers src/config.h src/smcp/smcp-config.h"
 
 
-SOURCE_VERSION=0.6.5-43-g3a2ecce
+SOURCE_VERSION=0.6.5-46-g94476bc
 
 
 am__api_version='1.11'
@@ -13360,6 +13362,25 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+# Check whether --enable-dtls was given.
+if test "${enable_dtls+set}" = set; then :
+  enableval=$enable_dtls;
+		case "${enableval}" in
+			no)  SMCP_DTLS=0 ;;
+			yes) SMCP_DTLS=1 ;;
+			*)   as_fn_error $? "Invalid value ${enableval} for --enable-dtls" "$LINENO" 5 ;;
+		esac
+
+else
+
+		SMCP_DTLS="${SMCP_DTLS-0}"
+
+
+fi
+
+
+if test "${SMCP_DTLS}" == "1"
+then
 
     found=false
 
@@ -13493,15 +13514,63 @@ if ac_fn_c_try_link "$LINENO"; then :
             { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
+	SMCP_DTLS=1
+	SMCP_DTLS_OPENSSL=1
+
+
 cat >>confdefs.h <<_ACEOF
 #define HAVE_OPENSSL 1
 _ACEOF
+
+
+	tmp_LIBS="${LIBS}"
+	LIBS="${OPENSSL_LIBS}"
+	ac_fn_c_check_func "$LINENO" "DTLSv1_method" "ac_cv_func_DTLSv1_method"
+if test "x$ac_cv_func_DTLSv1_method" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_OPENSSL_DTLSV1_METHOD 1
+_ACEOF
+
+fi
+
+	ac_fn_c_check_func "$LINENO" "DTLS_method" "ac_cv_func_DTLS_method"
+if test "x$ac_cv_func_DTLS_method" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_OPENSSL_DTLS_METHOD 1
+_ACEOF
+
+fi
+
+	ac_fn_c_check_func "$LINENO" "SSL_CONF_CTX_new" "ac_cv_func_SSL_CONF_CTX_new"
+if test "x$ac_cv_func_SSL_CONF_CTX_new" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_OPENSSL_SSL_CONF_CTX_NEW 1
+_ACEOF
+
+fi
+
+	ac_fn_c_check_func "$LINENO" "SSL_CONF_finish" "ac_cv_func_SSL_CONF_finish"
+if test "x$ac_cv_func_SSL_CONF_finish" = xyes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_OPENSSL_SSL_CONF_FINISH 1
+_ACEOF
+
+fi
+
+
+	LIBS="${tmp_LIBS}"
 
 
 else
 
             { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
+
+	SMCP_DTLS_OPENSSL=0
 
 
 fi
@@ -13515,6 +13584,11 @@ rm -f core conftest.err conftest.$ac_objext \
 
 
 
+fi
+
+if test "${SMCP_DTLS}" == "1" && test "${SMCP_DTLS_OPENSSL-0}" == "0"
+then as_fn_error $? "\"DTLS was enabled, but couldn't find OpenSSL\"" "$LINENO" 5
+fi
 
 # Checks for header files.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ANSI C header files" >&5
@@ -13974,7 +14048,6 @@ fi
 
 
 
-
  if test "$smcp_cv_have_ge_rs232" = yes; then
   HAVE_GE_RS232_TRUE=
   HAVE_GE_RS232_FALSE='#'
@@ -13984,11 +14057,24 @@ else
 fi
 
 
-
 if test "${SMCP_EMBEDDED+set}" = "set"
 then
 cat >>confdefs.h <<_ACEOF
 #define SMCP_EMBEDDED $SMCP_EMBEDDED
+_ACEOF
+
+fi
+if test "${SMCP_DTLS+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_DTLS $SMCP_DTLS
+_ACEOF
+
+fi
+if test "${SMCP_DTLS_OPENSSL+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_DTLS_OPENSSL $SMCP_DTLS_OPENSSL
 _ACEOF
 
 fi

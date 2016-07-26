@@ -51,9 +51,10 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_smcpctl_OBJECTS = main.$(OBJEXT) cmd_list.$(OBJEXT) \
-	cmd_get.$(OBJEXT) cmd_post.$(OBJEXT) help.$(OBJEXT) \
-	cmd_repeat.$(OBJEXT) cmd_delete.$(OBJEXT)
+am_smcpctl_OBJECTS = smcpctl-main.$(OBJEXT) smcpctl-cmd_list.$(OBJEXT) \
+	smcpctl-cmd_get.$(OBJEXT) smcpctl-cmd_post.$(OBJEXT) \
+	smcpctl-help.$(OBJEXT) smcpctl-cmd_repeat.$(OBJEXT) \
+	smcpctl-cmd_delete.$(OBJEXT)
 smcpctl_OBJECTS = $(am_smcpctl_OBJECTS)
 smcpctl_DEPENDENCIES = ../smcp/libsmcp.la
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -221,6 +222,7 @@ smcpctl_SOURCES = main.c cmd_list.c cmd_get.c cmd_post.c help.c \
 	cmd_repeat.c cmd_delete.c cmd_delete.h cmd_get.h cmd_list.h \
 	cmd_post.h cmd_repeat.h help.h smcpctl.h
 smcpctl_LDADD = ../smcp/libsmcp.la
+smcpctl_CPPFLAGS = $(AM_CPPFLAGS) $(OPENSSL_INCLUDES)
 DISTCLEANFILES = .deps Makefile
 all: all-am
 
@@ -309,13 +311,13 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_delete.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_get.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_list.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_post.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmd_repeat.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/help.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcpctl-cmd_delete.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcpctl-cmd_get.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcpctl-cmd_list.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcpctl-cmd_post.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcpctl-cmd_repeat.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcpctl-help.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smcpctl-main.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -337,6 +339,104 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+smcpctl-main.o: main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-main.o -MD -MP -MF $(DEPDIR)/smcpctl-main.Tpo -c -o smcpctl-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-main.Tpo $(DEPDIR)/smcpctl-main.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main.c' object='smcpctl-main.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+
+smcpctl-main.obj: main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-main.obj -MD -MP -MF $(DEPDIR)/smcpctl-main.Tpo -c -o smcpctl-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-main.Tpo $(DEPDIR)/smcpctl-main.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main.c' object='smcpctl-main.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+
+smcpctl-cmd_list.o: cmd_list.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_list.o -MD -MP -MF $(DEPDIR)/smcpctl-cmd_list.Tpo -c -o smcpctl-cmd_list.o `test -f 'cmd_list.c' || echo '$(srcdir)/'`cmd_list.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_list.Tpo $(DEPDIR)/smcpctl-cmd_list.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_list.c' object='smcpctl-cmd_list.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_list.o `test -f 'cmd_list.c' || echo '$(srcdir)/'`cmd_list.c
+
+smcpctl-cmd_list.obj: cmd_list.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_list.obj -MD -MP -MF $(DEPDIR)/smcpctl-cmd_list.Tpo -c -o smcpctl-cmd_list.obj `if test -f 'cmd_list.c'; then $(CYGPATH_W) 'cmd_list.c'; else $(CYGPATH_W) '$(srcdir)/cmd_list.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_list.Tpo $(DEPDIR)/smcpctl-cmd_list.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_list.c' object='smcpctl-cmd_list.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_list.obj `if test -f 'cmd_list.c'; then $(CYGPATH_W) 'cmd_list.c'; else $(CYGPATH_W) '$(srcdir)/cmd_list.c'; fi`
+
+smcpctl-cmd_get.o: cmd_get.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_get.o -MD -MP -MF $(DEPDIR)/smcpctl-cmd_get.Tpo -c -o smcpctl-cmd_get.o `test -f 'cmd_get.c' || echo '$(srcdir)/'`cmd_get.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_get.Tpo $(DEPDIR)/smcpctl-cmd_get.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_get.c' object='smcpctl-cmd_get.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_get.o `test -f 'cmd_get.c' || echo '$(srcdir)/'`cmd_get.c
+
+smcpctl-cmd_get.obj: cmd_get.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_get.obj -MD -MP -MF $(DEPDIR)/smcpctl-cmd_get.Tpo -c -o smcpctl-cmd_get.obj `if test -f 'cmd_get.c'; then $(CYGPATH_W) 'cmd_get.c'; else $(CYGPATH_W) '$(srcdir)/cmd_get.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_get.Tpo $(DEPDIR)/smcpctl-cmd_get.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_get.c' object='smcpctl-cmd_get.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_get.obj `if test -f 'cmd_get.c'; then $(CYGPATH_W) 'cmd_get.c'; else $(CYGPATH_W) '$(srcdir)/cmd_get.c'; fi`
+
+smcpctl-cmd_post.o: cmd_post.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_post.o -MD -MP -MF $(DEPDIR)/smcpctl-cmd_post.Tpo -c -o smcpctl-cmd_post.o `test -f 'cmd_post.c' || echo '$(srcdir)/'`cmd_post.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_post.Tpo $(DEPDIR)/smcpctl-cmd_post.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_post.c' object='smcpctl-cmd_post.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_post.o `test -f 'cmd_post.c' || echo '$(srcdir)/'`cmd_post.c
+
+smcpctl-cmd_post.obj: cmd_post.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_post.obj -MD -MP -MF $(DEPDIR)/smcpctl-cmd_post.Tpo -c -o smcpctl-cmd_post.obj `if test -f 'cmd_post.c'; then $(CYGPATH_W) 'cmd_post.c'; else $(CYGPATH_W) '$(srcdir)/cmd_post.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_post.Tpo $(DEPDIR)/smcpctl-cmd_post.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_post.c' object='smcpctl-cmd_post.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_post.obj `if test -f 'cmd_post.c'; then $(CYGPATH_W) 'cmd_post.c'; else $(CYGPATH_W) '$(srcdir)/cmd_post.c'; fi`
+
+smcpctl-help.o: help.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-help.o -MD -MP -MF $(DEPDIR)/smcpctl-help.Tpo -c -o smcpctl-help.o `test -f 'help.c' || echo '$(srcdir)/'`help.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-help.Tpo $(DEPDIR)/smcpctl-help.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='help.c' object='smcpctl-help.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-help.o `test -f 'help.c' || echo '$(srcdir)/'`help.c
+
+smcpctl-help.obj: help.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-help.obj -MD -MP -MF $(DEPDIR)/smcpctl-help.Tpo -c -o smcpctl-help.obj `if test -f 'help.c'; then $(CYGPATH_W) 'help.c'; else $(CYGPATH_W) '$(srcdir)/help.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-help.Tpo $(DEPDIR)/smcpctl-help.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='help.c' object='smcpctl-help.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-help.obj `if test -f 'help.c'; then $(CYGPATH_W) 'help.c'; else $(CYGPATH_W) '$(srcdir)/help.c'; fi`
+
+smcpctl-cmd_repeat.o: cmd_repeat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_repeat.o -MD -MP -MF $(DEPDIR)/smcpctl-cmd_repeat.Tpo -c -o smcpctl-cmd_repeat.o `test -f 'cmd_repeat.c' || echo '$(srcdir)/'`cmd_repeat.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_repeat.Tpo $(DEPDIR)/smcpctl-cmd_repeat.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_repeat.c' object='smcpctl-cmd_repeat.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_repeat.o `test -f 'cmd_repeat.c' || echo '$(srcdir)/'`cmd_repeat.c
+
+smcpctl-cmd_repeat.obj: cmd_repeat.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_repeat.obj -MD -MP -MF $(DEPDIR)/smcpctl-cmd_repeat.Tpo -c -o smcpctl-cmd_repeat.obj `if test -f 'cmd_repeat.c'; then $(CYGPATH_W) 'cmd_repeat.c'; else $(CYGPATH_W) '$(srcdir)/cmd_repeat.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_repeat.Tpo $(DEPDIR)/smcpctl-cmd_repeat.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_repeat.c' object='smcpctl-cmd_repeat.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_repeat.obj `if test -f 'cmd_repeat.c'; then $(CYGPATH_W) 'cmd_repeat.c'; else $(CYGPATH_W) '$(srcdir)/cmd_repeat.c'; fi`
+
+smcpctl-cmd_delete.o: cmd_delete.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_delete.o -MD -MP -MF $(DEPDIR)/smcpctl-cmd_delete.Tpo -c -o smcpctl-cmd_delete.o `test -f 'cmd_delete.c' || echo '$(srcdir)/'`cmd_delete.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_delete.Tpo $(DEPDIR)/smcpctl-cmd_delete.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_delete.c' object='smcpctl-cmd_delete.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_delete.o `test -f 'cmd_delete.c' || echo '$(srcdir)/'`cmd_delete.c
+
+smcpctl-cmd_delete.obj: cmd_delete.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpctl-cmd_delete.obj -MD -MP -MF $(DEPDIR)/smcpctl-cmd_delete.Tpo -c -o smcpctl-cmd_delete.obj `if test -f 'cmd_delete.c'; then $(CYGPATH_W) 'cmd_delete.c'; else $(CYGPATH_W) '$(srcdir)/cmd_delete.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpctl-cmd_delete.Tpo $(DEPDIR)/smcpctl-cmd_delete.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cmd_delete.c' object='smcpctl-cmd_delete.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpctl_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpctl-cmd_delete.obj `if test -f 'cmd_delete.c'; then $(CYGPATH_W) 'cmd_delete.c'; else $(CYGPATH_W) '$(srcdir)/cmd_delete.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
