@@ -94,8 +94,6 @@ main(void)
 
 	SMCP_LIBRARY_VERSION_CHECK();
 
-	// Create our instance on the default CoAP port. If the port
-	// is already in use, we will pick the next available port number.
 	instance = smcp_create();
 
 	if (!instance) {

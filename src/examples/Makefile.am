@@ -24,4 +24,8 @@ noinst_PROGRAMS += example-4
 example_4_SOURCES = example-4.c
 example_4_LDADD = ../smcp/libsmcp.la
 
+noinst_PROGRAMS += example-multicast-request
+example_multicast_request_SOURCES = example-multicast-request.c
+example_multicast_request_LDADD = ../smcp/libsmcp.la
+
 DISTCLEANFILES = .deps Makefile

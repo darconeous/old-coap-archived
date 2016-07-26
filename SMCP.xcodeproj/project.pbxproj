@@ -179,6 +179,7 @@
 		A6C04B0C18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
 		A6C04B0D18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
 		A6C04B0E18AC178000DCE0CC /* smcp-plat-bsd.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */; };
+		A6C3B22E1D47D3B30053A50C /* example-multicast-request.c in Sources */ = {isa = PBXBuildFile; fileRef = A6C3B22D1D47D3B30053A50C /* example-multicast-request.c */; };
 		A6CD69621283466B00254A8B /* btree.c in Sources */ = {isa = PBXBuildFile; fileRef = A63EA6E21278B16D00B24867 /* btree.c */; };
 		A6DB61FA16AF190B00D7248E /* smcp-observable.c in Sources */ = {isa = PBXBuildFile; fileRef = A6DB61F916AF190A00D7248E /* smcp-observable.c */; };
 		A6DB61FB16AF190F00D7248E /* smcp-observable.c in Sources */ = {isa = PBXBuildFile; fileRef = A6DB61F916AF190A00D7248E /* smcp-observable.c */; };
@@ -403,6 +404,7 @@
 		A6BE9A41164CD28A00473330 /* smcpd.conf.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = smcpd.conf.in; sourceTree = "<group>"; };
 		A6C04AFF18AC175700DCE0CC /* smcp-plat-uip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-plat-uip.c"; sourceTree = "<group>"; usesTabs = 1; };
 		A6C04B0718AC178000DCE0CC /* smcp-plat-bsd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "smcp-plat-bsd.c"; sourceTree = "<group>"; usesTabs = 1; };
+		A6C3B22D1D47D3B30053A50C /* example-multicast-request.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "example-multicast-request.c"; sourceTree = "<group>"; };
 		A6CD695D1283463900254A8B /* btreetest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = btreetest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6D0C8C21661CC3C00E9F440 /* cgi-node.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "cgi-node.c"; sourceTree = "<group>"; };
 		A6DB61F816AF131800D7248E /* smcp-observable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "smcp-observable.h"; sourceTree = "<group>"; usesTabs = 1; };
@@ -669,6 +671,7 @@
 				A6181DFA16B4689300655F4F /* example-2.c */,
 				A6181DFB16B46CE500655F4F /* example-3.c */,
 				A690627D16B6E58E00A98B2C /* example-4.c */,
+				A6C3B22D1D47D3B30053A50C /* example-multicast-request.c */,
 			);
 			name = examples;
 			path = src/examples;
@@ -1032,6 +1035,7 @@
 				A654A1601D2238370050C7BD /* TODO.md in Sources */,
 				A63EB2891278CBB100B24867 /* cmd_repeat.c in Sources */,
 				A60E4FE619B6745000D876DD /* smcp-session.c in Sources */,
+				A6C3B22E1D47D3B30053A50C /* example-multicast-request.c in Sources */,
 				A6FB08741D0FBBEB004116B1 /* smcp-pairing.c in Sources */,
 				A6A27BA3127B934F003708DF /* cmd_delete.c in Sources */,
 				A6F536F3155F255000E0E324 /* smcp-outbound.c in Sources */,
