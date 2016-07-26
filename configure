@@ -2299,7 +2299,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 ac_config_headers="$ac_config_headers src/config.h src/smcp/smcp-config.h"
 
 
-SOURCE_VERSION=0.6.5-26-g03547ca
+SOURCE_VERSION=0.6.5-43-g3a2ecce
 
 
 am__api_version='1.11'

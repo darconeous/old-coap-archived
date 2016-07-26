@@ -35,7 +35,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 noinst_PROGRAMS = example-1$(EXEEXT) example-2$(EXEEXT) \
-	example-3$(EXEEXT) example-4$(EXEEXT)
+	example-3$(EXEEXT) example-4$(EXEEXT) \
+	example-multicast-request$(EXEEXT)
 subdir = src/examples
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -66,6 +67,11 @@ example_3_DEPENDENCIES = ../smcp/libsmcp.la
 am_example_4_OBJECTS = example-4.$(OBJEXT)
 example_4_OBJECTS = $(am_example_4_OBJECTS)
 example_4_DEPENDENCIES = ../smcp/libsmcp.la
+am_example_multicast_request_OBJECTS =  \
+	example-multicast-request.$(OBJEXT)
+example_multicast_request_OBJECTS =  \
+	$(am_example_multicast_request_OBJECTS)
+example_multicast_request_DEPENDENCIES = ../smcp/libsmcp.la
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src -I$(top_builddir)/src/smcp
 depcomp = $(SHELL) $(top_srcdir)/m4/depcomp
 am__depfiles_maybe = depfiles
@@ -93,9 +99,11 @@ AM_V_GEN = $(am__v_GEN_@AM_V@)
 am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(example_1_SOURCES) $(example_2_SOURCES) \
-	$(example_3_SOURCES) $(example_4_SOURCES)
+	$(example_3_SOURCES) $(example_4_SOURCES) \
+	$(example_multicast_request_SOURCES)
 DIST_SOURCES = $(example_1_SOURCES) $(example_2_SOURCES) \
-	$(example_3_SOURCES) $(example_4_SOURCES)
+	$(example_3_SOURCES) $(example_4_SOURCES) \
+	$(example_multicast_request_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -234,6 +242,8 @@ example_3_SOURCES = example-3.c
 example_3_LDADD = ../smcp/libsmcp.la
 example_4_SOURCES = example-4.c
 example_4_LDADD = ../smcp/libsmcp.la
+example_multicast_request_SOURCES = example-multicast-request.c
+example_multicast_request_LDADD = ../smcp/libsmcp.la
 DISTCLEANFILES = .deps Makefile
 all: all-am
 
@@ -290,6 +300,9 @@ example-3$(EXEEXT): $(example_3_OBJECTS) $(example_3_DEPENDENCIES) $(EXTRA_examp
 example-4$(EXEEXT): $(example_4_OBJECTS) $(example_4_DEPENDENCIES) $(EXTRA_example_4_DEPENDENCIES) 
 	@rm -f example-4$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(example_4_OBJECTS) $(example_4_LDADD) $(LIBS)
+example-multicast-request$(EXEEXT): $(example_multicast_request_OBJECTS) $(example_multicast_request_DEPENDENCIES) $(EXTRA_example_multicast_request_DEPENDENCIES) 
+	@rm -f example-multicast-request$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(example_multicast_request_OBJECTS) $(example_multicast_request_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -301,6 +314,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/example-2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/example-3.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/example-4.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/example-multicast-request.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
