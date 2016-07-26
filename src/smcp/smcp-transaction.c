@@ -897,7 +897,6 @@ smcp_handle_response() {
 			if (!request_was_multicast) {
 				handler->attemptCount = 0;
 			}
-
 			handler->waiting_for_async_response = false;
 
 			if ( handler->active
