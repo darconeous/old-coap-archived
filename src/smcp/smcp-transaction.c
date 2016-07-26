@@ -154,18 +154,30 @@ smcp_internal_delete_transaction_(
 }
 
 static smcp_cms_t
-calc_retransmit_timeout(int retries) {
+calc_retransmit_timeout(int retries, bool burst) {
 	smcp_cms_t ret = (smcp_cms_t)(COAP_ACK_TIMEOUT * MSEC_PER_SEC);
+
+	if (burst) {
+		if ((retries % SMCP_TRANSACTION_BURST_COUNT) != (SMCP_TRANSACTION_BURST_COUNT - 1)) {
+			ret = SMCP_TRANSACTION_BURST_TIMEOUT_MIN + (SMCP_FUNC_RANDOM_UINT32() % (SMCP_TRANSACTION_BURST_TIMEOUT_MAX-SMCP_TRANSACTION_BURST_TIMEOUT_MIN));
+			goto bail;
+		}
+
+		retries /= SMCP_TRANSACTION_BURST_COUNT;
+	}
 
 	ret <<= retries;
 
 	ret *= 512 + (SMCP_FUNC_RANDOM_UINT32() % (int)(512*(COAP_ACK_RANDOM_FACTOR-1.0f)));
 	ret /= 512;
 
+bail:
+
 #if defined(COAP_MAX_ACK_RETRANSMIT_DURATION)
-	if(ret > COAP_MAX_ACK_RETRANSMIT_DURATION*MSEC_PER_SEC)
-		ret = COAP_MAX_ACK_RETRANSMIT_DURATION*MSEC_PER_SEC;
+	if (ret > COAP_MAX_ACK_RETRANSMIT_DURATION * MSEC_PER_SEC)
+		ret = COAP_MAX_ACK_RETRANSMIT_DURATION * MSEC_PER_SEC;
 #endif
+
 	DEBUG_PRINTF("Will try attempt #%d in %dms",retries,ret);
 	return ret;
 }
@@ -217,9 +229,12 @@ smcp_internal_transaction_timeout_(
 	smcp_cms_t cms = smcp_plat_timestamp_to_cms(handler->expiration);
 
 	self->current_transaction = handler;
-	if((cms > 0) || (0==handler->attemptCount)) {
-		if(	(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
-			&& (cms > SMCP_OBSERVATION_KEEPALIVE_INTERVAL)
+
+	if ( (cms > 0)
+	  || (0 == handler->attemptCount) // This makes sure we try to transmit at least once
+	) {
+		if ( (handler->flags & SMCP_TRANSACTION_KEEPALIVE)
+		  && (cms > SMCP_OBSERVATION_KEEPALIVE_INTERVAL)
 		) {
 			cms = SMCP_OBSERVATION_KEEPALIVE_INTERVAL;
 		}
@@ -228,9 +243,9 @@ smcp_internal_transaction_timeout_(
 			cms = 0;
 		}
 
-		if ((0 == handler->attemptCount)
-			&& handler->waiting_for_async_response
-			&& !(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
+		if ( (0 == handler->attemptCount)
+		  && handler->waiting_for_async_response
+		  && !(handler->flags&SMCP_TRANSACTION_KEEPALIVE)
 		) {
 			status = SMCP_STATUS_OK;
 		}
@@ -245,24 +260,24 @@ smcp_internal_transaction_timeout_(
 			status = handler->resendCallback(context);
 
 			if (status == SMCP_STATUS_OK) {
-				smcp_cms_t retransmit_time = calc_retransmit_timeout(handler->attemptCount);
+				int max_attempts = SMCP_TRANSACTION_MAX_ATTEMPTS;
+				bool should_burst = false;
 
-				if (SMCP_IS_ADDR_MULTICAST(&handler->sockaddr_remote.smcp_addr)) {
-
-					if (SMCP_TRANSACTION_MAX_MCAST_ATTEMPTS > handler->attemptCount) {
-						//Adds random time
-						retransmit_time += 5 + (SMCP_FUNC_RANDOM_UINT32() % (SMCP_MULTICAST_RETRANSMIT_TIMEOUT_MS-5));
-
-						cms = MIN(cms,retransmit_time);
-						handler->attemptCount++;
+				if (handler->flags & SMCP_TRANSACTION_BURST) {
+					if (SMCP_IS_ADDR_MULTICAST(&handler->sockaddr_remote.smcp_addr)) {
+						should_burst = SMCP_TRANSACTION_BURST_MULTICAST == (handler->flags & SMCP_TRANSACTION_BURST_MULTICAST);
+					} else {
+						should_burst = SMCP_TRANSACTION_BURST_UNICAST == (handler->flags & SMCP_TRANSACTION_BURST_UNICAST);
 					}
+				}
 
-				} else {
-					cms = MIN(cms,calc_retransmit_timeout(handler->attemptCount));
+				if (should_burst) {
+					max_attempts *= SMCP_TRANSACTION_BURST_COUNT;
+				}
 
-					if (SMCP_TRANSACTION_MAX_ATTEMPTS > handler->attemptCount) {
-						handler->attemptCount++;
-					}
+				if (max_attempts > handler->attemptCount) {
+					cms = MIN(cms, calc_retransmit_timeout(handler->attemptCount, should_burst));
+					handler->attemptCount++;
 				}
 
 			} else if (status == SMCP_STATUS_WAIT_FOR_DNS) {
@@ -275,11 +290,12 @@ smcp_internal_transaction_timeout_(
 				cms = 100;
 				status = SMCP_STATUS_OK;
 			}
-		} else {
-			// Huh? Why is this here?
-			// TODO: Come back and figure out what I was thinking.
-			handler->attemptCount += (0==handler->attemptCount);
 		}
+
+		// Make the attempt count read at least one
+		// so that we know that we have attempted to transmit
+		// at least once.
+		handler->attemptCount += (0 == handler->attemptCount);
 
 		smcp_schedule_timer(
 			self,
@@ -878,10 +894,11 @@ smcp_handle_response() {
 				goto bail;
 			}
 
-			if(!request_was_multicast){ //Only clears attempts if request is not multicast,
+			if (!request_was_multicast) {
 				handler->attemptCount = 0;
 			}
 			handler->waiting_for_async_response = false;
+
 			if ( handler->active
 			  && msg_id == handler->msg_id
 			) {

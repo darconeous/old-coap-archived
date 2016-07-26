@@ -136,6 +136,11 @@ enum {
 
 	SMCP_TRANSACTION_NO_AUTO_END = (1 << 3),
 
+	SMCP_TRANSACTION_BURST_UNICAST = (1 << 4), //!< Burst multiple unicast packets per retransmit
+	SMCP_TRANSACTION_BURST_MULTICAST = (1 << 5), //!< Burst multiple multicast packets per retransmit
+
+	SMCP_TRANSACTION_BURST = SMCP_TRANSACTION_BURST_UNICAST|SMCP_TRANSACTION_BURST_MULTICAST, //!< Burst multiple packets per retransmit
+
 	SMCP_TRANSACTION_DELAY_START = (1 << 8),
 };
 
