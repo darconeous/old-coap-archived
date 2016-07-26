@@ -62,6 +62,9 @@
 #include <sys/select.h>
 #include <poll.h>
 
+#if SMCP_DTLS
+#include "smcp-plat-ssl.h"
+#endif
 
 #ifndef SOCKADDR_HAS_LENGTH_FIELD
 #if defined(__KAME__)
@@ -316,11 +319,13 @@ smcp_plat_finalize(smcp_t self) {
 	if(self->plat.fd_udp>=0) {
 		close(self->plat.fd_udp);
 	}
+
 #if SMCP_DTLS
 	if(self->plat.fd_dtls>=0) {
 		close(self->plat.fd_dtls);
 	}
 #endif
+
 	if(self->plat.mcfd>=0) {
 		close(self->plat.mcfd);
 	}
@@ -336,18 +341,22 @@ smcp_plat_get_fd(smcp_t self) {
 	return self->plat.fd_udp;
 }
 
-uint16_t
-smcp_plat_get_port(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
+static uint16_t
+get_port_for_fd(int fd) {
 	smcp_sockaddr_t saddr;
 	socklen_t socklen = sizeof(saddr);
-	if (self->plat.fd_udp < 0) {
+	if (fd < 0) {
 		return 0;
 	}
-	getsockname(self->plat.fd_udp, (struct sockaddr*)&saddr, &socklen);
+	getsockname(fd, (struct sockaddr*)&saddr, &socklen);
 	return ntohs(saddr.smcp_port);
 }
 
+uint16_t
+smcp_plat_get_port(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
+	return get_port_for_fd(self->plat.fd_udp);
+}
 
 static smcp_cms_t
 monotonic_get_time_ms(void)
@@ -365,6 +374,7 @@ monotonic_get_time_ms(void)
 	return (smcp_cms_t)(tv.tv_sec * MSEC_PER_SEC) + (smcp_cms_t)(tv.tv_usec / USEC_PER_MSEC);
 #endif
 }
+
 smcp_timestamp_t
 smcp_plat_cms_to_timestamp(
 	smcp_cms_t cms
@@ -393,16 +403,19 @@ smcp_plat_bind_to_sockaddr(
 	int fd = -1;
 
 	switch(type) {
-	case SMCP_SESSION_TYPE_UDP:
 #if SMCP_DTLS
 	case SMCP_SESSION_TYPE_DTLS:
+		break;
 #endif
 #if SMCP_TCP
 	case SMCP_SESSION_TYPE_TCP:
+		break;
 #endif
 #if SMCP_TLS
 	case SMCP_SESSION_TYPE_TLS:
+		break;
 #endif
+	case SMCP_SESSION_TYPE_UDP:
 		break;
 
 	default:
@@ -447,6 +460,7 @@ smcp_plat_bind_to_sockaddr(
 
 #if SMCP_DTLS
 	case SMCP_SESSION_TYPE_DTLS:
+		DEBUG_PRINTF("DTLS Port %d", get_port_for_fd(fd));
 		self->plat.fd_dtls = fd;
 		break;
 #endif
@@ -494,27 +508,33 @@ smcp_plat_update_pollfds(
 	struct pollfd fds[],
 	int maxfds
 ) {
-	int ret = 1;
+	int ret = 0;
 
 	require_quiet(maxfds > 0, bail);
 
 	assert(fds != NULL);
 
 	if (self->plat.fd_udp > 0) {
-		fds->fd = self->plat.fd_udp;
-		fds->events = POLLIN | POLLHUP;
-		fds->revents = 0;
-		fds++;
-		maxfds--;
+		if (ret <= maxfds) {
+			fds->fd = self->plat.fd_udp;
+			fds->events = POLLIN | POLLHUP;
+			fds->revents = 0;
+			fds++;
+			maxfds--;
+		}
+		ret++;
 	}
 
 #if SMCP_DTLS
 	if (self->plat.fd_dtls > 0) {
-		fds->fd = self->plat.fd_dtls;
-		fds->events = POLLIN | POLLHUP;
-		fds->revents = 0;
-		fds++;
-		maxfds--;
+		if (ret <= maxfds) {
+			fds->fd = self->plat.fd_dtls;
+			fds->events = POLLIN | POLLHUP;
+			fds->revents = 0;
+			fds++;
+			maxfds--;
+		}
+		ret++;
 	}
 #endif // SMCP_DTLS
 
@@ -575,7 +595,7 @@ smcp_plat_update_fdsets(
 }
 
 
-static ssize_t
+ssize_t
 sendtofrom(
 	int fd,
 	const void *data, size_t len, int flags,
@@ -652,6 +672,35 @@ sendtofrom(
 	return ret;
 }
 
+smcp_status_t
+smcp_plat_set_remote_hostname_and_port(const char* hostname, uint16_t port)
+{
+	smcp_status_t ret;
+	SMCP_NON_RECURSIVE smcp_sockaddr_t saddr;
+
+	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",hostname,port);
+
+#if SMCP_DTLS
+	smcp_plat_ssl_set_remote_hostname(hostname);
+#endif
+
+	// Check to see if this host is a group we know about.
+	if (strcasecmp(hostname, COAP_MULTICAST_STR_ALLDEVICES) == 0) {
+		hostname = SMCP_COAP_MULTICAST_ALLDEVICES_ADDR;
+	}
+
+	ret = smcp_plat_lookup_hostname(hostname, &saddr, SMCP_LOOKUP_HOSTNAME_FLAG_DEFAULT);
+	require_noerr(ret, bail);
+
+	saddr.smcp_port = htons(port);
+
+	smcp_plat_set_remote_sockaddr(&saddr);
+
+bail:
+	return ret;
+}
+
+
 void
 smcp_plat_set_remote_sockaddr(const smcp_sockaddr_t* addr)
 {
@@ -724,49 +773,61 @@ smcp_plat_outbound_finish(smcp_t self,const uint8_t* data_ptr, coap_size_t data_
 	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	ssize_t sent_bytes = -1;
-	const int fd = smcp_get_current_instance()->plat.fd_udp;
+	int fd;
 
-	assert(fd >= 0);
+#if SMCP_DTLS
+	if (smcp_plat_get_session_type() == SMCP_SESSION_TYPE_DTLS) {
+		ret = smcp_plat_ssl_outbound_packet_process(self, data_ptr, data_len);
+	} else
+#endif
+	if (smcp_plat_get_session_type() == SMCP_SESSION_TYPE_UDP) {
+		fd = smcp_get_current_instance()->plat.fd_udp;
 
-	require(data_len > 0, bail);
+		assert(fd >= 0);
+
+		require(data_len > 0, bail);
 
 #if VERBOSE_DEBUG
-	{
-		char addr_str[50] = "???";
-		uint16_t port = ntohs(smcp_plat_get_remote_sockaddr()->smcp_port);
-		SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&smcp_plat_get_remote_sockaddr()->smcp_addr);
-		DEBUG_PRINTF("smcp(%p): Outbound packet to [%s]:%d", self,addr_str,(int)port);
-		coap_dump_header(
-			SMCP_DEBUG_OUT_FILE,
-			"Outbound:\t",
-			(struct coap_header_s*)data_ptr,
-			(coap_size_t)data_len
-		);
-	}
+		{
+			char addr_str[50] = "???";
+			uint16_t port = ntohs(smcp_plat_get_remote_sockaddr()->smcp_port);
+			SMCP_ADDR_NTOP(addr_str,sizeof(addr_str),&smcp_plat_get_remote_sockaddr()->smcp_addr);
+			DEBUG_PRINTF("smcp(%p): Outbound packet to [%s]:%d", self,addr_str,(int)port);
+			coap_dump_header(
+				SMCP_DEBUG_OUT_FILE,
+				"Outbound:\t",
+				(struct coap_header_s*)data_ptr,
+				(coap_size_t)data_len
+			);
+		}
 #endif
 
-	sent_bytes = sendtofrom(
-		fd,
-		data_ptr,
-		data_len,
-		0,
-		(struct sockaddr *)smcp_plat_get_remote_sockaddr(),
-		sizeof(smcp_sockaddr_t),
-		(struct sockaddr *)smcp_plat_get_local_sockaddr(),
-		sizeof(smcp_sockaddr_t)
-	);
+		sent_bytes = sendtofrom(
+			fd,
+			data_ptr,
+			data_len,
+			0,
+			(struct sockaddr *)smcp_plat_get_remote_sockaddr(),
+			sizeof(smcp_sockaddr_t),
+			(struct sockaddr *)smcp_plat_get_local_sockaddr(),
+			sizeof(smcp_sockaddr_t)
+		);
 
-	require_action_string(
-		(sent_bytes >= 0),
-		bail, ret = SMCP_STATUS_ERRNO, strerror(errno)
-	);
+		require_action_string(
+			(sent_bytes >= 0),
+			bail, ret = SMCP_STATUS_ERRNO, strerror(errno)
+		);
 
-	require_action_string(
-		(sent_bytes == data_len),
-		bail, ret = SMCP_STATUS_FAILURE, "sendto() returned less than len"
-	);
+		require_action_string(
+			(sent_bytes == data_len),
+			bail, ret = SMCP_STATUS_FAILURE, "sendto() returned less than len"
+		);
 
-	ret = SMCP_STATUS_OK;
+		ret = SMCP_STATUS_OK;
+
+	} else {
+		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+	}
 bail:
 	return ret;
 }
@@ -779,8 +840,15 @@ smcp_plat_wait(
 ) {
 	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = SMCP_STATUS_OK;
-	struct pollfd pollee = { self->plat.fd_udp, POLLIN | POLLHUP, 0 };
+	struct pollfd polls[4];
 	int descriptors_ready;
+	int poll_count;
+
+	poll_count = smcp_plat_update_pollfds(self, polls, sizeof(polls)/sizeof(*polls));
+
+	if (poll_count > (int)(sizeof(polls)/sizeof(*polls))) {
+		poll_count = sizeof(polls)/sizeof(*polls);
+	}
 
 	if(cms >= 0) {
 		cms = MIN(cms, smcp_get_timeout(self));
@@ -790,7 +858,7 @@ smcp_plat_wait(
 
 	errno = 0;
 
-	descriptors_ready = poll(&pollee, 1, cms);
+	descriptors_ready = poll(polls, poll_count, cms);
 
 	// Ensure that poll did not fail with an error.
 	require_action_string(descriptors_ready != -1,
@@ -815,10 +883,14 @@ smcp_plat_process(
 	smcp_status_t ret = 0;
 
 	int tmp;
-	struct pollfd polls[2];
+	struct pollfd polls[4];
 	int poll_count;
 
 	poll_count = smcp_plat_update_pollfds(self, polls, sizeof(polls)/sizeof(polls[0]));
+
+	if (poll_count > (int)(sizeof(polls)/sizeof(*polls))) {
+		poll_count = sizeof(polls)/sizeof(*polls);
+	}
 
 	errno = 0;
 
@@ -883,7 +955,7 @@ smcp_plat_process(
 					local_saddr.smcp_addr = pi->ipi_addr;
 #endif
 
-					local_saddr.smcp_port = htons(smcp_plat_get_port(self));
+					local_saddr.smcp_port = htons(get_port_for_fd(polls[tmp].fd));
 
 					self->plat.pktinfo = *pi;
 				}
@@ -900,8 +972,12 @@ smcp_plat_process(
 
 #if SMCP_DTLS
 				} else if (self->plat.fd_dtls == polls[tmp].fd) {
-					// TODO: Feed it into dtls, see if anything pops out.
-
+					smcp_plat_set_session_type(SMCP_SESSION_TYPE_DTLS);
+					smcp_plat_ssl_inbound_packet_process(
+						self,
+						packet,
+						(coap_size_t)packet_len
+					);
 #endif
 				}
 			}

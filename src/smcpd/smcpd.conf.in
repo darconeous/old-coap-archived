@@ -1,6 +1,9 @@
 
 Port 5683
 
+DTLSPort 5684
+SSLCipherString "ALL:NULL:eNULL:aNULL"
+
 <node "sys" system />
 <node "proxy" "curl_proxy" />
 <node "cgi-file" "cgi" "./cgi-file.sh" />

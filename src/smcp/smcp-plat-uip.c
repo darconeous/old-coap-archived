@@ -133,6 +133,35 @@ smcp_plat_finalize(smcp_t self) {
 	}
 }
 
+smcp_status_t
+smcp_plat_set_remote_hostname_and_port(const char* hostname, uint16_t port)
+{
+	smcp_status_t ret;
+	SMCP_NON_RECURSIVE smcp_sockaddr_t saddr;
+
+	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",hostname,port);
+
+#if SMCP_DTLS
+	smcp_plat_ssl_set_remote_hostname(hostname);
+#endif
+
+	// Check to see if this host is a group we know about.
+	if (strcasecmp(hostname, COAP_MULTICAST_STR_ALLDEVICES) == 0) {
+		hostname = SMCP_COAP_MULTICAST_ALLDEVICES_ADDR;
+	}
+
+	ret = smcp_plat_lookup_hostname(hostname, &saddr, SMCP_LOOKUP_HOSTNAME_FLAG_DEFAULT);
+	require_noerr(ret, bail);
+
+	saddr.smcp_port = htons(port);
+
+	smcp_plat_set_remote_sockaddr(&saddr);
+
+bail:
+	return ret;
+}
+
+
 void
 smcp_plat_set_remote_sockaddr(const smcp_sockaddr_t* addr)
 {

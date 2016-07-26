@@ -31,7 +31,7 @@
 #include <config.h>
 #endif
 
-#include <smcp/assert-macros.h>
+#include "smcp/assert-macros.h"
 #include <stdlib.h>
 
 #include <smcp/smcp.h>

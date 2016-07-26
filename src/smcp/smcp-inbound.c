@@ -189,6 +189,7 @@ smcp_inbound_origin_is_local() {
 		return false;
 	}
 
+	// TODO: This logic isn't going to work for DTLS
 	if (htonl(smcp_plat_get_port(smcp_get_current_instance())) != saddr->smcp_port) {
 		return false;
 	}

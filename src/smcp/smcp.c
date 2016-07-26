@@ -309,6 +309,9 @@ const char* smcp_status_to_cstr(int x) {
 	case SMCP_STATUS_WAIT_FOR_DNS: return "Wait For DNS"; break;
 	case SMCP_STATUS_WAIT_FOR_SESSION: return "Wait For Session"; break;
 
+	case SMCP_STATUS_SESSION_ERROR: return "Session Error"; break;
+	case SMCP_STATUS_SESSION_CLOSED: return "Session Closed"; break;
+
 	case SMCP_STATUS_ERRNO:
 #if SMCP_USE_BSD_SOCKETS
 		return strerror(errno); break;

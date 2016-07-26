@@ -16,6 +16,7 @@ Features include:
  * Multicast groups (Working toward full [RFC7390][3]
    support)
  * Resource pairing
+ * [Experimental support for DTLS][https://github.com/darconeous/smcp/issues/35]
 
 The package also includes `smcpctl`, a powerful command line tool for browsing
 and configuring CoAP nodes.

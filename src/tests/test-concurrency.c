@@ -11,7 +11,7 @@
 #include <config.h>
 #endif
 
-#include <smcp/assert-macros.h>
+#include "smcp/assert-macros.h"
 #include <stdio.h>
 #include <pthread.h>
 #include <smcp/smcp.h>

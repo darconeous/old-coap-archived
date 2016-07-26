@@ -36,7 +36,7 @@
 
 #define HAVE_FGETLN 0
 
-#include <smcp/assert-macros.h>
+#include "smcp/assert-macros.h"
 
 #include <smcp/smcp-internal.h>
 #include <smcp/smcp-missing.h>
@@ -59,6 +59,10 @@
 #include <smcp/smcp-node-router.h>
 #include <missing/fgetln.h>
 #include "help.h"
+
+#if SMCP_DTLS_OPENSSL
+#include <openssl/ssl.h>
+#endif
 
 #if HAVE_DLFCN_H
 #include <dlfcn.h>
@@ -108,6 +112,9 @@ static arg_list_item_t option_list[] = {
 	{ 'd', "debug", NULL, "Enable debugging mode"	},
 	{ 'p', "port",	NULL, "Port number"				},
 	{ 'c', "config",NULL, "Config File"				},
+#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+	{ 0, NULL,	"ssl-*", "SSL Configuration commands (see docs)" },
+#endif
 	{ 0 }
 };
 
@@ -120,6 +127,17 @@ static const char* gPIDFilename = NULL;
 
 static sig_t gPreviousHandlerForSIGINT;
 static sig_t gPreviousHandlerForSIGTERM;
+
+#if SMCP_DTLS
+#if SMCP_DTLS_OPENSSL
+static SSL_CTX* gSslCtx;
+#if HAVE_OPENSSL_SSL_CONF_CTX_NEW
+static SSL_CONF_CTX* gSslConfCtx;
+#endif
+#else
+static void* gSslCtx;
+#endif
+#endif
 
 static void
 signal_SIGINT(int sig) {
@@ -357,6 +375,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 	size_t line_len = 0;
 	smcp_node_t node = &root_node;
 	int line_number = 0;
+	int ssl_ret;
 
 	require(file!=NULL,bail);
 
@@ -365,20 +384,50 @@ read_configuration(smcp_t smcp,const char* filename) {
 		line_number++;
 		if(!cmd) {
 			continue;
-		} else if(strcaseequal(cmd,"Port")) {
+		}
+#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+		// Handle OpenSSL configuration options from configuration file
+		else if ((ssl_ret = SSL_CONF_cmd(gSslConfCtx, cmd, line)) != -2) {
+			if (ssl_ret > 0) {
+			} else if (ssl_ret == 0) {
+				syslog(LOG_ERR,"%s:%d: OpenSSL rejected command %s",filename,line_number,cmd);
+				goto bail;
+			} else if (ssl_ret < 0) {
+				syslog(LOG_ERR,"%s:%d: OpenSSL rejected command %s",filename,line_number,cmd);
+				goto bail;
+			}
+		}
+#endif
+#if SMCP_DTLS
+		else if(strcaseequal(cmd,"DTLSPort")) {
 			char* arg = get_next_arg(line,&line);
 			if(!arg) {
 				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
 			}
 
-			if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, (uint16_t)atoi(arg)) != SMCP_STATUS_OK) {
+			smcp_plat_ssl_set_context(smcp, (void*)gSslCtx);
+
+			if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_DTLS, (uint16_t)atoi(arg)) != SMCP_STATUS_OK) {
 				syslog(LOG_ERR,"Unable to bind to port! \"%s\" (%d)",strerror(errno),errno);
 			}
-
-
+		}
+#endif
+		else if(strcaseequal(cmd,"Port")) {
+			char* arg = get_next_arg(line,&line);
+			if(!arg) {
+				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
+				goto bail;
+			}
 			if(smcp_plat_get_port(smcp)!=atoi(arg)) {
-				syslog(LOG_ERR,"ListenPort doesn't match current listening port.");
+				if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, (uint16_t)atoi(arg)) != SMCP_STATUS_OK) {
+					syslog(LOG_ERR,"Unable to bind to port! \"%s\" (%d)",strerror(errno),errno);
+				}
+
+
+				if(smcp_plat_get_port(smcp)!=atoi(arg)) {
+					syslog(LOG_ERR,"ListenPort doesn't match current listening port.");
+				}
 			}
 		} else if(strcaseequal(cmd,"PIDFile")) {
 			char* arg = get_next_arg(line,&line);
@@ -500,13 +549,58 @@ syslog_dump_select_info(int loglevel, fd_set *read_fd_set, fd_set *write_fd_set,
 
 int
 main(
-	int argc, char * argv[]
+	int argc, char * argv[], char * envp[]
 ) {
-	int i, debug_mode = 0;
+	int i, debug_mode = 0, ssl_ret;
 	uint16_t port = 0;
 	const char* config_file = ETC_PREFIX "smcp.conf";
 
 	openlog(basename(argv[0]),LOG_PERROR|LOG_PID|LOG_CONS,LOG_DAEMON);
+
+#if SMCP_DTLS
+#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+	gSslConfCtx = SSL_CONF_CTX_new();
+#if HAVE_OPENSSL_DTLS_METHOD
+	gSslCtx = SSL_CTX_new(DTLS_method());
+#else
+	gSslCtx = SSL_CTX_new(DTLSv1_method());
+#endif
+	SSL_CONF_CTX_set_ssl_ctx(gSslConfCtx, gSslCtx);
+	SSL_CONF_CTX_set_flags(gSslConfCtx, SSL_CONF_FLAG_CLIENT|SSL_CONF_FLAG_SERVER|SSL_CONF_FLAG_CERTIFICATE|SSL_CONF_FLAG_SHOW_ERRORS);
+#ifdef SSL_CONF_FLAG_REQUIRE_PRIVATE
+	SSL_CONF_CTX_set_flags(gSslConfCtx, SSL_CONF_FLAG_REQUIRE_PRIVATE);
+#endif
+	SSL_CONF_CTX_set_flags(gSslConfCtx, SSL_CONF_FLAG_FILE);
+	SSL_CONF_CTX_set1_prefix(gSslConfCtx, "SMCPD_SSL_");
+
+	for (i = 0; envp[i]; i++) {
+		char key[256] = {};
+		char* value = key;
+		strlcpy(key, envp[i], sizeof(key));
+		strsep(&value, "=");
+
+		ssl_ret = SSL_CONF_cmd(gSslConfCtx, key, value);
+		switch(ssl_ret) {
+		case 1:
+		case 2:
+			syslog(LOG_DEBUG,"ENV OpenSSL => %s", envp[i]);
+			break;
+		case -2:
+			// Skippit.
+			break;
+		default:
+			syslog(LOG_ERR,"OpenSSL Rejected ENV %s", envp[i]);
+			break;
+		}
+	}
+
+	SSL_CONF_CTX_clear_flags(gSslConfCtx, SSL_CONF_FLAG_FILE);
+	SSL_CONF_CTX_set_flags(gSslConfCtx, SSL_CONF_FLAG_CMDLINE);
+	SSL_CONF_CTX_set1_prefix(gSslConfCtx, "--ssl-");
+#else
+	void* ssl_ctx = NULL;
+#endif
+#endif
 
 	gPreviousHandlerForSIGINT = signal(SIGINT, &signal_SIGINT);
 	gPreviousHandlerForSIGTERM = signal(SIGINT, &signal_SIGTERM);
@@ -519,6 +613,26 @@ main(
 	}
 
 	BEGIN_LONG_ARGUMENTS(gRet)
+#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+	// Handle OpenSSL configuration options on the command line
+    else if ((ssl_ret = SSL_CONF_cmd(gSslConfCtx, argv[i], argv[i+1])) != -2) {
+		if (ssl_ret == 2) {
+			i++;
+		} else if (ssl_ret == 0) {
+			fprintf(stderr,
+				"%s: error: Argument rejected: %s\n",
+				argv[0],
+				argv[i]);
+			return ERRORCODE_BADARG;
+		} else if (ssl_ret < 0) {
+			fprintf(stderr,
+				"%s: error: OpenSSL runtime error for: %s\n",
+				argv[0],
+				argv[i]);
+			return ERRORCODE_BADARG;
+		}
+	}
+#endif
 	HANDLE_LONG_ARGUMENT("port") port = (uint16_t)strtol(argv[++i], NULL, 0);
 	HANDLE_LONG_ARGUMENT("config") config_file = argv[++i];
 	HANDLE_LONG_ARGUMENT("debug") debug_mode++;
@@ -604,6 +718,12 @@ main(
 
 	smcp_set_proxy_url(gSMCPInstance, getenv("COAP_PROXY_URL"));
 
+#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+	SSL_CONF_CTX_clear_flags(gSslConfCtx, SSL_CONF_FLAG_CMDLINE);
+	SSL_CONF_CTX_set_flags(gSslConfCtx, SSL_CONF_FLAG_FILE);
+	SSL_CONF_CTX_set1_prefix(gSslConfCtx, "SSL");
+#endif
+
 	if (0 != read_configuration(gSMCPInstance,config_file)) {
 		syslog(LOG_NOTICE,"Error processing configuration file!");
 		gRet = ERRORCODE_BADCONFIG;
@@ -628,10 +748,14 @@ main(
 			&cms_timeout
 		);
 
-		cms_timeout = MIN(smcp_get_timeout(gSMCPInstance),cms_timeout);
-		fd_count = MAX(smcp_plat_get_fd(gSMCPInstance)+1,fd_count);
-		FD_SET(smcp_plat_get_fd(gSMCPInstance),&read_fd_set);
-		FD_SET(smcp_plat_get_fd(gSMCPInstance),&error_fd_set);
+		smcp_plat_update_fdsets(
+			gSMCPInstance,
+			&read_fd_set,
+			&write_fd_set,
+			&error_fd_set,
+			&fd_count,
+			&cms_timeout
+		);
 
 		//syslog_dump_select_info(LOG_INFO, &read_fd_set,&write_fd_set,&error_fd_set, fd_count, cms_timeout);
 

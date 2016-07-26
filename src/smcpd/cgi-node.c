@@ -41,7 +41,7 @@
 #endif
 
 #include <syslog.h>
-#include <smcp/assert-macros.h>
+#include "smcp/assert-macros.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <smcp/smcp.h>

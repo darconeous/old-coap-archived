@@ -38,7 +38,7 @@
 #define ASSERT_MACROS_USE_SYSLOG 1
 #endif
 
-#include <smcp/assert-macros.h>
+#include "smcp/assert-macros.h"
 
 #include <stdio.h>
 #include <smcp/smcp.h>

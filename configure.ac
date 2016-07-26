@@ -178,7 +178,44 @@ AC_CHECK_FUNCS([rl_set_prompt])
 
 AX_PTHREAD
 
-AX_CHECK_OPENSSL([AC_DEFINE_UNQUOTED([HAVE_OPENSSL],[1],[Set if OpenSSL is present])])
+AC_ARG_ENABLE(dtls,
+    [  --enable-dtls    Enable experimental DTLS support],
+	[
+		case "${enableval}" in
+			no)  SMCP_DTLS=0 ;;
+			yes) SMCP_DTLS=1 ;;
+			*)   AC_MSG_ERROR([Invalid value ${enableval} for --enable-dtls]) ;;
+		esac
+	],
+	[
+		SMCP_DTLS="${SMCP_DTLS-0}"
+	]
+)
+
+if test "${SMCP_DTLS}" == "1"
+then
+AX_CHECK_OPENSSL([
+	SMCP_DTLS=1
+	SMCP_DTLS_OPENSSL=1
+
+	AC_DEFINE_UNQUOTED([HAVE_OPENSSL],[1],[Set if OpenSSL is present])
+
+	tmp_LIBS="${LIBS}"
+	LIBS="${OPENSSL_LIBS}"
+	AC_CHECK_FUNC([DTLSv1_method],[AC_DEFINE_UNQUOTED([HAVE_OPENSSL_DTLSV1_METHOD],[1],[Set if OpenSSL has DTLSv1_method()])])
+	AC_CHECK_FUNC([DTLS_method],[AC_DEFINE_UNQUOTED([HAVE_OPENSSL_DTLS_METHOD],[1],[Set if OpenSSL has DTLS_method()])])
+	AC_CHECK_FUNC([SSL_CONF_CTX_new],[AC_DEFINE_UNQUOTED([HAVE_OPENSSL_SSL_CONF_CTX_NEW],[1],[Set if OpenSSL has SSL_CONF_CTX_new()])])
+	AC_CHECK_FUNC([SSL_CONF_finish],[AC_DEFINE_UNQUOTED([HAVE_OPENSSL_SSL_CONF_FINISH],[1],[Set if OpenSSL has SSL_CONF_finish()])])
+
+	LIBS="${tmp_LIBS}"
+],[
+	SMCP_DTLS_OPENSSL=0
+])
+fi
+
+if test "${SMCP_DTLS}" == "1" && test "${SMCP_DTLS_OPENSSL-0}" == "0"
+then AC_MSG_ERROR(["DTLS was enabled, but couldn't find OpenSSL"])
+fi
 
 # Checks for header files.
 AC_HEADER_STDC
@@ -214,19 +251,16 @@ AC_CHECK_FUNCS([alloca memcmp memset strtol strdup strndup strlcpy strlcat stpnc
 
 AC_REPLACE_FUNCS([getline])
 
-dnl AC_CACHE_CHECK([for ge_rs232],[smcp_cv_have_ge_rs232],[
-dnl 	smcp_cv_have_ge_rs232=no
-dnl 	test -f "${srcdir}/../ge-rs232/ge-system-node.c" && smcp_cv_have_ge_rs232=yes
-dnl ])
-
 AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
-
-dnl AH_BOTTOM([
-dnl #include "smcp/smcp-missing.h"
-dnl ])
 
 if test "${SMCP_EMBEDDED+set}" = "set"
 then AC_DEFINE_UNQUOTED([SMCP_EMBEDDED], [$SMCP_EMBEDDED], [.])
+fi
+if test "${SMCP_DTLS+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_DTLS], [$SMCP_DTLS], [.])
+fi
+if test "${SMCP_DTLS_OPENSSL+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_DTLS_OPENSSL], [$SMCP_DTLS_OPENSSL], [.])
 fi
 if test "${SMCP_USE_BSD_SOCKETS+set}" = "set"
 then AC_DEFINE_UNQUOTED([SMCP_USE_BSD_SOCKETS], [$SMCP_USE_BSD_SOCKETS], [.])

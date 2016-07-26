@@ -97,7 +97,9 @@ smcp_outbound_reset()
 	);
 	smcp_get_current_instance()->is_responding = false;
 	smcp_get_current_instance()->did_respond = false;
-	smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
+	if (!smcp_get_current_instance()->is_processing_message) {
+		smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
+	}
 }
 
 smcp_status_t
@@ -118,6 +120,7 @@ smcp_outbound_begin(
 	if (!self->is_processing_message) {
 		smcp_plat_set_remote_sockaddr(NULL);
 		smcp_plat_set_local_sockaddr(NULL);
+		smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
 	}
 
 	self->outbound.max_packet_len = SMCP_MAX_PACKET_LENGTH;
@@ -373,38 +376,14 @@ bail:
 }
 
 smcp_status_t
-smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value) {
+smcp_outbound_add_option_uint(coap_option_key_t key,uint32_t value)
+{
 	uint8_t size;
 
 	value = htonl(value);
 	size = smcp_calc_uint32_option_size(value);
 
 	return smcp_outbound_add_option(key, ((char*)&value)+(4-size), size);
-}
-
-
-smcp_status_t
-smcp_set_remote_sockaddr_from_host_and_port(const char* addr_str,uint16_t toport) {
-	smcp_status_t ret;
-	SMCP_NON_RECURSIVE smcp_sockaddr_t saddr;
-
-	DEBUG_PRINTF("Outbound: Dest host [%s]:%d",addr_str,toport);
-
-	// Check to see if this host is a group we know about.
-	if (strcasecmp(addr_str, COAP_MULTICAST_STR_ALLDEVICES) == 0) {
-		addr_str = SMCP_COAP_MULTICAST_ALLDEVICES_ADDR;
-	}
-
-	ret = smcp_plat_lookup_hostname(addr_str, &saddr, SMCP_LOOKUP_HOSTNAME_FLAG_DEFAULT);
-	require_noerr(ret, bail);
-
-	saddr.smcp_port = htons(toport);
-
-	smcp_plat_set_remote_sockaddr(&saddr);
-
-
-bail:
-	return ret;
 }
 
 smcp_status_t
@@ -418,8 +397,6 @@ smcp_outbound_set_uri(
 	SMCP_NON_RECURSIVE char* uri_copy;
 
 	memset((void*)&components, 0, sizeof(components));
-	toport = COAP_DEFAULT_PORT;
-	smcp_plat_set_session_type(SMCP_SESSION_TYPE_UDP);
 	uri_copy = NULL;
 
 	require_action(uri, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
@@ -520,7 +497,7 @@ smcp_outbound_set_uri(
 	if ( !(flags & SMCP_MSG_SKIP_DESTADDR)
 	  && components.host && components.host[0]!=0
 	) {
-		ret = smcp_set_remote_sockaddr_from_host_and_port(
+		ret = smcp_plat_set_remote_hostname_and_port(
 			components.host,
 			toport
 		);

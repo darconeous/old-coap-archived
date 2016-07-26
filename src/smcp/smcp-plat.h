@@ -165,6 +165,7 @@ SMCP_API_EXTERN smcp_status_t smcp_plat_bind_to_port(
 
 SMCP_API_EXTERN void smcp_plat_set_remote_sockaddr(const smcp_sockaddr_t* addr);
 SMCP_API_EXTERN void smcp_plat_set_local_sockaddr(const smcp_sockaddr_t* addr);
+SMCP_API_EXTERN smcp_status_t smcp_plat_set_remote_hostname_and_port(const char* hostname, uint16_t port);
 SMCP_API_EXTERN void smcp_plat_set_session_type(smcp_session_type_t type);
 
 SMCP_API_EXTERN smcp_status_t smcp_plat_multicast_join(smcp_t self, smcp_addr_t *group, int interface);
