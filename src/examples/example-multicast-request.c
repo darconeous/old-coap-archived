@@ -9,193 +9,135 @@
 #include <smcp/smcp.h>
 #include <smcp/smcp-transaction.h>
 
-#define DEFAULT_TIMEOUT 10000
-
+/* data passed between transactions*/
 typedef struct{
-	coap_code_t method ;
-	coap_transaction_type_t msg_type;
-	const char * uri;
-	int flags;
-	smcp_response_handler_func response_handler;
-	smcp_cms_t timeout;
+	const char * url;
+	smcp_transaction_t tr;
+} transaction_context_t;
 
-	smcp_transaction_t transaction;
-	bool done;
-} request_t;
-
-/** Fills the request structure with default values */
-request_t Request(const char * url, smcp_response_handler_func responseHandler){
-	request_t r = {
-		COAP_METHOD_GET,
-		COAP_TRANS_TYPE_CONFIRMABLE,
-		url,
-		0,
-		responseHandler,
-		DEFAULT_TIMEOUT,
-		NULL,
-		false
-	};
-	return r;
-}
-
-/** Create smcp instance */
-smcp_t create_instance();
-
-/** Extract uri from command line parameters (or use default) and write into buffer*/
-void extract_uri(char * out_buffer, int size, int argc, char** argv);
-
-/** do transaction from request data*/
-smcp_status_t start_transaction(smcp_t instance, request_t * req);
-
-/** Force finish transaction */
-void finish_transaction(request_t * req);
-
-//callbacks
-smcp_status_t send_transaction_callback(void * context);
-smcp_status_t on_receive_response_callback(int statuscode, void * context);
-
-/** Handle received response for given request*/
-smcp_status_t handle_response(request_t * req, int statuscode);
-
-#define CHECK_AND_RETURN(status)\
-	if(status){\
-		printf("Error(%d) : %s\n", status, smcp_status_to_cstr(status));\
-		return status;\
-	}\
+smcp_transaction_t do_request(transaction_context_t * ctx, smcp_t instance, int flags);
+char * make_url(const char * host, const char * port);
 
 int main(int argc, char ** argv){
 	SMCP_LIBRARY_VERSION_CHECK();
 
-	smcp_t instance = create_instance();
+	smcp_t instance = smcp_create();
+	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
 
-	char url[256];
-	extract_uri(url, 256, argc, argv);
+	const char * host = argc > 1 ? argv[1] : "[ff02::fd]";
+	const char * port = argc > 2 ? argv[2] : "5683";
+	char * url = make_url(host, port);
 
-	request_t  req = Request(url, on_receive_response_callback);
-	req.flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE;
-
-	/* Enable this flag to not finish the transaction automatically after receive a response.
-	 * This allows to keep receive responses from multiple servers, but requires the transaction
-	 * to be finished manually (see on_receive_response_callback function below)
+	/* Enable 'SMCP_TRANSACTION_NO_AUTO_END' flag to receive responses from multiple servers.
+	 *
+	 * This flag prevents the request to be automatically finished after receive a response,
+	 * but requires the transaction to be finished manually (see on_receive_response_callback below)
 	*/
-	req.flags |= SMCP_TRANSACTION_NO_AUTO_END;
+	int flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE
+				| SMCP_TRANSACTION_NO_AUTO_END;
 
-	CHECK_AND_RETURN(start_transaction(instance, &req))
+	transaction_context_t ctx = {url, NULL};
+	do_request(&ctx, instance, flags);
 
-	// Process messages and wait until request is done
-	while (!req.done) {
+	/* Process messages and wait until request is done */
+	do {
 		smcp_plat_wait(instance, CMS_DISTANT_FUTURE);
 		smcp_plat_process(instance);
-	}
+	}while(ctx.tr->active);
 
+	free(url);
 	smcp_release(instance);
 
 	return 0;
 }
 
-smcp_t create_instance(){
-	smcp_t instance = smcp_create();
+//callbacks
+smcp_status_t send_transaction_callback(void * context);
+smcp_status_t on_receive_response_callback(int statuscode, void * context);
 
-	if (!instance) {
-		perror("Unable to create SMCP instance");
-		exit(EXIT_FAILURE);
+#define DEFAULT_TIMEOUT 10000 /* in milliseconds */
+
+#define CHECK_STATUS(status)\
+	if(status != SMCP_STATUS_OK){\
+		printf("Error(%d) : '%s' at %s:%d\n", status, smcp_status_to_cstr(status), __FILE__, __LINE__);\
+		exit(status);\
 	}
 
-	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
-
-	return instance;
-}
-
-void extract_uri(char * url, int size, int argc, char** argv)
-{
-	const char * host = argc > 1 ? argv[1] : "[ff02::fd]";
-	const char * port = argc > 2 ? argv[2] : "5683";
-	snprintf(url, size, "coap://%s:%s", host, port);
-}
-
-smcp_status_t start_transaction(smcp_t instance, request_t * req) {
-	if(req == NULL){
-		return SMCP_STATUS_FAILURE;
-	}
-
+smcp_transaction_t do_request(transaction_context_t * ctx, smcp_t instance, int flags) {
 	smcp_transaction_t tr = smcp_transaction_init(
 		NULL,
-		req->flags,
+		flags,
 		send_transaction_callback,
-		req->response_handler,
-		req
+		on_receive_response_callback,
+		ctx
 	);
 
-	if(!tr){
-		return SMCP_STATUS_FAILURE;
-	}
+	ctx->tr = tr;
 
-	req->transaction = tr;
-	return smcp_transaction_begin(instance, tr, req->timeout);
+	CHECK_STATUS(smcp_transaction_begin(instance, tr, DEFAULT_TIMEOUT));
+
+	return tr;
 }
 
-smcp_status_t send_transaction_callback(void * context){
+smcp_status_t
+send_transaction_callback(void * context){
 	printf("\nSend message\n");
 
-	request_t * req = (request_t *)context;
+	transaction_context_t * ctx = (transaction_context_t *)context;
 
 	smcp_t smcp = smcp_get_current_instance();
 
-	smcp_status_t status = smcp_outbound_begin(smcp, req->method, req->msg_type);
-	CHECK_AND_RETURN(status);
+	smcp_status_t status = smcp_outbound_begin(
+		smcp,
+		COAP_METHOD_GET,
+		COAP_TRANS_TYPE_NONCONFIRMABLE); //multicast requests should be non confirmable
 
-	status = smcp_outbound_set_uri(req->uri, 0);
-	CHECK_AND_RETURN(status);
+	CHECK_STATUS(status);
+
+	status = smcp_outbound_set_uri(ctx->url, 0);
+	CHECK_STATUS(status);
 
 	return smcp_outbound_send();
 }
 
-smcp_status_t on_receive_response_callback(int statuscode, void * context) {
+smcp_status_t
+on_receive_response_callback(int statuscode, void * context) {
 	if(statuscode < SMCP_STATUS_OK){
 		printf("Status (%d): %s\n", statuscode, smcp_status_to_cstr(statuscode));
 	}
+	else if(statuscode >= COAP_RESULT_100){
+		printf("Got %d(%s) response\n", COAP_TO_HTTP_CODE(statuscode), coap_code_to_cstr(statuscode));
 
-	request_t * req = (request_t *)context;
-
-	if(statuscode >= COAP_RESULT_100){
-		statuscode = handle_response(req, statuscode);
+		coap_size_t len = smcp_inbound_get_content_len();
+		const char * content = smcp_inbound_get_content_ptr();
+		if(len > 0 && content != NULL){
+			printf("%.*s\n", len, content);
+		}
 	}
 
 	if(statuscode < SMCP_STATUS_OK){
 		/* Finish the transaction if got an error statuscode (ex: when timeout). */
-		finish_transaction(req);
-		return SMCP_STATUS_TRANSACTION_INVALIDATED;
+		if(context != NULL){
+			printf("finish transaction\n");
+
+			transaction_context_t * ctx = (transaction_context_t *)context;
+
+			smcp_transaction_t t = ctx->tr;
+			t->context = NULL;
+
+			smcp_transaction_end(smcp_get_current_instance(), t);
+		}
 	}
 
 	return SMCP_STATUS_OK;
 }
 
-smcp_status_t handle_response(request_t * req, int statuscode){
-	printf("Got %d(%s) response\n", COAP_TO_HTTP_CODE(statuscode), coap_code_to_cstr(statuscode));
+char * make_url(const char * host, const char * port){
+	const char * format = "coap://%s:%s";
+	size_t size = snprintf(NULL, 0, format, host, port);
 
-	coap_size_t len = smcp_inbound_get_content_len();
-	const char * content = smcp_inbound_get_content_ptr();
-	if(len > 0 && content != NULL){
-		printf("%.*s\n", len, content);
-	}
+	char * url = malloc(size + 1);
+	snprintf(url, size + 1, format, host, port);
 
-	return SMCP_STATUS_OK;
-}
-
-void finish_transaction(request_t * req){
-	if(req == NULL){
-		return;
-	}
-
-
-	smcp_transaction_t t = req->transaction;
-
-	if(t != NULL){
-		printf("finish transaction\n");
-
-		req->transaction = NULL;
-		req->done = true;
-
-		smcp_transaction_end(smcp_get_current_instance(), t);
-	}
+	return url;
 }
