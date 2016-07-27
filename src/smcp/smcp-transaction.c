@@ -219,6 +219,81 @@ bail:
 	return;
 }
 
+static
+bool smcp_internal_should_burst(smcp_transaction_t handler){
+	if (handler->flags & SMCP_TRANSACTION_BURST) {
+		if (SMCP_IS_ADDR_MULTICAST(&handler->sockaddr_remote.smcp_addr)) {
+			return SMCP_TRANSACTION_BURST_MULTICAST == (handler->flags & SMCP_TRANSACTION_BURST_MULTICAST);
+		} else {
+			return SMCP_TRANSACTION_BURST_UNICAST == (handler->flags & SMCP_TRANSACTION_BURST_UNICAST);
+		}
+	}
+	return false;
+}
+
+// Checks if not reached the max number of resends
+static bool smcp_internal_can_resend(smcp_transaction_t handler, bool should_burst){
+	int resends = handler->resends_count;
+	if(should_burst){
+		resends /= SMCP_TRANSACTION_BURST_COUNT;
+	}
+
+	return !handler->received_response
+		|| handler->max_resends == SMCP_TRANSACTION_RESENDS_UNLIMITED
+		|| resends < handler->max_resends
+
+		//Send full burst
+		|| (should_burst
+				&& resends == handler->max_resends
+				&& (handler->attemptCount % SMCP_TRANSACTION_BURST_COUNT != 0) //middle of burst
+				);
+}
+
+static
+smcp_status_t smcp_internal_resend(smcp_t self, smcp_transaction_t handler, smcp_cms_t * cms, void* context)
+{
+	bool should_burst = smcp_internal_should_burst(handler);
+
+	if(!smcp_internal_can_resend(handler, should_burst)){
+		return SMCP_STATUS_OK;
+	}
+
+	self->outbound.next_tid = handler->msg_id;
+	self->is_processing_message = false;
+	self->is_responding = false;
+	self->did_respond = false;
+
+	smcp_status_t status = handler->resendCallback(context);
+
+	if (status == SMCP_STATUS_OK) {
+		int max_attempts = SMCP_TRANSACTION_MAX_ATTEMPTS;
+
+		if (should_burst) {
+			max_attempts *= SMCP_TRANSACTION_BURST_COUNT;
+		}
+
+		if (max_attempts > handler->attemptCount) {
+			*cms = MIN(*cms, calc_retransmit_timeout(handler->attemptCount, should_burst));
+			handler->attemptCount++;
+		}
+
+		if(handler->received_response){
+			handler->resends_count++;
+		}
+	} else if (status == SMCP_STATUS_WAIT_FOR_DNS) {
+		// TODO: Figure out a way to avoid polling?
+		*cms = 100;
+		status = SMCP_STATUS_OK;
+
+	} else if (status == SMCP_STATUS_WAIT_FOR_SESSION) {
+		// TODO: Figure out a way to avoid polling?
+		*cms = 100;
+		status = SMCP_STATUS_OK;
+	}
+
+	return status;
+}
+
 static void
 smcp_internal_transaction_timeout_(
 	smcp_t			self,
@@ -251,45 +326,7 @@ smcp_internal_transaction_timeout_(
 		}
 
 		if (status == SMCP_STATUS_TIMEOUT && handler->resendCallback) {
-			// Resend.
-			self->outbound.next_tid = handler->msg_id;
-			self->is_processing_message = false;
-			self->is_responding = false;
-			self->did_respond = false;
-
-			status = handler->resendCallback(context);
-
-			if (status == SMCP_STATUS_OK) {
-				int max_attempts = SMCP_TRANSACTION_MAX_ATTEMPTS;
-				bool should_burst = false;
-
-				if (handler->flags & SMCP_TRANSACTION_BURST) {
-					if (SMCP_IS_ADDR_MULTICAST(&handler->sockaddr_remote.smcp_addr)) {
-						should_burst = SMCP_TRANSACTION_BURST_MULTICAST == (handler->flags & SMCP_TRANSACTION_BURST_MULTICAST);
-					} else {
-						should_burst = SMCP_TRANSACTION_BURST_UNICAST == (handler->flags & SMCP_TRANSACTION_BURST_UNICAST);
-					}
-				}
-
-				if (should_burst) {
-					max_attempts *= SMCP_TRANSACTION_BURST_COUNT;
-				}
-
-				if (max_attempts > handler->attemptCount) {
-					cms = MIN(cms, calc_retransmit_timeout(handler->attemptCount, should_burst));
-					handler->attemptCount++;
-				}
-
-			} else if (status == SMCP_STATUS_WAIT_FOR_DNS) {
-				// TODO: Figure out a way to avoid polling?
-				cms = 100;
-				status = SMCP_STATUS_OK;
-
-			} else if (status == SMCP_STATUS_WAIT_FOR_SESSION) {
-				// TODO: Figure out a way to avoid polling?
-				cms = 100;
-				status = SMCP_STATUS_OK;
-			}
+			status = smcp_internal_resend(self, handler, &cms, context);
 		}
 
 		// Make the attempt count read at least one
@@ -418,7 +455,7 @@ smcp_transaction_init(
 	handler->callback = callback;
 	handler->context = context;
 	handler->flags = (uint8_t)flags;
-
+	handler->max_resends = SMCP_TRANSACTION_RESENDS_UNLIMITED;
 bail:
 	return handler;
 }
@@ -766,6 +803,7 @@ smcp_handle_response() {
 
 		DEBUG_PRINTF("Inbound: Transaction handling response.");
 
+		handler->received_response = true;
 		smcp_inbound_reset_next_option();
 
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING

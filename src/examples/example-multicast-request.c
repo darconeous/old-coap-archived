@@ -134,6 +134,9 @@ main(int argc, char ** argv)
 		exit(EXIT_FAILURE);
 	}
 
+	//Send no more than one message (or set of bursts) after receives a response
+	transaction->max_resends = 1;
+
 	ctx.transaction = transaction;
 
 	smcp_transaction_begin(instance, transaction, DEFAULT_TIMEOUT);
