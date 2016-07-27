@@ -70,7 +70,7 @@ main(void)
 		exit(EXIT_FAILURE);
 	}
 
-	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
+	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, COAP_DEFAULT_PORT);
 
 	root_node = smcp_node_init(NULL, NULL, NULL);
 

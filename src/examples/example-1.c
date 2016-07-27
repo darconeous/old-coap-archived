@@ -62,7 +62,7 @@ main(void)
 		exit(EXIT_FAILURE);
 	}
 
-	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, 0);
+	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, COAP_DEFAULT_PORT);
 
 	printf("Listening on port %d\n",smcp_plat_get_port(instance));
 

@@ -1,4 +1,4 @@
-SMCP — A Full-Featured Emedded CoAP Stack
+SMCP — A Full-Featured Embedded CoAP Stack
 =========================================
 
 SMCP is a highly-configurable CoAP stack which is suitable for a wide
