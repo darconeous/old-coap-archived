@@ -49,6 +49,7 @@
 #define smcp_plat_outbound_finish(self,...)		smcp_plat_outbound_finish(__VA_ARGS__)
 #define smcp_plat_bind_to_port(self,...)		smcp_plat_bind_to_port(__VA_ARGS__)
 #define smcp_plat_bind_to_sockaddr(self,...)		smcp_plat_bind_to_sockaddr(__VA_ARGS__)
+#define smcp_plat_set_reuse_address(self,...)		smcp_plat_set_reuse_address(__VA_ARGS__)
 #endif
 
 #endif
@@ -162,6 +163,10 @@ SMCP_API_EXTERN smcp_status_t smcp_plat_bind_to_port(
 	smcp_session_type_t type,
 	uint16_t port
 );
+
+//! Enable or disable the address reuse on socket creation.
+//! If reuse is set to true, more than one process can bind to same port.
+SMCP_API_EXTERN void smcp_plat_set_reuse_address(smcp_t self, uint8_t reuse);
 
 SMCP_API_EXTERN void smcp_plat_set_remote_sockaddr(const smcp_sockaddr_t* addr);
 SMCP_API_EXTERN void smcp_plat_set_local_sockaddr(const smcp_sockaddr_t* addr);

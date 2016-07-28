@@ -392,6 +392,18 @@ smcp_plat_timestamp_to_cms(smcp_timestamp_t ts) {
 	return smcp_plat_timestamp_diff(ts, monotonic_get_time_ms());
 }
 
+void smcp_plat_set_reuse_address(smcp_t self, uint8_t reuse){
+    self->plat.reuse_addr = reuse;
+}
+
+static
+void smcp_internal_set_reuse_addr_opt(int fd, int reuse){
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+    {
+        DEBUG_PRINTF("Setting SO_REUSEADDR=%d on socket failed (%s)",reuse, strerror(errno));
+    }
+}
+
 smcp_status_t
 smcp_plat_bind_to_sockaddr(
 	smcp_t self,
@@ -427,6 +439,10 @@ smcp_plat_bind_to_sockaddr(
 	fd = socket(SMCP_BSD_SOCKETS_NET_FAMILY, SOCK_DGRAM, IPPROTO_UDP);
 
 	require_action_string(fd >= 0, bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
+
+    if(self->plat.reuse_addr){
+        smcp_internal_set_reuse_addr_opt(fd, self->plat.reuse_addr);
+    }
 
 #if defined(IPV6_V6ONLY) && SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
 	{
