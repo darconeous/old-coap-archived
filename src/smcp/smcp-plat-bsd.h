@@ -42,6 +42,10 @@
 #include <sys/types.h>
 #include <sys/select.h>
 
+#if SMCP_EMBEDDED
+#define smcp_plat_update_fdsets(self,...)		smcp_plat_update_fdsets(__VA_ARGS__)
+#endif
+
 #ifndef SMCP_BSD_SOCKETS_NET_FAMILY
 #define SMCP_BSD_SOCKETS_NET_FAMILY		AF_INET6
 #endif

@@ -515,7 +515,8 @@ bail:
 // MARK: Request Handler
 
 smcp_status_t
-smcp_handle_request() {
+smcp_handle_request(void)
+{
 	smcp_status_t ret = SMCP_STATUS_NOT_FOUND;
 	smcp_t const self = smcp_get_current_instance();
 	smcp_request_handler_func request_handler = self->request_handler;

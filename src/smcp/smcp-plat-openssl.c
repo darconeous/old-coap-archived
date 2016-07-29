@@ -62,7 +62,9 @@
 unsigned char cookie_secret[COOKIE_SECRET_LENGTH];
 int cookie_initialized=0;
 
-int generate_cookie(SSL *ssl, unsigned char *cookie, unsigned int *cookie_len) {
+int
+generate_cookie(SSL *ssl, unsigned char *cookie, unsigned int *cookie_len)
+{
 	unsigned char result[EVP_MAX_MD_SIZE];
 	unsigned int resultlength;
 	HMAC_CTX hmac_ctx;
@@ -95,7 +97,8 @@ int generate_cookie(SSL *ssl, unsigned char *cookie, unsigned int *cookie_len) {
 	return 1;
 }
 
-int verify_cookie(SSL *ssl, unsigned char *cookie, unsigned int cookie_len)
+int
+verify_cookie(SSL *ssl, unsigned char *cookie, unsigned int cookie_len)
 {
 	unsigned char result[EVP_MAX_MD_SIZE];
 	unsigned int resultlength;
@@ -131,7 +134,9 @@ int verify_cookie(SSL *ssl, unsigned char *cookie, unsigned int cookie_len)
 }
 
 
-int dtls_verify_callback (int ok, X509_STORE_CTX *ctx) {
+int
+dtls_verify_callback (int ok, X509_STORE_CTX *ctx)
+{
 	/* This function should ask the user
 	 * if he trusts the received certificate.
 	 * Here we always trust.
@@ -246,7 +251,8 @@ smcp_openssl_session_finalize(
 }
 
 static struct smcp_openssl_session_s*
-smcp_openssl_session_lookup_by_ssl(smcp_t self, SSL* ssl) {
+smcp_openssl_session_lookup_by_ssl(smcp_t self, SSL* ssl)
+{
 	struct smcp_openssl_session_s* item;
 
 	item = (struct smcp_openssl_session_s*)bt_first(self->plat.ssl.sessions);
@@ -261,7 +267,8 @@ smcp_openssl_session_lookup_by_ssl(smcp_t self, SSL* ssl) {
 }
 
 static struct smcp_openssl_session_s*
-smcp_openssl_session_lookup_current(smcp_t self) {
+smcp_openssl_session_lookup_current(smcp_t self)
+{
 	return (struct smcp_openssl_session_s*)bt_find(
 		(void**)&self->plat.ssl.sessions,
 		NULL,
@@ -445,7 +452,8 @@ bail:
 }
 
 
-void load_dh_params(SSL_CTX *ctx)
+void
+load_dh_params(SSL_CTX *ctx)
 {
 	DH *dh=NULL;
 	// SECURITY: This whole section needs to be removed or rewritten, these are insecure defaults.
@@ -466,19 +474,31 @@ void load_dh_params(SSL_CTX *ctx)
 	}
 }
 
-void
+smcp_status_t
 smcp_plat_ssl_set_remote_hostname(const char* hostname)
 {
 	// TODO: Writeme!
+	return SMCP_STATUS_OK;
 }
 
 void*
 smcp_plat_ssl_get_context(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	return self->plat.ssl.ssl_ctx;
+}
+
+void*
+smcp_plat_ssl_get_current_session(void) {
+	smcp_t const self = smcp_get_current_instance();
+	if (self->plat.ssl.curr_session) {
+		return self->plat.ssl.curr_session->ssl;
+	}
+	return NULL;
 }
 
 smcp_status_t
 smcp_plat_ssl_set_context(smcp_t self, void* context) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	SSL_library_init();
 	ERR_load_BIO_strings();
@@ -530,6 +550,7 @@ smcp_plat_ssl_inbound_packet_process(
 	char* buffer,
 	int len
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	struct smcp_openssl_session_s* session = NULL;
 	SSL* ssl = NULL;
@@ -706,6 +727,7 @@ smcp_plat_ssl_outbound_packet_process(
 	const uint8_t* data_ptr,
 	int data_len
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	struct smcp_openssl_session_s* session = self->plat.ssl.curr_session;
 	SSL* ssl = NULL;

@@ -591,7 +591,8 @@ bail:
 }
 
 char*
-smcp_outbound_get_content_ptr(coap_size_t* max_len) {
+smcp_outbound_get_content_ptr(coap_size_t* max_len)
+{
 	smcp_t const self = smcp_get_current_instance();
 
 	assert(NULL!=self->outbound.packet);
@@ -609,7 +610,8 @@ smcp_outbound_get_content_ptr(coap_size_t* max_len) {
 }
 
 smcp_status_t
-smcp_outbound_set_content_len(coap_size_t len) {
+smcp_outbound_set_content_len(coap_size_t len)
+{
 	smcp_get_current_instance()->outbound.content_len = len;
 	return SMCP_STATUS_OK;
 }
@@ -619,7 +621,8 @@ smcp_outbound_set_content_len(coap_size_t len) {
 
 #if !SMCP_AVOID_PRINTF
 smcp_status_t
-smcp_outbound_set_content_formatted(const char* fmt, ...) {
+smcp_outbound_set_content_formatted(const char* fmt, ...)
+{
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	va_list args;
 	char* content = smcp_outbound_get_content_ptr(NULL);
@@ -645,7 +648,8 @@ bail:
 #endif
 
 smcp_status_t
-smcp_outbound_set_var_content_int(int v) {
+smcp_outbound_set_var_content_int(int v)
+{
 	smcp_outbound_add_option_uint(
 		COAP_OPTION_CONTENT_TYPE,
 		SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED
@@ -662,7 +666,8 @@ smcp_outbound_set_var_content_int(int v) {
 }
 
 smcp_status_t
-smcp_outbound_set_var_content_unsigned_int(unsigned int v) {
+smcp_outbound_set_var_content_unsigned_int(unsigned int v)
+{
 	smcp_outbound_add_option_uint(
 		COAP_OPTION_CONTENT_TYPE,
 		SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED
@@ -679,7 +684,8 @@ smcp_outbound_set_var_content_unsigned_int(unsigned int v) {
 }
 
 smcp_status_t
-smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v) {
+smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v)
+{
 	smcp_outbound_add_option_uint(
 		COAP_OPTION_CONTENT_TYPE,
 		SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED
@@ -697,7 +703,8 @@ smcp_outbound_set_var_content_unsigned_long_int(unsigned long int v) {
 
 
 smcp_status_t
-smcp_outbound_quick_response(coap_code_t code, const char* body) {
+smcp_outbound_quick_response(coap_code_t code, const char* body)
+{
 	smcp_outbound_begin_response(code);
 	if (body) {
 		smcp_outbound_append_content(body, SMCP_CSTR_LEN);
@@ -706,7 +713,8 @@ smcp_outbound_quick_response(coap_code_t code, const char* body) {
 }
 
 smcp_status_t
-smcp_outbound_send() {
+smcp_outbound_send(void)
+{
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	smcp_t const self = smcp_get_current_instance();
 
