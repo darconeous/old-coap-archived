@@ -49,6 +49,9 @@
 #define smcp_plat_outbound_finish(self,...)		smcp_plat_outbound_finish(__VA_ARGS__)
 #define smcp_plat_bind_to_port(self,...)		smcp_plat_bind_to_port(__VA_ARGS__)
 #define smcp_plat_bind_to_sockaddr(self,...)		smcp_plat_bind_to_sockaddr(__VA_ARGS__)
+#define smcp_plat_multicast_join(self,...)		smcp_plat_multicast_join(__VA_ARGS__)
+#define smcp_plat_multicast_leave(self,...)		smcp_plat_multicast_leave(__VA_ARGS__)
+#define smcp_plat_update_pollfds(self,...)		smcp_plat_update_pollfds(__VA_ARGS__)
 #endif
 
 #endif
