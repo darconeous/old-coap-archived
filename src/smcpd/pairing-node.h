@@ -32,6 +32,7 @@
 #define pairing_node_h
 
 #include <smcp/smcp.h>
+#include <smcp/smcp-node-router.h>
 
 struct pairing_node_s;
 

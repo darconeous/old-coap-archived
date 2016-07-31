@@ -162,7 +162,7 @@ group_node_init(
 			char* group_fqdn_str = get_next_arg(line, &line);
 			char* group_addr_str = get_next_arg(line, &line);
 			char* group_enabled_str = get_next_arg(line, &line);
-			smcp_addr_t addr = {};
+			smcp_sockaddr_t addr = {};
 
 			if ( (group_id_str == NULL)
 			  || (group_fqdn_str == NULL)
@@ -172,7 +172,7 @@ group_node_init(
 				break;
 			}
 
-			inet_pton(SMCP_BSD_SOCKETS_NET_FAMILY, group_addr_str, &addr);
+			smcp_plat_lookup_hostname(group_addr_str, &addr, 0);
 
 			smcp_group_t group = smcp_group_mgr_new_group(
 				&self->group_mgr,
