@@ -54,10 +54,6 @@
 
 #define SMCP_TRANSACTION_MAX_ATTEMPTS	15
 
-#define _SMCP_RESENDS_BITS 6
-#define SMCP_TRANSACTION_RESENDS_UNLIMITED	(1 << _SMCP_RESENDS_BITS) - 1
-#define SMCP_TRANSACTION_RESENDS_NONE		0
-
 __BEGIN_DECLS
 /*!	@addtogroup smcp
 **	@{
@@ -110,34 +106,12 @@ struct smcp_transaction_s {
 	coap_code_t					sent_code;
 
 	uint8_t						flags;
-	uint8_t						attemptCount:4,
+	uint8_t						attemptCount:4, maxAttempts:4,
 								waiting_for_async_response:1,
 								should_dealloc:1,
 								active:1,
 								needs_to_close_observe:1,
 								multicast:1;
-
-	bool						received_response : 1;
-
-	//! Defines how many times a (multicast) request will be sent after the transaction receives a response.
-	/*! That is, if max_resends is 0 then the transaction will send requests only
-	 * until receives a response. But if set to 1 it will send more one request,
-	 * and so on.
-	 *
-	 * When the max number of resends is reached, the transaction will not resend
-	 * more requests but will keep waiting for responses until be finished.
-	 *
-	 * If max_resends is \rel SMCP_TRANSACTION_RESENDS_UNLIMITED then the transaction
-	 * will keep resending requests until be finished (or reach the max number of
-	 * attempts).
-	 *
-	 * When #SMCP_TRANSACTION_BURST_MULTICAST flag is set, each set of 'burst'
-	 * messages will be treated as only one request.
-	 */
-	uint8_t						max_resends: _SMCP_RESENDS_BITS;
-
-	//! Counts the number of times a transaction is sent after receive response
-	uint8_t						resends_count:_SMCP_RESENDS_BITS;
 };
 
 typedef struct smcp_transaction_s* smcp_transaction_t;

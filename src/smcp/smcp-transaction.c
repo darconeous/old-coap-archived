@@ -231,61 +231,40 @@ bool smcp_internal_should_burst(smcp_transaction_t handler){
 	return false;
 }
 
-// Checks if not reached the max number of resends
-static bool smcp_internal_can_resend(smcp_transaction_t handler, bool should_burst){
-	int resends = handler->resends_count;
-	if(should_burst){
-		resends /= SMCP_TRANSACTION_BURST_COUNT;
+///Checks if not reached the max attempts number yet
+static
+bool smcp_internal_has_attempts(smcp_transaction_t handler, bool should_burst){
+	int max_attempts = handler->maxAttempts;
+
+	if (should_burst) {
+		max_attempts *= SMCP_TRANSACTION_BURST_COUNT;
 	}
 
-	return !handler->received_response
-		|| handler->max_resends == SMCP_TRANSACTION_RESENDS_UNLIMITED
-		|| resends < handler->max_resends
-
-		//Send full burst
-		|| (should_burst
-				&& resends == handler->max_resends
-				&& (handler->attemptCount % SMCP_TRANSACTION_BURST_COUNT != 0) //middle of burst
-				);
+	return handler->attemptCount < max_attempts;
 }
 
 static
 smcp_status_t smcp_internal_resend(smcp_t self, smcp_transaction_t handler, smcp_cms_t * cms, void* context)
 {
-	bool should_burst = smcp_internal_should_burst(handler);
-
-	if(!smcp_internal_can_resend(handler, should_burst)){
-		return SMCP_STATUS_OK;
-	}
-
 	self->outbound.next_tid = handler->msg_id;
 	self->is_processing_message = false;
 	self->is_responding = false;
 	self->did_respond = false;
 
-	smcp_status_t status = handler->resendCallback(context);
+	bool should_burst  = smcp_internal_should_burst(handler);
+	bool should_resend = smcp_internal_has_attempts(handler, should_burst);
 
-	if (status == SMCP_STATUS_OK) {
-		int max_attempts = SMCP_TRANSACTION_MAX_ATTEMPTS;
+	smcp_status_t status = SMCP_STATUS_OK;
 
-		if (should_burst) {
-			max_attempts *= SMCP_TRANSACTION_BURST_COUNT;
-		}
+	if(should_resend){
+		status = handler->resendCallback(context);
+	}
 
-		if (max_attempts > handler->attemptCount) {
-			*cms = MIN(*cms, calc_retransmit_timeout(handler->attemptCount, should_burst));
-			handler->attemptCount++;
-		}
-
-		if(handler->received_response){
-			handler->resends_count++;
-		}
-	} else if (status == SMCP_STATUS_WAIT_FOR_DNS) {
-		// TODO: Figure out a way to avoid polling?
-		*cms = 100;
-		status = SMCP_STATUS_OK;
-
-	} else if (status == SMCP_STATUS_WAIT_FOR_SESSION) {
+	if (status == SMCP_STATUS_OK && should_resend) {
+		*cms = MIN(*cms, calc_retransmit_timeout(handler->attemptCount, should_burst));
+		handler->attemptCount++;
+	}
+	else if (status == SMCP_STATUS_WAIT_FOR_DNS || status == SMCP_STATUS_WAIT_FOR_SESSION) {
 		// TODO: Figure out a way to avoid polling?
 		*cms = 100;
 		status = SMCP_STATUS_OK;
@@ -324,8 +303,7 @@ smcp_internal_transaction_timeout_(
 		) {
 			status = SMCP_STATUS_OK;
 		}
-
-		if (status == SMCP_STATUS_TIMEOUT && handler->resendCallback) {
+		else if (handler->resendCallback) {
 			status = smcp_internal_resend(self, handler, &cms, context);
 		}
 
@@ -455,7 +433,7 @@ smcp_transaction_init(
 	handler->callback = callback;
 	handler->context = context;
 	handler->flags = (uint8_t)flags;
-	handler->max_resends = SMCP_TRANSACTION_RESENDS_UNLIMITED;
+	handler->maxAttempts = SMCP_TRANSACTION_MAX_ATTEMPTS;
 bail:
 	return handler;
 }
@@ -803,7 +781,6 @@ smcp_handle_response() {
 
 		DEBUG_PRINTF("Inbound: Transaction handling response.");
 
-		handler->received_response = true;
 		smcp_inbound_reset_next_option();
 
 #if SMCP_CONF_TRANS_ENABLE_OBSERVING
