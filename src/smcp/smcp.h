@@ -124,6 +124,8 @@ enum {
 	SMCP_STATUS_SESSION_CLOSED      = -30,
 	SMCP_STATUS_OUT_OF_SESSIONS     = -31,
 	SMCP_STATUS_UNSUPPORTED_MEDIA_TYPE = -32,
+	//! When returned from a resend callback (in a transaction), stop sending packets without invalidate the transaction
+	SMCP_STATUS_STOP_RESENDING		= -33
 };
 
 typedef int smcp_status_t;

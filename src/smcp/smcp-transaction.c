@@ -264,6 +264,11 @@ smcp_status_t smcp_internal_resend(smcp_t self, smcp_transaction_t handler, smcp
 		*cms = MIN(*cms, calc_retransmit_timeout(handler->attemptCount, should_burst));
 		handler->attemptCount++;
 	}
+	else if(status == SMCP_STATUS_STOP_RESENDING){
+		//Little hack to stop sending packets (without invalidate the transaction)
+		handler->attemptCount = SMCP_TRANSACTION_MAX_ATTEMPTS;
+		status = SMCP_STATUS_OK;
+	}
 	else if (status == SMCP_STATUS_WAIT_FOR_DNS || status == SMCP_STATUS_WAIT_FOR_SESSION) {
 		// TODO: Figure out a way to avoid polling?
 		*cms = 100;
