@@ -149,7 +149,7 @@ smcp_internal_multicast_joinleave(smcp_t self, const smcp_sockaddr_t *group, int
 		const int level = (family == AF_INET) ? IPPROTO_IP : IPPROTO_IPV6;
 		const int opt   = (family == AF_INET)
 								? (join ? IP_ADD_MEMBERSHIP		: IP_DROP_MEMBERSHIP)
-								: (join ? IPV6_ADD_MEMBERSHIP	: IPV6_DROP_MEMBERSHIP);
+								: (join ? IPV6_JOIN_GROUP		: IPV6_LEAVE_GROUP);
 
 		ret = setsockopt(fd, level, opt, &multicast.group, multicast.group_size);
 
