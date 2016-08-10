@@ -72,9 +72,14 @@
 #endif
 #endif
 
+#if SMCP_EMBEDDED
+#define smcp_internal_join_multicast_group(self,...)		smcp_internal_join_multicast_group(__VA_ARGS__)
+#endif
+
 smcp_status_t
 smcp_plat_multicast_join(smcp_t self, smcp_addr_t *group, int interface)
 {
+	SMCP_EMBEDDED_SELF_HOOK;
 	int ret;
 
 	if (NULL == group) {
@@ -133,6 +138,7 @@ smcp_plat_multicast_join(smcp_t self, smcp_addr_t *group, int interface)
 smcp_status_t
 smcp_plat_multicast_leave(smcp_t self, smcp_addr_t *group, int interface)
 {
+	SMCP_EMBEDDED_SELF_HOOK;
 	int ret;
 
 	if (NULL == group) {
@@ -176,6 +182,7 @@ smcp_plat_multicast_leave(smcp_t self, smcp_addr_t *group, int interface)
 static smcp_status_t
 smcp_internal_join_multicast_group(smcp_t self, const char* group)
 {
+	SMCP_EMBEDDED_SELF_HOOK;
 	int ret = 0;
 	int count = 0;
 	struct hostent *tmp;
@@ -509,6 +516,7 @@ smcp_plat_update_pollfds(
 	int maxfds
 ) {
 	int ret = 0;
+	SMCP_EMBEDDED_SELF_HOOK;
 
 	require_quiet(maxfds > 0, bail);
 
@@ -551,6 +559,7 @@ smcp_plat_update_fdsets(
 	int *fd_count,
 	smcp_cms_t *timeout
 ) {
+	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t ret = SMCP_STATUS_OK;
 
 	if (self->plat.fd_udp > 0) {
