@@ -106,7 +106,7 @@ struct smcp_transaction_s {
 	coap_code_t					sent_code;
 
 	uint8_t						flags;
-	uint8_t						attemptCount:4,
+	uint8_t						attemptCount:4, maxAttempts:4,
 								waiting_for_async_response:1,
 								should_dealloc:1,
 								active:1,

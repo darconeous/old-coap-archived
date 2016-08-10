@@ -12,15 +12,31 @@
 typedef struct{
 	const char * url;
 	smcp_transaction_t transaction;
+
+	int consecutive_dups;
 } transaction_context_t;
 
 #define DEFAULT_TIMEOUT 10000 /* in milliseconds */
+#define MAX_DUPS 5
 
 smcp_status_t
 send_transaction_callback(void * context) {
 	smcp_status_t status;
 
 	transaction_context_t * ctx = (transaction_context_t *)context;
+
+	/*  A resend callback can return 'SMCP_STATUS_STOP_RESENDING'
+		to stop sending packets (the callback will not be called anymore)
+		without invalidate the transaction.
+
+		To illustrate this, this sample counts the number of consecutive
+		duplicate responses and stop sending packets when it reaches a
+		threshold.
+	*/
+	if(ctx->consecutive_dups > MAX_DUPS){
+		printf("\nStop resending requests. Reached limit of consecutive duplicate responses.\n");
+		return SMCP_STATUS_STOP_RESENDING;
+	}
 
 	smcp_t smcp = smcp_get_current_instance();
 
@@ -57,14 +73,18 @@ on_receive_response_callback(int statuscode, void * context)
 
 		printf("on_receive_response_callback(): statuscode=%d\n", statuscode);
 
+		transaction_context_t * request = (transaction_context_t *)context;
 		if (smcp_inbound_is_dupe()) {
 			printf(" --> Duplicate %d(%s) response\n", COAP_TO_HTTP_CODE(statuscode), coap_code_to_cstr(statuscode));
+			request->consecutive_dups++;
 		} else {
 			printf(" --> Got %d(%s) response\n", COAP_TO_HTTP_CODE(statuscode), coap_code_to_cstr(statuscode));
 
 			if (len > 0 && content != NULL) {
 				printf("%.*s\n", len, content);
 			}
+
+			request->consecutive_dups=0;
 		}
 	}
 
@@ -94,7 +114,7 @@ main(int argc, char ** argv)
 	smcp_t instance;
 	smcp_transaction_t transaction;
 	char * url = argc > 1 ? argv[1] : "coap://[ff02::fd]/";
-	transaction_context_t ctx = {url, NULL};
+	transaction_context_t ctx = {url, NULL, 0};
 
 	SMCP_LIBRARY_VERSION_CHECK();
 
