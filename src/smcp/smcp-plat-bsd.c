@@ -100,47 +100,58 @@ get_addresses(const char * address, int sockType, int sockFamily)
 	return addr;
 }
 
+/** Struct to abstract use of ipv4 or ipv6 mreq*/
+typedef struct multicast_group{
+	int family;
+	size_t group_size;
+	union{
+		struct ip_mreq ip4_group;
+		struct ipv6_mreq ip6_group;
+	} group;
+} multicast_group_s;
 
-smcp_status_t
-smcp_plat_multicast_join(smcp_t self, const smcp_sockaddr_t *group, int interface)
+void fill_multicast_group(multicast_group_s * group, const struct sockaddr* addr, int interfaceIndex)
+{
+	bzero(group, sizeof(multicast_group_s));
+
+	group->family = addr->sa_family;
+	group->group_size = group->family == AF_INET ? sizeof(struct ip_mreq) : sizeof(struct ipv6_mreq);
+
+	if(group->family == AF_INET){
+		struct ip_mreq * mreq = &group->group.ip4_group;
+
+		mreq->imr_interface.s_addr = INADDR_ANY;//TODO: enable specify the interface address
+		mreq->imr_multiaddr = ((struct sockaddr_in *) addr)->sin_addr;
+	}
+	else{
+		struct ipv6_mreq * mreq = &group->group.ip6_group;
+
+		mreq->ipv6mr_interface = interfaceIndex;
+		mreq->ipv6mr_multiaddr = ((struct sockaddr_in6*)addr)->sin6_addr;
+	}
+
+}
+
+static smcp_status_t
+smcp_internal_multicast_joinleave(smcp_t self, const smcp_sockaddr_t *group, int interface, bool join)
 {
 	SMCP_EMBEDDED_SELF_HOOK;
 	smcp_status_t status = SMCP_STATUS_INVALID_ARGUMENT;
 
 	if (NULL != group) {
 		int ret = 0;
+		sa_family_t family = ((const struct sockaddr *)group)->sa_family;
 
-#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
-		if (((const struct sockaddr *)group)->sa_family == AF_INET6) {
-			struct ipv6_mreq imreq;
-			memset(&imreq, 0, sizeof(imreq));
-			memcpy(&imreq.ipv6mr_multiaddr.s6_addr, &group->smcp_addr, 16);
-			imreq.ipv6mr_interface = interface;
+		multicast_group_s multicast;
+		fill_multicast_group(&multicast, ((const struct sockaddr *)group), interface);
 
-			ret = setsockopt(
-				self->plat.mcfd_v6,
-				IPPROTO_IPV6,
-				IPV6_JOIN_GROUP,
-				&imreq,
-				sizeof(imreq)
-			);
+		const int fd	= self->plat.fd_udp;
+		const int level = (family == AF_INET) ? IPPROTO_IP : IPPROTO_IPV6;
+		const int opt   = (family == AF_INET)
+								? (join ? IP_ADD_MEMBERSHIP		: IP_DROP_MEMBERSHIP)
+								: (join ? IPV6_JOIN_GROUP		: IPV6_LEAVE_GROUP);
 
-		} else
-#endif
-		{
-			// For some reason this mechanism doesn't seem to work
-			// for interface zero on OS X.
-			struct group_req multicast = {
-				.gr_interface = interface
-			};
-
-			const int fd = (((const struct sockaddr *)group)->sa_family == AF_INET) ? self->plat.mcfd_v4 : self->plat.mcfd_v6 ;
-			const int level = (((const struct sockaddr *)group)->sa_family == AF_INET) ? IPPROTO_IP : IPPROTO_IPV6;
-
-			memcpy(&multicast.gr_group, group, sizeof(*group));
-
-			ret = setsockopt(fd, level, MCAST_JOIN_GROUP, &multicast, sizeof(multicast));
-		}
+		ret = setsockopt(fd, level, opt, &multicast.group, multicast.group_size);
 
 		if (ret >= 0) {
 			status = SMCP_STATUS_OK;
@@ -153,53 +164,13 @@ smcp_plat_multicast_join(smcp_t self, const smcp_sockaddr_t *group, int interfac
 }
 
 smcp_status_t
-smcp_plat_multicast_leave(smcp_t self, const smcp_sockaddr_t *group, int interface)
-{
-	SMCP_EMBEDDED_SELF_HOOK;
-	smcp_status_t status = SMCP_STATUS_INVALID_ARGUMENT;
+smcp_plat_multicast_join(smcp_t self, const smcp_sockaddr_t *group, int interface){
+	return smcp_internal_multicast_joinleave(self, group, interface, true);
+}
 
-	if (NULL != group) {
-		int ret = 0;
-#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
-		if (((const struct sockaddr *)group)->sa_family == AF_INET6) {
-			struct ipv6_mreq imreq;
-			memset(&imreq, 0, sizeof(imreq));
-			memcpy(&imreq.ipv6mr_multiaddr.s6_addr, &group->smcp_addr, 16);
-			imreq.ipv6mr_interface = interface;
-
-			ret = setsockopt(
-				self->plat.mcfd_v6,
-				IPPROTO_IPV6,
-				IPV6_LEAVE_GROUP,
-				&imreq,
-				sizeof(imreq)
-			);
-
-		} else
-#endif
-		{
-			// For some reason this mechanism doesn't seem to work
-			// for interface zero on OS X.
-			struct group_req multicast = {
-				.gr_interface = interface
-			};
-
-			const int fd = (((const struct sockaddr *)group)->sa_family == AF_INET) ? self->plat.mcfd_v4 : self->plat.mcfd_v6 ;
-			const int level = (((const struct sockaddr *)group)->sa_family == AF_INET) ? IPPROTO_IP : IPPROTO_IPV6;
-
-			memcpy(&multicast.gr_group, group, sizeof(*group));
-
-			ret = setsockopt(fd, level, MCAST_LEAVE_GROUP, &multicast, sizeof(multicast));
-		}
-
-		if (ret >= 0) {
-			status = SMCP_STATUS_OK;
-		} else {
-			status = SMCP_STATUS_ERRNO;
-		}
-	}
-
-	return status;
+smcp_status_t
+smcp_plat_multicast_leave(smcp_t self, const smcp_sockaddr_t *group, int interface){
+	return smcp_internal_multicast_joinleave(self, group, interface, false);
 }
 
 static smcp_status_t
