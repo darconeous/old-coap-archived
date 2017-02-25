@@ -44,6 +44,7 @@
 #define smcp_plat_finalize(self)		smcp_plat_finalize()
 #define smcp_plat_get_fd(self)		smcp_plat_get_fd()
 #define smcp_plat_process(self)		smcp_plat_process()
+#define smcp_plat_join_standard_groups(self, ...)	smcp_plat_join_standard_groups(__VA_ARGS__)
 #define smcp_plat_wait(self,...)		smcp_plat_wait(__VA_ARGS__)
 #define smcp_plat_outbound_start(self,...)		smcp_plat_outbound_start(__VA_ARGS__)
 #define smcp_plat_outbound_finish(self,...)		smcp_plat_outbound_finish(__VA_ARGS__)
@@ -166,13 +167,17 @@ SMCP_API_EXTERN smcp_status_t smcp_plat_bind_to_port(
 	uint16_t port
 );
 
+#define SMCP_ANY_INTERFACE		0
+
+SMCP_API_EXTERN smcp_status_t smcp_plat_join_standard_groups(smcp_t self, int interface);
+
 SMCP_API_EXTERN void smcp_plat_set_remote_sockaddr(const smcp_sockaddr_t* addr);
 SMCP_API_EXTERN void smcp_plat_set_local_sockaddr(const smcp_sockaddr_t* addr);
 SMCP_API_EXTERN smcp_status_t smcp_plat_set_remote_hostname_and_port(const char* hostname, uint16_t port);
 SMCP_API_EXTERN void smcp_plat_set_session_type(smcp_session_type_t type);
 
-SMCP_API_EXTERN smcp_status_t smcp_plat_multicast_join(smcp_t self, smcp_addr_t *group, int interface);
-SMCP_API_EXTERN smcp_status_t smcp_plat_multicast_leave(smcp_t self, smcp_addr_t *group, int interface);
+SMCP_API_EXTERN smcp_status_t smcp_plat_multicast_join(smcp_t self, const smcp_sockaddr_t *group, int interface);
+SMCP_API_EXTERN smcp_status_t smcp_plat_multicast_leave(smcp_t self, const smcp_sockaddr_t *group, int interface);
 
 //!	Gets a pointer to the sockaddr of the remote machine for the current packet.
 SMCP_API_EXTERN const smcp_sockaddr_t* smcp_plat_get_remote_sockaddr(void);
@@ -195,6 +200,7 @@ SMCP_API_EXTERN int smcp_plat_update_pollfds(
 #define SMCP_LOOKUP_HOSTNAME_FLAG_DEFAULT			0
 #define SMCP_LOOKUP_HOSTNAME_FLAG_IPV6_ONLY			(1<<0)
 #define SMCP_LOOKUP_HOSTNAME_FLAG_IPV4_ONLY			(1<<1)
+#define SMCP_LOOKUP_HOSTNAME_FLAG_NUMERIC			(1<<2)
 
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* sockaddr, int flags);
 SMCP_INTERNAL_EXTERN smcp_status_t smcp_plat_outbound_start(smcp_t self, uint8_t** data_ptr, coap_size_t *data_len);

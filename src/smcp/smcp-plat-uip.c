@@ -66,6 +66,14 @@ extern void *uip_sappdata;
 #define UIP_UDP_BUF                        ((struct uip_udpip_hdr *)&uip_buf[UIP_LLH_LEN])
 #endif
 
+smcp_status_t
+smcp_plat_join_standard_groups(smcp_t self, int interface)
+{
+	SMCP_EMBEDDED_SELF_HOOK;
+	// TODO: Implement me!
+	return SMCP_STATUS_NOT_IMPLEMENTED;
+}
+
 smcp_t
 smcp_plat_init(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;

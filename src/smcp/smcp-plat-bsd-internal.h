@@ -93,7 +93,7 @@
 #endif // SMCP_BSD_SOCKETS_NET_FAMILY
 
 struct smcp_plat_s {
-	int						mcfd;	//!< For multicast
+	int						mcfd_v6;	//!< For multicast
 	int						mcfd_v4;	//!< For multicast
 
 	int						fd_udp;

@@ -140,7 +140,13 @@ smcp_group_set_enabled(smcp_group_t self, bool x)
 		}
 
 		if (self->enabled) {
-			status = smcp_plat_multicast_join(smcp_instance, &self->addr, 0);
+			if (SMCP_IS_ADDR_UNSPECIFIED(&self->addr.smcp_addr)) {
+				status = smcp_plat_lookup_hostname(self->fqdn, &self->addr, SMCP_LOOKUP_HOSTNAME_FLAG_DEFAULT);
+			}
+
+			if (status == SMCP_STATUS_OK) {
+				status = smcp_plat_multicast_join(smcp_instance, &self->addr, 0);
+			}
 		} else {
 			status = smcp_plat_multicast_leave(smcp_instance, &self->addr, 0);
 		}
@@ -162,7 +168,7 @@ smcp_group_get_fqdn(smcp_group_t self)
 	return self->fqdn;
 }
 
-const smcp_addr_t*
+const smcp_sockaddr_t*
 smcp_group_get_addr(smcp_group_t self)
 {
 	return &self->addr;
@@ -214,7 +220,7 @@ smcp_group_variable_handler(
 			strcpy(value, group->fqdn);
 			break;
 		case I_ADDR:
-			SMCP_ADDR_NTOP(value, SMCP_VARIABLE_MAX_VALUE_LENGTH, &group->addr);
+			SMCP_ADDR_NTOP(value, SMCP_VARIABLE_MAX_VALUE_LENGTH, &group->addr.smcp_addr);
 			break;
 		}
 
@@ -244,7 +250,7 @@ smcp_group_t
 smcp_group_mgr_new_group(
 	smcp_group_mgr_t self,
 	const char* fqdn,
-	const smcp_addr_t* addr,
+	const smcp_sockaddr_t* addr,
 	uint8_t i
 ) {
 	smcp_group_t ret = NULL;
@@ -285,12 +291,17 @@ smcp_group_mgr_new_group(
 	ret->stable = false;
 	ret->var_handler.func = smcp_group_variable_handler;
 
+	{
+		const smcp_sockaddr_t x = SMCP_SOCKADDR_INIT;
+		ret->addr = x;
+	}
+
 	strlcpy(ret->fqdn, fqdn, sizeof(ret->fqdn));
 
 	if (addr != NULL) {
 		ret->addr = *addr;
 	} else {
-		// Look up addr
+		smcp_plat_lookup_hostname(ret->fqdn, &ret->addr, SMCP_LOOKUP_HOSTNAME_FLAG_DEFAULT);
 	}
 
 bail:
@@ -467,7 +478,7 @@ request_handler_new_group_(
 	group = smcp_group_mgr_new_group(
 		self,
 		fqdn,
-		&saddr.smcp_addr,
+		&saddr,
 		0
 	);
 

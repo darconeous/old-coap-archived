@@ -58,7 +58,7 @@ struct smcp_group_s {
 	struct smcp_variable_handler_s var_handler;
 
 	char fqdn[128]; // TODO: make sure FQDN length is appropriate
-	smcp_addr_t addr;
+	smcp_sockaddr_t addr;
 
 	uint8_t index;
 	bool stable:1;
@@ -93,7 +93,7 @@ SMCP_API_EXTERN smcp_status_t smcp_group_mgr_request_handler(
 SMCP_API_EXTERN smcp_group_t smcp_group_mgr_new_group(
 	smcp_group_mgr_t self,
 	const char* fqdn,
-	const smcp_addr_t* addr,
+	const smcp_sockaddr_t* addr,
 	uint8_t i
 );
 
@@ -118,7 +118,7 @@ SMCP_API_EXTERN smcp_status_t smcp_group_set_enabled(smcp_group_t self, bool x);
 
 SMCP_API_EXTERN const char* smcp_group_get_fqdn(smcp_group_t self);
 
-SMCP_API_EXTERN const smcp_addr_t* smcp_group_get_addr(smcp_group_t self);
+SMCP_API_EXTERN const smcp_sockaddr_t* smcp_group_get_addr(smcp_group_t self);
 
 SMCP_API_EXTERN void smcp_group_mgr_delete(
 	smcp_group_mgr_t self,

@@ -76,25 +76,168 @@
 #define smcp_internal_join_multicast_group(self,...)		smcp_internal_join_multicast_group(__VA_ARGS__)
 #endif
 
-smcp_status_t
-smcp_plat_multicast_join(smcp_t self, smcp_addr_t *group, int interface)
-{
-	SMCP_EMBEDDED_SELF_HOOK;
-	int ret;
 
-	if (NULL == group) {
-		return SMCP_STATUS_INVALID_ARGUMENT;
+static struct addrinfo *
+get_addresses(const char * address, int sockType, int sockFamily)
+{
+	struct addrinfo hints;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = sockFamily;
+	hints.ai_socktype = sockType;
+
+	if(address == NULL){
+		hints.ai_flags = AI_PASSIVE;
 	}
 
-#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
-	if (self->plat.mcfd == -1) {
-		self->plat.mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
-		check(self->plat.mcfd >= 0);
+	int rv =0;
+	struct addrinfo *addr = NULL;
+	if ((rv = getaddrinfo(address, NULL, &hints, &addr)) != 0) {
+		DEBUG_PRINTF("getaddrinfo: %s", gai_strerror(rv));
+		return NULL;
+	}
 
-		if (self->plat.mcfd >=0 ) {
+	return addr;
+}
+
+/** Struct to abstract use of ipv4 or ipv6 mreq*/
+typedef struct multicast_group{
+	int family;
+	size_t group_size;
+	union{
+		struct ip_mreq ip4_group;
+		struct ipv6_mreq ip6_group;
+	} group;
+} multicast_group_s;
+
+void fill_multicast_group(multicast_group_s * group, const struct sockaddr* addr, int interfaceIndex)
+{
+	bzero(group, sizeof(multicast_group_s));
+
+	group->family = addr->sa_family;
+	group->group_size = group->family == AF_INET ? sizeof(struct ip_mreq) : sizeof(struct ipv6_mreq);
+
+	if(group->family == AF_INET){
+		struct ip_mreq * mreq = &group->group.ip4_group;
+
+		mreq->imr_interface.s_addr = INADDR_ANY;//TODO: enable specify the interface address
+		mreq->imr_multiaddr = ((struct sockaddr_in *) addr)->sin_addr;
+	}
+	else{
+		struct ipv6_mreq * mreq = &group->group.ip6_group;
+
+		mreq->ipv6mr_interface = interfaceIndex;
+		mreq->ipv6mr_multiaddr = ((struct sockaddr_in6*)addr)->sin6_addr;
+	}
+
+}
+
+static smcp_status_t
+smcp_internal_multicast_joinleave(smcp_t self, const smcp_sockaddr_t *group, int interface, bool join)
+{
+	SMCP_EMBEDDED_SELF_HOOK;
+	smcp_status_t status = SMCP_STATUS_INVALID_ARGUMENT;
+
+	if (NULL != group) {
+		int ret = 0;
+		sa_family_t family = ((const struct sockaddr *)group)->sa_family;
+
+		multicast_group_s multicast;
+		fill_multicast_group(&multicast, ((const struct sockaddr *)group), interface);
+
+		const int fd	= self->plat.fd_udp;
+		const int level = (family == AF_INET) ? IPPROTO_IP : IPPROTO_IPV6;
+		const int opt   = (family == AF_INET)
+								? (join ? IP_ADD_MEMBERSHIP		: IP_DROP_MEMBERSHIP)
+								: (join ? IPV6_JOIN_GROUP		: IPV6_LEAVE_GROUP);
+
+		ret = setsockopt(fd, level, opt, &multicast.group, multicast.group_size);
+
+		if (ret >= 0) {
+			status = SMCP_STATUS_OK;
+		} else {
+			status = SMCP_STATUS_ERRNO;
+		}
+	}
+
+	return status;
+}
+
+smcp_status_t
+smcp_plat_multicast_join(smcp_t self, const smcp_sockaddr_t *group, int interface){
+	return smcp_internal_multicast_joinleave(self, group, interface, true);
+}
+
+smcp_status_t
+smcp_plat_multicast_leave(smcp_t self, const smcp_sockaddr_t *group, int interface){
+	return smcp_internal_multicast_joinleave(self, group, interface, false);
+}
+
+static smcp_status_t
+smcp_internal_join_multicast_group(smcp_t self, const char* group, int interface)
+{
+	SMCP_EMBEDDED_SELF_HOOK;
+
+	smcp_status_t ret = SMCP_STATUS_FAILURE;
+	struct addrinfo* addr = get_addresses(group, SOCK_DGRAM, AF_UNSPEC);
+	struct addrinfo* p;
+	int count = 0;
+
+	for (p = addr; p != NULL; p = p->ai_next) {
+		ret = smcp_plat_multicast_join(self, (const smcp_sockaddr_t *)p->ai_addr, interface);
+
+		if (ret == SMCP_STATUS_OK) {
+			count++;
+		}
+	}
+
+	if (count > 0) {
+		DEBUG_PRINTF("Joined group \"%s\"", group);
+		ret = SMCP_STATUS_OK;
+	} else {
+		DEBUG_PRINTF("Failed to join multicast group \"%s\" %s (%d)", group, smcp_status_to_cstr(ret), errno);
+	}
+
+	freeaddrinfo(addr);
+
+	return ret;
+}
+
+smcp_status_t
+smcp_plat_join_standard_groups(smcp_t self, int interface)
+{
+	smcp_status_t ret;
+	SMCP_EMBEDDED_SELF_HOOK;
+
+#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
+	ret = smcp_internal_join_multicast_group(self, COAP_MULTICAST_IP6_LL_ALLDEVICES, interface);
+#endif
+
+	ret = smcp_internal_join_multicast_group(self, COAP_MULTICAST_IP4_ALLDEVICES, interface);
+
+	return ret;
+}
+
+smcp_t
+smcp_plat_init(smcp_t self) {
+	SMCP_EMBEDDED_SELF_HOOK;
+
+	self->plat.mcfd_v6 = -1;
+	self->plat.mcfd_v4 = -1;
+	self->plat.fd_udp = -1;
+#if SMCP_DTLS
+	self->plat.fd_dtls = -1;
+#endif
+
+#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
+	if (self->plat.mcfd_v6 == -1) {
+		self->plat.mcfd_v6 = socket(AF_INET6, SOCK_DGRAM, 0);
+		check(self->plat.mcfd_v6 >= 0);
+
+		if (self->plat.mcfd_v6 >= 0 ) {
 			int btrue = 1;
 			setsockopt(
-				self->plat.mcfd,
+				self->plat.mcfd_v6,
 				IPPROTO_IPV6,
 				IPV6_MULTICAST_LOOP,
 				&btrue,
@@ -102,100 +245,7 @@ smcp_plat_multicast_join(smcp_t self, smcp_addr_t *group, int interface)
 			);
 		}
 	}
-
-	if (self->plat.mcfd != -1) {
-		struct ipv6_mreq imreq;
-		memset(&imreq, 0, sizeof(imreq));
-		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, group, 16);
-		imreq.ipv6mr_interface = interface;
-
-		ret = setsockopt(
-			self->plat.mcfd,
-			IPPROTO_IPV6,
-			IPV6_JOIN_GROUP,
-			&imreq,
-			sizeof(imreq)
-		);
-		if (ret >= 0) {
-			char addr_str[50] = "???";
-			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
-			DEBUG_PRINTF("Joined multicast group [%s]", addr_str);
-			return SMCP_STATUS_OK;
-		} else {
-			char addr_str[50] = "???";
-			int prev_errno = errno;
-			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
-			DEBUG_PRINTF("Unable to join multicast group [%s], \"%s\"",addr_str, strerror(prev_errno));
-			errno = prev_errno;
-			return SMCP_STATUS_ERRNO;
-		}
-	}
 #endif
-
-	return SMCP_STATUS_FAILURE;
-}
-
-smcp_status_t
-smcp_plat_multicast_leave(smcp_t self, smcp_addr_t *group, int interface)
-{
-	SMCP_EMBEDDED_SELF_HOOK;
-	int ret;
-
-	if (NULL == group) {
-		return SMCP_STATUS_INVALID_ARGUMENT;
-	}
-
-#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
-
-	if (self->plat.mcfd != -1) {
-		struct ipv6_mreq imreq;
-		memset(&imreq, 0, sizeof(imreq));
-		memcpy(&imreq.ipv6mr_multiaddr.s6_addr, group, 16);
-		imreq.ipv6mr_interface = interface;
-
-		ret = setsockopt(
-			self->plat.mcfd,
-			IPPROTO_IPV6,
-			IPV6_LEAVE_GROUP,
-			&imreq,
-			sizeof(imreq)
-		);
-		if (ret >= 0) {
-			char addr_str[50] = "???";
-			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
-			DEBUG_PRINTF("Left multicast group %s", addr_str);
-			return SMCP_STATUS_OK;
-		} else {
-			char addr_str[50] = "???";
-			int prev_errno = errno;
-			inet_ntop(AF_INET6, imreq.ipv6mr_multiaddr.s6_addr, addr_str, sizeof(addr_str)-1);
-			DEBUG_PRINTF("Unable to leave multicast group %s, \"%s\"",addr_str, strerror(prev_errno));
-			errno = prev_errno;
-			return SMCP_STATUS_ERRNO;
-		}
-	}
-#endif
-
-	return SMCP_STATUS_FAILURE;
-}
-
-static smcp_status_t
-smcp_internal_join_multicast_group(smcp_t self, const char* group)
-{
-	SMCP_EMBEDDED_SELF_HOOK;
-	int ret = 0;
-	int count = 0;
-	struct hostent *tmp;
-	int i;
-	bool is_raw_ipv4_addr = false;
-	bool is_raw_ipv6_addr = false;
-	struct in6_addr addr;
-
-	if (inet_pton(AF_INET, group, &addr) > 0) {
-		is_raw_ipv4_addr = true;
-	} else if (inet_pton(AF_INET6, group, &addr) > 0) {
-		is_raw_ipv6_addr = true;
-	}
 
 	if (self->plat.mcfd_v4 == -1) {
 		self->plat.mcfd_v4 = socket(AF_INET, SOCK_DGRAM, 0);
@@ -203,119 +253,15 @@ smcp_internal_join_multicast_group(smcp_t self, const char* group)
 
 		if (self->plat.mcfd_v4 >= 0) {
 			int btrue = 1;
-			ret = setsockopt(
+			setsockopt(
 				self->plat.mcfd_v4,
 				IPPROTO_IP,
 				IP_MULTICAST_LOOP,
 				&btrue,
 				sizeof(btrue)
 			);
-			check(ret >= 0);
 		}
 	}
-
-	if ((self->plat.mcfd_v4 != -1) && !is_raw_ipv6_addr) {
-		struct ip_mreq group_mreq = {};
-
-		ret = inet_pton(AF_INET, group, &group_mreq.imr_multiaddr.s_addr);
-
-		if (ret <= 0) {
-			tmp = gethostbyname2(group, AF_INET);
-
-			for (i = 0; tmp && tmp->h_addr_list[i] != NULL; i++) {
-				memcpy(&group_mreq.imr_multiaddr.s_addr, tmp->h_addr_list[0], 4);
-
-				ret = setsockopt(
-					self->plat.mcfd_v4,
-					IPPROTO_IP,
-					IP_ADD_MEMBERSHIP,
-					(char *)&group_mreq,
-					sizeof(group_mreq)
-				);
-			}
-		} else {
-			ret = setsockopt(
-				self->plat.mcfd_v4,
-				IPPROTO_IP,
-				IP_ADD_MEMBERSHIP,
-				(char *)&group_mreq,
-				sizeof(group_mreq)
-			);
-		}
-
-		if (ret >= 0) {
-			DEBUG_PRINTF("Joined multicast group %s (%s)",group,inet_ntoa(group_mreq.imr_multiaddr));
-			count++;
-		} else {
-			int prev_errno = errno;
-			DEBUG_PRINTF("Unable to join multicast group %s (%s), \"%s\"",group,inet_ntoa(group_mreq.imr_multiaddr), strerror(prev_errno));
-		}
-	}
-
-#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
-	if (self->plat.mcfd == -1) {
-		self->plat.mcfd = socket(AF_INET6, SOCK_DGRAM, 0);
-		check(self->plat.mcfd >= 0);
-
-		if (self->plat.mcfd >=0) {
-			int btrue = 1;
-			setsockopt(
-				self->plat.mcfd,
-				IPPROTO_IPV6,
-				IPV6_MULTICAST_LOOP,
-				&btrue,
-				sizeof(btrue)
-			);
-		}
-	}
-
-	if ((self->plat.mcfd != -1) && !is_raw_ipv4_addr) {
-		ret = inet_pton(AF_INET6, group, &addr);
-
-		if (ret > 0) {
-			if (SMCP_STATUS_OK == smcp_plat_multicast_join(self, &addr, 0)) {
-				count++;
-			}
-		} else {
-			tmp = gethostbyname2(group, AF_INET6);
-
-			require(!h_errno && tmp, bail);
-			require(tmp->h_length > 1, bail);
-
-			for (i = 0; tmp && tmp->h_addr_list[i] != NULL; i++) {
-				if (SMCP_STATUS_OK == smcp_plat_multicast_join(self, (smcp_addr_t*)tmp->h_addr_list, 0)) {
-					count++;
-				}
-			}
-		}
-	}
-#endif
-
-bail:
-	if (count != 0) {
-		return SMCP_STATUS_OK;
-	}
-
-	return SMCP_STATUS_ERRNO;
-}
-
-smcp_t
-smcp_plat_init(smcp_t self) {
-	SMCP_EMBEDDED_SELF_HOOK;
-
-	self->plat.mcfd = -1;
-	self->plat.mcfd_v4 = -1;
-	self->plat.fd_udp = -1;
-#if SMCP_DTLS
-	self->plat.fd_dtls = -1;
-#endif
-
-#if SMCP_BSD_SOCKETS_NET_FAMILY==AF_INET6
-	smcp_internal_join_multicast_group(self, COAP_MULTICAST_IP6_LL_ALLDEVICES);
-#endif
-
-	smcp_internal_join_multicast_group(self, COAP_MULTICAST_IP4_ALLDEVICES);
-
 	return self;
 }
 
@@ -323,21 +269,23 @@ void
 smcp_plat_finalize(smcp_t self) {
 	SMCP_EMBEDDED_SELF_HOOK;
 
-	if(self->plat.fd_udp>=0) {
+	if (self->plat.fd_udp >= 0) {
 		close(self->plat.fd_udp);
 	}
 
 #if SMCP_DTLS
-	if(self->plat.fd_dtls>=0) {
+	if (self->plat.fd_dtls >= 0) {
 		close(self->plat.fd_dtls);
 	}
 #endif
 
-	if(self->plat.mcfd>=0) {
-		close(self->plat.mcfd);
+#if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6
+	if (self->plat.mcfd_v6 >= 0) {
+		close(self->plat.mcfd_v6);
 	}
+#endif
 
-	if(self->plat.mcfd_v4>=0) {
+	if (self->plat.mcfd_v4 >= 0) {
 		close(self->plat.mcfd_v4);
 	}
 }
@@ -1012,6 +960,10 @@ smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr, int flag
 
 	struct addrinfo *results = NULL;
 	struct addrinfo *iter = NULL;
+
+	if (flags & SMCP_LOOKUP_HOSTNAME_FLAG_NUMERIC) {
+		hint.ai_flags |= AI_NUMERICHOST;
+	}
 
 #if SMCP_BSD_SOCKETS_NET_FAMILY != AF_INET6
 	hint.ai_family = SMCP_BSD_SOCKETS_NET_FAMILY;

@@ -32,13 +32,13 @@
 
 #include "smcp.h"
 
+#if SMCP_CONF_NODE_ROUTER
+
 #if SMCP_NODE_ROUTER_USE_BTREE
 #include "btree.h"
 #else
 #include "ll.h"
 #endif
-
-#if SMCP_CONF_NODE_ROUTER
 
 __BEGIN_DECLS
 

@@ -64,6 +64,12 @@ typedef struct sockaddr_in smcp_sockaddr_t;
 #error Unsupported value for SMCP_BSD_SOCKETS_NET_FAMILY
 #endif // SMCP_BSD_SOCKETS_NET_FAMILY
 
+#if defined(__KAME__)
+#define SMCP_SOCKADDR_INIT { sizeof(smcp_sockaddr_t), SMCP_BSD_SOCKETS_NET_FAMILY }
+#else
+#define SMCP_SOCKADDR_INIT { SMCP_BSD_SOCKETS_NET_FAMILY }
+#endif
+
 //!	Gets the file descriptor for the UDP socket.
 /*!	Useful for implementing asynchronous operation using select(),
 **	poll(), or other async mechanisms. */

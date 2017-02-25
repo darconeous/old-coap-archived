@@ -98,7 +98,6 @@ main(int argc, char * argv[]) {
 #endif
 
 	fprintf(stderr,"SMCP_EMBEDDED = %d\n",SMCP_EMBEDDED);
-//	fprintf(stderr,"SMCP_USE_BSD_SOCKETS = %d\n",SMCP_USE_BSD_SOCKETS);
 	fprintf(stderr,"SMCP_DEFAULT_PORT = %d\n",SMCP_DEFAULT_PORT);
 	fprintf(stderr,"SMCP_MAX_PATH_LENGTH = %d\n",SMCP_MAX_PATH_LENGTH);
 	fprintf(stderr,"SMCP_MAX_URI_LENGTH = %d\n",SMCP_MAX_URI_LENGTH);
@@ -125,7 +124,7 @@ main(int argc, char * argv[]) {
 	fprintf(stderr,"SMCP_DEBUG_INBOUND_DROP_PERCENT = %.1f%%\n",SMCP_DEBUG_INBOUND_DROP_PERCENT*100.0);
 #endif
 
-	plugtest_server_init(&plugtest_server,&root_node);
+	plugtest_server_init(&plugtest_server, &root_node);
 
 	do {
 		status = smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, port);
@@ -140,6 +139,9 @@ main(int argc, char * argv[]) {
 	}
 	fprintf(stderr,"\nPlugtest server listening on port %d.\n", port);
 
+	// For some reason this next line is causing a unit test failure on Travis, OS X.
+	// TODO: Investigate
+	// smcp_plat_join_standard_groups(smcp, SMCP_ANY_INTERFACE);
 
 	while (!gIsDone) {
 		smcp_plat_wait(smcp, CMS_DISTANT_FUTURE);

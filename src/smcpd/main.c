@@ -377,7 +377,8 @@ read_configuration(smcp_t smcp,const char* filename) {
 	int line_number = 0;
 	int ssl_ret;
 
-	require(file!=NULL,bail);
+	(void)ssl_ret;
+	require(file != NULL,bail);
 
 	while(!feof(file) && (line=fgetln(file,&line_len))) {
 		char *cmd = get_next_arg(line,&line);
@@ -555,6 +556,9 @@ main(
 	uint16_t port = 0;
 	const char* config_file = ETC_PREFIX "smcp.conf";
 
+	(void)ssl_ret;
+	(void)syslog_dump_select_info;
+
 	openlog(basename(argv[0]),LOG_PERROR|LOG_PID|LOG_CONS,LOG_DAEMON);
 
 #if SMCP_DTLS
@@ -707,6 +711,8 @@ main(
 			goto bail;
 		}
 	}
+
+	smcp_plat_join_standard_groups(gSMCPInstance, SMCP_ANY_INTERFACE);
 
 	smcp_set_current_instance(gSMCPInstance);
 

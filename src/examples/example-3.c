@@ -72,6 +72,9 @@ main(void)
 
 	smcp_plat_bind_to_port(instance, SMCP_SESSION_TYPE_UDP, COAP_DEFAULT_PORT);
 
+	// Join coap multicast groups
+	smcp_plat_join_standard_groups(instance, 0);
+
 	root_node = smcp_node_init(NULL, NULL, NULL);
 
 	// SMCP will always respond to requests with METHOD_NOT_IMPLEMENTED
