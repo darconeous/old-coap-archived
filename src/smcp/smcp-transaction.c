@@ -466,7 +466,7 @@ smcp_transaction_begin(
 	smcp_status_t ret = SMCP_STATUS_FAILURE;
 	SMCP_EMBEDDED_SELF_HOOK;
 
-	require(handler!=NULL, bail);
+	require_action(handler != NULL, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
 
 	DEBUG_PRINTF("smcp_transaction_begin: %p",handler);
 

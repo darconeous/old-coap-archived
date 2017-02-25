@@ -21,6 +21,18 @@ DIR="`dirname $0`"
 
 "${DIR}"/run-in-docker.sh -i 'DIR="`pwd`" &&
 mkdir -p /build &&
+cd /build && "${DIR}"/configure --enable-dtls &&
+make -j `nproc` check AM_DEFAULT_VERBOSITY=1
+' || exit 1
+
+"${DIR}"/run-in-docker.sh -i 'DIR="`pwd`" &&
+mkdir -p /build &&
+cd /build && "${DIR}"/configure --enable-embedded SMCP_CONF_TRANS_ENABLE_BLOCK2=1 SMCP_CONF_TRANS_ENABLE_OBSERVING=1 &&
+make -j `nproc` check AM_DEFAULT_VERBOSITY=1
+' || exit 1
+
+"${DIR}"/run-in-docker.sh -i 'DIR="`pwd`" &&
+mkdir -p /build &&
 cd /build && "${DIR}"/configure &&
 make -j `nproc` distcheck AM_DEFAULT_VERBOSITY=1
 ' || exit 1

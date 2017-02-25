@@ -99,7 +99,7 @@ libsmcp_la_SOURCES += smcp-curl_proxy.c
 pkginclude_HEADERS +=  smcp-curl_proxy.h
 endif
 
-noinst_PROGRAMS = btreetest
+check_PROGRAMS = btreetest
 btreetest_SOURCES = btree.c
 btreetest_CFLAGS = $(AM_CFLAGS) -DBTREE_SELF_TEST=1
 
