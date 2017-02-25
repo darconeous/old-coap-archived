@@ -34,9 +34,10 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = example-1$(EXEEXT) example-2$(EXEEXT) \
-	example-3$(EXEEXT) example-4$(EXEEXT) \
-	example-multicast-request$(EXEEXT)
+@BUILD_EXAMPLES_TRUE@noinst_PROGRAMS = example-1$(EXEEXT) \
+@BUILD_EXAMPLES_TRUE@	example-2$(EXEEXT) example-3$(EXEEXT) \
+@BUILD_EXAMPLES_TRUE@	example-4$(EXEEXT) \
+@BUILD_EXAMPLES_TRUE@	example-multicast-request$(EXEEXT)
 subdir = src/examples
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4

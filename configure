@@ -630,6 +630,14 @@ HAVE_LIBREADLINE_FALSE
 HAVE_LIBREADLINE_TRUE
 HAVE_LIBCURL_FALSE
 HAVE_LIBCURL_TRUE
+BUILD_PLUGTEST_FALSE
+BUILD_PLUGTEST_TRUE
+BUILD_SMCPD_FALSE
+BUILD_SMCPD_TRUE
+BUILD_SMCPCTL_FALSE
+BUILD_SMCPCTL_TRUE
+BUILD_EXAMPLES_FALSE
+BUILD_EXAMPLES_TRUE
 LOAD_ALL_SYMBOLS_FLAG
 CODE_COVERAGE_RULES
 OTOOL64
@@ -758,10 +766,14 @@ with_sysroot
 enable_libtool_lock
 enable_debug
 enable_embedded
+enable_examples
+enable_smcpctl
+enable_smcpd
+enable_plugtest
+enable_dtls
 with_address_family
 enable_libcurl
 enable_libreadline
-enable_dtls
 with_openssl
 enable_libdl
 '
@@ -1405,9 +1417,13 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-debug          enable compiling with debugging information
   --enable-embedded       enable embedded mode (instance is singleton)
+  --disable-examples      Disable building examples and plugtests
+  --disable-smcpctl       Disable building smcpctl
+  --disable-smcpd         Disable building smcpd
+  --disable-plugtest      Disable building plugtest
+  --enable-dtls           Enable experimental DTLS support
   --disable-libcurl  Do not use libcurl
   --disable-libreadline  Do not use libreadline
-  --enable-dtls    Enable experimental DTLS support
   --disable-libdl  Do not use libdl
 
 Optional Packages:
@@ -2301,7 +2317,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 ac_config_headers="$ac_config_headers src/config.h src/smcp/smcp-config.h"
 
 
-SOURCE_VERSION=0.6.5-46-g94476bc
+SOURCE_VERSION=0.6.5-62-g917b4fe
 
 
 am__api_version='1.11'
@@ -12075,14 +12091,83 @@ if test "${enable_debug+set}" = set; then :
 fi
 
 
+
 # Check whether --enable-embedded was given.
 if test "${enable_embedded+set}" = set; then :
   enableval=$enable_embedded;
-    if test "${enableval}" = "yes"
-	then SMCP_EMBEDDED=1
-	     SMCP_USE_BSD_SOCKETS=1
-    fi
+fi
 
+# Check whether --enable-examples was given.
+if test "${enable_examples+set}" = set; then :
+  enableval=$enable_examples;
+fi
+
+# Check whether --enable-smcpctl was given.
+if test "${enable_smcpctl+set}" = set; then :
+  enableval=$enable_smcpctl;
+fi
+
+# Check whether --enable-smcpd was given.
+if test "${enable_smcpd+set}" = set; then :
+  enableval=$enable_smcpd;
+fi
+
+# Check whether --enable-plugtest was given.
+if test "${enable_plugtest+set}" = set; then :
+  enableval=$enable_plugtest;
+fi
+
+# Check whether --enable-dtls was given.
+if test "${enable_dtls+set}" = set; then :
+  enableval=$enable_dtls;
+fi
+
+
+case "${enable_dtls-no}" in
+	no)  SMCP_DTLS=0 ;;
+	yes) SMCP_DTLS=1 ;;
+	*)   as_fn_error $? "Invalid value ${enableval} for --enable-dtls" "$LINENO" 5 ;;
+esac
+
+if test "${enable_embedded}" = "yes"
+then
+	SMCP_EMBEDDED=1
+	SMCP_USE_BSD_SOCKETS=${SMCP_USE_BSD_SOCKETS-1}
+	SMCP_CONF_NODE_ROUTER=${SMCP_CONF_NODE_ROUTER-1}
+	enable_smcpctl=${enable_smcpctl-no}
+	enable_smcpd=${enable_smcpd-no}
+fi
+
+ if test "${enable_examples}" != "no"; then
+  BUILD_EXAMPLES_TRUE=
+  BUILD_EXAMPLES_FALSE='#'
+else
+  BUILD_EXAMPLES_TRUE='#'
+  BUILD_EXAMPLES_FALSE=
+fi
+
+ if test "${enable_smcpctl}" != "no"; then
+  BUILD_SMCPCTL_TRUE=
+  BUILD_SMCPCTL_FALSE='#'
+else
+  BUILD_SMCPCTL_TRUE='#'
+  BUILD_SMCPCTL_FALSE=
+fi
+
+ if test "${enable_smcpd}" != "no"; then
+  BUILD_SMCPD_TRUE=
+  BUILD_SMCPD_FALSE='#'
+else
+  BUILD_SMCPD_TRUE='#'
+  BUILD_SMCPD_FALSE=
+fi
+
+ if test "${enable_plugtest}" != "no"; then
+  BUILD_PLUGTEST_TRUE=
+  BUILD_PLUGTEST_FALSE='#'
+else
+  BUILD_PLUGTEST_TRUE='#'
+  BUILD_PLUGTEST_FALSE=
 fi
 
 
@@ -13362,25 +13447,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-# Check whether --enable-dtls was given.
-if test "${enable_dtls+set}" = set; then :
-  enableval=$enable_dtls;
-		case "${enableval}" in
-			no)  SMCP_DTLS=0 ;;
-			yes) SMCP_DTLS=1 ;;
-			*)   as_fn_error $? "Invalid value ${enableval} for --enable-dtls" "$LINENO" 5 ;;
-		esac
-
-else
-
-		SMCP_DTLS="${SMCP_DTLS-0}"
-
-
-fi
-
-
 if test "${SMCP_DTLS}" == "1"
 then
+enable_dtls=yes
 
     found=false
 
@@ -14064,6 +14133,13 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 fi
+if test "${SMCP_CONF_NODE_ROUTER+set}" = "set"
+then
+cat >>confdefs.h <<_ACEOF
+#define SMCP_CONF_NODE_ROUTER $SMCP_CONF_NODE_ROUTER
+_ACEOF
+
+fi
 if test "${SMCP_DTLS+set}" = "set"
 then
 cat >>confdefs.h <<_ACEOF
@@ -14282,6 +14358,22 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_EXAMPLES_TRUE}" && test -z "${BUILD_EXAMPLES_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_EXAMPLES\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_SMCPCTL_TRUE}" && test -z "${BUILD_SMCPCTL_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_SMCPCTL\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_SMCPD_TRUE}" && test -z "${BUILD_SMCPD_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_SMCPD\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_PLUGTEST_TRUE}" && test -z "${BUILD_PLUGTEST_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_PLUGTEST\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
@@ -16558,6 +16650,17 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
+
+echo ""
+echo "= Summary ====================================================================="
+echo ""
+echo "Building smcpctl ............... ${enable_smcpctl-yes}"
+echo "Building smcpd ................. ${enable_smcpd-yes}"
+echo "Building examples .............. ${enable_examples-yes}"
+echo "Building plugtest .............. ${enable_plugtest-yes}"
+echo "Embedded mode .................. ${enable_embedded-no}"
+echo "DTLS Support ................... ${enable_dtls-no}"
+echo ""
 
 $HAVE_LIBREADLINE ||
 	echo "warning: libreadline was disabled or not found, interactive smcpctl command line interface will not be enabled."

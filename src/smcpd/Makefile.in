@@ -34,8 +34,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = smcpd$(EXEEXT)
-@HAVE_GE_RS232_TRUE@am__append_1 = ge-rs232.o ge-system-node.o
+@BUILD_SMCPD_TRUE@bin_PROGRAMS = smcpd$(EXEEXT)
 subdir = src/smcpd
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/smcpd.conf.in
@@ -57,7 +56,7 @@ am_smcpd_OBJECTS = smcpd-main.$(OBJEXT) smcpd-cgi-node.$(OBJEXT) \
 	smcpd-system-node.$(OBJEXT) smcpd-ud-var-node.$(OBJEXT) \
 	smcpd-pairing-node.$(OBJEXT) smcpd-group-node.$(OBJEXT)
 smcpd_OBJECTS = $(am_smcpd_OBJECTS)
-smcpd_DEPENDENCIES = ../smcp/libsmcp.la $(am__append_1)
+smcpd_DEPENDENCIES = ../smcp/libsmcp.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -221,7 +220,7 @@ AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
 smcpd_SOURCES = main.c help.h cgi-node.c cgi-node.h system-node.c \
 	system-node.h ud-var-node.c ud-var-node.h pairing-node.c \
 	pairing-node.h group-node.c group-node.h
-smcpd_LDADD = ../smcp/libsmcp.la $(am__append_1)
+smcpd_LDADD = ../smcp/libsmcp.la
 smcpd_CPPFLAGS = $(AM_CPPFLAGS) $(OPENSSL_INCLUDES)
 
 # Commented out for now, until we get configuration directory support added.
@@ -640,20 +639,6 @@ uninstall-am: uninstall-binPROGRAMS
 	pdf pdf-am ps ps-am tags uninstall uninstall-am \
 	uninstall-binPROGRAMS
 
-
-@HAVE_GE_RS232_TRUE@ge-rs232.o: $(top_srcdir)/../ge-rs232/ge-rs232.c
-@HAVE_GE_RS232_TRUE@@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/`basename $*`.Tpo -c -o $@ $<
-@HAVE_GE_RS232_TRUE@@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/`basename $*`.Tpo $(DEPDIR)/`basename $*`.Po
-@HAVE_GE_RS232_TRUE@@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@HAVE_GE_RS232_TRUE@@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@HAVE_GE_RS232_TRUE@@am__fastdepCC_FALSE@	$(COMPILE) -c $<
-
-@HAVE_GE_RS232_TRUE@ge-system-node.o: $(top_srcdir)/../ge-rs232/ge-system-node.c
-@HAVE_GE_RS232_TRUE@@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/`basename $*`.Tpo -c -o $@ $<
-@HAVE_GE_RS232_TRUE@@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/`basename $*`.Tpo $(DEPDIR)/`basename $*`.Po
-@HAVE_GE_RS232_TRUE@@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@HAVE_GE_RS232_TRUE@@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@HAVE_GE_RS232_TRUE@@am__fastdepCC_FALSE@	$(COMPILE) -c $<
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

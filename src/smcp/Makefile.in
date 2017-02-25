@@ -16,7 +16,6 @@
 @SET_MAKE@
 
 
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -38,7 +37,7 @@ build_triplet = @build@
 host_triplet = @host@
 @HAVE_LIBCURL_TRUE@am__append_1 = smcp-curl_proxy.c
 @HAVE_LIBCURL_TRUE@am__append_2 = smcp-curl_proxy.h
-noinst_PROGRAMS = btreetest$(EXEEXT)
+check_PROGRAMS = btreetest$(EXEEXT)
 TESTS = btreetest$(EXEEXT)
 subdir = src/smcp
 DIST_COMMON = $(am__pkginclude_HEADERS_DIST) $(srcdir)/Makefile.am \
@@ -119,7 +118,6 @@ am__v_lt_0 = --silent
 libsmcp_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libsmcp_la_CFLAGS) \
 	$(CFLAGS) $(libsmcp_la_LDFLAGS) $(LDFLAGS) -o $@
-PROGRAMS = $(noinst_PROGRAMS)
 am_btreetest_OBJECTS = btreetest-btree.$(OBJEXT)
 btreetest_OBJECTS = $(am_btreetest_OBJECTS)
 btreetest_LDADD = $(LDADD)
@@ -409,8 +407,8 @@ clean-libLTLIBRARIES:
 libsmcp.la: $(libsmcp_la_OBJECTS) $(libsmcp_la_DEPENDENCIES) $(EXTRA_libsmcp_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(libsmcp_la_LINK) -rpath $(libdir) $(libsmcp_la_OBJECTS) $(libsmcp_la_LIBADD) $(LIBS)
 
-clean-noinstPROGRAMS:
-	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
+clean-checkPROGRAMS:
+	@list='$(check_PROGRAMS)'; test -n "$$list" || exit 0; \
 	echo " rm -f" $$list; \
 	rm -f $$list || exit $$?; \
 	test -n "$(EXEEXT)" || exit 0; \
@@ -852,9 +850,10 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
 check: check-am
-all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(HEADERS) smcp-config.h
+all-am: Makefile $(LTLIBRARIES) $(HEADERS) smcp-config.h
 installdirs:
 	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
@@ -893,8 +892,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
-	clean-noinstPROGRAMS mostlyclean-am
+clean-am: clean-checkPROGRAMS clean-generic clean-libLTLIBRARIES \
+	clean-libtool mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ../../src/missing//$(DEPDIR) ./$(DEPDIR)
@@ -965,8 +964,8 @@ uninstall-am: uninstall-libLTLIBRARIES uninstall-pkgincludeHEADERS
 .MAKE: all check-am install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-TESTS check-am clean \
-	clean-generic clean-libLTLIBRARIES clean-libtool \
-	clean-noinstPROGRAMS ctags distclean distclean-compile \
+	clean-checkPROGRAMS clean-generic clean-libLTLIBRARIES \
+	clean-libtool ctags distclean distclean-compile \
 	distclean-generic distclean-hdr distclean-libtool \
 	distclean-tags distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am install-dvi \
