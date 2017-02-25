@@ -174,7 +174,7 @@ plugtest_separate_handler(
 #endif
 
 		transaction = smcp_transaction_init(
-			NULL,
+			transaction,
 			SMCP_TRANSACTION_DELAY_START|SMCP_TRANSACTION_ALWAYS_INVALIDATE,
 			&plugtest_separate_async_resend_response,
 			&plugtest_separate_async_ack_handler,

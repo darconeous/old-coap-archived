@@ -89,7 +89,7 @@ main(void)
 {
 	smcp_t instance;
 	smcp_node_t root_node;
-	struct smcp_observable_s observable = { NULL };
+	struct smcp_observable_s observable = { 0 };
 	time_t next_trigger;
 
 	SMCP_LIBRARY_VERSION_CHECK();

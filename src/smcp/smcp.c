@@ -275,7 +275,6 @@ smcp_get_next_msg_id(smcp_t self) {
 	return self->last_msg_id;
 }
 
-#if !SMCP_EMBEDDED || DEBUG
 const char* smcp_status_to_cstr(int x) {
 	switch(x) {
 	case SMCP_STATUS_OK: return "OK"; break;
@@ -328,7 +327,6 @@ const char* smcp_status_to_cstr(int x) {
 	}
 	return NULL;
 }
-#endif
 
 coap_code_t smcp_convert_status_to_result_code(smcp_status_t status) {
 	coap_code_t ret = COAP_RESULT_500_INTERNAL_SERVER_ERROR;

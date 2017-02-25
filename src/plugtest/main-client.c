@@ -87,6 +87,8 @@ dump_test_results(const test_data_s *test_data) {
 	}
 	{
 		smcp_cms_t duration = smcp_plat_timestamp_diff(test_data->stop_time,test_data->start_time);
+		//printf("\tstart-time: %d\n", (int)test_data->start_time);
+		//printf("\tstop-time: %dms\n", (int)test_data->stop_time);
 		printf("\tduration: %dms\n", (int)duration);
 
 	}
@@ -279,7 +281,12 @@ test_simple(smcp_t smcp, test_data_s *test_data, const char* url, const char* re
 {
 	smcp_cms_t timeout = 15*MSEC_PER_SEC;
 	smcp_status_t status;
+#if SMCP_AVOID_MALLOC && !SMCP_TRANSACTION_POOL_SIZE
+	struct smcp_transaction_s transaction_backing;
+	smcp_transaction_t transaction = &transaction_backing;
+#else
 	smcp_transaction_t transaction = NULL;
+#endif
 	int t_flags = SMCP_TRANSACTION_ALWAYS_INVALIDATE | SMCP_TRANSACTION_NO_AUTO_END;
 	smcp_timestamp_t expiry = smcp_plat_cms_to_timestamp(timeout+MSEC_PER_SEC);
 	memset(test_data,0,sizeof(*test_data));
@@ -342,6 +349,13 @@ test_simple(smcp_t smcp, test_data_s *test_data, const char* url, const char* re
 	test_data->failed = false;
 
 bail:
+	if (test_data->error == 0) {
+		test_data->error = status;
+	}
+	if (test_data->stop_time == 0) {
+		test_data->stop_time = smcp_plat_cms_to_timestamp(0);
+	}
+
 	if (transaction) {
 		smcp_transaction_end(smcp, transaction);
 	}
@@ -687,9 +701,9 @@ main(int argc, char * argv[]) {
 
 	printf("Client using port %d. Will test %d rounds.\n", smcp_plat_get_port(smcp), round_count);
 
-#define do_test(x)	do { printf("%s: Testing...\n",#x); if(test_ ## x(smcp,url,&test_data)) { dump_test_results(&test_data); printf("\tresult = OK\n"); } else { dump_test_results(&test_data); printf("\tresult = FAIL\n"); errorcount++; } } while(0)
+#define do_test(x)	do { printf("%s: Testing...\n",#x); if(test_ ## x(smcp,url,&test_data)) { dump_test_results(&test_data); printf("\tRESULT = OK\n\n"); } else { dump_test_results(&test_data); printf("\tRESULT = FAIL ****\n\n"); errorcount++; } } while(0)
 
-#define do_test_expect_fail(x)	do { printf("%s: Testing...\n",#x); if(test_ ## x(smcp,url,&test_data)) { dump_test_results(&test_data); printf("\tresult = OK (Unexpected)\n"); } else { dump_test_results(&test_data); printf("\tresult = FAIL (Expected)\n"); } } while(0)
+#define do_test_expect_fail(x)	do { printf("%s: Testing...\n",#x); if(test_ ## x(smcp,url,&test_data)) { dump_test_results(&test_data); printf("\tRESULT = OK (Unexpected) ****\n\n"); } else { dump_test_results(&test_data); printf("\tRESULT = FAIL (Expected)\n\n"); } } while(0)
 
 	for(round = 0;round<round_count && errorcount==0;round++) {
 		printf("\n## Round %d...\n",round+1);
@@ -711,12 +725,15 @@ main(int argc, char * argv[]) {
 
 		do_test(TD_COAP_LINK_01);
 
+#if SMCP_CONF_TRANS_ENABLE_BLOCK2
 		do_test(TD_COAP_BLOCK_01);
 		do_test(TD_COAP_BLOCK_02);
 
 		do_test_expect_fail(TD_COAP_BLOCK_03);
 		do_test_expect_fail(TD_COAP_BLOCK_04);
 		do_test_expect_fail(TD_COAP_BLOCK_05);
+#endif
+
 		do_test(TD_COAP_OBS_01);
 	}
 

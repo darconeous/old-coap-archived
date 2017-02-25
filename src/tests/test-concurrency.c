@@ -175,12 +175,18 @@ thread_main(void* context)
 int
 main(void)
 {
+#if SMCP_EMBEDDED
+	// We skip this test when built as a singleton
+	// because there is only ever one instance.
+	printf("SKIP\n");
+	return EXIT_SUCCESS;
+#endif
+
 	smcp_t instance;
 	struct test_concurrency_thread_s threads[NUMBER_OF_THREADS] = { };
 	int i;
 	bool is_finished = false;
 	smcp_timestamp_t start_time = smcp_plat_cms_to_timestamp(0);
-
 
 	SMCP_LIBRARY_VERSION_CHECK();
 

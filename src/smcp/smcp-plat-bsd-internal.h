@@ -53,6 +53,11 @@
 #define SMCP_BSD_SOCKETS_NET_FAMILY		AF_INET6
 #endif
 
+#if SMCP_EMBEDDED
+#define smcp_internal_multicast_joinleave(self,...)		smcp_internal_multicast_joinleave(__VA_ARGS__)
+#endif
+
+
 #define SMCP_ADDR_NTOP(str, len, addr) inet_ntop(SMCP_BSD_SOCKETS_NET_FAMILY, addr , str, len-1)
 
 #if SMCP_BSD_SOCKETS_NET_FAMILY == AF_INET6

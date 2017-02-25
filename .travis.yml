@@ -21,12 +21,16 @@ after_success:
     - ssh-agent .travis/after_success.sh
 
 env:
-    - BUILD_PLATFORM='unix' BUILD_MAKEPATH='build' BUILD_MAKEARGS='distcheck'
+    - BUILD_MAKEARGS='distcheck' BUILD_PLATFORM='unix' BUILD_MAKEPATH='build'
+    - BUILD_MAKEARGS='check' BUILD_CONFIGFLAGS='--enable-embedded SMCP_CONF_TRANS_ENABLE_BLOCK2=1 SMCP_CONF_TRANS_ENABLE_OBSERVING=1' BUILD_PLATFORM='unix' BUILD_MAKEPATH='build'
+    - BUILD_MAKEARGS='check' BUILD_CONFIGFLAGS='--enable-dtls' BUILD_PLATFORM='unix' BUILD_MAKEPATH='build'
 
 matrix:
     exclude:
         - os: osx
           compiler: gcc
+        - os: osx
+          env: BUILD_MAKEARGS='check' BUILD_CONFIGFLAGS='--enable-dtls' BUILD_PLATFORM='unix' BUILD_MAKEPATH='build'
     include:
         - os: linux
           compiler: gcc

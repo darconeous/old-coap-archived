@@ -102,13 +102,33 @@ AC_ARG_ENABLE(debug, AC_HELP_STRING([--enable-debug],
     fi
 ])
 
-AC_ARG_ENABLE(embedded, AC_HELP_STRING([--enable-embedded],
-            [enable embedded mode (instance is singleton)]), [
-    if test "${enableval}" = "yes"
-	then SMCP_EMBEDDED=1
-	     SMCP_USE_BSD_SOCKETS=1
-    fi
-])
+
+AC_ARG_ENABLE(embedded, AC_HELP_STRING([--enable-embedded], [enable embedded mode (instance is singleton)]), [])
+AC_ARG_ENABLE(examples, AC_HELP_STRING([--disable-examples], [Disable building examples and plugtests]), [])
+AC_ARG_ENABLE(smcpctl, AC_HELP_STRING([--disable-smcpctl], [Disable building smcpctl]), [])
+AC_ARG_ENABLE(smcpd, AC_HELP_STRING([--disable-smcpd], [Disable building smcpd]), [])
+AC_ARG_ENABLE(plugtest, AC_HELP_STRING([--disable-plugtest], [Disable building plugtest]), [])
+AC_ARG_ENABLE(dtls, AC_HELP_STRING([--enable-dtls], [Enable experimental DTLS support]), [])
+
+case "${enable_dtls-no}" in
+	no)  SMCP_DTLS=0 ;;
+	yes) SMCP_DTLS=1 ;;
+	*)   AC_MSG_ERROR([Invalid value ${enableval} for --enable-dtls]) ;;
+esac
+
+if test "${enable_embedded}" = "yes"
+then
+	SMCP_EMBEDDED=1
+	SMCP_USE_BSD_SOCKETS=${SMCP_USE_BSD_SOCKETS-1}
+	SMCP_CONF_NODE_ROUTER=${SMCP_CONF_NODE_ROUTER-1}
+	enable_smcpctl=${enable_smcpctl-no}
+	enable_smcpd=${enable_smcpd-no}
+fi
+
+AM_CONDITIONAL([BUILD_EXAMPLES],test "${enable_examples}" != "no")
+AM_CONDITIONAL([BUILD_SMCPCTL],test "${enable_smcpctl}" != "no")
+AM_CONDITIONAL([BUILD_SMCPD],test "${enable_smcpd}" != "no")
+AM_CONDITIONAL([BUILD_PLUGTEST],test "${enable_plugtest}" != "no")
 
 AC_ARG_WITH(address-family, AC_HELP_STRING([--with-address-family=[inet|inet6]],
             [Specify address family (inet6 is the default)]), [
@@ -178,22 +198,9 @@ AC_CHECK_FUNCS([rl_set_prompt])
 
 AX_PTHREAD
 
-AC_ARG_ENABLE(dtls,
-    [  --enable-dtls    Enable experimental DTLS support],
-	[
-		case "${enableval}" in
-			no)  SMCP_DTLS=0 ;;
-			yes) SMCP_DTLS=1 ;;
-			*)   AC_MSG_ERROR([Invalid value ${enableval} for --enable-dtls]) ;;
-		esac
-	],
-	[
-		SMCP_DTLS="${SMCP_DTLS-0}"
-	]
-)
-
 if test "${SMCP_DTLS}" == "1"
 then
+enable_dtls=yes
 AX_CHECK_OPENSSL([
 	SMCP_DTLS=1
 	SMCP_DTLS_OPENSSL=1
@@ -256,6 +263,9 @@ AM_CONDITIONAL([HAVE_GE_RS232],[test "$smcp_cv_have_ge_rs232" = yes])
 if test "${SMCP_EMBEDDED+set}" = "set"
 then AC_DEFINE_UNQUOTED([SMCP_EMBEDDED], [$SMCP_EMBEDDED], [.])
 fi
+if test "${SMCP_CONF_NODE_ROUTER+set}" = "set"
+then AC_DEFINE_UNQUOTED([SMCP_CONF_NODE_ROUTER], [$SMCP_CONF_NODE_ROUTER], [.])
+fi
 if test "${SMCP_DTLS+set}" = "set"
 then AC_DEFINE_UNQUOTED([SMCP_DTLS], [$SMCP_DTLS], [.])
 fi
@@ -311,6 +321,17 @@ AC_CONFIG_FILES(
 )
 
 AC_OUTPUT
+
+echo ""
+echo "= Summary ====================================================================="
+echo ""
+echo "Building smcpctl ............... ${enable_smcpctl-yes}"
+echo "Building smcpd ................. ${enable_smcpd-yes}"
+echo "Building examples .............. ${enable_examples-yes}"
+echo "Building plugtest .............. ${enable_plugtest-yes}"
+echo "Embedded mode .................. ${enable_embedded-no}"
+echo "DTLS Support ................... ${enable_dtls-no}"
+echo ""
 
 $HAVE_LIBREADLINE ||
 	echo "warning: libreadline was disabled or not found, interactive smcpctl command line interface will not be enabled."
