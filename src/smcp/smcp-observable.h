@@ -84,6 +84,9 @@ SMCP_API_EXTERN smcp_status_t smcp_observable_update(
 	uint8_t key		//!< [IN] Key for this resource (must be same as used in trigger)
 );
 
+#define SMCP_OBS_TRIGGER_FLAG_NO_INCREMENT    (1<<0)
+#define SMCP_OBS_TRIGGER_FLAG_FORCE_CON       (1<<1)
+
 //!	Triggers an observable resource to send an update to its observers.
 /*!
 **	You may use SMCP_OBSERVABLE_BROADCAST_KEY for the key to trigger
@@ -92,7 +95,7 @@ SMCP_API_EXTERN smcp_status_t smcp_observable_update(
 SMCP_API_EXTERN smcp_status_t smcp_observable_trigger(
 	smcp_observable_t context, //!< [IN] Pointer to observable context
 	uint8_t key,	//!< [IN] Key for this resource (must be same as used in update)
-	uint8_t flags	//!< [IN] Flags (Currently unused, set to zero)
+	uint8_t flags	//!< [IN] Flags
 );
 
 //!	Triggers all observable resources to send a CON update to their observers.
@@ -103,7 +106,7 @@ SMCP_API_EXTERN smcp_status_t smcp_observable_trigger(
 **	rather than being automatic so that you can schedule this to
 **	occur as opportune times, like during scheduled wakeups.
 */
-SMCP_API_EXTERN void smcp_refresh_observers(smcp_t interface);
+SMCP_API_EXTERN void smcp_refresh_observers(smcp_t interface, uint8_t flags);
 
 //! Returns the number of active observers.
 SMCP_API_EXTERN int smcp_count_observers(smcp_t interface);

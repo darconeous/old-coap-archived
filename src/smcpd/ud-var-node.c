@@ -383,10 +383,12 @@ ud_var_node_process(ud_var_node_t self) {
 		smcp_cms_t next_poll = smcp_plat_timestamp_to_cms(self->next_poll);
 
 		struct pollfd fdset[1];
+		uint8_t flags = 0;
 
 		if (next_refresh <= 0 || next_refresh > self->refresh_period) {
 			self->next_refresh = smcp_plat_cms_to_timestamp(self->refresh_period);
 			trigger_it = true;
+			flags = SMCP_OBS_TRIGGER_FLAG_NO_INCREMENT;
 		}
 
 		fdset[0].fd = self->fd;
@@ -425,7 +427,7 @@ ud_var_node_process(ud_var_node_t self) {
 			smcp_observable_trigger(
 				&self->observable,
 				SMCP_OBSERVABLE_BROADCAST_KEY,
-				0
+				flags
 			);
 		}
 	}

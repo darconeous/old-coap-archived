@@ -146,15 +146,15 @@ pairing_node_init(
 	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_pairing_mgr_request_handler;
 	((smcp_node_t)&self->node)->context = (void*)&self->pairing_mgr;
 
-	self->next_observer_refresh = smcp_plat_cms_to_timestamp(MSEC_PER_SEC*60*10);
+	self->next_observer_refresh = smcp_plat_cms_to_timestamp(SMCP_OBSERVATION_KEEPALIVE_INTERVAL - MSEC_PER_SEC);
 
-	require(file != NULL,bail);
+	require(file != NULL, bail);
 
 	while(!feof(file) && (line=fgetln(file,&line_len))) {
 		char *cmd = get_next_arg(line, &line);
-		if(!cmd) {
+		if (!cmd) {
 			continue;
-		} else if(strcaseequal(cmd,"Pairing")) {
+		} else if (strcaseequal(cmd, "Pairing")) {
 			char* pairing_id_str = get_next_arg(line, &line);
 			char* pairing_local_path_str = get_next_arg(line, &line);
 			char* pairing_remote_url_str = get_next_arg(line, &line);
@@ -217,8 +217,8 @@ smcp_status_t
 pairing_node_process(pairing_node_t self)
 {
 	if (smcp_plat_timestamp_to_cms(self->next_observer_refresh) < 0) {
-		self->next_observer_refresh = smcp_plat_cms_to_timestamp(MSEC_PER_SEC*60*10);
-		smcp_refresh_observers(self->interface);
+		self->next_observer_refresh = smcp_plat_cms_to_timestamp(SMCP_OBSERVATION_KEEPALIVE_INTERVAL - MSEC_PER_SEC);
+		smcp_refresh_observers(self->interface, SMCP_OBS_TRIGGER_FLAG_NO_INCREMENT|SMCP_OBS_TRIGGER_FLAG_FORCE_CON);
 	}
 	return SMCP_STATUS_OK;
 }
