@@ -186,10 +186,6 @@ smcp_pairing_set_content_type(smcp_pairing_t self, coap_content_type_t x)
 	return SMCP_STATUS_OK;
 }
 
-
-
-
-
 smcp_pairing_type_t
 smcp_pairing_get_type(smcp_pairing_t self)
 {
@@ -257,7 +253,35 @@ pairing_response_handler_callback(int statuscode, smcp_pairing_t pairing)
 		smcp_observable_trigger(&pairing->var_handler.observable, I_FIRE_COUNT, 0);
 	}
 
-	if (statuscode == COAP_RESULT_205_CONTENT) {
+	if (statuscode != COAP_RESULT_205_CONTENT) {
+		return SMCP_STATUS_OK;
+	}
+
+	// Verify that the sequence number has incremented or reset to zero
+	if (smcp_instance->inbound.has_observe_option) {
+		int diff = (int)smcp_instance->inbound.observe_value - (int)pairing->seq;
+
+		if ( (pairing->seq != 0)
+		  && (smcp_instance->inbound.observe_value == 0)
+		) {
+			pairing->seq = 0;
+			diff = 1;
+		}
+
+		if ( (pairing->seq != 0)
+		  && (smcp_instance->inbound.observe_value != 0)
+		  && (diff <= 0)
+		) {
+			// Don't process sequences we have already handled or that
+			// are earlier than our last received sequence (unless that
+			// sequence is the special number 0)
+			return SMCP_STATUS_OK;
+		}
+
+		pairing->seq = smcp_instance->inbound.observe_value;
+	}
+
+	{
 		// Store all of our state on the stack so that
 		// we can restore it after we handle the fake
 		// POST request.
@@ -483,6 +507,7 @@ smcp_pairing_mgr_new_pairing(
 	ret->in_use = true;
 	ret->enabled = false;
 	ret->stable = false;
+	ret->seq = 0xFFFFFFFF;
 	ret->type = SMCP_PAIRING_TYPE_PULL;
 	ret->content_type = COAP_CONTENT_TYPE_UNKNOWN;
 	ret->var_handler.func = smcp_paring_variable_handler;
@@ -679,6 +704,8 @@ request_handler_new_pairing_(
 	char* value = NULL;
 	smcp_pairing_t pairing = NULL;
 	char name_str[3] = { };
+	bool is_stable = false;
+	bool is_enabled = false;
 
 	content_type = smcp_inbound_get_content_type();
 	content_ptr = (char*)smcp_inbound_get_content_ptr();
@@ -704,6 +731,12 @@ request_handler_new_pairing_(
 			} else if (strequal_const(key, "l")) {
 				local_path = value;
 				DEBUG_PRINTF("new_pairing: local_path=\"%s\"", local_path);
+			} else if (strequal_const(key, "s")) {
+				is_stable = (value[0] == '1');
+				DEBUG_PRINTF("new_pairing: is_stable=%d", (int)is_stable);
+			} else if (strequal_const(key, "e")) {
+				is_enabled = (value[0] == '1');
+				DEBUG_PRINTF("new_pairing: is_enabled=%d", (int)is_enabled);
 			}
 		}
 		break;
@@ -731,6 +764,9 @@ request_handler_new_pairing_(
 	smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, name_str, SMCP_CSTR_LEN);
 	smcp_outbound_append_content(name_str, SMCP_CSTR_LEN);
 	smcp_outbound_send();
+
+	smcp_pairing_set_enabled(pairing, is_enabled);
+	smcp_pairing_set_stable(pairing, is_stable);
 
 bail:
 	return ret;

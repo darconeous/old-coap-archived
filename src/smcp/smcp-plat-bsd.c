@@ -1025,7 +1025,7 @@ smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr, int flag
 	for(iter = results;iter && (iter->ai_family!=AF_INET6 && iter->ai_family!=AF_INET);iter=iter->ai_next);
 
 	require_action(
-		iter,
+		iter != NULL,
 		bail,
 		ret = SMCP_STATUS_HOST_LOOKUP_FAILURE
 	);
@@ -1042,19 +1042,24 @@ smcp_plat_lookup_hostname(const char* hostname, smcp_sockaddr_t* saddr, int flag
 		memcpy(saddr, iter->ai_addr, iter->ai_addrlen);
 	}
 
+	// TODO: I don't think this goes here...
 	if(SMCP_IS_ADDR_MULTICAST(&saddr->smcp_addr)) {
 		smcp_t const self = smcp_get_current_instance();
-		check(self->outbound.packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
-		if(self->outbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
-			self->outbound.packet->tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
+		if (self != NULL && self->outbound.packet != NULL) {
+			check(self->outbound.packet->tt != COAP_TRANS_TYPE_CONFIRMABLE);
+			if(self->outbound.packet->tt == COAP_TRANS_TYPE_CONFIRMABLE) {
+				self->outbound.packet->tt = COAP_TRANS_TYPE_NONCONFIRMABLE;
+			}
 		}
 	}
 
 	ret = SMCP_STATUS_OK;
 
 bail:
-	if(results)
+	if (results) {
 		freeaddrinfo(results);
+	}
+
 	return ret;
 }
 

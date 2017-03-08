@@ -270,10 +270,14 @@ bail:
 }
 
 static smcp_status_t
-trigger_observer(smcp_t interface, struct smcp_observer_s* observer, bool force_con)
+trigger_observer(smcp_t interface, struct smcp_observer_s* observer, int flags)
 {
 	smcp_status_t ret = SMCP_STATUS_OK;
-	observer->seq++;
+	const bool force_con = ((flags & SMCP_OBS_TRIGGER_FLAG_FORCE_CON) == SMCP_OBS_TRIGGER_FLAG_FORCE_CON);
+
+	if ((flags & SMCP_OBS_TRIGGER_FLAG_NO_INCREMENT) != SMCP_OBS_TRIGGER_FLAG_NO_INCREMENT) {
+		observer->seq++;
+	}
 
 	// If we are about to need confirmation, then
 	// clear out the previous transaction so we can
@@ -332,7 +336,7 @@ smcp_count_observers(smcp_t interface)
 }
 
 void
-smcp_refresh_observers(smcp_t interface)
+smcp_refresh_observers(smcp_t interface, uint8_t flags)
 {
 	int8_t i = 0;
 	for (; i < SMCP_MAX_OBSERVERS; i++) {
@@ -343,7 +347,7 @@ smcp_refresh_observers(smcp_t interface)
 		  && (observer->observable->interface == interface)
 #endif
 		) {
-			trigger_observer(interface, observer, true);
+			trigger_observer(interface, observer, flags);
 		}
 	}
 }
@@ -378,7 +382,7 @@ smcp_observable_trigger(smcp_observable_t context, uint8_t key, uint8_t flags)
 		) {
 			continue;
 		}
-		ret = trigger_observer(interface, &observer_table[i], false);
+		ret = trigger_observer(interface, &observer_table[i], flags);
 	}
 
 bail:

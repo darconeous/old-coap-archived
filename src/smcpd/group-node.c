@@ -60,7 +60,6 @@
 struct group_node_s {
 	struct smcp_node_s node;
 	struct smcp_group_mgr_s group_mgr;
-	smcp_timestamp_t next_observer_refresh;
 	smcp_t interface;
 };
 
@@ -149,9 +148,9 @@ group_node_init(
 	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_group_mgr_request_handler;
 	((smcp_node_t)&self->node)->context = (void*)&self->group_mgr;
 
-	self->next_observer_refresh = smcp_plat_cms_to_timestamp(MSEC_PER_SEC*60*10);
-
 	require(file != NULL,bail);
+
+	syslog(LOG_INFO, "Parsing saved groups...");
 
 	while(!feof(file) && (line=fgetln(file,&line_len))) {
 		char *cmd = get_next_arg(line, &line);
@@ -163,6 +162,7 @@ group_node_init(
 			char* group_addr_str = get_next_arg(line, &line);
 			char* group_enabled_str = get_next_arg(line, &line);
 			smcp_sockaddr_t addr = {};
+			smcp_status_t status;
 
 			if ( (group_id_str == NULL)
 			  || (group_fqdn_str == NULL)
@@ -172,7 +172,11 @@ group_node_init(
 				break;
 			}
 
-			smcp_plat_lookup_hostname(group_addr_str, &addr, 0);
+			syslog(LOG_INFO, "Adding saved group %s \"%s\", (%s)", group_id_str, group_fqdn_str, group_addr_str);
+
+			status = smcp_plat_lookup_hostname(group_addr_str, &addr, 0);
+
+			check_noerr(status);
 
 			smcp_group_t group = smcp_group_mgr_new_group(
 				&self->group_mgr,
@@ -211,19 +215,12 @@ group_node_update_fdset(
     int *fd_count,
 	smcp_cms_t *timeout
 ) {
-	if (timeout) {
-		*timeout = smcp_plat_timestamp_to_cms(self->next_observer_refresh);
-	}
 	return SMCP_STATUS_OK;
 }
 
 smcp_status_t
 group_node_process(group_node_t self)
 {
-	if (smcp_plat_timestamp_to_cms(self->next_observer_refresh) < 0) {
-		self->next_observer_refresh = smcp_plat_cms_to_timestamp(MSEC_PER_SEC*60*10);
-		smcp_refresh_observers(self->interface);
-	}
 	return SMCP_STATUS_OK;
 }
 

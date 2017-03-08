@@ -105,6 +105,7 @@ struct smcp_pairing_s {
 	unsigned type:2;
 
 	smcp_status_t last_code;
+	uint32_t seq;
 	int fire_count;
 	coap_content_type_t content_type;
 

@@ -469,7 +469,7 @@ PROCESS_THREAD(smcp_simple, ev, data)
 	do {
 		PROCESS_WAIT_EVENT();
 
-		if(ev == sensors_event) {
+		if (ev == sensors_event) {
 			smcp_observable_trigger(&sensor_variable_handler.observable,SMCP_OBSERVABLE_BROADCAST_KEY,0);
 		}
 	} while(1);
