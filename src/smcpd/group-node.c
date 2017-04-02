@@ -41,10 +41,9 @@
 #include "smcp/assert-macros.h"
 
 #include <stdio.h>
+#include <libnyoci/libnyoci.h>
+#include <libnyociextra/libnyociextra.h>
 #include <smcp/smcp.h>
-#include <smcp/smcp-node-router.h>
-#include <smcp/smcp-group.h>
-#include <smcp/smcp-missing.h>
 
 #include "group-node.h"
 
@@ -55,12 +54,12 @@
 #include <errno.h>
 #include <missing/fgetln.h>
 
-#define SMCP_ADDR_NTOP(str, len, addr) inet_ntop(SMCP_BSD_SOCKETS_NET_FAMILY, addr , str, len-1)
+#define NYOCI_ADDR_NTOP(str, len, addr) inet_ntop(NYOCI_PLAT_NET_POSIX_FAMILY, addr , str, len-1)
 
 struct group_node_s {
-	struct smcp_node_s node;
+	struct nyoci_node_s node;
 	struct smcp_group_mgr_s group_mgr;
-	smcp_t interface;
+	nyoci_t interface;
 };
 
 extern char* get_next_arg(char *buf, char **rest);
@@ -80,7 +79,7 @@ group_node_commit_stable(const char* path, smcp_group_mgr_t mgr)
 
 	for (; iter != NULL; iter = smcp_group_mgr_groups_next(mgr, iter)) {
 		char addr_cstr[40];
-		SMCP_ADDR_NTOP(addr_cstr, sizeof(addr_cstr), smcp_group_get_addr(iter));
+		NYOCI_ADDR_NTOP(addr_cstr, sizeof(addr_cstr), smcp_group_get_addr(iter));
 		if (!smcp_group_get_stable(iter)) {
 			continue;
 		}
@@ -115,14 +114,14 @@ group_node_dealloc(group_node_t self) {
 group_node_t
 group_node_alloc() {
 	group_node_t ret = (group_node_t)calloc(sizeof(struct group_node_s), 1);
-	ret->node.finalize = (void (*)(smcp_node_t)) &group_node_dealloc;
+	ret->node.finalize = (void (*)(nyoci_node_t)) &group_node_dealloc;
 	return ret;
 }
 
 group_node_t
 group_node_init(
 	group_node_t self,
-	smcp_node_t parent,
+	nyoci_node_t parent,
 	const char* name,
 	const char* path
 ) {
@@ -133,7 +132,7 @@ group_node_init(
 	require(name != NULL, bail);
 
 	require(self || (self = group_node_alloc()), bail);
-	require(smcp_node_init(
+	require(nyoci_node_init(
 			&self->node,
 			(void*)parent,
 			name
@@ -141,12 +140,12 @@ group_node_init(
 
 	self->node.has_link_content = 1;
 //	self->node.is_observable = 1;
-	self->interface = smcp_get_current_instance();
+	self->interface = nyoci_get_current_instance();
 
 	smcp_group_mgr_init(&self->group_mgr, self->interface);
 
-	((smcp_node_t)&self->node)->request_handler = (void*)&smcp_group_mgr_request_handler;
-	((smcp_node_t)&self->node)->context = (void*)&self->group_mgr;
+	((nyoci_node_t)&self->node)->request_handler = (void*)&smcp_group_mgr_request_handler;
+	((nyoci_node_t)&self->node)->context = (void*)&self->group_mgr;
 
 	require(file != NULL,bail);
 
@@ -161,8 +160,8 @@ group_node_init(
 			char* group_fqdn_str = get_next_arg(line, &line);
 			char* group_addr_str = get_next_arg(line, &line);
 			char* group_enabled_str = get_next_arg(line, &line);
-			smcp_sockaddr_t addr = {};
-			smcp_status_t status;
+			nyoci_sockaddr_t addr = {};
+			nyoci_status_t status;
 
 			if ( (group_id_str == NULL)
 			  || (group_fqdn_str == NULL)
@@ -174,7 +173,7 @@ group_node_init(
 
 			syslog(LOG_INFO, "Adding saved group %s \"%s\", (%s)", group_id_str, group_fqdn_str, group_addr_str);
 
-			status = smcp_plat_lookup_hostname(group_addr_str, &addr, 0);
+			status = nyoci_plat_lookup_hostname(group_addr_str, &addr, 0);
 
 			check_noerr(status);
 
@@ -206,39 +205,39 @@ bail:
 	return self;
 }
 
-smcp_status_t
+nyoci_status_t
 group_node_update_fdset(
 	group_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 ) {
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
-smcp_status_t
+nyoci_status_t
 group_node_process(group_node_t self)
 {
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
 
 
-smcp_status_t
+nyoci_status_t
 SMCPD_module__group_node_process(group_node_t self) {
 	return group_node_process(self);
 }
 
-smcp_status_t
+nyoci_status_t
 SMCPD_module__group_node_update_fdset(
 	group_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 ) {
 	return group_node_update_fdset(self, read_fd_set, write_fd_set, error_fd_set, fd_count, timeout);
 }
@@ -246,7 +245,7 @@ SMCPD_module__group_node_update_fdset(
 group_node_t
 SMCPD_module__group_node_init(
 	group_node_t	self,
-	smcp_node_t			parent,
+	nyoci_node_t			parent,
 	const char*			name,
 	const char*			cmd
 ) {

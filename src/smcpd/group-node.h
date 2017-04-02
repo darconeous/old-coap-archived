@@ -31,29 +31,29 @@
 #ifndef group_node_h
 #define group_node_h
 
-#include <smcp/smcp.h>
+#include <libnyoci/libnyoci.h>
 
 struct group_node_s;
 
 typedef struct group_node_s* group_node_t;
 
-extern smcp_status_t
+extern nyoci_status_t
 SMCPD_module__group_node_process(group_node_t self);
 
-extern smcp_status_t
+extern nyoci_status_t
 SMCPD_module__group_node_update_fdset(
 	group_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 );
 
 extern group_node_t
 SMCPD_module__group_node_init(
 	group_node_t	self,
-	smcp_node_t			parent,
+	nyoci_node_t			parent,
 	const char*			name,
 	const char*			cmd
 );

@@ -31,29 +31,29 @@
 #ifndef ud_var_node_h
 #define ud_var_node_h
 
-#include <smcp/smcp.h>
+#include <libnyoci/libnyoci.h>
 
 struct ud_var_node_s;
 
 typedef struct ud_var_node_s* ud_var_node_t;
 
-extern smcp_status_t
+extern nyoci_status_t
 SMCPD_module__ud_var_node_process(ud_var_node_t self);
 
-extern smcp_status_t
+extern nyoci_status_t
 SMCPD_module__ud_var_node_update_fdset(
 	ud_var_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 );
 
 extern ud_var_node_t
 SMCPD_module__ud_var_node_init(
 	ud_var_node_t	self,
-	smcp_node_t			parent,
+	nyoci_node_t			parent,
 	const char*			name,
 	const char*			cmd
 );

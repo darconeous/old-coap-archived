@@ -30,29 +30,29 @@
 #ifndef cgi_node_h
 #define cgi_node_h
 
-#include <smcp/smcp.h>
+#include <libnyoci/libnyoci.h>
 
 struct cgi_node_s;
 
 typedef struct cgi_node_s* cgi_node_t;
 
-extern smcp_status_t
+extern nyoci_status_t
 SMCPD_module__cgi_node_process(cgi_node_t self);
 
-extern smcp_status_t
+extern nyoci_status_t
 SMCPD_module__cgi_node_update_fdset(
 	cgi_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 );
 
 extern cgi_node_t
 SMCPD_module__cgi_node_init(
 	cgi_node_t	self,
-	smcp_node_t			parent,
+	nyoci_node_t			parent,
 	const char*			name,
 	const char*			cmd
 );
