@@ -30,10 +30,8 @@
 #ifndef __SMCP_GROUPS_H__
 #define __SMCP_GROUPS_H__ 1
 
-#include "smcp.h"
-#include "smcp-observable.h"
-#include "smcp-async.h"
-#include "smcp-variable_handler.h"
+#include <libnyoci/libnyoci.h>
+#include <libnyociextra/libnyociextra.h>
 
 __BEGIN_DECLS
 
@@ -55,10 +53,10 @@ struct smcp_group_s;
 typedef struct smcp_group_s *smcp_group_t;
 
 struct smcp_group_s {
-	struct smcp_variable_handler_s var_handler;
+	struct nyoci_var_handler_s var_handler;
 
 	char fqdn[128]; // TODO: make sure FQDN length is appropriate
-	smcp_sockaddr_t addr;
+	nyoci_sockaddr_t addr;
 
 	uint8_t index;
 	bool stable:1;
@@ -67,11 +65,11 @@ struct smcp_group_s {
 };
 
 struct smcp_group_mgr_s {
-	struct smcp_observable_s observable;
+	struct nyoci_observable_s observable;
 	struct smcp_group_s group_table[SMCP_CONF_MAX_GROUPS];
 
-#if !SMCP_EMBEDDED
-	smcp_t smcp_instance;
+#if !NYOCI_SINGLETON
+	nyoci_t nyoci_instance;
 #endif
 
 	// This function pointer should commit all stable
@@ -81,46 +79,46 @@ struct smcp_group_mgr_s {
 	void *context;
 };
 
-SMCP_API_EXTERN smcp_group_mgr_t smcp_group_mgr_init(
+NYOCI_API_EXTERN smcp_group_mgr_t smcp_group_mgr_init(
 	smcp_group_mgr_t self,
-	smcp_t smcp_instance
+	nyoci_t nyoci_instance
 );
 
-SMCP_API_EXTERN smcp_status_t smcp_group_mgr_request_handler(
+NYOCI_API_EXTERN nyoci_status_t smcp_group_mgr_request_handler(
 	smcp_group_mgr_t self
 );
 
-SMCP_API_EXTERN smcp_group_t smcp_group_mgr_new_group(
+NYOCI_API_EXTERN smcp_group_t smcp_group_mgr_new_group(
 	smcp_group_mgr_t self,
 	const char* fqdn,
-	const smcp_sockaddr_t* addr,
+	const nyoci_sockaddr_t* addr,
 	uint8_t i
 );
 
-SMCP_API_EXTERN smcp_group_t smcp_group_mgr_groups_begin(
+NYOCI_API_EXTERN smcp_group_t smcp_group_mgr_groups_begin(
 	smcp_group_mgr_t self
 );
 
-SMCP_API_EXTERN smcp_group_t smcp_group_mgr_groups_next(
+NYOCI_API_EXTERN smcp_group_t smcp_group_mgr_groups_next(
 	smcp_group_mgr_t self,
 	smcp_group_t prev
 );
 
-SMCP_API_EXTERN uint8_t smcp_group_get_id(smcp_group_t self);
+NYOCI_API_EXTERN uint8_t smcp_group_get_id(smcp_group_t self);
 
-SMCP_API_EXTERN bool smcp_group_get_stable(smcp_group_t self);
+NYOCI_API_EXTERN bool smcp_group_get_stable(smcp_group_t self);
 
-SMCP_API_EXTERN smcp_status_t smcp_group_set_stable(smcp_group_t self, bool x);
+NYOCI_API_EXTERN nyoci_status_t smcp_group_set_stable(smcp_group_t self, bool x);
 
-SMCP_API_EXTERN bool smcp_group_get_enabled(smcp_group_t self);
+NYOCI_API_EXTERN bool smcp_group_get_enabled(smcp_group_t self);
 
-SMCP_API_EXTERN smcp_status_t smcp_group_set_enabled(smcp_group_t self, bool x);
+NYOCI_API_EXTERN nyoci_status_t smcp_group_set_enabled(smcp_group_t self, bool x);
 
-SMCP_API_EXTERN const char* smcp_group_get_fqdn(smcp_group_t self);
+NYOCI_API_EXTERN const char* smcp_group_get_fqdn(smcp_group_t self);
 
-SMCP_API_EXTERN const smcp_sockaddr_t* smcp_group_get_addr(smcp_group_t self);
+NYOCI_API_EXTERN const nyoci_sockaddr_t* smcp_group_get_addr(smcp_group_t self);
 
-SMCP_API_EXTERN void smcp_group_mgr_delete(
+NYOCI_API_EXTERN void smcp_group_mgr_delete(
 	smcp_group_mgr_t self,
 	smcp_group_t group
 );

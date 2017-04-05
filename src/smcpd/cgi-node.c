@@ -44,10 +44,8 @@
 #include "smcp/assert-macros.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <smcp/smcp.h>
-#include <smcp/smcp-transaction.h>
-#include <smcp/smcp-node-router.h>
-#include <smcp/coap.h>
+#include <libnyoci/libnyoci.h>
+#include <libnyociextra/libnyociextra.h>
 #include <time.h>
 #include <errno.h>
 #include <unistd.h>
@@ -61,6 +59,26 @@
 
 #ifndef PACKAGE_VERSION
 #define PACKAGE_VERSION "0.0-xcode"
+#endif
+
+#ifndef MIN
+#if defined(__GCC_VERSION__)
+#define MIN(a, \
+		b) ({ __typeof__(a)_a = (a); __typeof__(b)_b = (b); _a < \
+			  _b ? _a : _b; })
+#else
+#define MIN(a,b)	((a)<(b)?(a):(b))	// NAUGHTY!...but compiles
+#endif
+#endif
+
+#ifndef MAX
+#if defined(__GCC_VERSION__)
+#define MAX(a, \
+		b) ({ __typeof__(a)_a = (a); __typeof__(b)_b = (b); _a > \
+			  _b ? _a : _b; })
+#else
+#define MAX(a,b)	((a)<(b)?(b):(a))	// NAUGHTY!...but compiles
+#endif
 #endif
 
 /*
@@ -108,9 +126,9 @@ typedef enum {
 
 struct cgi_node_request_s {
 
-	struct smcp_async_response_s async_response;
+	struct nyoci_async_response_s async_response;
 	cgi_node_state_t state;
-	smcp_timestamp_t expiration;
+	nyoci_timestamp_t expiration;
 	bool is_active;
 
 	int fd_cmd_stdin;
@@ -123,13 +141,13 @@ struct cgi_node_request_s {
 	size_t stdin_buffer_len;
 	char* stdout_buffer;
 	size_t stdout_buffer_len;
-	smcp_transaction_t transaction;
+	nyoci_transaction_t transaction;
 };
 typedef struct cgi_node_request_s* cgi_node_request_t;
 
 struct cgi_node_s {
-	struct smcp_node_s node;
-	smcp_t interface;
+	struct nyoci_node_s node;
+	nyoci_t interface;
 	const char* shell;
 	const char* cmd;
 
@@ -137,7 +155,7 @@ struct cgi_node_s {
 	int request_count;
 };
 
-smcp_status_t cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_node_state_t new_state);
+nyoci_status_t cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_node_state_t new_state);
 
 cgi_node_request_t
 cgi_node_get_associated_request(cgi_node_t node) {
@@ -151,7 +169,7 @@ cgi_node_get_associated_request(cgi_node_t node) {
 			continue;
 		}
 
-		if (!smcp_inbound_is_related_to_async_response(&request->async_response)) {
+		if (!nyoci_inbound_is_related_to_async_response(&request->async_response)) {
 			syslog(LOG_DEBUG, "cgi_node_get_associated_request: %d: session mismatch", i);
 			continue;
 		}
@@ -205,7 +223,7 @@ cgi_node_create_request(cgi_node_t node) {
 	ret->block2 = BLOCK_OPTION_DEFAULT; // Default value, overwrite with actual block
 	ret->stdin_buffer_len = 0;
 	ret->stdout_buffer_len = 0;
-	ret->expiration = smcp_plat_cms_to_timestamp(30 * MSEC_PER_SEC);
+	ret->expiration = nyoci_plat_cms_to_timestamp(30 * MSEC_PER_SEC);
 
 	free(ret->stdin_buffer);
 	ret->stdin_buffer = NULL;
@@ -213,7 +231,7 @@ cgi_node_create_request(cgi_node_t node) {
 	free(ret->stdout_buffer);
 	ret->stdout_buffer = NULL;
 
-	smcp_start_async_response(&ret->async_response, SMCP_ASYNC_RESPONSE_FLAG_DONT_ACK);
+	nyoci_start_async_response(&ret->async_response, NYOCI_ASYNC_RESPONSE_FLAG_DONT_ACK);
 
 	pipe(pipe_cmd_stdin);
 	pipe(pipe_cmd_stdout);
@@ -232,12 +250,12 @@ cgi_node_create_request(cgi_node_t node) {
 		close(pipe_cmd_stdout[1]);
 
 		path[0] = 0;
-		smcp_node_get_path(&node->node,path,sizeof(path));
+		nyoci_node_get_path(&node->node,path,sizeof(path));
 		setenv("SCRIPT_NAME",path,1);
 
 		setenv("SERVER_SOFTWARE","smcpd/" PACKAGE_VERSION,1);
-		setenv("REQUEST_METHOD",coap_code_to_cstr(smcp_inbound_get_packet()->code),1);
-		setenv("REQUEST_URI",smcp_inbound_get_path(path,2),1);
+		setenv("REQUEST_METHOD",coap_code_to_cstr(nyoci_inbound_get_packet()->code),1);
+		setenv("REQUEST_URI",nyoci_inbound_get_path(path,2),1);
 		setenv("GATEWAY_INTERFACE","CGI/1.1",1);
 		setenv("SERVER_PROTOCOL","CoAP/1.0",1);
 
@@ -288,24 +306,24 @@ bail:
 	return ret;
 }
 
-smcp_status_t
+nyoci_status_t
 cgi_node_async_resend_response(void* context)
 {
-	smcp_status_t ret = 0;
+	nyoci_status_t ret = 0;
 	cgi_node_request_t request = context;
 	coap_size_t block_len = (coap_size_t)(1<<((request->block2&0x7)+4));
 	coap_size_t max_len;
 
 	syslog(LOG_INFO, "cgi-node: Resending async response. . .");
 
-	ret = smcp_outbound_begin_async_response(COAP_RESULT_205_CONTENT,&request->async_response);
+	ret = nyoci_outbound_begin_async_response(COAP_RESULT_205_CONTENT,&request->async_response);
 	require_noerr(ret,bail);
 
-//	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
+//	ret = nyoci_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 //	require_noerr(ret,bail);
 
 	if (request->block1!=BLOCK_OPTION_UNSPECIFIED) {
-		ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK1,request->block1);
+		ret = nyoci_outbound_add_option_uint(COAP_OPTION_BLOCK1,request->block1);
 		require_noerr(ret,bail);
 	}
 
@@ -321,35 +339,35 @@ cgi_node_async_resend_response(void* context)
 			} else {
 				request->block2 &= ~(1<<3);
 			}
-			ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
+			ret = nyoci_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
 			require_noerr(ret,bail);
 		}
 
-		char *content = smcp_outbound_get_content_ptr(&max_len);
+		char *content = nyoci_outbound_get_content_ptr(&max_len);
 		require_noerr(ret,bail);
 
 		memcpy(content,request->stdout_buffer,MIN(request->stdout_buffer_len,block_len));
 
-		ret = smcp_outbound_set_content_len((coap_size_t)MIN(request->stdout_buffer_len,block_len));
+		ret = nyoci_outbound_set_content_len((coap_size_t)MIN(request->stdout_buffer_len,block_len));
 		require_noerr(ret,bail);
 	}
 
-	ret = smcp_outbound_send();
+	ret = nyoci_outbound_send();
 	require_noerr(ret,bail);
 
 bail:
 	return ret;
 }
 
-smcp_status_t
+nyoci_status_t
 cgi_node_request_pop_bytes_from_stdin(cgi_node_request_t request, int count)
 {
 	request->stdin_buffer_len-=count;
 	memmove(request->stdin_buffer,request->stdin_buffer+count,request->stdin_buffer_len);
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
-smcp_status_t
+nyoci_status_t
 cgi_node_request_pop_bytes_from_stdout(cgi_node_request_t request, int count)
 {
 	syslog(LOG_INFO, "cgi-node: pushing %d bytes from stdout buffer", count);
@@ -360,15 +378,15 @@ cgi_node_request_pop_bytes_from_stdout(cgi_node_request_t request, int count)
 	} else {
 		request->stdout_buffer_len = 0;
 	}
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
-smcp_status_t
+nyoci_status_t
 cgi_node_async_ack_handler(int statuscode, void* context)
 {
-	smcp_status_t ret = SMCP_STATUS_OK;
+	nyoci_status_t ret = NYOCI_STATUS_OK;
 	cgi_node_request_t request = context;
-	cgi_node_t node = (cgi_node_t)smcp_get_current_instance(); // TODO: WTF!!?!!!
+	cgi_node_t node = (cgi_node_t)nyoci_get_current_instance(); // TODO: WTF!!?!!!
 
 	syslog(LOG_INFO, "cgi-node: Finished sending async response.");
 
@@ -408,9 +426,9 @@ cgi_node_async_ack_handler(int statuscode, void* context)
 
 	return ret;
 }
-smcp_status_t
+nyoci_status_t
 cgi_node_send_next_block(cgi_node_t node,cgi_node_request_t request) {
-	smcp_status_t ret = 0;
+	nyoci_status_t ret = 0;
 
 	// If we are currently asynchronous, go ahead and send an asynchronous response.
 	// Otherwise, we don't have much to do: We will just go ahead and send
@@ -418,7 +436,7 @@ cgi_node_send_next_block(cgi_node_t node,cgi_node_request_t request) {
 
 	// TODO: Writeme!
 
-	smcp_transaction_t transaction = smcp_transaction_init(
+	nyoci_transaction_t transaction = nyoci_transaction_init(
 		request->transaction,
 		0,
 		&cgi_node_async_resend_response,
@@ -426,17 +444,17 @@ cgi_node_send_next_block(cgi_node_t node,cgi_node_request_t request) {
 		(void*)request
 	);
 	if(!transaction) {
-		ret = SMCP_STATUS_MALLOC_FAILURE;
+		ret = NYOCI_STATUS_MALLOC_FAILURE;
 		goto bail;
 	}
 
-	ret = smcp_transaction_begin(
+	ret = nyoci_transaction_begin(
 		node->interface,
 		transaction,
 		30*MSEC_PER_SEC
 	);
 	if(ret) {
-		smcp_transaction_end(smcp_get_current_instance(),transaction);
+		nyoci_transaction_end(nyoci_get_current_instance(),transaction);
 		goto bail;
 	}
 
@@ -445,7 +463,7 @@ bail:
 	return ret;
 }
 
-smcp_status_t
+nyoci_status_t
 cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_node_state_t new_state) {
 	// TODO: Possibly do more later...?
 
@@ -462,7 +480,7 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 	} else if ( request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
 	         && new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD
 	) {
-		smcp_start_async_response(&request->async_response, 0);
+		nyoci_start_async_response(&request->async_response, 0);
 
 	} else if ( request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD
 	         && new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_ACK
@@ -473,7 +491,7 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 	         && new_state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_REQ
 	) {
 		if (request->transaction) {
-			smcp_transaction_end(smcp_get_current_instance(),request->transaction);
+			nyoci_transaction_end(nyoci_get_current_instance(),request->transaction);
 			request->transaction = NULL;
 		}
 
@@ -486,7 +504,7 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 			close(request->fd_cmd_stdin);
 			request->fd_cmd_stdin = -1;
 		}
-		smcp_start_async_response(&request->async_response, 0);
+		nyoci_start_async_response(&request->async_response, 0);
 	} else if(request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD
 		&& new_state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK
 	) {
@@ -504,12 +522,12 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 		}
 		//cgi_node_request_pop_bytes_from_stdout(request,(1<<((request->block2&0x7)+4)));
 		if(request->transaction) {
-			smcp_transaction_end(smcp_get_current_instance(),request->transaction);
+			nyoci_transaction_end(nyoci_get_current_instance(),request->transaction);
 			request->transaction = NULL;
 		}
 	} else if(new_state == CGI_NODE_STATE_FINISHED) {
 		if(request->transaction) {
-			smcp_transaction_end(smcp_get_current_instance(),request->transaction);
+			nyoci_transaction_end(nyoci_get_current_instance(),request->transaction);
 			request->transaction = NULL;
 		}
 		close(request->fd_cmd_stdin);
@@ -531,24 +549,24 @@ cgi_node_request_change_state(cgi_node_t node, cgi_node_request_t request, cgi_n
 
 	request->state = new_state;
 
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
 
 
-smcp_status_t
+nyoci_status_t
 cgi_node_request_handler(
 	cgi_node_t		node
 ) {
-	smcp_status_t ret = 0;
+	nyoci_status_t ret = 0;
 	cgi_node_request_t request = NULL;
 	uint32_t block2_option = BLOCK_OPTION_DEFAULT;
 	uint32_t block1_option = BLOCK_OPTION_UNSPECIFIED;
-	smcp_method_t	method = smcp_inbound_get_code();
+	coap_code_t	method = nyoci_inbound_get_code();
 
 	require(node,bail);
 
-	node->interface = smcp_get_current_instance();
+	node->interface = nyoci_get_current_instance();
 
 	if (method==COAP_METHOD_GET) {
 		ret = 0;
@@ -560,7 +578,7 @@ cgi_node_request_handler(
 		const uint8_t* value;
 		coap_size_t value_len;
 		coap_option_key_t key;
-		while ((key=smcp_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
+		while ((key=nyoci_inbound_next_option(&value, &value_len))!=COAP_OPTION_INVALID) {
 			if (key == COAP_OPTION_BLOCK2) {
 				uint8_t i;
 				block2_option = 0;
@@ -587,7 +605,7 @@ cgi_node_request_handler(
 	case COAP_METHOD_DELETE:
 		break;
 	default:
-		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		ret = NYOCI_STATUS_NOT_IMPLEMENTED;
 		goto bail;
 		break;
 	}
@@ -599,10 +617,10 @@ cgi_node_request_handler(
 		// Assume new for now, but we may need to do additional checks.
 
 		// We don't support non-zero block indexes on the first packet.
-		require_action((block2_option>>4) == 0, bail, ret = SMCP_STATUS_INVALID_ARGUMENT);
+		require_action((block2_option>>4) == 0, bail, ret = NYOCI_STATUS_INVALID_ARGUMENT);
 
 		request = cgi_node_create_request(node);
-		require_action(request != NULL, bail, ret = SMCP_STATUS_FAILURE);
+		require_action(request != NULL, bail, ret = NYOCI_STATUS_FAILURE);
 		request->block2 = block2_option;
 	}
 
@@ -619,20 +637,20 @@ cgi_node_request_handler(
 			);
 		}
 
-		if (smcp_inbound_get_content_len()) {
-			request->stdin_buffer_len += smcp_inbound_get_content_len();
+		if (nyoci_inbound_get_content_len()) {
+			request->stdin_buffer_len += nyoci_inbound_get_content_len();
 			request->stdin_buffer = realloc(request->stdin_buffer,request->stdin_buffer_len);
 			// TODO: We should look at the block1 header to make sure it makes sense!
 			// This could be a duplicate or it could be *ahead* of where we are. We
 			// must catch these cases in the future!
 			if (request->stdin_buffer) {
 				memcpy(
-					request->stdin_buffer+request->stdin_buffer_len - smcp_inbound_get_content_len(),
-					smcp_inbound_get_content_ptr(),
-					smcp_inbound_get_content_len()
+					request->stdin_buffer+request->stdin_buffer_len - nyoci_inbound_get_content_len(),
+					nyoci_inbound_get_content_ptr(),
+					nyoci_inbound_get_content_len()
 				);
 			} else {
-				ret = SMCP_STATUS_MALLOC_FAILURE;
+				ret = NYOCI_STATUS_MALLOC_FAILURE;
 				goto bail;
 			}
 		}
@@ -652,12 +670,12 @@ cgi_node_request_handler(
 		}
 	} else if (request->state == CGI_NODE_STATE_ACTIVE_BLOCK1_WAIT_FD) {
 		// We should not get a request at this point in the state machine.
-		if (smcp_inbound_is_dupe()) {
-			smcp_outbound_begin_response(COAP_CODE_EMPTY);
-			smcp_outbound_send();
-			ret = SMCP_STATUS_OK;
+		if (nyoci_inbound_is_dupe()) {
+			nyoci_outbound_begin_response(COAP_CODE_EMPTY);
+			nyoci_outbound_send();
+			ret = NYOCI_STATUS_OK;
 		} else {
-			ret = SMCP_STATUS_FAILURE;
+			ret = NYOCI_STATUS_FAILURE;
 		}
 	} else if ( request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_REQ
 	         || request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_ACK
@@ -671,8 +689,8 @@ cgi_node_request_handler(
 		  && block2_start < (request->block2>>4) * (1<<((request->block2&0x7)+4))
 		) {
 				// Old Dupe?
-				smcp_outbound_drop();
-				ret = SMCP_STATUS_DUPE;
+				nyoci_outbound_drop();
+				ret = NYOCI_STATUS_DUPE;
 				goto bail;
 		}
 
@@ -681,7 +699,7 @@ cgi_node_request_handler(
 			if(block2_stop != (request->block2>>4) * (1<<((request->block2&0x7)+4))) {
 				// Looks like the sender skipped some blocks.
 				// Hmm. This isn't good.
-				ret = SMCP_STATUS_FAILURE;
+				ret = NYOCI_STATUS_FAILURE;
 				goto bail;
 			}
 
@@ -706,28 +724,28 @@ cgi_node_request_handler(
 			// We have data!
 			coap_size_t max_len;
 
-			ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+			ret = nyoci_outbound_begin_response(COAP_RESULT_205_CONTENT);
 			require_noerr(ret,bail);
 
-//			ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
+//			ret = nyoci_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_TEXT_PLAIN);
 //			require_noerr(ret,bail);
 
 			if ( request->stdout_buffer_len>block_len
 			  || request->fd_cmd_stdout >= 0
 			) {
-				ret = smcp_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
+				ret = nyoci_outbound_add_option_uint(COAP_OPTION_BLOCK2,request->block2);
 				require_noerr(ret,bail);
 			}
 
-			char *content = smcp_outbound_get_content_ptr(&max_len);
+			char *content = nyoci_outbound_get_content_ptr(&max_len);
 			require_noerr(ret,bail);
 
 			memcpy(content,request->stdout_buffer,MIN(request->stdout_buffer_len,block_len));
 
-			ret = smcp_outbound_set_content_len((coap_size_t)MIN(request->stdout_buffer_len,block_len));
+			ret = nyoci_outbound_set_content_len((coap_size_t)MIN(request->stdout_buffer_len,block_len));
 			require_noerr(ret,bail);
 
-			ret = smcp_outbound_send();
+			ret = nyoci_outbound_send();
 			require_noerr(ret,bail);
 
 			if ( request->fd_cmd_stdout < 0
@@ -750,12 +768,12 @@ cgi_node_request_handler(
 		}
 	} else if (request->state == CGI_NODE_STATE_ACTIVE_BLOCK2_WAIT_FD) {
 		// We should not get a request at this point in the state machine.
-		if (smcp_inbound_is_dupe()) {
-			smcp_outbound_begin_response(COAP_CODE_EMPTY);
-			smcp_outbound_send();
-			ret = SMCP_STATUS_OK;
+		if (nyoci_inbound_is_dupe()) {
+			nyoci_outbound_begin_response(COAP_CODE_EMPTY);
+			nyoci_outbound_send();
+			ret = NYOCI_STATUS_OK;
 		} else {
-			ret = SMCP_STATUS_FAILURE;
+			ret = NYOCI_STATUS_FAILURE;
 		}
 	}
 
@@ -776,14 +794,14 @@ cgi_node_t
 cgi_node_alloc() {
 	cgi_node_t ret = (cgi_node_t)calloc(sizeof(struct cgi_node_s), 1);
 
-	ret->node.finalize = (void (*)(smcp_node_t)) &cgi_node_dealloc;
+	ret->node.finalize = (void (*)(nyoci_node_t)) &cgi_node_dealloc;
 	return ret;
 }
 
 cgi_node_t
 cgi_node_init(
 	cgi_node_t	self,
-	smcp_node_t			parent,
+	nyoci_node_t			parent,
 	const char*			name,
 	const char*			cmd
 ) {
@@ -794,13 +812,13 @@ cgi_node_init(
 	require(name!=NULL, bail);
 	require(self || (self = cgi_node_alloc()), bail);
 
-	require(smcp_node_init(
+	require(nyoci_node_init(
 			&self->node,
 			(void*)parent,
 			name
 	), bail);
 
-	((smcp_node_t)&self->node)->request_handler = (void*)&cgi_node_request_handler;
+	((nyoci_node_t)&self->node)->request_handler = (void*)&cgi_node_request_handler;
 	self->cmd = strdup(cmd);
 	self->shell = strdup("/bin/sh");
 
@@ -813,14 +831,14 @@ bail:
 	return self;
 }
 
-smcp_status_t
+nyoci_status_t
 cgi_node_update_fdset(
 	cgi_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 ) {
 	int i;
 	for (i = 0; i < CGI_NODE_MAX_REQUESTS; i++) {
@@ -861,20 +879,20 @@ cgi_node_update_fdset(
 		}
 
 		if (timeout && request->expiration) {
-			*timeout = MIN(*timeout,MAX(0,smcp_plat_timestamp_to_cms(request->expiration)));
+			*timeout = MIN(*timeout,MAX(0,nyoci_plat_timestamp_to_cms(request->expiration)));
 		}
 
 	}
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
-smcp_status_t
+nyoci_status_t
 cgi_node_process(cgi_node_t self) {
 	int i;
 	fd_set rd_set, wr_set, er_set;
 	int fd_count = 0;
 	struct timeval tv = {0,0};
-	smcp_cms_t timeout = CMS_DISTANT_FUTURE;
+	nyoci_cms_t timeout = CMS_DISTANT_FUTURE;
 
 	FD_ZERO(&rd_set);
 	FD_ZERO(&wr_set);
@@ -893,7 +911,7 @@ cgi_node_process(cgi_node_t self) {
 				continue;
 			}
 
-			if (smcp_plat_timestamp_to_cms(request->expiration) < 0) {
+			if (nyoci_plat_timestamp_to_cms(request->expiration) < 0) {
 				request->expiration = 0;
 				cgi_node_request_change_state(
 					self,
@@ -950,7 +968,7 @@ cgi_node_process(cgi_node_t self) {
 				int bytes_read = (1<<((request->block2&0x7)+4))*2;
 				request->stdout_buffer = realloc(request->stdout_buffer,request->stdout_buffer_len+bytes_read);
 				if(!request->stdout_buffer)
-					return SMCP_STATUS_MALLOC_FAILURE;
+					return NYOCI_STATUS_MALLOC_FAILURE;
 				bytes_read = read(request->fd_cmd_stdout, request->stdout_buffer+request->stdout_buffer_len, bytes_read);
 
 				if(bytes_read<=0 || errno || FD_ISSET(request->fd_cmd_stdout,&er_set)) {
@@ -987,24 +1005,24 @@ cgi_node_process(cgi_node_t self) {
 			printf("...fd_count:%d timeout:%d errno: %d %s\n",fd_count,timeout, errno, strerror(errno));
 		}
 	}
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
 
 
-smcp_status_t
+nyoci_status_t
 SMCPD_module__cgi_node_process(cgi_node_t self) {
 	return cgi_node_process(self);
 }
 
-smcp_status_t
+nyoci_status_t
 SMCPD_module__cgi_node_update_fdset(
 	cgi_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 ) {
 	return cgi_node_update_fdset(self, read_fd_set, write_fd_set, error_fd_set, fd_count, timeout);
 }
@@ -1012,7 +1030,7 @@ SMCPD_module__cgi_node_update_fdset(
 cgi_node_t
 SMCPD_module__cgi_node_init(
 	cgi_node_t	self,
-	smcp_node_t			parent,
+	nyoci_node_t			parent,
 	const char*			name,
 	const char*			cmd
 ) {

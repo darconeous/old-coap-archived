@@ -35,15 +35,16 @@
 #endif
 
 #include "assert-macros.h"
+#include <libnyoci/libnyoci.h>
 #include "smcp.h"
 
 #if SMCP_CONF_MAX_PAIRINGS > 0
 
-#include "smcp-internal.h"
-#include "smcp-logging.h"
 #include "smcp-pairing.h"
-#include "url-helpers.h"
-#include "string-utils.h"
+#include <libnyoci/nyoci-internal.h>
+#include <libnyoci/nyoci-logging.h>
+#include <libnyoci/url-helpers.h>
+#include <libnyoci/string-utils.h>
 
 enum {
 	I_STABLE,
@@ -79,12 +80,12 @@ static const char* lf_title[I_COUNT] = {
 smcp_pairing_mgr_t
 smcp_pairing_mgr_init(
 	smcp_pairing_mgr_t self,
-	smcp_t smcp_instance
+	nyoci_t nyoci_instance
 ) {
 	memset(self, 0, sizeof(*self));
 
-#if !SMCP_EMBEDDED
-	self->smcp_instance = smcp_instance;
+#if !NYOCI_SINGLETON
+	self->nyoci_instance = nyoci_instance;
 #endif
 
 	return self;
@@ -92,7 +93,7 @@ smcp_pairing_mgr_init(
 
 static smcp_pairing_mgr_t
 pairing_mgr_from_pairing(smcp_pairing_t pairing) {
-	return (smcp_pairing_mgr_t)((uint8_t*)&pairing[-pairing->index]-sizeof(struct smcp_observable_s));
+	return (smcp_pairing_mgr_t)((uint8_t*)&pairing[-pairing->index]-sizeof(struct nyoci_observable_s));
 }
 
 static void
@@ -110,7 +111,7 @@ smcp_pairing_get_stable(smcp_pairing_t self)
 	return self->stable;
 }
 
-smcp_status_t
+nyoci_status_t
 smcp_pairing_set_stable(smcp_pairing_t self, bool x)
 {
 	smcp_pairing_mgr_t mgr = pairing_mgr_from_pairing(self);
@@ -118,10 +119,10 @@ smcp_pairing_set_stable(smcp_pairing_t self, bool x)
 		self->stable = x;
 
 		smcp_pairing_mgr_commit_stable(mgr);
-		smcp_observable_trigger(&self->var_handler.observable, I_STABLE, 0);
+		nyoci_observable_trigger(&self->var_handler.observable, I_STABLE, 0);
 	}
 
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
 bool
@@ -130,10 +131,10 @@ smcp_pairing_get_enabled(smcp_pairing_t self)
 	return self->enabled;
 }
 
-smcp_status_t
+nyoci_status_t
 smcp_pairing_set_enabled(smcp_pairing_t self, bool x)
 {
-	smcp_status_t status = SMCP_STATUS_OK;
+	nyoci_status_t status = NYOCI_STATUS_OK;
 	smcp_pairing_mgr_t mgr = pairing_mgr_from_pairing(self);
 
 	if (x != self->enabled) {
@@ -144,22 +145,22 @@ smcp_pairing_set_enabled(smcp_pairing_t self, bool x)
 		}
 
 		if (self->enabled) {
-			status = smcp_transaction_begin(
-				mgr->smcp_instance,
+			status = nyoci_transaction_begin(
+				mgr->nyoci_instance,
 				&self->transaction,
 				30 * MSEC_PER_SEC
 			);
 
 		} else {
-			status = smcp_transaction_end(
-				mgr->smcp_instance,
+			status = nyoci_transaction_end(
+				mgr->nyoci_instance,
 				&self->transaction
 			);
 		}
-		smcp_observable_trigger(&self->var_handler.observable, I_ENABLED, 0);
+		nyoci_observable_trigger(&self->var_handler.observable, I_ENABLED, 0);
 	}
 
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
 coap_content_type_t
@@ -168,7 +169,7 @@ smcp_pairing_get_content_type(smcp_pairing_t self)
 	return self->content_type;
 }
 
-smcp_status_t
+nyoci_status_t
 smcp_pairing_set_content_type(smcp_pairing_t self, coap_content_type_t x)
 {
 	smcp_pairing_mgr_t mgr = pairing_mgr_from_pairing(self);
@@ -180,10 +181,10 @@ smcp_pairing_set_content_type(smcp_pairing_t self, coap_content_type_t x)
 			smcp_pairing_mgr_commit_stable(mgr);
 		}
 
-		smcp_observable_trigger(&self->var_handler.observable, I_CONTENT_TYPE, 0);
+		nyoci_observable_trigger(&self->var_handler.observable, I_CONTENT_TYPE, 0);
 	}
 
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
 smcp_pairing_type_t
@@ -192,7 +193,7 @@ smcp_pairing_get_type(smcp_pairing_t self)
 	return self->type;
 }
 
-smcp_status_t
+nyoci_status_t
 smcp_pairing_set_type(smcp_pairing_t self, smcp_pairing_type_t x)
 {
 	smcp_pairing_mgr_t mgr = pairing_mgr_from_pairing(self);
@@ -200,7 +201,7 @@ smcp_pairing_set_type(smcp_pairing_t self, smcp_pairing_type_t x)
 	if (x != self->type) {
 		// Only pull is currently supported
 		if (x != SMCP_PAIRING_TYPE_PULL) {
-			return SMCP_STATUS_NOT_IMPLEMENTED;
+			return NYOCI_STATUS_NOT_IMPLEMENTED;
 		}
 
 		if (self->enabled) {
@@ -214,7 +215,7 @@ smcp_pairing_set_type(smcp_pairing_t self, smcp_pairing_type_t x)
 		}
 	}
 
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
 uint8_t
@@ -235,88 +236,88 @@ smcp_pairing_get_remote_url(smcp_pairing_t self)
 	return self->remote_url;
 }
 
-static smcp_status_t
+static nyoci_status_t
 pairing_response_handler_callback(int statuscode, smcp_pairing_t pairing)
 {
-	smcp_status_t ret = SMCP_STATUS_OK;
-	smcp_t const smcp_instance = smcp_get_current_instance();
+	nyoci_status_t ret = NYOCI_STATUS_OK;
+	nyoci_t const nyoci_instance = nyoci_get_current_instance();
 
 	if ( pairing->last_code != statuscode
-	  && statuscode != SMCP_STATUS_TRANSACTION_INVALIDATED
+	  && statuscode != NYOCI_STATUS_TRANSACTION_INVALIDATED
 	) {
 		pairing->last_code = statuscode;
-		smcp_observable_trigger(&pairing->var_handler.observable, I_CODE, 0);
+		nyoci_observable_trigger(&pairing->var_handler.observable, I_CODE, 0);
 	}
 
 	if (statuscode > 0) {
 		pairing->fire_count++;
-		smcp_observable_trigger(&pairing->var_handler.observable, I_FIRE_COUNT, 0);
+		nyoci_observable_trigger(&pairing->var_handler.observable, I_FIRE_COUNT, 0);
 	}
 
 	if (statuscode != COAP_RESULT_205_CONTENT) {
-		return SMCP_STATUS_OK;
+		return NYOCI_STATUS_OK;
 	}
 
 	// Verify that the sequence number has incremented or reset to zero
-	if (smcp_instance->inbound.has_observe_option) {
-		int diff = (int)smcp_instance->inbound.observe_value - (int)pairing->seq;
+	if (nyoci_inbound_has_observe()) {
+		int diff = (int)nyoci_inbound_get_observe() - (int)pairing->seq;
 
 		if ( (pairing->seq != 0)
-		  && (smcp_instance->inbound.observe_value == 0)
+		  && (nyoci_inbound_get_observe() == 0)
 		) {
 			pairing->seq = 0;
 			diff = 1;
 		}
 
 		if ( (pairing->seq != 0)
-		  && (smcp_instance->inbound.observe_value != 0)
+		  && (nyoci_inbound_get_observe() != 0)
 		  && (diff <= 0)
 		) {
 			// Don't process sequences we have already handled or that
 			// are earlier than our last received sequence (unless that
 			// sequence is the special number 0)
-			return SMCP_STATUS_OK;
+			return NYOCI_STATUS_OK;
 		}
 
-		pairing->seq = smcp_instance->inbound.observe_value;
+		pairing->seq = nyoci_inbound_get_observe();
 	}
 
 	{
 		// Store all of our state on the stack so that
 		// we can restore it after we handle the fake
 		// POST request.
-		bool did_respond = smcp_instance->did_respond;
-		bool is_fake = smcp_instance->inbound.is_fake;
-		const struct coap_header_s*	packet = smcp_instance->inbound.packet;
-		coap_size_t packet_len = smcp_instance->inbound.packet_len;
-		const smcp_sockaddr_t remote_sockaddr = *smcp_plat_get_remote_sockaddr();
+		bool did_respond = nyoci_instance->did_respond;
+		uint16_t flags = nyoci_instance->inbound.flags;
+		const struct coap_header_s*	packet = nyoci_instance->inbound.packet;
+		coap_size_t packet_len = nyoci_instance->inbound.packet_len;
+		const nyoci_sockaddr_t remote_sockaddr = *nyoci_plat_get_remote_sockaddr();
 
 		// Indicate that this packet is synthesized.
-		smcp_instance->inbound.is_fake = true;
+		nyoci_instance->inbound.flags |= NYOCI_INBOUND_FLAG_FAKE;
 
 		// Indicate that we have already responded so that
 		// the handler doesn't attempt to send its own response.
-		smcp_instance->did_respond = true;
+		nyoci_instance->did_respond = true;
 
 		// Update the msg_id on our fake packet so that
 		// duplicate detection works properly.
 		pairing->request.header.msg_id = packet->msg_id;
 
 		// Make the remote address appear to be local in origin.
-		smcp_plat_set_remote_sockaddr(smcp_plat_get_local_sockaddr());
+		nyoci_plat_set_remote_sockaddr(nyoci_plat_get_local_sockaddr());
 
 		// Set up our fake packet header+options.
-		smcp_instance->inbound.packet = &pairing->request.header;
-		smcp_instance->inbound.packet_len = pairing->request_len;
-		smcp_inbound_reset_next_option();
+		nyoci_instance->inbound.packet = &pairing->request.header;
+		nyoci_instance->inbound.packet_len = pairing->request_len;
+		nyoci_inbound_reset_next_option();
 
-		if (smcp_inbound_get_content_type() == SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
+		if (nyoci_inbound_get_content_type() == NYOCI_CONTENT_TYPE_APPLICATION_FORM_URLENCODED) {
 			char* key = NULL;
 			char* value = NULL;
-			smcp_instance->inbound.content_len = 0;
+			nyoci_instance->inbound.content_len = 0;
 			while(
 				url_form_next_value(
-					(char**)&smcp_instance->inbound.content_ptr,
+					(char**)&nyoci_instance->inbound.content_ptr,
 					&key,
 					&value
 				)
@@ -324,91 +325,91 @@ pairing_response_handler_callback(int statuscode, smcp_pairing_t pairing)
 				&& value
 			) {
 				if (strequal_const(key, "v")) {
-					smcp_instance->inbound.content_ptr = value;
-					smcp_instance->inbound.content_len = (coap_size_t)strlen(value);
+					nyoci_instance->inbound.content_ptr = value;
+					nyoci_instance->inbound.content_len = (coap_size_t)strlen(value);
 					break;
 				}
 			}
 		}
 
 		// Handle our fake request.
-		ret = smcp_handle_request();
+		ret = nyoci_handle_request();
 
 		check_noerr(ret);
 
 		// Restore everything.
-		smcp_plat_set_remote_sockaddr(&remote_sockaddr);
-		smcp_instance->inbound.is_fake = is_fake;
-		smcp_instance->did_respond = did_respond;
-		smcp_instance->inbound.packet = packet;
-		smcp_instance->inbound.packet_len = packet_len;
+		nyoci_plat_set_remote_sockaddr(&remote_sockaddr);
+		nyoci_instance->inbound.flags = flags;
+		nyoci_instance->did_respond = did_respond;
+		nyoci_instance->inbound.packet = packet;
+		nyoci_instance->inbound.packet_len = packet_len;
 	}
 
-	ret = SMCP_STATUS_OK;
+	ret = NYOCI_STATUS_OK;
 
 	return ret;
 }
 
-static smcp_status_t
+static nyoci_status_t
 pairing_resend_callback(smcp_pairing_t pairing)
 {
-	smcp_status_t status = 0;
+	nyoci_status_t status = 0;
 
-	status = smcp_outbound_begin(smcp_get_current_instance(), COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
+	status = nyoci_outbound_begin(nyoci_get_current_instance(), COAP_METHOD_GET, COAP_TRANS_TYPE_CONFIRMABLE);
 
 	require_noerr(status, bail);
 
-	status = smcp_outbound_set_uri(pairing->remote_url, 0);
+	status = nyoci_outbound_set_uri(pairing->remote_url, 0);
 
 	require_noerr(status, bail);
 
 	if (pairing->content_type != COAP_CONTENT_TYPE_UNKNOWN) {
-		smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, pairing->content_type);
+		nyoci_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, pairing->content_type);
 	}
 
-	status = smcp_outbound_send();
+	status = nyoci_outbound_send();
 
 bail:
 	return status;
 }
 
-static smcp_status_t
+static nyoci_status_t
 smcp_paring_variable_handler(
-	smcp_variable_handler_t node,
+	nyoci_var_handler_t node,
 	uint8_t action,
 	uint8_t i,
 	char* value
 ) {
-	smcp_status_t ret = SMCP_STATUS_OK;
+	nyoci_status_t ret = NYOCI_STATUS_OK;
 	smcp_pairing_t pairing = (smcp_pairing_t)node;
 
 	if (i >= I_COUNT) {
-		ret = SMCP_STATUS_NOT_FOUND;
+		ret = NYOCI_STATUS_NOT_FOUND;
 		goto bail;
 	}
 
-	if (action == SMCP_VAR_GET_KEY) {
+	if (action == NYOCI_VAR_GET_KEY) {
 		strcpy(value, names[i]);
 
-	} else if (action == SMCP_VAR_GET_LF_TITLE) {
+	} else if (action == NYOCI_VAR_GET_LF_TITLE) {
 		strcpy(value, lf_title[i]);
 
-	} else if (action == SMCP_VAR_GET_OBSERVABLE) {
+	} else if (action == NYOCI_VAR_GET_OBSERVABLE) {
 		switch (i) {
 		case I_STABLE:
 		case I_ENABLED:
 		case I_CONTENT_TYPE:
 		case I_FIRE_COUNT:
 		case I_CODE:
-			ret = SMCP_STATUS_OK;
+			ret = NYOCI_STATUS_OK;
 			break;
 		case I_LOCAL_PATH:
 		case I_REMOTE_URL:
-			ret = SMCP_STATUS_NOT_IMPLEMENTED;
+			ret = NYOCI_STATUS_NOT_IMPLEMENTED;
 			break;
 		}
 
-	} else if (action == SMCP_VAR_GET_VALUE) {
+	} else if (action == NYOCI_VAR_GET_VALUE) {
 		switch (i) {
 		case I_STABLE:
 			int32_to_dec_cstr(value, pairing->stable);
@@ -433,7 +434,7 @@ smcp_paring_variable_handler(
 			break;
 		}
 
-	} else if (action == SMCP_VAR_SET_VALUE) {
+	} else if (action == NYOCI_VAR_SET_VALUE) {
 		switch (i) {
 		case I_STABLE:
 			ret = smcp_pairing_set_stable(pairing, str2bool(value));
@@ -449,12 +450,12 @@ smcp_paring_variable_handler(
 		case I_CONTENT_TYPE:
 		case I_LOCAL_PATH:
 		case I_REMOTE_URL:
-			ret = SMCP_STATUS_NOT_IMPLEMENTED;
+			ret = NYOCI_STATUS_NOT_IMPLEMENTED;
 			break;
 		}
 
 	} else {
-		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		ret = NYOCI_STATUS_NOT_IMPLEMENTED;
 	}
 
 bail:
@@ -566,15 +567,15 @@ smcp_pairing_mgr_new_pairing(
 	strlcpy(ret->local_path, local_path_arg, sizeof(ret->local_path));
 	strlcpy(ret->remote_url, remote_url, sizeof(ret->remote_url));
 
-	smcp_transaction_init(
+	nyoci_transaction_init(
 		&ret->transaction,
-		SMCP_TRANSACTION_ALWAYS_INVALIDATE
-		| SMCP_TRANSACTION_OBSERVE
-		| SMCP_TRANSACTION_NO_AUTO_END
-		| SMCP_TRANSACTION_DELAY_START
-		| SMCP_TRANSACTION_KEEPALIVE,
-		(smcp_inbound_resend_func)&pairing_resend_callback,
-		(smcp_response_handler_func)&pairing_response_handler_callback,
+		NYOCI_TRANSACTION_ALWAYS_INVALIDATE
+		| NYOCI_TRANSACTION_OBSERVE
+		| NYOCI_TRANSACTION_NO_AUTO_END
+		| NYOCI_TRANSACTION_DELAY_START
+		| NYOCI_TRANSACTION_KEEPALIVE,
+		(nyoci_inbound_resend_func)&pairing_resend_callback,
+		(nyoci_response_handler_func)&pairing_response_handler_callback,
 		ret
 	);
 
@@ -652,19 +653,19 @@ get_hex_char(int x) {
 	return "0123456789abcdef"[x&0xF];
 }
 
-static smcp_status_t
+static nyoci_status_t
 request_handler_get_listing_(
 	smcp_pairing_mgr_t self
 ) {
-	smcp_status_t ret = 0;
+	nyoci_status_t ret = 0;
 	int i;
 	char name_str[3] = { };
 
 	// Fetching the pairing table.
-	ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+	ret = nyoci_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
+	ret = nyoci_outbound_add_option_uint(COAP_OPTION_CONTENT_TYPE, COAP_CONTENT_TYPE_APPLICATION_LINK_FORMAT);
 	require_noerr(ret, bail);
 
 	for (i = 0; i < SMCP_CONF_MAX_PAIRINGS; i++) {
@@ -674,27 +675,27 @@ request_handler_get_listing_(
 		name_str[0] = get_hex_char(i >> 4);
 		name_str[1] = get_hex_char(i >> 0);
 
-		smcp_outbound_append_content("<", SMCP_CSTR_LEN);
-		smcp_outbound_append_content(name_str, SMCP_CSTR_LEN);
+		nyoci_outbound_append_content("<", NYOCI_CSTR_LEN);
+		nyoci_outbound_append_content(name_str, NYOCI_CSTR_LEN);
 
-		smcp_outbound_append_content("/>;ct=40;obs,", SMCP_CSTR_LEN);
+		nyoci_outbound_append_content("/>;ct=40;obs,", NYOCI_CSTR_LEN);
 
-#if SMCP_ADD_NEWLINES_TO_LIST_OUTPUT
-		smcp_outbound_append_content("\n", SMCP_CSTR_LEN);
+#if NYOCI_ADD_NEWLINES_TO_LIST_OUTPUT
+		nyoci_outbound_append_content("\n", NYOCI_CSTR_LEN);
 #endif
 	}
 
-	ret = smcp_outbound_send();
+	ret = nyoci_outbound_send();
 
 bail:
 	return ret;
 }
 
-static smcp_status_t
+static nyoci_status_t
 request_handler_new_pairing_(
 	smcp_pairing_mgr_t self
 ) {
-	smcp_status_t ret = SMCP_STATUS_OK;
+	nyoci_status_t ret = NYOCI_STATUS_OK;
 	coap_content_type_t content_type;
 	coap_size_t content_len;
 	char* local_path = NULL;
@@ -707,14 +708,14 @@ request_handler_new_pairing_(
 	bool is_stable = false;
 	bool is_enabled = false;
 
-	content_type = smcp_inbound_get_content_type();
-	content_ptr = (char*)smcp_inbound_get_content_ptr();
-	content_len = smcp_inbound_get_content_len();
+	content_type = nyoci_inbound_get_content_type();
+	content_ptr = (char*)nyoci_inbound_get_content_ptr();
+	content_len = nyoci_inbound_get_content_len();
 
 	switch (content_type) {
 	case COAP_CONTENT_TYPE_UNKNOWN:
 	case COAP_CONTENT_TYPE_TEXT_PLAIN:
-	case SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED:
+	case NYOCI_CONTENT_TYPE_APPLICATION_FORM_URLENCODED:
 		content_len = 0;
 		while(
 			url_form_next_value(
@@ -742,7 +743,7 @@ request_handler_new_pairing_(
 		break;
 
 	default:
-		return smcp_outbound_quick_response(HTTP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE, NULL);
+		return nyoci_outbound_quick_response(HTTP_RESULT_CODE_UNSUPPORTED_MEDIA_TYPE, NULL);
 		break;
 	}
 
@@ -754,16 +755,16 @@ request_handler_new_pairing_(
 	);
 
 	if (!pairing) {
-		return smcp_outbound_quick_response(COAP_RESULT_400_BAD_REQUEST, "(400) Failed to create pairing");
+		return nyoci_outbound_quick_response(COAP_RESULT_400_BAD_REQUEST, "(400) Failed to create pairing");
 	}
 
 	name_str[0] = get_hex_char(pairing->index >> 4);
 	name_str[1] = get_hex_char(pairing->index >> 0);
 
-	smcp_outbound_begin_response(COAP_RESULT_201_CREATED);
-	smcp_outbound_add_option(COAP_OPTION_LOCATION_PATH, name_str, SMCP_CSTR_LEN);
-	smcp_outbound_append_content(name_str, SMCP_CSTR_LEN);
-	smcp_outbound_send();
+	nyoci_outbound_begin_response(COAP_RESULT_201_CREATED);
+	nyoci_outbound_add_option(COAP_OPTION_LOCATION_PATH, name_str, NYOCI_CSTR_LEN);
+	nyoci_outbound_append_content(name_str, NYOCI_CSTR_LEN);
+	nyoci_outbound_send();
 
 	smcp_pairing_set_enabled(pairing, is_enabled);
 	smcp_pairing_set_stable(pairing, is_stable);
@@ -772,19 +773,19 @@ bail:
 	return ret;
 }
 
-smcp_status_t
+nyoci_status_t
 smcp_pairing_mgr_request_handler(
 	smcp_pairing_mgr_t self
 ) {
-	smcp_status_t ret = 0;
-	const smcp_method_t method = smcp_inbound_get_code();
+	nyoci_status_t ret = 0;
+	const coap_code_t method = nyoci_inbound_get_code();
 	coap_option_key_t key;
 	const uint8_t* value;
 	coap_size_t value_len;
 	smcp_pairing_t pairing;
 	bool missing_trailing_slash = false;
 
-	if (smcp_inbound_next_option(&value, &value_len) != COAP_OPTION_URI_PATH) {
+	if (nyoci_inbound_next_option(&value, &value_len) != COAP_OPTION_URI_PATH) {
 		missing_trailing_slash = true;
 	}
 
@@ -793,7 +794,7 @@ smcp_pairing_mgr_request_handler(
 
 		if (method == COAP_METHOD_GET) {
 			if (missing_trailing_slash) {
-				return smcp_outbound_quick_response(COAP_RESULT_400_BAD_REQUEST, "(400) Needs trailing slash");
+				return nyoci_outbound_quick_response(COAP_RESULT_400_BAD_REQUEST, "(400) Needs trailing slash");
 			}
 			return request_handler_get_listing_(self);
 
@@ -801,7 +802,7 @@ smcp_pairing_mgr_request_handler(
 			return request_handler_new_pairing_(self);
 
 		} else {
-			ret = SMCP_STATUS_NOT_ALLOWED;
+			ret = NYOCI_STATUS_NOT_ALLOWED;
 			goto bail;
 		}
 
@@ -819,18 +820,18 @@ smcp_pairing_mgr_request_handler(
 #endif
 
 		if (errno) {
-			ret = SMCP_STATUS_NOT_FOUND;
+			ret = NYOCI_STATUS_NOT_FOUND;
 			goto bail;
 		}
 		pairing = &self->pairing_table[i];
 
-		key = smcp_inbound_peek_option(&value, &value_len);
+		key = nyoci_inbound_peek_option(&value, &value_len);
 
 		if ( (i < 0)
 		  || (i >= SMCP_CONF_MAX_PAIRINGS)
 		  || (!pairing->in_use)
 		) {
-			ret = SMCP_STATUS_NOT_FOUND;
+			ret = NYOCI_STATUS_NOT_FOUND;
 			goto bail;
 		}
 
@@ -844,16 +845,16 @@ smcp_pairing_mgr_request_handler(
 		  || ( (method == COAP_METHOD_DELETE) && (value_len > 0) )
 		) {
 			// hand off handling of this to variable node.
-			return smcp_variable_handler_request_handler(&pairing->var_handler);
+			return nyoci_var_handler_request_handler(&pairing->var_handler);
 
 		} else if (method == COAP_METHOD_DELETE) {
 			// Delete this pairing.
 			smcp_pairing_mgr_delete(self, pairing);
-			return smcp_outbound_quick_response(COAP_RESULT_202_DELETED, NULL);
+			return nyoci_outbound_quick_response(COAP_RESULT_202_DELETED, NULL);
 		}
 
 	} else {
-		ret = SMCP_STATUS_NOT_FOUND;
+		ret = NYOCI_STATUS_NOT_FOUND;
 	}
 
 bail:

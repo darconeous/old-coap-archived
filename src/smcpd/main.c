@@ -38,8 +38,6 @@
 
 #include "smcp/assert-macros.h"
 
-#include <smcp/smcp-internal.h>
-#include <smcp/smcp-missing.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,10 +51,11 @@
 #include <poll.h>
 #include <sys/select.h>
 #include <libgen.h>
+#include <time.h>
 #include <syslog.h>
 
-#include <smcp/smcp.h>
-#include <smcp/smcp-node-router.h>
+#include <libnyoci/libnyoci.h>
+#include <libnyociextra/libnyociextra.h>
 #include <missing/fgetln.h>
 #include "help.h"
 
@@ -118,8 +117,8 @@ static arg_list_item_t option_list[] = {
 	{ 0 }
 };
 
-static smcp_t gSMCPInstance;
-static struct smcp_node_s root_node;
+static nyoci_t gNyociInstance;
+static struct nyoci_node_s root_node;
 static int gRet;
 
 static const char* gProcessName = "smcpd";
@@ -163,26 +162,26 @@ signal_SIGHUP(int sig) {
 
 #define SMCPD_MAX_ASYNC_IO_MODULES	30
 struct {
-	smcp_node_t node;
-	smcp_status_t (*update_fdset)(
-		smcp_node_t node,
+	nyoci_node_t node;
+	nyoci_status_t (*update_fdset)(
+		nyoci_node_t node,
 		fd_set *read_fd_set,
 		fd_set *write_fd_set,
 		fd_set *error_fd_set,
 		int *fd_count,
-		smcp_cms_t *timeout
+		nyoci_cms_t *timeout
 	);
-	smcp_status_t (*process)(smcp_node_t node);
+	nyoci_status_t (*process)(nyoci_node_t node);
 } async_io_module[SMCPD_MAX_ASYNC_IO_MODULES];
 int async_io_module_count;
 
-smcp_status_t
+nyoci_status_t
 smcpd_modules_update_fdset(
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-    smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 ) {
 	int i;
 	for(i=0;i<async_io_module_count;i++) {
@@ -196,13 +195,13 @@ smcpd_modules_update_fdset(
 				timeout
 			);
 	}
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
-smcp_status_t
+nyoci_status_t
 smcpd_modules_process()
 {
-	smcp_status_t status = 0;
+	nyoci_status_t status = 0;
 	int i;
 	for(i=0;i<async_io_module_count && !status;i++) {
 		if(async_io_module[i].process) {
@@ -212,19 +211,19 @@ smcpd_modules_process()
 	return status;
 }
 
-smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* name, const char* argument)
+nyoci_node_t smcpd_make_node(const char* type, nyoci_node_t parent, const char* name, const char* argument)
 {
-	smcp_node_t ret = NULL;
+	nyoci_node_t ret = NULL;
 
-	typedef smcp_node_t (*init_func_t)(smcp_node_t self, smcp_node_t parent, const char* name, const char* argument);
-	typedef smcp_status_t (*process_func_t)(smcp_node_t self);
-	typedef smcp_status_t (*update_fdset_func_t)(
-		smcp_node_t node,
+	typedef nyoci_node_t (*init_func_t)(nyoci_node_t self, nyoci_node_t parent, const char* name, const char* argument);
+	typedef nyoci_status_t (*process_func_t)(nyoci_node_t self);
+	typedef nyoci_status_t (*update_fdset_func_t)(
+		nyoci_node_t node,
 		fd_set *read_fd_set,
 		fd_set *write_fd_set,
 		fd_set *error_fd_set,
 		int *fd_count,
-		smcp_cms_t *timeout
+		nyoci_cms_t *timeout
 	);
 
 	init_func_t init_func = NULL;
@@ -235,7 +234,7 @@ smcp_node_t smcpd_make_node(const char* type, smcp_node_t parent, const char* na
 	syslog(LOG_INFO,"MAKE t=\"%s\" n=\"%s\" a=\"%s\"",type, name, argument);
 
 	if(!type || strcaseequal(type,"node")) {
-		init_func = (init_func_t)&smcp_node_init;
+		init_func = (init_func_t)&nyoci_node_init;
 #if HAVE_LIBCURL
 	} else if(strcaseequal(type,"curl_proxy")) {
 		init_func = (init_func_t)&smcp_curl_proxy_node_init;
@@ -366,14 +365,14 @@ strlinelen(const char* line) {
 }
 
 static int
-read_configuration(smcp_t smcp,const char* filename) {
+read_configuration(nyoci_t smcp,const char* filename) {
 	int ret = 1;
 	syslog(LOG_INFO,"Reading configuration from \"%s\" . . .",filename);
 
 	FILE* file = fopen(filename,"r");
 	char* line = NULL;
 	size_t line_len = 0;
-	smcp_node_t node = &root_node;
+	nyoci_node_t node = &root_node;
 	int line_number = 0;
 	int ssl_ret;
 
@@ -407,9 +406,9 @@ read_configuration(smcp_t smcp,const char* filename) {
 				goto bail;
 			}
 
-			smcp_plat_ssl_set_context(smcp, (void*)gSslCtx);
+			nyoci_plat_ssl_set_context(smcp, (void*)gSslCtx);
 
-			if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_DTLS, (uint16_t)atoi(arg)) != SMCP_STATUS_OK) {
+			if (nyoci_plat_bind_to_port(smcp, NYOCI_SESSION_TYPE_DTLS, (uint16_t)atoi(arg)) != NYOCI_STATUS_OK) {
 				syslog(LOG_ERR,"Unable to bind to port! \"%s\" (%d)",strerror(errno),errno);
 			}
 		}
@@ -420,13 +419,13 @@ read_configuration(smcp_t smcp,const char* filename) {
 				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
 			}
-			if(smcp_plat_get_port(smcp)!=atoi(arg)) {
-				if (smcp_plat_bind_to_port(smcp, SMCP_SESSION_TYPE_UDP, (uint16_t)atoi(arg)) != SMCP_STATUS_OK) {
+			if(nyoci_plat_get_port(smcp)!=atoi(arg)) {
+				if (nyoci_plat_bind_to_port(smcp, NYOCI_SESSION_TYPE_UDP, (uint16_t)atoi(arg)) != NYOCI_STATUS_OK) {
 					syslog(LOG_ERR,"Unable to bind to port! \"%s\" (%d)",strerror(errno),errno);
 				}
 
 
-				if(smcp_plat_get_port(smcp)!=atoi(arg)) {
+				if(nyoci_plat_get_port(smcp)!=atoi(arg)) {
 					syslog(LOG_ERR,"ListenPort doesn't match current listening port.");
 				}
 			}
@@ -454,7 +453,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 				syslog(LOG_ERR,"%s:%d: Config option \"%s\" requires an argument.",filename,line_number,cmd);
 				goto bail;
 			}
-			smcp_set_proxy_url(smcp,arg);
+			nyoci_set_proxy_url(smcp,arg);
 		} else if(strcaseequal(cmd,"<node")) {
 			// Fix trailing '>'
 			int linelen = strlinelen(line);
@@ -481,7 +480,7 @@ read_configuration(smcp_t smcp,const char* filename) {
 				goto bail;
 			}
 
-			smcp_node_t next_node = smcp_node_find(node,arg,strlen(arg));
+			nyoci_node_t next_node = nyoci_node_find(node,arg,strlen(arg));
 
 			if(!next_node) {
 				next_node = smcpd_make_node(arg2?arg2:"node",node,arg,arg3);
@@ -521,7 +520,7 @@ bail:
 }
 
 static void
-syslog_dump_select_info(int loglevel, fd_set *read_fd_set, fd_set *write_fd_set, fd_set *error_fd_set, int fd_count, smcp_cms_t timeout)
+syslog_dump_select_info(int loglevel, fd_set *read_fd_set, fd_set *write_fd_set, fd_set *error_fd_set, int fd_count, nyoci_cms_t timeout)
 {
 #define DUMP_FD_SET(l, x) do {\
 		int i; \
@@ -674,7 +673,7 @@ main(
 	}
 	END_ARGUMENTS
 
-	SMCP_LIBRARY_VERSION_CHECK();
+	NYOCI_LIBRARY_VERSION_CHECK();
 
 	if (debug_mode >= 2) {
 		setlogmask(LOG_UPTO(LOG_DEBUG));
@@ -690,39 +689,39 @@ main(
 	syslog(LOG_NOTICE,"Built with libcurl support.");
 #endif
 
-	gSMCPInstance = smcp_create();
+	gNyociInstance = nyoci_create();
 
-	if (!gSMCPInstance) {
+	if (!gNyociInstance) {
 		syslog(LOG_CRIT,"Unable to initialize SMCP instance.");
 		gRet = ERRORCODE_UNKNOWN;
 		goto bail;
 	}
 
 	if (port) {
-		if (smcp_plat_bind_to_port(gSMCPInstance, SMCP_SESSION_TYPE_UDP, port) != SMCP_STATUS_OK) {
+		if (nyoci_plat_bind_to_port(gNyociInstance, NYOCI_SESSION_TYPE_UDP, port) != NYOCI_STATUS_OK) {
 			fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
 			goto bail;
 		}
 	}
 
-	if (smcp_plat_get_port(gSMCPInstance) == 0) {
-		if (smcp_plat_bind_to_port(gSMCPInstance, SMCP_SESSION_TYPE_UDP, COAP_DEFAULT_PORT) != SMCP_STATUS_OK) {
+	if (nyoci_plat_get_port(gNyociInstance) == 0) {
+		if (nyoci_plat_bind_to_port(gNyociInstance, NYOCI_SESSION_TYPE_UDP, COAP_DEFAULT_PORT) != NYOCI_STATUS_OK) {
 			fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
 			goto bail;
 		}
 	}
 
-	smcp_plat_join_standard_groups(gSMCPInstance, SMCP_ANY_INTERFACE);
+	nyoci_plat_join_standard_groups(gNyociInstance, NYOCI_ANY_INTERFACE);
 
-	smcp_set_current_instance(gSMCPInstance);
+	//nyoci_set_current_instance(gNyociInstance);
 
 	// Set up the root node.
-	smcp_node_init(&root_node,NULL,NULL);
+	nyoci_node_init(&root_node,NULL,NULL);
 
 	// Set up the node router.
-	smcp_set_default_request_handler(gSMCPInstance, &smcp_node_router_handler, &root_node);
+	nyoci_set_default_request_handler(gNyociInstance, &nyoci_node_router_handler, &root_node);
 
-	smcp_set_proxy_url(gSMCPInstance, getenv("COAP_PROXY_URL"));
+	nyoci_set_proxy_url(gNyociInstance, getenv("COAP_PROXY_URL"));
 
 #if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
 	SSL_CONF_CTX_clear_flags(gSslConfCtx, SSL_CONF_FLAG_CMDLINE);
@@ -730,17 +729,17 @@ main(
 	SSL_CONF_CTX_set1_prefix(gSslConfCtx, "SSL");
 #endif
 
-	if (0 != read_configuration(gSMCPInstance,config_file)) {
+	if (0 != read_configuration(gNyociInstance,config_file)) {
 		syslog(LOG_NOTICE,"Error processing configuration file!");
 		gRet = ERRORCODE_BADCONFIG;
 	} else {
-		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",smcp_plat_get_port(gSMCPInstance));
+		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",nyoci_plat_get_port(gNyociInstance));
 	}
 
 	while (!gRet) {
 		int fds_ready = 0, fd_count = 0;
 		fd_set read_fd_set,write_fd_set,error_fd_set;
-		smcp_cms_t cms_timeout = 60 * MSEC_PER_SEC;
+		nyoci_cms_t cms_timeout = 60 * MSEC_PER_SEC;
 		struct timeval timeout = {};
 
 		FD_ZERO(&read_fd_set);
@@ -754,8 +753,8 @@ main(
 			&cms_timeout
 		);
 
-		smcp_plat_update_fdsets(
-			gSMCPInstance,
+		nyoci_plat_update_fdsets(
+			gNyociInstance,
 			&read_fd_set,
 			&write_fd_set,
 			&error_fd_set,
@@ -783,16 +782,16 @@ main(
 			break;
 		}
 
-		smcp_plat_process(gSMCPInstance);
+		nyoci_plat_process(gNyociInstance);
 
-		if (smcpd_modules_process() != SMCP_STATUS_OK) {
+		if (smcpd_modules_process() != NYOCI_STATUS_OK) {
 			syslog(LOG_ERR,"Module process error.");
 			gRet = ERRORCODE_UNKNOWN;
 		}
 
 		if (gRet == ERRORCODE_SIGHUP) {
 			gRet = 0;
-			read_configuration(gSMCPInstance, config_file);
+			read_configuration(gNyociInstance, config_file);
 		}
 	}
 
@@ -802,14 +801,14 @@ bail:
 		gRet = 0;
 	}
 
-	if (gSMCPInstance) {
+	if (gNyociInstance) {
 		syslog(LOG_NOTICE,"Stopping smcpd . . .");
 
 		if (gPIDFilename) {
 			unlink(gPIDFilename);
 		}
 
-		smcp_release(gSMCPInstance);
+		nyoci_release(gNyociInstance);
 
 		syslog(LOG_NOTICE,"Stopped.");
 	}

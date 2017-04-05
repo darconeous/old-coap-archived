@@ -8,10 +8,10 @@ check_PROGRAMS =
 AM_LIBS = $(CODE_COVERAGE_LDFLAGS)
 AM_CFLAGS = $(CODE_COVERAGE_CFLAGS)
 
-check_PROGRAMS += test-concurrency
-test_concurrency_SOURCES = test-concurrency.c
-test_concurrency_LDADD = ../smcp/libsmcp.la
+#check_PROGRAMS += test-concurrency
+#test_concurrency_SOURCES = test-concurrency.c
+#test_concurrency_LDADD = ../libsmcp/libsmcp.la
 
-TESTS = test-concurrency
+#TESTS = test-concurrency
 
 DISTCLEANFILES = .deps Makefile

@@ -29,10 +29,8 @@
 #ifndef __SMCP_PAIRING_H__
 #define __SMCP_PAIRING_H__ 1
 
-#include "smcp.h"
-#include "smcp-observable.h"
-#include "smcp-async.h"
-#include "smcp-variable_handler.h"
+#include <libnyoci/libnyoci.h>
+#include <libnyociextra/libnyociextra.h>
 
 __BEGIN_DECLS
 
@@ -96,7 +94,7 @@ typedef enum {
 } smcp_pairing_type_t;
 
 struct smcp_pairing_s {
-	struct smcp_variable_handler_s var_handler;
+	struct nyoci_var_handler_s var_handler;
 
 	uint8_t index;
 	bool stable:1;
@@ -104,29 +102,29 @@ struct smcp_pairing_s {
 	bool in_use:1;
 	unsigned type:2;
 
-	smcp_status_t last_code;
+	nyoci_status_t last_code;
 	uint32_t seq;
 	int fire_count;
 	coap_content_type_t content_type;
 
-	char local_path[SMCP_MAX_URI_LENGTH];
-	char remote_url[SMCP_MAX_URI_LENGTH];
+	char local_path[NYOCI_MAX_URI_LENGTH];
+	char remote_url[NYOCI_MAX_URI_LENGTH];
 
 	coap_size_t request_len;
 	union {
 		struct coap_header_s header;
-		uint8_t bytes[SMCP_ASYNC_RESPONSE_MAX_LENGTH];
+		uint8_t bytes[NYOCI_ASYNC_RESPONSE_MAX_LENGTH];
 	} request;
 
-	struct smcp_transaction_s transaction;
+	struct nyoci_transaction_s transaction;
 };
 
 struct smcp_pairing_mgr_s {
-	struct smcp_observable_s observable;
+	struct nyoci_observable_s observable;
 	struct smcp_pairing_s pairing_table[SMCP_CONF_MAX_PAIRINGS];
 
-#if !SMCP_EMBEDDED
-	smcp_t smcp_instance;
+#if !NYOCI_SINGLETON
+	nyoci_t nyoci_instance;
 #endif
 
 	// This function pointer should commit all stable
@@ -137,54 +135,54 @@ struct smcp_pairing_mgr_s {
 	void *context;
 };
 
-SMCP_API_EXTERN smcp_pairing_mgr_t smcp_pairing_mgr_init(
+NYOCI_API_EXTERN smcp_pairing_mgr_t smcp_pairing_mgr_init(
 	smcp_pairing_mgr_t self,
-	smcp_t smcp_instance
+	nyoci_t nyoci_instance
 );
 
-SMCP_API_EXTERN smcp_status_t smcp_pairing_mgr_request_handler(
+NYOCI_API_EXTERN nyoci_status_t smcp_pairing_mgr_request_handler(
 	smcp_pairing_mgr_t self
 );
 
-SMCP_API_EXTERN smcp_pairing_t smcp_pairing_mgr_new_pairing(
+NYOCI_API_EXTERN smcp_pairing_t smcp_pairing_mgr_new_pairing(
 	smcp_pairing_mgr_t self,
 	const char* local_path,
 	const char* remote_url,
 	uint8_t requested_id
 );
 
-SMCP_API_EXTERN smcp_pairing_t smcp_pairing_mgr_pairing_begin(
+NYOCI_API_EXTERN smcp_pairing_t smcp_pairing_mgr_pairing_begin(
 	smcp_pairing_mgr_t self
 );
 
-SMCP_API_EXTERN smcp_pairing_t smcp_pairing_mgr_pairing_next(
+NYOCI_API_EXTERN smcp_pairing_t smcp_pairing_mgr_pairing_next(
 	smcp_pairing_mgr_t self,
 	smcp_pairing_t prev
 );
 
-SMCP_API_EXTERN uint8_t smcp_pairing_get_id(smcp_pairing_t self);
+NYOCI_API_EXTERN uint8_t smcp_pairing_get_id(smcp_pairing_t self);
 
-SMCP_API_EXTERN bool smcp_pairing_get_stable(smcp_pairing_t self);
+NYOCI_API_EXTERN bool smcp_pairing_get_stable(smcp_pairing_t self);
 
-SMCP_API_EXTERN smcp_status_t smcp_pairing_set_stable(smcp_pairing_t self, bool x);
+NYOCI_API_EXTERN nyoci_status_t smcp_pairing_set_stable(smcp_pairing_t self, bool x);
 
-SMCP_API_EXTERN bool smcp_pairing_get_enabled(smcp_pairing_t self);
+NYOCI_API_EXTERN bool smcp_pairing_get_enabled(smcp_pairing_t self);
 
-SMCP_API_EXTERN smcp_status_t smcp_pairing_set_enabled(smcp_pairing_t self, bool x);
+NYOCI_API_EXTERN nyoci_status_t smcp_pairing_set_enabled(smcp_pairing_t self, bool x);
 
-SMCP_API_EXTERN smcp_pairing_type_t smcp_pairing_get_type(smcp_pairing_t self);
+NYOCI_API_EXTERN smcp_pairing_type_t smcp_pairing_get_type(smcp_pairing_t self);
 
-SMCP_API_EXTERN smcp_status_t smcp_pairing_set_type(smcp_pairing_t self, smcp_pairing_type_t x);
+NYOCI_API_EXTERN nyoci_status_t smcp_pairing_set_type(smcp_pairing_t self, smcp_pairing_type_t x);
 
-SMCP_API_EXTERN coap_content_type_t smcp_pairing_get_content_type(smcp_pairing_t self);
+NYOCI_API_EXTERN coap_content_type_t smcp_pairing_get_content_type(smcp_pairing_t self);
 
-SMCP_API_EXTERN smcp_status_t smcp_pairing_set_content_type(smcp_pairing_t self, coap_content_type_t x);
+NYOCI_API_EXTERN nyoci_status_t smcp_pairing_set_content_type(smcp_pairing_t self, coap_content_type_t x);
 
-SMCP_API_EXTERN const char* smcp_pairing_get_local_path(smcp_pairing_t self);
+NYOCI_API_EXTERN const char* smcp_pairing_get_local_path(smcp_pairing_t self);
 
-SMCP_API_EXTERN const char* smcp_pairing_get_remote_url(smcp_pairing_t self);
+NYOCI_API_EXTERN const char* smcp_pairing_get_remote_url(smcp_pairing_t self);
 
-SMCP_API_EXTERN void smcp_pairing_mgr_delete(
+NYOCI_API_EXTERN void smcp_pairing_mgr_delete(
 	smcp_pairing_mgr_t self,
 	smcp_pairing_t pairing
 );

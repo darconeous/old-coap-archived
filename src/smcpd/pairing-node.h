@@ -31,30 +31,30 @@
 #ifndef pairing_node_h
 #define pairing_node_h
 
-#include <smcp/smcp.h>
-#include <smcp/smcp-node-router.h>
+#include <libnyoci/libnyoci.h>
+#include <libnyociextra/libnyociextra.h>
 
 struct pairing_node_s;
 
 typedef struct pairing_node_s* pairing_node_t;
 
-extern smcp_status_t
+extern nyoci_status_t
 SMCPD_module__pairing_node_process(pairing_node_t self);
 
-extern smcp_status_t
+extern nyoci_status_t
 SMCPD_module__pairing_node_update_fdset(
 	pairing_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 );
 
 extern pairing_node_t
 SMCPD_module__pairing_node_init(
 	pairing_node_t	self,
-	smcp_node_t			parent,
+	nyoci_node_t			parent,
 	const char*			name,
 	const char*			cmd
 );

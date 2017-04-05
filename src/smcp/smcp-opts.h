@@ -33,13 +33,13 @@
 /*****************************************************************************/
 // MARK: - SMCP Build Parameters
 
-//#define SMCP_AVOID_MALLOC		1
-//#define SMCP_AVOID_PRINTF		1
+//#define NYOCI_AVOID_MALLOC		1
+//#define NYOCI_AVOID_PRINTF		1
 //#define ASSERT_MACROS_USE_VANILLA_PRINTF 1
 //#define DEBUG 1
 //#define VERBOSE_DEBUG
-//#define SMCP_EMBEDDED 1
-//#define SMCP_USE_BSD_SOCKETS 1
+//#define NYOCI_SINGLETON 1
+//#define NYOCI_USE_BSD_SOCKETS 1
 //#define SMCP_BSD_SOCKETS_NET_FAMILY		AF_INET
 
 

@@ -7,6 +7,10 @@ die() {
 	exit 1
 }
 
+export PKG_CONFIG_PATH="`cd ~ && pwd`/lib/pkgconfig:${PKG_CONFIG_PATH}"
+
+echo PKG_CONFIG_PATH=${PKG_CONFIG_PATH}
+
 if [ $BUILD_PLATFORM = unix ]
 then
 	[ -e configure ] || ./bootstrap.sh || die

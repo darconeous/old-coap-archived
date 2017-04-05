@@ -41,8 +41,8 @@
 #include "smcp/assert-macros.h"
 
 #include <stdio.h>
-#include <smcp/smcp.h>
-#include <smcp/smcp-node-router.h>
+#include <libnyoci/libnyoci.h>
+#include <libnyociextra/libnyociextra.h>
 
 #include <syslog.h>
 #include <stdio.h>
@@ -56,23 +56,43 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <smcp/fasthash.h>
-#include <smcp/url-helpers.h>
+#include <libnyoci/fasthash.h>
+#include <libnyoci/url-helpers.h>
+
+#ifndef MIN
+#if defined(__GCC_VERSION__)
+#define MIN(a, \
+		b) ({ __typeof__(a)_a = (a); __typeof__(b)_b = (b); _a < \
+			  _b ? _a : _b; })
+#else
+#define MIN(a,b)	((a)<(b)?(a):(b))	// NAUGHTY!...but compiles
+#endif
+#endif
+
+#ifndef MAX
+#if defined(__GCC_VERSION__)
+#define MAX(a, \
+		b) ({ __typeof__(a)_a = (a); __typeof__(b)_b = (b); _a > \
+			  _b ? _a : _b; })
+#else
+#define MAX(a,b)	((a)<(b)?(b):(a))	// NAUGHTY!...but compiles
+#endif
+#endif
 
 #ifndef UD_VAR_NODE_MAX_REQUESTS
 #define UD_VAR_NODE_MAX_REQUESTS		(20)
 #endif
 
 struct ud_var_node_s {
-	struct smcp_node_s node;
-	struct smcp_observable_s observable;
+	struct nyoci_node_s node;
+	struct nyoci_observable_s observable;
 	int fd;
 	const char* path;
 	uint32_t last_etag;
-	smcp_timestamp_t next_refresh;
-	smcp_cms_t refresh_period;
-	smcp_timestamp_t next_poll;
-	smcp_cms_t poll_period;
+	nyoci_timestamp_t next_refresh;
+	nyoci_cms_t refresh_period;
+	nyoci_timestamp_t next_poll;
+	nyoci_cms_t poll_period;
 };
 
 coap_ssize_t
@@ -115,12 +135,12 @@ ud_var_node_calc_etag(
 	return fasthash_finish_uint32(&state);
 }
 
-smcp_status_t
+nyoci_status_t
 ud_var_node_request_handler(
 	ud_var_node_t self
 ) {
-	smcp_status_t ret = SMCP_STATUS_NOT_ALLOWED;
-	smcp_method_t method = smcp_inbound_get_code();
+	nyoci_status_t ret = NYOCI_STATUS_NOT_ALLOWED;
+	coap_code_t method = nyoci_inbound_get_code();
 	coap_content_type_t accept_type = COAP_CONTENT_TYPE_TEXT_PLAIN;
 	uint8_t buffer[256];
 	coap_ssize_t buffer_len = 0;
@@ -128,14 +148,14 @@ ud_var_node_request_handler(
 	uint32_t value_etag;
 
 	buffer_len = ud_var_node_get_content(self, (char*)buffer, sizeof(buffer));
-	require_action_string(buffer_len >= 0, bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
+	require_action_string(buffer_len >= 0, bail, ret = NYOCI_STATUS_ERRNO, strerror(errno));
 	value_etag = ud_var_node_calc_etag((const char*)buffer, buffer_len);
 
 	{
 		const uint8_t* value;
 		coap_size_t value_len;
 		coap_option_key_t key;
-		while ((key = smcp_inbound_next_option(&value, &value_len)) != COAP_OPTION_INVALID) {
+		while ((key = nyoci_inbound_next_option(&value, &value_len)) != COAP_OPTION_INVALID) {
 			if (key == COAP_OPTION_ACCEPT) {
 				accept_type = (coap_content_type_t)coap_decode_uint32(value, (uint8_t)value_len);
 
@@ -143,9 +163,9 @@ ud_var_node_request_handler(
 				accept_type = (coap_content_type_t)coap_decode_uint32(value, (uint8_t)value_len);
 
 			} else {
-				require_action(key != COAP_OPTION_URI_PATH, bail, ret = SMCP_STATUS_NOT_FOUND);
+				require_action(key != COAP_OPTION_URI_PATH, bail, ret = NYOCI_STATUS_NOT_FOUND);
 
-				require_action(!COAP_OPTION_IS_CRITICAL(key), bail, ret = SMCP_STATUS_BAD_OPTION);
+				require_action(!COAP_OPTION_IS_CRITICAL(key), bail, ret = NYOCI_STATUS_BAD_OPTION);
 			}
 		}
 	}
@@ -158,35 +178,35 @@ ud_var_node_request_handler(
 		break;
 
 	default:
-		ret = SMCP_STATUS_NOT_IMPLEMENTED;
+		ret = NYOCI_STATUS_NOT_IMPLEMENTED;
 		goto bail;
 		break;
 	}
 
 	switch (accept_type) {
-	case SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED:
+	case NYOCI_CONTENT_TYPE_APPLICATION_FORM_URLENCODED:
 	case COAP_CONTENT_TYPE_TEXT_PLAIN:
 		break;
 
 	default:
-		ret = SMCP_STATUS_UNSUPPORTED_MEDIA_TYPE;
+		ret = NYOCI_STATUS_UNSUPPORTED_MEDIA_TYPE;
 		goto bail;
 	}
 
 	if ( (COAP_METHOD_PUT == method)
-	  || (COAP_METHOD_POST == method && !smcp_inbound_is_dupe())
+	  || (COAP_METHOD_POST == method && !nyoci_inbound_is_dupe())
 	) {
-		const char* content_ptr = smcp_inbound_get_content_ptr();
-		coap_size_t content_len = smcp_inbound_get_content_len();
+		const char* content_ptr = nyoci_inbound_get_content_ptr();
+		coap_size_t content_len = nyoci_inbound_get_content_len();
 		ssize_t bytes_written = 0;
 
 		write_fd = open(self->path, O_WRONLY | O_NONBLOCK);
 
-		require_action_string(write_fd >= 0, bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
+		require_action_string(write_fd >= 0, bail, ret = NYOCI_STATUS_ERRNO, strerror(errno));
 
 		bytes_written = write(write_fd, content_ptr, content_len);
 
-		require_action_string(bytes_written >= 0, bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
+		require_action_string(bytes_written >= 0, bail, ret = NYOCI_STATUS_ERRNO, strerror(errno));
 
 		// Must close to commit the change
 		close(write_fd);
@@ -194,48 +214,48 @@ ud_var_node_request_handler(
 
 		// Refresh the value
 		buffer_len = ud_var_node_get_content(self, (char*)buffer, sizeof(buffer));
-		require_action_string(buffer_len >= 0, bail, ret = SMCP_STATUS_ERRNO, strerror(errno));
+		require_action_string(buffer_len >= 0, bail, ret = NYOCI_STATUS_ERRNO, strerror(errno));
 		value_etag = ud_var_node_calc_etag((const char*)buffer, buffer_len);
 	}
 
 
 	if (COAP_METHOD_GET == method) {
-		ret = smcp_outbound_begin_response(COAP_RESULT_205_CONTENT);
+		ret = nyoci_outbound_begin_response(COAP_RESULT_205_CONTENT);
 	} else {
-		if (smcp_inbound_is_multicast() || smcp_inbound_is_fake()) {
-			ret = SMCP_STATUS_OK;
+		if (nyoci_inbound_is_multicast() || nyoci_inbound_is_fake()) {
+			ret = NYOCI_STATUS_OK;
 			goto bail;
 		}
-		ret = smcp_outbound_begin_response(COAP_RESULT_204_CHANGED);
+		ret = nyoci_outbound_begin_response(COAP_RESULT_204_CHANGED);
 	}
 
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_add_option_uint(COAP_OPTION_ETAG, value_etag);
+	ret = nyoci_outbound_add_option_uint(COAP_OPTION_ETAG, value_etag);
 
 	require_noerr(ret, bail);
 
-	ret = smcp_observable_update(&self->observable, 0);
+	ret = nyoci_observable_update(&self->observable, 0);
 
-	check_noerr_string(ret, smcp_status_to_cstr(ret));
+	check_noerr_string(ret, nyoci_status_to_cstr(ret));
 
-	ret = smcp_outbound_add_option_uint(
+	ret = nyoci_outbound_add_option_uint(
 		COAP_OPTION_CONTENT_TYPE,
 		accept_type
 	);
 
 	require_noerr(ret, bail);
 
-	ret = smcp_outbound_add_option_uint(COAP_OPTION_MAX_AGE, (self->refresh_period)/MSEC_PER_SEC + 1);
+	ret = nyoci_outbound_add_option_uint(COAP_OPTION_MAX_AGE, (self->refresh_period)/MSEC_PER_SEC + 1);
 
 	require_noerr(ret, bail);
 
-	if (SMCP_CONTENT_TYPE_APPLICATION_FORM_URLENCODED == accept_type) {
+	if (NYOCI_CONTENT_TYPE_APPLICATION_FORM_URLENCODED == accept_type) {
 		char* out_content_ptr;
 		coap_size_t out_content_max_len;
 		int len_encoded;
 
-		out_content_ptr = smcp_outbound_get_content_ptr(&out_content_max_len);
+		out_content_ptr = nyoci_outbound_get_content_ptr(&out_content_max_len);
 
 		require(out_content_ptr != NULL, bail);
 
@@ -249,17 +269,17 @@ ud_var_node_request_handler(
 		out_content_ptr += len_encoded;
 		out_content_max_len -= len_encoded;
 
-		ret = smcp_outbound_set_content_len((coap_size_t)(len_encoded + 2));
+		ret = nyoci_outbound_set_content_len((coap_size_t)(len_encoded + 2));
 	} else {
 
-		ret = smcp_outbound_append_content((char*)buffer, (coap_size_t)buffer_len);
+		ret = nyoci_outbound_append_content((char*)buffer, (coap_size_t)buffer_len);
 	}
 
 	require_noerr(ret, bail);
 
 	// Send the response we hae created, passing the return value
 	// to our caller.
-	ret = smcp_outbound_send();
+	ret = nyoci_outbound_send();
 
 	require_noerr(ret, bail);
 
@@ -283,14 +303,14 @@ ud_var_node_t
 ud_var_node_alloc() {
 	ud_var_node_t ret = (ud_var_node_t)calloc(sizeof(struct ud_var_node_s), 1);
 
-	ret->node.finalize = (void (*)(smcp_node_t)) &ud_var_node_dealloc;
+	ret->node.finalize = (void (*)(nyoci_node_t)) &ud_var_node_dealloc;
 	return ret;
 }
 
 ud_var_node_t
 ud_var_node_init(
 	ud_var_node_t self,
-	smcp_node_t parent,
+	nyoci_node_t parent,
 	const char* name,
 	const char* path
 ) {
@@ -304,13 +324,13 @@ ud_var_node_init(
 
 	require(fd >= 0, bail);
 	require(self || (self = ud_var_node_alloc()), bail);
-	require(smcp_node_init(
+	require(nyoci_node_init(
 			&self->node,
 			(void*)parent,
 			name
 	), bail);
 
-	((smcp_node_t)&self->node)->request_handler = (void*)&ud_var_node_request_handler;
+	((nyoci_node_t)&self->node)->request_handler = (void*)&ud_var_node_request_handler;
 
 	self->path = strdup(path);
 	self->fd = fd;
@@ -329,18 +349,18 @@ bail:
 	return self;
 }
 
-smcp_status_t
+nyoci_status_t
 ud_var_node_update_fdset(
 	ud_var_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 ) {
-//	syslog(LOG_DEBUG, "ud_var_node_update_fdset: %d observers", smcp_observable_observer_count(&self->observable, 0));
+//	syslog(LOG_DEBUG, "ud_var_node_update_fdset: %d observers", nyoci_observable_observer_count(&self->observable, 0));
 
-	if (smcp_observable_observer_count(&self->observable, 0)) {
+	if (nyoci_observable_observer_count(&self->observable, 0)) {
 
 		if (error_fd_set) {
 			FD_SET(self->fd, error_fd_set);
@@ -351,17 +371,17 @@ ud_var_node_update_fdset(
 		}
 
 		if (timeout) {
-			smcp_cms_t next_refresh = smcp_plat_timestamp_to_cms(self->next_refresh);
-			smcp_cms_t next_poll = smcp_plat_timestamp_to_cms(self->next_poll);
+			nyoci_cms_t next_refresh = nyoci_plat_timestamp_to_cms(self->next_refresh);
+			nyoci_cms_t next_poll = nyoci_plat_timestamp_to_cms(self->next_poll);
 
 			if (next_refresh > self->refresh_period) {
 				next_refresh = self->refresh_period;
-				self->next_refresh = smcp_plat_cms_to_timestamp(next_refresh);
+				self->next_refresh = nyoci_plat_cms_to_timestamp(next_refresh);
 			}
 
 			if (next_poll > self->poll_period) {
 				next_poll = self->poll_period;
-				self->next_poll = smcp_plat_cms_to_timestamp(next_poll);
+				self->next_poll = nyoci_plat_cms_to_timestamp(next_poll);
 			}
 
 			*timeout = MIN(*timeout, next_refresh);
@@ -369,26 +389,26 @@ ud_var_node_update_fdset(
 		}
 	}
 
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
-smcp_status_t
+nyoci_status_t
 ud_var_node_process(ud_var_node_t self) {
 	bool trigger_it = false;
 
-//	syslog(LOG_DEBUG, "ud_var_node_process: %d observers", smcp_observable_observer_count(&self->observable, 0));
+//	syslog(LOG_DEBUG, "ud_var_node_process: %d observers", nyoci_observable_observer_count(&self->observable, 0));
 
-	if (smcp_observable_observer_count(&self->observable, 0)) {
-		smcp_cms_t next_refresh = smcp_plat_timestamp_to_cms(self->next_refresh);
-		smcp_cms_t next_poll = smcp_plat_timestamp_to_cms(self->next_poll);
+	if (nyoci_observable_observer_count(&self->observable, 0)) {
+		nyoci_cms_t next_refresh = nyoci_plat_timestamp_to_cms(self->next_refresh);
+		nyoci_cms_t next_poll = nyoci_plat_timestamp_to_cms(self->next_poll);
 
 		struct pollfd fdset[1];
 		uint8_t flags = 0;
 
 		if (next_refresh <= 0 || next_refresh > self->refresh_period) {
-			self->next_refresh = smcp_plat_cms_to_timestamp(self->refresh_period);
+			self->next_refresh = nyoci_plat_cms_to_timestamp(self->refresh_period);
 			trigger_it = true;
-			flags = SMCP_OBS_TRIGGER_FLAG_NO_INCREMENT;
+			flags = NYOCI_OBS_TRIGGER_FLAG_NO_INCREMENT;
 		}
 
 		fdset[0].fd = self->fd;
@@ -407,7 +427,7 @@ ud_var_node_process(ud_var_node_t self) {
 			coap_ssize_t buffer_len = 0;
 			uint32_t etag;
 
-			self->next_poll = smcp_plat_cms_to_timestamp(self->poll_period);
+			self->next_poll = nyoci_plat_cms_to_timestamp(self->poll_period);
 
 			buffer_len = ud_var_node_get_content(self, (char*)buffer, sizeof(buffer));
 
@@ -424,31 +444,31 @@ ud_var_node_process(ud_var_node_t self) {
 		}
 
 		if (trigger_it) {
-			smcp_observable_trigger(
+			nyoci_observable_trigger(
 				&self->observable,
-				SMCP_OBSERVABLE_BROADCAST_KEY,
+				NYOCI_OBSERVABLE_BROADCAST_KEY,
 				flags
 			);
 		}
 	}
-	return SMCP_STATUS_OK;
+	return NYOCI_STATUS_OK;
 }
 
 
 
-smcp_status_t
+nyoci_status_t
 SMCPD_module__ud_var_node_process(ud_var_node_t self) {
 	return ud_var_node_process(self);
 }
 
-smcp_status_t
+nyoci_status_t
 SMCPD_module__ud_var_node_update_fdset(
 	ud_var_node_t self,
     fd_set *read_fd_set,
     fd_set *write_fd_set,
     fd_set *error_fd_set,
     int *fd_count,
-	smcp_cms_t *timeout
+	nyoci_cms_t *timeout
 ) {
 	return ud_var_node_update_fdset(self, read_fd_set, write_fd_set, error_fd_set, fd_count, timeout);
 }
@@ -456,7 +476,7 @@ SMCPD_module__ud_var_node_update_fdset(
 ud_var_node_t
 SMCPD_module__ud_var_node_init(
 	ud_var_node_t	self,
-	smcp_node_t			parent,
+	nyoci_node_t			parent,
 	const char*			name,
 	const char*			cmd
 ) {

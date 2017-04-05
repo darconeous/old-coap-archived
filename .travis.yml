@@ -1,5 +1,17 @@
 language: c
 
+addons:
+    apt:
+        packages:
+            - git
+            - bsdtar
+            - libtool
+            - automake
+            - autoconf
+            - autoconf-archive
+            - libreadline-dev
+            - libssl-dev
+
 os:
     - linux
     - osx
@@ -21,23 +33,5 @@ after_success:
     - ssh-agent .travis/after_success.sh
 
 env:
+    - BUILD_MAKEARGS='check' BUILD_PLATFORM='unix' BUILD_MAKEPATH='build'
     - BUILD_MAKEARGS='distcheck' BUILD_PLATFORM='unix' BUILD_MAKEPATH='build'
-    - BUILD_MAKEARGS='check' BUILD_CONFIGFLAGS='--enable-embedded SMCP_CONF_TRANS_ENABLE_BLOCK2=1 SMCP_CONF_TRANS_ENABLE_OBSERVING=1' BUILD_PLATFORM='unix' BUILD_MAKEPATH='build'
-    - BUILD_MAKEARGS='check' BUILD_CONFIGFLAGS='--enable-dtls' BUILD_PLATFORM='unix' BUILD_MAKEPATH='build'
-
-matrix:
-    exclude:
-        - os: osx
-          compiler: gcc
-        - os: osx
-          env: BUILD_MAKEARGS='check' BUILD_CONFIGFLAGS='--enable-dtls' BUILD_PLATFORM='unix' BUILD_MAKEPATH='build'
-    include:
-        - os: linux
-          compiler: gcc
-          env: BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-plugtest' BUILD_MAKEARGS='TARGET=minimal-net CONTIKI=../../../contiki'
-        - os: linux
-          compiler: gcc
-          env: BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-complex' BUILD_MAKEARGS='TARGET=native CONTIKI=../../../contiki'
-        - os: linux
-          compiler: gcc
-          env: BUILD_PLATFORM='contiki' BUILD_MAKEPATH='contiki-src/examples/smcp-simple' BUILD_MAKEARGS='TARGET=minimal-net CONTIKI=../../../contiki'
