@@ -1,8 +1,5 @@
 /* src/config.h.in.  Generated from configure.ac by autoheader.  */
 
-/* rl_completion_entry_function has the wrong return type */
-#undef HAS_LIBEDIT_COMPLETION_ENTRY_BUG
-
 /* Define to 1 if you have the `alloca' function. */
 #undef HAVE_ALLOCA
 
@@ -18,20 +15,11 @@
 /* Define to 1 if you have the `getline' function. */
 #undef HAVE_GETLINE
 
-/* Define to 1 if you have the `getloadavg' function. */
-#undef HAVE_GETLOADAVG
-
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `curl' library (-lcurl). */
-#undef HAVE_LIBCURL
-
 /* Define to 1 if you have the `dl' library (-ldl). */
 #undef HAVE_LIBDL
-
-/* Define to 1 if you have the `readline' library (-lreadline). */
-#undef HAVE_LIBREADLINE
 
 /* Define to 1 if you have the `memcmp' function. */
 #undef HAVE_MEMCMP
@@ -41,30 +29,6 @@
 
 /* Define to 1 if you have the `memset' function. */
 #undef HAVE_MEMSET
-
-/* Set if OpenSSL is present */
-#undef HAVE_OPENSSL
-
-/* Set if OpenSSL has DTLSv1_method() */
-#undef HAVE_OPENSSL_DTLSV1_METHOD
-
-/* Set if OpenSSL has DTLS_method() */
-#undef HAVE_OPENSSL_DTLS_METHOD
-
-/* Set if OpenSSL has SSL_CONF_CTX_new() */
-#undef HAVE_OPENSSL_SSL_CONF_CTX_NEW
-
-/* Set if OpenSSL has SSL_CONF_finish() */
-#undef HAVE_OPENSSL_SSL_CONF_FINISH
-
-/* Define if you have POSIX threads libraries and header files. */
-#undef HAVE_PTHREAD
-
-/* Have PTHREAD_PRIO_INHERIT. */
-#undef HAVE_PTHREAD_PRIO_INHERIT
-
-/* Define to 1 if you have the `rl_set_prompt' function. */
-#undef HAVE_RL_SET_PROMPT
 
 /* Define to 1 if you have the `snprintf' function. */
 #undef HAVE_SNPRINTF
@@ -150,52 +114,6 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
-
-/* Define to necessary symbol if this constant uses a non-standard name on
-   your system. */
-#undef PTHREAD_CREATE_JOINABLE
-
-/* . */
-#undef SMCP_AVOID_MALLOC
-
-/* . */
-#undef SMCP_AVOID_PRINTF
-
-/* . */
-#undef SMCP_BSD_SOCKETS_NET_FAMILY
-
-/* . */
-#undef SMCP_CONF_NODE_ROUTER
-
-/* . */
-#undef SMCP_CONF_TRANS_ENABLE_BLOCK2
-
-/* . */
-#undef SMCP_CONF_TRANS_ENABLE_OBSERVING
-
-/* . */
-#undef SMCP_DTLS
-
-/* . */
-#undef SMCP_DTLS_OPENSSL
-
-/* . */
-#undef SMCP_EMBEDDED
-
-/* . */
-#undef SMCP_MAX_OBSERVERS
-
-/* . */
-#undef SMCP_MAX_VHOSTS
-
-/* . */
-#undef SMCP_USE_BSD_SOCKETS
-
-/* . */
-#undef SMCP_USE_CASCADE_COUNT
-
-/* . */
-#undef SMCP_USE_UIP
 
 /* Source version */
 #undef SOURCE_VERSION

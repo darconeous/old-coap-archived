@@ -15,6 +15,7 @@
 
 @SET_MAKE@
 
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -50,16 +51,21 @@ CONFIG_HEADER = $(top_builddir)/src/config.h \
 	$(top_builddir)/src/smcp/smcp-config.h
 CONFIG_CLEAN_FILES = smcpd.conf
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)"
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sysconfdir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_smcpd_OBJECTS = smcpd-main.$(OBJEXT) smcpd-cgi-node.$(OBJEXT) \
 	smcpd-system-node.$(OBJEXT) smcpd-ud-var-node.$(OBJEXT) \
 	smcpd-pairing-node.$(OBJEXT) smcpd-group-node.$(OBJEXT)
 smcpd_OBJECTS = $(am_smcpd_OBJECTS)
-smcpd_DEPENDENCIES = ../smcp/libsmcp.la
+am__DEPENDENCIES_1 =
+smcpd_DEPENDENCIES = ../smcp/libsmcp.la $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
+smcpd_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(smcpd_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)/src -I$(top_builddir)/src/smcp
 depcomp = $(SHELL) $(top_srcdir)/m4/depcomp
 am__depfiles_maybe = depfiles
@@ -88,6 +94,34 @@ am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(smcpd_SOURCES)
 DIST_SOURCES = $(smcpd_SOURCES)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  test -z "$$files" \
+    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+         $(am__cd) "$$dir" && rm -f $$files; }; \
+  }
+DATA = $(sysconf_DATA)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -101,7 +135,7 @@ AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
-CFLAGS = @CFLAGS@ -DASSERT_MACROS_USES_SYSLOG=1
+CFLAGS = @CFLAGS@
 CODE_COVERAGE_RULES = @CODE_COVERAGE_RULES@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
@@ -125,6 +159,8 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
+LIBNYOCI_CFLAGS = @LIBNYOCI_CFLAGS@
+LIBNYOCI_LIBS = @LIBNYOCI_LIBS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
@@ -134,14 +170,13 @@ LOAD_ALL_SYMBOLS_FLAG = @LOAD_ALL_SYMBOLS_FLAG@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
+MISSING_CPPFLAGS = @MISSING_CPPFLAGS@
+MISSING_LIBADD = @MISSING_LIBADD@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
-OPENSSL_INCLUDES = @OPENSSL_INCLUDES@
-OPENSSL_LDFLAGS = @OPENSSL_LDFLAGS@
-OPENSSL_LIBS = @OPENSSL_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -153,9 +188,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
-PTHREAD_CC = @PTHREAD_CC@
-PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
-PTHREAD_LIBS = @PTHREAD_LIBS@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
@@ -174,7 +208,6 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
-ax_pthread_config = @ax_pthread_config@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -215,16 +248,15 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I.. -I$(top_srcdir)/src
-@HAVE_LIBDL_TRUE@AM_LDFLAGS = -export-dynamic @LOAD_ALL_SYMBOLS_FLAG@
+AM_CPPFLAGS = $(CPPFLAGS) -I.. -I$(top_srcdir)/src
+@HAVE_LIBDL_TRUE@AM_LDFLAGS = $(LDFLAGS) -export-dynamic $(LOAD_ALL_SYMBOLS_FLAG)
+@BUILD_SMCPD_TRUE@sysconf_DATA = smcpd.conf
 smcpd_SOURCES = main.c help.h cgi-node.c cgi-node.h system-node.c \
 	system-node.h ud-var-node.c ud-var-node.h pairing-node.c \
 	pairing-node.h group-node.c group-node.h
-smcpd_LDADD = ../smcp/libsmcp.la
-smcpd_CPPFLAGS = $(AM_CPPFLAGS) $(OPENSSL_INCLUDES)
-
-# Commented out for now, until we get configuration directory support added.
-#sysconf_DATA = smcpd.conf
+smcpd_LDADD = $(AM_LDADD) ../smcp/libsmcp.la $(LIBNYOCI_LIBS) $(MISSING_LIBADD)
+smcpd_CFLAGS = $(AM_CFLAGS) $(LIBNYOCI_CFLAGS)
+smcpd_CPPFLAGS = $(AM_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBNYOCI_CPPFLAGS) -DASSERT_MACROS_USES_SYSLOG=1 $(MISSING_CPPFLAGS)
 DISTCLEANFILES = .deps Makefile
 all: all-am
 
@@ -307,7 +339,7 @@ clean-binPROGRAMS:
 	rm -f $$list
 smcpd$(EXEEXT): $(smcpd_OBJECTS) $(smcpd_DEPENDENCIES) $(EXTRA_smcpd_DEPENDENCIES) 
 	@rm -f smcpd$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(smcpd_OBJECTS) $(smcpd_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(smcpd_LINK) $(smcpd_OBJECTS) $(smcpd_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -344,94 +376,112 @@ distclean-compile:
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
 smcpd-main.o: main.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-main.o -MD -MP -MF $(DEPDIR)/smcpd-main.Tpo -c -o smcpd-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-main.o -MD -MP -MF $(DEPDIR)/smcpd-main.Tpo -c -o smcpd-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-main.Tpo $(DEPDIR)/smcpd-main.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main.c' object='smcpd-main.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
 
 smcpd-main.obj: main.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-main.obj -MD -MP -MF $(DEPDIR)/smcpd-main.Tpo -c -o smcpd-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-main.obj -MD -MP -MF $(DEPDIR)/smcpd-main.Tpo -c -o smcpd-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-main.Tpo $(DEPDIR)/smcpd-main.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='main.c' object='smcpd-main.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-main.obj `if test -f 'main.c'; then $(CYGPATH_W) 'main.c'; else $(CYGPATH_W) '$(srcdir)/main.c'; fi`
 
 smcpd-cgi-node.o: cgi-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-cgi-node.o -MD -MP -MF $(DEPDIR)/smcpd-cgi-node.Tpo -c -o smcpd-cgi-node.o `test -f 'cgi-node.c' || echo '$(srcdir)/'`cgi-node.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-cgi-node.o -MD -MP -MF $(DEPDIR)/smcpd-cgi-node.Tpo -c -o smcpd-cgi-node.o `test -f 'cgi-node.c' || echo '$(srcdir)/'`cgi-node.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-cgi-node.Tpo $(DEPDIR)/smcpd-cgi-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cgi-node.c' object='smcpd-cgi-node.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-cgi-node.o `test -f 'cgi-node.c' || echo '$(srcdir)/'`cgi-node.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-cgi-node.o `test -f 'cgi-node.c' || echo '$(srcdir)/'`cgi-node.c
 
 smcpd-cgi-node.obj: cgi-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-cgi-node.obj -MD -MP -MF $(DEPDIR)/smcpd-cgi-node.Tpo -c -o smcpd-cgi-node.obj `if test -f 'cgi-node.c'; then $(CYGPATH_W) 'cgi-node.c'; else $(CYGPATH_W) '$(srcdir)/cgi-node.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-cgi-node.obj -MD -MP -MF $(DEPDIR)/smcpd-cgi-node.Tpo -c -o smcpd-cgi-node.obj `if test -f 'cgi-node.c'; then $(CYGPATH_W) 'cgi-node.c'; else $(CYGPATH_W) '$(srcdir)/cgi-node.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-cgi-node.Tpo $(DEPDIR)/smcpd-cgi-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cgi-node.c' object='smcpd-cgi-node.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-cgi-node.obj `if test -f 'cgi-node.c'; then $(CYGPATH_W) 'cgi-node.c'; else $(CYGPATH_W) '$(srcdir)/cgi-node.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-cgi-node.obj `if test -f 'cgi-node.c'; then $(CYGPATH_W) 'cgi-node.c'; else $(CYGPATH_W) '$(srcdir)/cgi-node.c'; fi`
 
 smcpd-system-node.o: system-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-system-node.o -MD -MP -MF $(DEPDIR)/smcpd-system-node.Tpo -c -o smcpd-system-node.o `test -f 'system-node.c' || echo '$(srcdir)/'`system-node.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-system-node.o -MD -MP -MF $(DEPDIR)/smcpd-system-node.Tpo -c -o smcpd-system-node.o `test -f 'system-node.c' || echo '$(srcdir)/'`system-node.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-system-node.Tpo $(DEPDIR)/smcpd-system-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='system-node.c' object='smcpd-system-node.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-system-node.o `test -f 'system-node.c' || echo '$(srcdir)/'`system-node.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-system-node.o `test -f 'system-node.c' || echo '$(srcdir)/'`system-node.c
 
 smcpd-system-node.obj: system-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-system-node.obj -MD -MP -MF $(DEPDIR)/smcpd-system-node.Tpo -c -o smcpd-system-node.obj `if test -f 'system-node.c'; then $(CYGPATH_W) 'system-node.c'; else $(CYGPATH_W) '$(srcdir)/system-node.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-system-node.obj -MD -MP -MF $(DEPDIR)/smcpd-system-node.Tpo -c -o smcpd-system-node.obj `if test -f 'system-node.c'; then $(CYGPATH_W) 'system-node.c'; else $(CYGPATH_W) '$(srcdir)/system-node.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-system-node.Tpo $(DEPDIR)/smcpd-system-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='system-node.c' object='smcpd-system-node.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-system-node.obj `if test -f 'system-node.c'; then $(CYGPATH_W) 'system-node.c'; else $(CYGPATH_W) '$(srcdir)/system-node.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-system-node.obj `if test -f 'system-node.c'; then $(CYGPATH_W) 'system-node.c'; else $(CYGPATH_W) '$(srcdir)/system-node.c'; fi`
 
 smcpd-ud-var-node.o: ud-var-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-ud-var-node.o -MD -MP -MF $(DEPDIR)/smcpd-ud-var-node.Tpo -c -o smcpd-ud-var-node.o `test -f 'ud-var-node.c' || echo '$(srcdir)/'`ud-var-node.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-ud-var-node.o -MD -MP -MF $(DEPDIR)/smcpd-ud-var-node.Tpo -c -o smcpd-ud-var-node.o `test -f 'ud-var-node.c' || echo '$(srcdir)/'`ud-var-node.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-ud-var-node.Tpo $(DEPDIR)/smcpd-ud-var-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ud-var-node.c' object='smcpd-ud-var-node.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-ud-var-node.o `test -f 'ud-var-node.c' || echo '$(srcdir)/'`ud-var-node.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-ud-var-node.o `test -f 'ud-var-node.c' || echo '$(srcdir)/'`ud-var-node.c
 
 smcpd-ud-var-node.obj: ud-var-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-ud-var-node.obj -MD -MP -MF $(DEPDIR)/smcpd-ud-var-node.Tpo -c -o smcpd-ud-var-node.obj `if test -f 'ud-var-node.c'; then $(CYGPATH_W) 'ud-var-node.c'; else $(CYGPATH_W) '$(srcdir)/ud-var-node.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-ud-var-node.obj -MD -MP -MF $(DEPDIR)/smcpd-ud-var-node.Tpo -c -o smcpd-ud-var-node.obj `if test -f 'ud-var-node.c'; then $(CYGPATH_W) 'ud-var-node.c'; else $(CYGPATH_W) '$(srcdir)/ud-var-node.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-ud-var-node.Tpo $(DEPDIR)/smcpd-ud-var-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='ud-var-node.c' object='smcpd-ud-var-node.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-ud-var-node.obj `if test -f 'ud-var-node.c'; then $(CYGPATH_W) 'ud-var-node.c'; else $(CYGPATH_W) '$(srcdir)/ud-var-node.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-ud-var-node.obj `if test -f 'ud-var-node.c'; then $(CYGPATH_W) 'ud-var-node.c'; else $(CYGPATH_W) '$(srcdir)/ud-var-node.c'; fi`
 
 smcpd-pairing-node.o: pairing-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-pairing-node.o -MD -MP -MF $(DEPDIR)/smcpd-pairing-node.Tpo -c -o smcpd-pairing-node.o `test -f 'pairing-node.c' || echo '$(srcdir)/'`pairing-node.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-pairing-node.o -MD -MP -MF $(DEPDIR)/smcpd-pairing-node.Tpo -c -o smcpd-pairing-node.o `test -f 'pairing-node.c' || echo '$(srcdir)/'`pairing-node.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-pairing-node.Tpo $(DEPDIR)/smcpd-pairing-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pairing-node.c' object='smcpd-pairing-node.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-pairing-node.o `test -f 'pairing-node.c' || echo '$(srcdir)/'`pairing-node.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-pairing-node.o `test -f 'pairing-node.c' || echo '$(srcdir)/'`pairing-node.c
 
 smcpd-pairing-node.obj: pairing-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-pairing-node.obj -MD -MP -MF $(DEPDIR)/smcpd-pairing-node.Tpo -c -o smcpd-pairing-node.obj `if test -f 'pairing-node.c'; then $(CYGPATH_W) 'pairing-node.c'; else $(CYGPATH_W) '$(srcdir)/pairing-node.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-pairing-node.obj -MD -MP -MF $(DEPDIR)/smcpd-pairing-node.Tpo -c -o smcpd-pairing-node.obj `if test -f 'pairing-node.c'; then $(CYGPATH_W) 'pairing-node.c'; else $(CYGPATH_W) '$(srcdir)/pairing-node.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-pairing-node.Tpo $(DEPDIR)/smcpd-pairing-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pairing-node.c' object='smcpd-pairing-node.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-pairing-node.obj `if test -f 'pairing-node.c'; then $(CYGPATH_W) 'pairing-node.c'; else $(CYGPATH_W) '$(srcdir)/pairing-node.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-pairing-node.obj `if test -f 'pairing-node.c'; then $(CYGPATH_W) 'pairing-node.c'; else $(CYGPATH_W) '$(srcdir)/pairing-node.c'; fi`
 
 smcpd-group-node.o: group-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-group-node.o -MD -MP -MF $(DEPDIR)/smcpd-group-node.Tpo -c -o smcpd-group-node.o `test -f 'group-node.c' || echo '$(srcdir)/'`group-node.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-group-node.o -MD -MP -MF $(DEPDIR)/smcpd-group-node.Tpo -c -o smcpd-group-node.o `test -f 'group-node.c' || echo '$(srcdir)/'`group-node.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-group-node.Tpo $(DEPDIR)/smcpd-group-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='group-node.c' object='smcpd-group-node.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-group-node.o `test -f 'group-node.c' || echo '$(srcdir)/'`group-node.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-group-node.o `test -f 'group-node.c' || echo '$(srcdir)/'`group-node.c
 
 smcpd-group-node.obj: group-node.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT smcpd-group-node.obj -MD -MP -MF $(DEPDIR)/smcpd-group-node.Tpo -c -o smcpd-group-node.obj `if test -f 'group-node.c'; then $(CYGPATH_W) 'group-node.c'; else $(CYGPATH_W) '$(srcdir)/group-node.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -MT smcpd-group-node.obj -MD -MP -MF $(DEPDIR)/smcpd-group-node.Tpo -c -o smcpd-group-node.obj `if test -f 'group-node.c'; then $(CYGPATH_W) 'group-node.c'; else $(CYGPATH_W) '$(srcdir)/group-node.c'; fi`
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/smcpd-group-node.Tpo $(DEPDIR)/smcpd-group-node.Po
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='group-node.c' object='smcpd-group-node.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o smcpd-group-node.obj `if test -f 'group-node.c'; then $(CYGPATH_W) 'group-node.c'; else $(CYGPATH_W) '$(srcdir)/group-node.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(smcpd_CPPFLAGS) $(CPPFLAGS) $(smcpd_CFLAGS) $(CFLAGS) -c -o smcpd-group-node.obj `if test -f 'group-node.c'; then $(CYGPATH_W) 'group-node.c'; else $(CYGPATH_W) '$(srcdir)/group-node.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-sysconfDATA: $(sysconf_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(sysconfdir)" || $(MKDIR_P) "$(DESTDIR)$(sysconfdir)"
+	@list='$(sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(sysconfdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(sysconfdir)" || exit $$?; \
+	done
+
+uninstall-sysconfDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(sysconfdir)'; $(am__uninstall_files_from_dir)
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -517,9 +567,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile $(PROGRAMS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sysconfdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -581,7 +631,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS
+install-exec-am: install-binPROGRAMS install-sysconfDATA
 
 install-html: install-html-am
 
@@ -621,7 +671,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS
+uninstall-am: uninstall-binPROGRAMS uninstall-sysconfDATA
 
 .MAKE: install-am install-strip
 
@@ -633,11 +683,11 @@ uninstall-am: uninstall-binPROGRAMS
 	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am install-man \
 	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags uninstall uninstall-am \
-	uninstall-binPROGRAMS
+	install-strip install-sysconfDATA installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-sysconfDATA
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

@@ -148,6 +148,8 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
+LIBNYOCI_CFLAGS = @LIBNYOCI_CFLAGS@
+LIBNYOCI_LIBS = @LIBNYOCI_LIBS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
@@ -157,14 +159,13 @@ LOAD_ALL_SYMBOLS_FLAG = @LOAD_ALL_SYMBOLS_FLAG@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
+MISSING_CPPFLAGS = @MISSING_CPPFLAGS@
+MISSING_LIBADD = @MISSING_LIBADD@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
-OPENSSL_INCLUDES = @OPENSSL_INCLUDES@
-OPENSSL_LDFLAGS = @OPENSSL_LDFLAGS@
-OPENSSL_LIBS = @OPENSSL_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -176,9 +177,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
-PTHREAD_CC = @PTHREAD_CC@
-PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
-PTHREAD_LIBS = @PTHREAD_LIBS@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
@@ -197,7 +197,6 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
-ax_pthread_config = @ax_pthread_config@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -240,28 +239,13 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = src docs
+SUBDIRS = src doc
 DISTCLEANFILES = config.log config.status Makefile libtool make.out
 
 # Metafiles
-
-# Make sure the contiki bits make it into the archive.
 EXTRA_DIST = bootstrap.sh README.md NEWS.md LICENSE etc/Dockerfile \
 	etc/build-in-docker.sh etc/run-in-docker.sh TODO.md \
-	CONTRIBUTING.md .gitignore .uncrustify.cfg .travis.yml \
-	contiki-src/examples/smcp-simple/.gitignore \
-	contiki-src/examples/smcp-simple/Makefile \
-	contiki-src/examples/smcp-simple/smcp-simple.c \
-	contiki-src/examples/smcp-plugtest/.gitignore \
-	contiki-src/examples/smcp-plugtest/Makefile \
-	contiki-src/examples/smcp-plugtest/smcp-plugtest.c \
-	contiki-src/examples/smcp-complex/.gitignore \
-	contiki-src/examples/smcp-complex/Makefile \
-	contiki-src/examples/smcp-complex/smcp-complex.c \
-	contiki-src/led-node.c contiki-src/led-node.h \
-	contiki-src/Makefile.smcp contiki-src/sensor-node.c \
-	contiki-src/sensor-node.h contiki-src/smcp-task.c \
-	contiki-src/smcp-task.h contiki-src/smcp-contiki-config.h
+	CONTRIBUTING.md .gitignore .uncrustify.cfg
 HASH_VERSION = $(shell git describe --dirty --match __poison__ --always 2> /dev/null)
 EXTRA_VERSION = $(shell git describe --all --contains 62f798c26a12182abe7e8531606a661ee66baed3 1> /dev/null 2> /dev/null && (test `git describe` = $(VERSION) || echo -g$(HASH_VERSION)))
 distdir = $(PACKAGE)-$(VERSION)$(EXTRA_VERSION)
