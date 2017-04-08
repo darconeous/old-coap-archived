@@ -160,7 +160,7 @@ smcp_pairing_set_enabled(smcp_pairing_t self, bool x)
 		nyoci_observable_trigger(&self->var_handler.observable, I_ENABLED, 0);
 	}
 
-	return NYOCI_STATUS_OK;
+	return status;
 }
 
 coap_content_type_t

@@ -59,7 +59,7 @@
 #include <missing/fgetln.h>
 #include "help.h"
 
-#if SMCP_DTLS_OPENSSL
+#if NYOCI_PLAT_TLS_OPENSSL
 #include <openssl/ssl.h>
 #endif
 
@@ -84,11 +84,11 @@
 #endif
 
 #ifndef PREFIX
-#define PREFIX "/usr/local/"
+#define PREFIX "/usr/local"
 #endif
 
-#ifndef ETC_PREFIX
-#define ETC_PREFIX PREFIX"etc/"
+#ifndef SYSCONFDIR
+#define SYSCONFDIR PREFIX "etc"
 #endif
 
 #define ERRORCODE_OK            (0)
@@ -111,13 +111,13 @@ static arg_list_item_t option_list[] = {
 	{ 'd', "debug", NULL, "Enable debugging mode"	},
 	{ 'p', "port",	NULL, "Port number"				},
 	{ 'c', "config",NULL, "Config File"				},
-#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+#if NYOCI_PLAT_TLS_OPENSSLL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
 	{ 0, NULL,	"ssl-*", "SSL Configuration commands (see docs)" },
 #endif
 	{ 0 }
 };
 
-static nyoci_t gNyociInstance;
+nyoci_t gMyNyociInstance;
 static struct nyoci_node_s root_node;
 static int gRet;
 
@@ -127,8 +127,8 @@ static const char* gPIDFilename = NULL;
 static sig_t gPreviousHandlerForSIGINT;
 static sig_t gPreviousHandlerForSIGTERM;
 
-#if SMCP_DTLS
-#if SMCP_DTLS_OPENSSL
+#if NYOCI_DTLS
+#if NYOCI_PLAT_TLS_OPENSSL
 static SSL_CTX* gSslCtx;
 #if HAVE_OPENSSL_SSL_CONF_CTX_NEW
 static SSL_CONF_CTX* gSslConfCtx;
@@ -235,12 +235,6 @@ nyoci_node_t smcpd_make_node(const char* type, nyoci_node_t parent, const char* 
 
 	if(!type || strcaseequal(type,"node")) {
 		init_func = (init_func_t)&nyoci_node_init;
-#if HAVE_LIBCURL
-	} else if(strcaseequal(type,"curl_proxy")) {
-		init_func = (init_func_t)&smcp_curl_proxy_node_init;
-		update_fdset_func = (update_fdset_func_t)&smcp_curl_proxy_node_update_fdset;
-		process_func = (process_func_t)&smcp_curl_proxy_node_process;
-#endif
 	} else if(strcaseequal(type,"system_node") || strcaseequal(type,"system")) {
 		init_func = (init_func_t)&SMCPD_module__system_node_init;
 		update_fdset_func = (update_fdset_func_t)&SMCPD_module__system_node_update_fdset;
@@ -385,7 +379,7 @@ read_configuration(nyoci_t smcp,const char* filename) {
 		if(!cmd) {
 			continue;
 		}
-#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+#if NYOCI_PLAT_TLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
 		// Handle OpenSSL configuration options from configuration file
 		else if ((ssl_ret = SSL_CONF_cmd(gSslConfCtx, cmd, line)) != -2) {
 			if (ssl_ret > 0) {
@@ -398,7 +392,7 @@ read_configuration(nyoci_t smcp,const char* filename) {
 			}
 		}
 #endif
-#if SMCP_DTLS
+#if NYOCI_DTLS
 		else if(strcaseequal(cmd,"DTLSPort")) {
 			char* arg = get_next_arg(line,&line);
 			if(!arg) {
@@ -553,15 +547,15 @@ main(
 ) {
 	int i, debug_mode = 0, ssl_ret;
 	uint16_t port = 0;
-	const char* config_file = ETC_PREFIX "smcp.conf";
+	const char* config_file = SYSCONFDIR "/smcp.conf";
 
 	(void)ssl_ret;
 	(void)syslog_dump_select_info;
 
 	openlog(basename(argv[0]),LOG_PERROR|LOG_PID|LOG_CONS,LOG_DAEMON);
 
-#if SMCP_DTLS
-#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+#if NYOCI_DTLS
+#if NYOCI_PLAT_TLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
 	gSslConfCtx = SSL_CONF_CTX_new();
 #if HAVE_OPENSSL_DTLS_METHOD
 	gSslCtx = SSL_CTX_new(DTLS_method());
@@ -616,7 +610,7 @@ main(
 	}
 
 	BEGIN_LONG_ARGUMENTS(gRet)
-#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+#if NYOCI_PLAT_TLS_OPENSSLL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
 	// Handle OpenSSL configuration options on the command line
     else if ((ssl_ret = SSL_CONF_cmd(gSslConfCtx, argv[i], argv[i+1])) != -2) {
 		if (ssl_ret == 2) {
@@ -689,51 +683,51 @@ main(
 	syslog(LOG_NOTICE,"Built with libcurl support.");
 #endif
 
-	gNyociInstance = nyoci_create();
+	gMyNyociInstance = nyoci_create();
 
-	if (!gNyociInstance) {
+	if (!gMyNyociInstance) {
 		syslog(LOG_CRIT,"Unable to initialize SMCP instance.");
 		gRet = ERRORCODE_UNKNOWN;
 		goto bail;
 	}
 
 	if (port) {
-		if (nyoci_plat_bind_to_port(gNyociInstance, NYOCI_SESSION_TYPE_UDP, port) != NYOCI_STATUS_OK) {
+		if (nyoci_plat_bind_to_port(gMyNyociInstance, NYOCI_SESSION_TYPE_UDP, port) != NYOCI_STATUS_OK) {
 			fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
 			goto bail;
 		}
 	}
 
-	if (nyoci_plat_get_port(gNyociInstance) == 0) {
-		if (nyoci_plat_bind_to_port(gNyociInstance, NYOCI_SESSION_TYPE_UDP, COAP_DEFAULT_PORT) != NYOCI_STATUS_OK) {
+	if (nyoci_plat_get_port(gMyNyociInstance) == 0) {
+		if (nyoci_plat_bind_to_port(gMyNyociInstance, NYOCI_SESSION_TYPE_UDP, COAP_DEFAULT_PORT) != NYOCI_STATUS_OK) {
 			fprintf(stderr,"%s: FATAL-ERROR: Unable to bind to port! \"%s\" (%d)\n",argv[0],strerror(errno),errno);
 			goto bail;
 		}
 	}
 
-	nyoci_plat_join_standard_groups(gNyociInstance, NYOCI_ANY_INTERFACE);
+	nyoci_plat_join_standard_groups(gMyNyociInstance, NYOCI_ANY_INTERFACE);
 
-	//nyoci_set_current_instance(gNyociInstance);
+	nyoci_set_current_instance(gMyNyociInstance);
 
 	// Set up the root node.
 	nyoci_node_init(&root_node,NULL,NULL);
 
 	// Set up the node router.
-	nyoci_set_default_request_handler(gNyociInstance, &nyoci_node_router_handler, &root_node);
+	nyoci_set_default_request_handler(gMyNyociInstance, &nyoci_node_router_handler, &root_node);
 
-	nyoci_set_proxy_url(gNyociInstance, getenv("COAP_PROXY_URL"));
+	nyoci_set_proxy_url(gMyNyociInstance, getenv("COAP_PROXY_URL"));
 
-#if SMCP_DTLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
+#if NYOCI_PLAT_TLS_OPENSSL && HAVE_OPENSSL_SSL_CONF_CTX_NEW
 	SSL_CONF_CTX_clear_flags(gSslConfCtx, SSL_CONF_FLAG_CMDLINE);
 	SSL_CONF_CTX_set_flags(gSslConfCtx, SSL_CONF_FLAG_FILE);
 	SSL_CONF_CTX_set1_prefix(gSslConfCtx, "SSL");
 #endif
 
-	if (0 != read_configuration(gNyociInstance,config_file)) {
+	if (0 != read_configuration(gMyNyociInstance,config_file)) {
 		syslog(LOG_NOTICE,"Error processing configuration file!");
 		gRet = ERRORCODE_BADCONFIG;
 	} else {
-		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",nyoci_plat_get_port(gNyociInstance));
+		syslog(LOG_NOTICE,"Daemon started. Listening on port %d.",nyoci_plat_get_port(gMyNyociInstance));
 	}
 
 	while (!gRet) {
@@ -754,7 +748,7 @@ main(
 		);
 
 		nyoci_plat_update_fdsets(
-			gNyociInstance,
+			gMyNyociInstance,
 			&read_fd_set,
 			&write_fd_set,
 			&error_fd_set,
@@ -782,7 +776,7 @@ main(
 			break;
 		}
 
-		nyoci_plat_process(gNyociInstance);
+		nyoci_plat_process(gMyNyociInstance);
 
 		if (smcpd_modules_process() != NYOCI_STATUS_OK) {
 			syslog(LOG_ERR,"Module process error.");
@@ -791,7 +785,7 @@ main(
 
 		if (gRet == ERRORCODE_SIGHUP) {
 			gRet = 0;
-			read_configuration(gNyociInstance, config_file);
+			read_configuration(gMyNyociInstance, config_file);
 		}
 	}
 
@@ -801,14 +795,14 @@ bail:
 		gRet = 0;
 	}
 
-	if (gNyociInstance) {
+	if (gMyNyociInstance) {
 		syslog(LOG_NOTICE,"Stopping smcpd . . .");
 
 		if (gPIDFilename) {
 			unlink(gPIDFilename);
 		}
 
-		nyoci_release(gNyociInstance);
+		nyoci_release(gMyNyociInstance);
 
 		syslog(LOG_NOTICE,"Stopped.");
 	}

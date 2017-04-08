@@ -31,9 +31,6 @@
 #include <config.h>
 #endif
 
-#define DEBUG 1
-#define VERBOSE_DEBUG 1
-
 #ifndef ASSERT_MACROS_USE_SYSLOG
 #define ASSERT_MACROS_USE_SYSLOG 1
 #endif
@@ -128,6 +125,8 @@ group_node_init(
 	FILE* file = fopen(path, "r");
 	char* line = NULL;
 	size_t line_len = 0;
+
+	NYOCI_LIBRARY_VERSION_CHECK();
 
 	require(name != NULL, bail);
 

@@ -26,6 +26,9 @@ AC_LIBTOOL_DLOPEN_SELF
 AC_PROG_LIBTOOL
 LT_INIT
 
+AC_DEFINE_UNQUOTED([PREFIX], ["`eval echo "$prefix"`"], [Define to the install prefix])
+AC_DEFINE_UNQUOTED([SYSCONFDIR], ["`eval echo "$sysconfdir"`"], [Define to the sub-directory for system settings.])
+AC_DEFINE_UNQUOTED([PKGLIBEXECDIR], ["`eval eval eval echo "$pkglibexecdir"`"], [Define to the sub-directory for plugins.])
 AC_DEFINE_UNQUOTED([SOURCE_VERSION], ["`eval echo "$SOURCE_VERSION"`"], [Source version])
 
 # Checks for programs.

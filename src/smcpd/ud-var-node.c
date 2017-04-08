@@ -270,6 +270,8 @@ ud_var_node_request_handler(
 		out_content_max_len -= len_encoded;
 
 		ret = nyoci_outbound_set_content_len((coap_size_t)(len_encoded + 2));
+// TODO: Add JSON
+
 	} else {
 
 		ret = nyoci_outbound_append_content((char*)buffer, (coap_size_t)buffer_len);
@@ -315,6 +317,8 @@ ud_var_node_init(
 	const char* path
 ) {
 	int fd = -1;
+
+	NYOCI_LIBRARY_VERSION_CHECK();
 
 	require(path != NULL, bail);
 	require(path[0] != 0, bail);
@@ -406,19 +410,20 @@ ud_var_node_process(ud_var_node_t self) {
 		uint8_t flags = 0;
 
 		if (next_refresh <= 0 || next_refresh > self->refresh_period) {
-			self->next_refresh = nyoci_plat_cms_to_timestamp(self->refresh_period);
 			trigger_it = true;
 			flags = NYOCI_OBS_TRIGGER_FLAG_NO_INCREMENT;
 		}
 
 		fdset[0].fd = self->fd;
 		fdset[0].events = POLLPRI|POLLERR;
+		fdset[0].revents = 0;
 
-		if (poll(fdset, 1, 0) >= 0) {
+		if (poll(fdset, 1, 0) > 0) {
 			if ( ((fdset[0].revents & POLLPRI) == POLLPRI)
 			  || ((fdset[0].revents & POLLIN)  == POLLERR)
 			) {
 				trigger_it = true;
+				flags &= ~NYOCI_OBS_TRIGGER_FLAG_NO_INCREMENT;
 			}
 		}
 
@@ -444,9 +449,10 @@ ud_var_node_process(ud_var_node_t self) {
 		}
 
 		if (trigger_it) {
+			self->next_refresh = nyoci_plat_cms_to_timestamp(self->refresh_period);
 			nyoci_observable_trigger(
 				&self->observable,
-				NYOCI_OBSERVABLE_BROADCAST_KEY,
+				0,
 				flags
 			);
 		}

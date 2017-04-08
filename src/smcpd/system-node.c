@@ -237,6 +237,8 @@ system_node_init(
 	const char* name,
 	const char* other
 ) {
+	NYOCI_LIBRARY_VERSION_CHECK();
+
 	require(self || (self = system_node_alloc()), bail);
 
 	self->variable_handler.func = device_func;

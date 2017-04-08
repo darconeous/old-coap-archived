@@ -31,9 +31,6 @@
 #include <config.h>
 #endif
 
-#define DEBUG 1
-#define VERBOSE_DEBUG 1
-
 #ifndef ASSERT_MACROS_USE_SYSLOG
 #define ASSERT_MACROS_USE_SYSLOG 1
 #endif
@@ -127,6 +124,8 @@ pairing_node_init(
 	char* line = NULL;
 	size_t line_len = 0;
 
+	NYOCI_LIBRARY_VERSION_CHECK();
+
 	require(name != NULL, bail);
 
 	require(self || (self = pairing_node_alloc()), bail);
@@ -216,7 +215,7 @@ nyoci_status_t
 pairing_node_process(pairing_node_t self)
 {
 	if (nyoci_plat_timestamp_to_cms(self->next_observer_refresh) < 0) {
-		self->next_observer_refresh = nyoci_plat_cms_to_timestamp(NYOCI_OBSERVATION_KEEPALIVE_INTERVAL - MSEC_PER_SEC);
+		self->next_observer_refresh = nyoci_plat_cms_to_timestamp((nyoci_cms_t)(NYOCI_OBSERVATION_KEEPALIVE_INTERVAL*0.9));
 		nyoci_refresh_observers(self->interface, NYOCI_OBS_TRIGGER_FLAG_NO_INCREMENT|NYOCI_OBS_TRIGGER_FLAG_FORCE_CON);
 	}
 	return NYOCI_STATUS_OK;

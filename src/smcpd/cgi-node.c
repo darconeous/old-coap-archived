@@ -807,6 +807,8 @@ cgi_node_init(
 ) {
 	int i;
 
+	NYOCI_LIBRARY_VERSION_CHECK();
+
 	require(cmd!=NULL, bail);
 	require(cmd[0]!=0, bail);
 	require(name!=NULL, bail);
