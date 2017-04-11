@@ -2307,7 +2307,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 ac_config_headers="$ac_config_headers src/config.h src/smcp/smcp-config.h"
 
 
-SOURCE_VERSION=0.6.5-66-gda484d0
+SOURCE_VERSION=0.6.5-67-ge25116d
 
 am__api_version='1.11'
 
@@ -11981,6 +11981,21 @@ CC="$lt_save_CC"
 
 
 
+
+
+cat >>confdefs.h <<_ACEOF
+#define PREFIX "`eval echo "$prefix"`"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define SYSCONFDIR "`eval echo "$sysconfdir"`"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define PKGLIBEXECDIR "`eval eval eval echo "$pkglibexecdir"`"
+_ACEOF
 
 
 cat >>confdefs.h <<_ACEOF
